@@ -32,6 +32,7 @@ public:
 		COMMAND_ID_HANDLER(ID_APP_ABOUT, OnAppAbout)
 		COMMAND_ID_HANDLER(IDOK, OnOK)
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
+		COMMAND_ID_HANDLER(IDC_BUTTON_VIEWLOGWINDOW, OnViewLogWindow )
 	END_MSG_MAP()
 
 // Handler prototypes (uncomment arguments if needed):
@@ -59,7 +60,6 @@ public:
 		UIAddChildWindowContainer(m_hWnd);
 
 		m_logView.Create(m_hWnd);
-		m_logView.ShowWindow(TRUE);
 
 		return TRUE;
 	}
@@ -94,6 +94,13 @@ public:
 		CloseDialog(wID);
 		return 0;
 	}
+
+	LRESULT OnViewLogWindow(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+	{
+		m_logView.ShowWindow();
+		return 0;
+	}
+
 
 	void CloseDialog(int nVal)
 	{

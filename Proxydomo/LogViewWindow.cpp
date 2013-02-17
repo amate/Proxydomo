@@ -6,6 +6,7 @@
 #include "stdafx.h"
 #include "LogViewWindow.h"
 #include <fstream>
+#include <algorithm>
 #include <boost\property_tree\ini_parser.hpp>
 #include <boost\property_tree\ptree.hpp>
 #include "Misc.h"
@@ -28,6 +29,13 @@ CLogViewWindow::~CLogViewWindow()
 }
 
 
+void	CLogViewWindow::ShowWindow()
+{
+	CLog::RegisterLogTrace(this);
+	__super::ShowWindow(TRUE);
+}
+
+
 // ILogTrace
 
 void CLogViewWindow::ProxyEvent(LogProxyEvent Event, const IPv4Address& addr)
@@ -36,18 +44,29 @@ void CLogViewWindow::ProxyEvent(LogProxyEvent Event, const IPv4Address& addr)
 	msg.Format(_T(">>> ポート %d : "), addr.GetPort());
 	switch (Event) {
 	case kLogProxyNewRequest:
-		msg	+= _T("新しいリクエストを受信しました");
+		msg	+= _T("新しいリクエストを受信しました\n");
+		{
+			CCritSecLock	lock(m_csActiveRequestLog);
+			m_vecActiveRequestLog.emplace_back(new EventLog(addr.GetPort(), msg, LOG_COLOR_PROXY));
+		}
 		break;
 
 	case kLogProxyEndRequest:
-		msg += _T("リクエストが完了しました");
+		msg += _T("リクエストが完了しました\n");
+		{
+			CCritSecLock	lock(m_csActiveRequestLog);
+			uint16_t port = addr.GetPort();
+			auto result = std::remove_if(m_vecActiveRequestLog.begin(), m_vecActiveRequestLog.end(), 
+				[port](const std::unique_ptr<EventLog>& log) { return log->port == port; }
+			);
+			m_vecActiveRequestLog.erase(result, m_vecActiveRequestLog.end());
+		}
 		break;
 
 	default:
 		ATLASSERT( FALSE );
 		return ;
 	}
-	msg += _T("\n");
 
 	CString title;
 	title.Format(_T("ログ - Active[ %d ]"), CLog::GetActiveRequestCount());
@@ -56,7 +75,7 @@ void CLogViewWindow::ProxyEvent(LogProxyEvent Event, const IPv4Address& addr)
 	_AppendText(msg, LOG_COLOR_PROXY);
 }
 
-void CLogViewWindow::HttpEvent(LogHttpEvent Event, int RequestNumber, const std::string& text)
+void CLogViewWindow::HttpEvent(LogHttpEvent Event, const IPv4Address& addr, int RequestNumber, const std::string& text)
 {
 	CString msg;
 	msg.Format(_T(">>> #%d : "), RequestNumber);
@@ -89,6 +108,10 @@ void CLogViewWindow::HttpEvent(LogHttpEvent Event, int RequestNumber, const std:
 	if (Event == kLogHttpRecvIn || Event == kLogHttpSendIn)
 		color = LOG_COLOR_RESPONSE;
 	
+	{
+		CCritSecLock	lock(m_csActiveRequestLog);
+		m_vecActiveRequestLog.emplace_back(new EventLog(addr.GetPort(), msg, color));
+	}
 	_AppendText(msg, color);
 }
 
@@ -121,6 +144,8 @@ BOOL CLogViewWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 		MoveWindow(&rcWindow);
 	}
 
+	__super::ShowWindow(TRUE);
+
 	return 0;
 }
 
@@ -144,15 +169,26 @@ void CLogViewWindow::OnCancel(UINT uNotifyCode, int nID, CWindow wndCtl)
 		write_ini(fs, pt);
 	}
 
-	ShowWindow(FALSE);
+	__super::ShowWindow(FALSE);
 }
 
 
 void CLogViewWindow::OnClear(UINT uNotifyCode, int nID, CWindow wndCtl)
 {
 	m_editLog.SetWindowText(_T(""));
+	m_editLog.Invalidate();
 }
 
+void CLogViewWindow::OnShowActiveRequestLog(UINT uNotifyCode, int nID, CWindow wndCtl)
+{
+	OnClear(0, 0, NULL);
+
+	CCritSecLock	lock(m_csActiveRequestLog);
+	for (auto& log : m_vecActiveRequestLog) {
+		_AppendText(log->text, log->textColor);
+	}
+
+}
 
 void	CLogViewWindow::_AppendText(const CString& text, COLORREF textColor)
 {

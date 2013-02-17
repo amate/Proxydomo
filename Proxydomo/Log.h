@@ -29,7 +29,7 @@ class ILogTrace
 {
 public:
 	virtual void ProxyEvent(LogProxyEvent Event, const IPv4Address& addr) = 0;
-	virtual void HttpEvent(LogHttpEvent Event, int RequestNumber, const std::string& text) = 0;
+	virtual void HttpEvent(LogHttpEvent Event, const IPv4Address& addr, int RequestNumber, const std::string& text) = 0;
 };
 
 
@@ -46,10 +46,10 @@ public:
 		if (s_pLogTrace)
 			s_pLogTrace->ProxyEvent(Event, addr);
 	}
-	static void HttpEvent(LogHttpEvent Event, int RequestNumber, const std::string& text)
+	static void HttpEvent(LogHttpEvent Event, const IPv4Address& addr, int RequestNumber, const std::string& text)
 	{
 		if (s_pLogTrace)
-			s_pLogTrace->HttpEvent(Event, RequestNumber, text);
+			s_pLogTrace->HttpEvent(Event, addr, RequestNumber, text);
 	}
 
 	static long	IncrementRequestCount() { return ::InterlockedIncrement(&s_RequestCount); }

@@ -200,6 +200,14 @@ void CRequestManager::Manage()
 					}
 					::Sleep(5);
 				}
+
+				// どちらからもデータが受信できなかったら切る
+				if (m_psockWebsite->IsConnectionKilledFromPeer() && m_psockBrowser->IsConnectionKilledFromPeer()) {
+					TRACEIN("Manage ポート %d : outStep[%d] inStep[%d] ブラウザとサイトのデータ受信が終了しました", m_ipFromAddress.GetPort(), m_outStep, m_inStep);
+					m_psockWebsite->Close();
+					m_psockBrowser->Close();
+				}
+
 			} while (m_psockWebsite->IsConnected() &&  m_psockBrowser->IsConnected());
 			TRACE("Manage ポート %d : outStep[%d] inStep[%d] ", m_ipFromAddress.GetPort(), m_outStep, m_inStep);
 			if (m_psockWebsite->IsConnected() == false)
@@ -340,6 +348,15 @@ void CRequestManager::_ProcessOut()
 
 				// Next step will be to read headers
 				m_outStep = STEP_HEADERS;
+
+				// Unless we have Content-Length or Transfer-Encoding headers,
+				// we won't expect anything after headers.
+				m_outSize = 0;
+				m_outChunked = false;
+				m_outHeaders.clear();
+				// (in case a silly OUT filter wants to read IN headers)
+				m_inHeaders.clear();
+				m_responseCode.clear();
 			}
 			break;
 
@@ -386,7 +403,7 @@ void CRequestManager::_ProcessOut()
 		// Decode and process headers
 		case STEP_DECODE:
 			{
-				CLog::HttpEvent(kLogHttpRecvOut, m_requestNumber, m_logRequest);
+				CLog::HttpEvent(kLogHttpRecvOut, m_ipFromAddress, m_requestNumber, m_logRequest);
 
 				// Get the URL and the host to contact (unless we use a proxy)
 				m_url.parseUrl(m_requestLine.url);
@@ -441,7 +458,7 @@ void CRequestManager::_ProcessOut()
 						m_sendOutBuf += pair.first + ": " + pair.second + CRLF;
 
 					// Log outgoing headers
-					CLog::HttpEvent(kLogHttpSendOut, m_requestNumber, m_sendOutBuf);
+					CLog::HttpEvent(kLogHttpSendOut, m_ipFromAddress, m_requestNumber, m_sendOutBuf);
 
 					m_sendOutBuf += CRLF;
 				}
@@ -483,7 +500,7 @@ void CRequestManager::_ProcessOut()
 					m_sendOutBuf += m_recvOutBuf.substr(0, pos) + CRLF CRLF;
 					m_recvOutBuf.erase(0, pos + len);
 
-					CLog::HttpEvent(kLogHttpPostOut, m_requestNumber, m_logPostData);
+					CLog::HttpEvent(kLogHttpPostOut, m_ipFromAddress, m_requestNumber, m_logPostData);
 
 					m_outStep = STEP_FINISH;
 
@@ -517,7 +534,7 @@ void CRequestManager::_ProcessOut()
 					if (m_outChunked) {
 						m_outStep = STEP_CHUNK;
 					} else {
-						CLog::HttpEvent(kLogHttpPostOut, m_requestNumber, m_logPostData);
+						CLog::HttpEvent(kLogHttpPostOut, m_ipFromAddress, m_requestNumber, m_logPostData);
 
 						m_outStep = STEP_FINISH;
 					}
@@ -730,7 +747,7 @@ void CRequestManager::_ConnectWebsite()
             // for CONNECT method, incoming data is encrypted from start
             m_sendInBuf = "HTTP/1.0 200 Connection established" CRLF
 						  "Proxy-agent: " "Proxydomo/0.5"/*APP_NAME " " APP_VERSION*/ CRLF CRLF;
-			CLog::HttpEvent(kLogHttpSendIn, m_requestNumber, m_sendInBuf);
+			CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_requestNumber, m_sendInBuf);
             m_inStep = STEP_TUNNELING;
         }
     }
@@ -747,7 +764,7 @@ void CRequestManager::_ConnectWebsite()
             m_requestLine.method + " " + m_requestLine.url + " HTTP/1.1" CRLF
             "Host: " + m_url.getHost() + CRLF;
 
-		CLog::HttpEvent(kLogHttpSendOut, m_requestNumber, m_sendOutBuf);
+		CLog::HttpEvent(kLogHttpSendOut, m_ipFromAddress, m_requestNumber, m_sendOutBuf);
 
         m_sendOutBuf += m_logPostData + CRLF;
         // Send request
@@ -825,7 +842,7 @@ void	CRequestManager::_ProcessIn()
 				// we won't expect anything after headers.
 				m_inSize = 0;
 				m_inChunked = false;
-				//inHeaders.clear();
+				m_inHeaders.clear();
 				m_responseCode.clear();
 				m_recvConnectionClose = false;
 				m_sendConnectionClose = false;
@@ -886,7 +903,7 @@ void	CRequestManager::_ProcessIn()
 		// Decode and process headers
 		case STEP_DECODE:
 			{
-				CLog::HttpEvent(kLogHttpRecvIn, m_requestNumber, m_logResponse);
+				CLog::HttpEvent(kLogHttpRecvIn, m_ipFromAddress, m_requestNumber, m_logResponse);
 
 				// We must read the Content-Length and Transfer-Encoding
 				// headers to know body length
@@ -1024,7 +1041,7 @@ void	CRequestManager::_ProcessIn()
 					for (auto& pair : inHeadersFiltered) {
 						m_sendInBuf += pair.first + ": " + pair.second + CRLF;
 					}
-					CLog::HttpEvent(kLogHttpSendIn, m_requestNumber, m_sendInBuf);
+					CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_requestNumber, m_sendInBuf);
 
 					m_sendInBuf += CRLF;
 #if 0
@@ -1083,7 +1100,7 @@ void	CRequestManager::_ProcessIn()
 				if (copySize > m_inSize)
 					copySize = m_inSize;
 
-				if (m_psockWebsite->IsConnectionKilledFromPeer())
+				if (m_inChunked == false && m_psockWebsite->IsConnectionKilledFromPeer())
 					m_inSize = 0;
 				if (copySize == 0 && m_inSize)
 					return ;
@@ -1135,7 +1152,7 @@ void	CRequestManager::_ProcessIn()
 				m_recvInBuf.clear();
 
 				// サイトからの接続が切れたらブラウザへ残りのデータを送信してブラウザとの接続を切る
-				if (m_psockWebsite->IsConnected() == false) {
+				if (m_psockWebsite->IsConnected() == false || m_psockWebsite->IsConnectionKilledFromPeer()) {
 					m_inStep = STEP_FINISH;
 					m_outStep = STEP_FINISH;	// サイトとの接続は切れてるのでこっちでやっても問題ないはず。。。
 					m_sendConnectionClose = true;
@@ -1374,7 +1391,7 @@ void	CRequestManager::_FakeResponse(const std::string& code)
 	m_sendInBuf = 
         "HTTP/1.1 " + code + CRLF
         "Content-Length: " + "0" + CRLF;
-	CLog::HttpEvent(kLogHttpSendIn, m_requestNumber, m_sendInBuf);
+	CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_requestNumber, m_sendInBuf);
 	m_sendInBuf += CRLF;
 	m_sendConnectionClose = true;
 }
