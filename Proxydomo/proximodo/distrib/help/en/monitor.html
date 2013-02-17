@@ -1,0 +1,81 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta name="generator" content=
+"HTML Tidy for Windows (vers 1st April 2002), see www.w3.org">
+<title>Proximodo - Settings</title>
+<link rel="stylesheet" type="text/css" href="help.css">
+</head>
+<body>
+<center><img src="monitor.png"></center>
+
+<p class="section">Filtering Options</p>
+
+<p class="option">Filter Outgoing Headers</p>
+
+<p class="explain">If this box is unchecked, outgoing headers (that
+is, headers included in the requests your browser sends to
+websites) will not be affected by filters. If the box is checked,
+headers may be changed / added / deleted by a header filter that
+matches it. Note that Proximodo being a proxy server, it may change
+a few proxy-related headers for its proper functioning, whether the
+box is checked or not.</p>
+
+<p class="option">Filter Incoming Headers</p>
+
+<p class="explain">If this box is unchecked, incoming headers
+(headers that websites send along with html documents and images)
+are not affected by header filters. If the box is checked, headers
+may be changed / added / deleted by header filters in the current
+configuration.</p>
+
+<p class="option">Filter Text</p>
+
+<p class="explain">If this box is unchecked, downloaded html
+documents are left untouched. If checked, the documents go through
+all text filters in the current configuration. Those filters are
+chained, and they may replace bits of text or not. The document's
+content is then sent to the browser for viewing.</p>
+
+<p class="option">Freeze GIF Images</p>
+
+<p class="explain">If this box is checked, animated GIF images will
+be transformed into fixed GIF images. Use this when flashy blinking
+images all over the screen make you dizzy.</p>
+
+<p class="option">Active Configuration</p>
+
+<p class="explain">This is the active configuration for header/text
+processing. A configuration is a set of selected filters that you
+want to use. Proximodo comes with many filters, and you can add
+more, but hopefully they are not all being used at the same time.
+Instead, you can select the filters you want to use and "group"
+them in a configuration. You can create several configurations, so
+that switching from one set to another (for example for a set of
+very unforgiving filters to a more permissive one) comes just to
+changing the value of this setting.</p>
+
+<p class="section">Statistics</p>
+
+<p class="option">Running Requests</p>
+
+<p class="explain">This is the number of pages or files being
+currently downloaded from the Internet. When zero, Proximodo is
+idle, even though there may still be open connections
+(persistent connections are used to improve Internet access time).</p>
+
+<p class="option">Open Connections</p>
+
+<p class="explain">This is the number of connections (sockets)
+still alive between browser windows and Proximodo.</p>
+
+<p class="option">Abort Button</p>
+
+<p class="explain">It will close all connections, thus stopping
+downloads. Use it if you want to interrupt a frozen download without
+exiting the browser. Note that Proximodo continues to accept new
+connections, the button does not stop the proxy server.</p>
+
+</body>
+</html>
+

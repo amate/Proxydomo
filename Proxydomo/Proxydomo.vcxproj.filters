@@ -1,0 +1,292 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{afa503e3-088c-4ebd-99a8-60fe0099e8d8}</UniqueIdentifier>
+      <Extensions>cpp;c;cxx;def;odl;idl;hpj;bat;asm</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{092ba235-a584-4741-b721-d5b824df7d3f}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{8a3c017c-7ddd-4157-b32d-c76157b54057}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;jpg;jpeg;jpe;manifest</Extensions>
+    </Filter>
+    <Filter Include="Source Files\proximodo">
+      <UniqueIdentifier>{de11e98c-32ba-4c7b-8c5a-478fa139d94f}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Proxydomo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="proximodo\configscreen.cpp">
+      <Filter>Source Files\proximodo</Filter>
+    </ClCompile>
+    <ClCompile Include="proximodo\controls.cpp">
+      <Filter>Source Files\proximodo</Filter>
+    </ClCompile>
+    <ClCompile Include="proximodo\descriptor.cpp">
+      <Filter>Source Files\proximodo</Filter>
+    </ClCompile>
+    <ClCompile Include="proximodo\editscreen.cpp">
+      <Filter>Source Files\proximodo</Filter>
+    </ClCompile>
+    <ClCompile Include="proximodo\events.cpp">
+      <Filter>Source Files\proximodo</Filter>
+    </ClCompile>
+    <ClCompile Include="proximodo\expander.cpp">
+      <Filter>Source Files\proximodo</Filter>
+    </ClCompile>
+    <ClCompile Include="proximodo\filter.cpp">
+      <Filter>Source Files\proximodo</Filter>
+    </ClCompile>
+    <ClCompile Include="proximodo\filterowner.cpp">
+      <Filter>Source Files\proximodo</Filter>
+    </ClCompile>
+    <ClCompile Include="proximodo\giffilter.cpp">
+      <Filter>Source Files\proximodo</Filter>
+    </ClCompile>
+    <ClCompile Include="proximodo\headerfilter.cpp">
+      <Filter>Source Files\proximodo</Filter>
+    </ClCompile>
+    <ClCompile Include="proximodo\log.cpp">
+      <Filter>Source Files\proximodo</Filter>
+    </ClCompile>
+    <ClCompile Include="proximodo\logframe.cpp">
+      <Filter>Source Files\proximodo</Filter>
+    </ClCompile>
+    <ClCompile Include="proximodo\main.cpp">
+      <Filter>Source Files\proximodo</Filter>
+    </ClCompile>
+    <ClCompile Include="proximodo\mainframe.cpp">
+      <Filter>Source Files\proximodo</Filter>
+    </ClCompile>
+    <ClCompile Include="proximodo\managerthread.cpp">
+      <Filter>Source Files\proximodo</Filter>
+    </ClCompile>
+    <ClCompile Include="proximodo\matcher.cpp">
+      <Filter>Source Files\proximodo</Filter>
+    </ClCompile>
+    <ClCompile Include="proximodo\nodes.cpp">
+      <Filter>Source Files\proximodo</Filter>
+    </ClCompile>
+    <ClCompile Include="proximodo\platform.cpp">
+      <Filter>Source Files\proximodo</Filter>
+    </ClCompile>
+    <ClCompile Include="proximodo\proxy.cpp">
+      <Filter>Source Files\proximodo</Filter>
+    </ClCompile>
+    <ClCompile Include="proximodo\requestmanager.cpp">
+      <Filter>Source Files\proximodo</Filter>
+    </ClCompile>
+    <ClCompile Include="proximodo\settings.cpp">
+      <Filter>Source Files\proximodo</Filter>
+    </ClCompile>
+    <ClCompile Include="proximodo\settingsscreen.cpp">
+      <Filter>Source Files\proximodo</Filter>
+    </ClCompile>
+    <ClCompile Include="proximodo\testframe.cpp">
+      <Filter>Source Files\proximodo</Filter>
+    </ClCompile>
+    <ClCompile Include="proximodo\textbuffer.cpp">
+      <Filter>Source Files\proximodo</Filter>
+    </ClCompile>
+    <ClCompile Include="proximodo\textfilter.cpp">
+      <Filter>Source Files\proximodo</Filter>
+    </ClCompile>
+    <ClCompile Include="proximodo\trayicon.cpp">
+      <Filter>Source Files\proximodo</Filter>
+    </ClCompile>
+    <ClCompile Include="proximodo\util.cpp">
+      <Filter>Source Files\proximodo</Filter>
+    </ClCompile>
+    <ClCompile Include="proximodo\welcomescreen.cpp">
+      <Filter>Source Files\proximodo</Filter>
+    </ClCompile>
+    <ClCompile Include="proximodo\windowcontent.cpp">
+      <Filter>Source Files\proximodo</Filter>
+    </ClCompile>
+    <ClCompile Include="proximodo\zlibbuffer.cpp">
+      <Filter>Source Files\proximodo</Filter>
+    </ClCompile>
+    <ClCompile Include="Socket.cpp">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Proxy.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="RequestManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="proximodo\url.cpp">
+      <Filter>Source Files\proximodo</Filter>
+    </ClCompile>
+    <ClCompile Include="DebugWindow.cpp">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Misc.cpp">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="LogViewWindow.cpp">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="stdafx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MainDlg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AboutDlg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\configscreen.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\const.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\controls.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\descriptor.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\editscreen.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\events.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\expander.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\filter.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\filterowner.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\giffilter.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\headerfilter.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\log.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\logframe.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\logviewer.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\mainframe.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\managerthread.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\matcher.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\memory.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\node.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\nodes.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\platform.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\Proximodo_private.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\proxy.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\receptor.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\requestmanager.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\settings.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\settingsscreen.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\testframe.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\textbuffer.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\textfilter.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\trayicon.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\util.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\welcomescreen.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\windowcontent.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\zlibbuffer.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="Socket.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Proxy.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RequestManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="proximodo\url.h">
+      <Filter>Source Files\proximodo</Filter>
+    </ClInclude>
+    <ClInclude Include="DebugWindow.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Misc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LogViewWindow.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Resource Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Log.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Proxydomo.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="res\Proxydomo.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+  </ItemGroup>
+</Project>

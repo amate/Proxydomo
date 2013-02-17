@@ -1,0 +1,144 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<html>
+<head>
+<meta name="generator" content=
+"HTML Tidy for Windows (vers 1st April 2002), see www.w3.org">
+<title>Proximodo Readme file</title>
+</head>
+<body>
+<p>This file provides a few notes about Proximodo source code and
+development.</p>
+
+<h2><a name="toc" href="#toc">Table of content</a></h2>
+
+<ul>
+<li><a href="#ideas">Ideas behind Proximodo</a></li>
+
+<li><a href="#ideas">Missing options still to be developed</a></li>
+
+<li><a href="#ideas">Known issues</a></li>
+
+<li><a href="#ideas">Framework</a></li>
+
+<li><a href="#ideas">Other notes on development choices</a></li>
+
+<li><a href="#ideas">Want to participate?</a></li>
+</ul>
+
+<hr>
+<h2><a href="#toc" name="ideas">Ideas behind Proximodo</a></h2>
+
+<p>The main idea is to provide a free and open alternative to the
+excellent but alas now unmaintained Proxomitron. I hope that in a
+near future Proximodo will implement all functionalities of
+Proxomitron 4.5, and more. Currently, 100% of Proxomitron $commands
+and syntax are supported, so you can use all your custom filters
+with Proximodo!</p>
+
+<p>Also, the first version (0.1) of Proximodo already offers new
+functionalities, such as:</p>
+
+<ul>
+<li>Multilingual GUI</li>
+
+<li>Multiplatform (thanks to wxWidgets and no use of Windows
+specific libraries)</li>
+
+<li>Centralized bank of filter: Proxomitron's .cfg files are
+replaced by mere enumerations of active filters, i.e
+"Configurations"</li>
+
+<li>Export/Import filters from/to clipboard (no more need to mess
+with .txt files)</li>
+
+<li>Import from Proxomitron filters (again through clipboard)</li>
+</ul>
+
+<h2><a href="#toc" name="missing">Missing options still to be
+developed</a></h2>
+
+<ul>
+<li>HTML debug info (but do we want it?)</li>
+
+<li>SSL support (https)</li>
+</ul>
+
+<h2><a href="#toc" name="issues">Known issues</a></h2>
+
+<ul>
+<li>While gzip/deflate output works most of the time, there seem
+to be a few pages that get corrupted when compressed. In this case
+the browser asks the website for the missing pieces, and the latter
+returns a 206 response that is not correctly appended into the
+browser. Example: http://www.calgarytransit.com/ and create a
+filter force incoming header Content-Encoding to gzip (or deflate).
+</li>
+
+<li>In some cases, web page retrieval does not behave the same when
+using a next proxy or not. Example: groups.yahoo.com will return a
+302 response with an invalid Location header, which is not the case
+when the browser connects directly to the internet or through
+another proxy server.</li>
+
+<li>There is a lot of flickering when resizing the window. It is a
+known issue of wxWidgets. I have not yet figured out a way to get rid
+of it without loosing in code clarity.</li>
+
+<li>There are some redrawing glitches in the GUI, again on resize.
+I think they should disappear with the next stable release of wxMSW
+(release 2.5.3 is still under development.)</li>
+</ul>
+
+<h2><a href="#toc" name="framework">Framework</a></h2>
+
+<p>I chose wxWidgets for GUI and sockets. I used wxMSW 2.5.3 for
+developing v0.1, so due to backward compatibility issues the code
+may not compile or work properly with earlier versions of
+wxWidgets (for example, earlier versions won't display the popup
+menu of the wxTaskBar).</p>
+
+<p>I use C++ STL wherever possible (as long as it does not make
+code unreadable). In particular, string is used instead of char[]
+as much as possible.</p>
+
+<p>Proximodo does not use standard C libraries, only pure C++.</p>
+
+<p>I did not compile wxMSW with STL wxString inheritance, I am not
+sure it would have been better, but as for now there are .c_str()
+calls at every conversions between wxString and string.</p>
+
+<h2><a href="#toc" name="notes">Other notes on development
+choices</a></h2>
+
+<p><b>Case sensitivity:</b> Header names and $SET variable names
+are case-insensitive. List names and configuration
+names are case-sensitive. In pattern, everything is case-insensitive
+except [%xx] and [\letter].</p>
+
+<h2><a href="#toc" name="help">Want to participate?</a></h2>
+
+<p>If you are willing to participate in Proximodo's development,
+you are very welcome. Parts that most need help:</p>
+
+<ul>
+<li>Testing (engine/proxy/GUI)</li>
+
+<li>Debugging and tracking memory leaks (if any)</li>
+
+<li>Completing help pages</li>
+
+<li>Translating help pages and .lng files to other languages</li>
+
+<li>Porting to other platforms (I don't have Linux installed right
+now, but a Knoppix distro)</li>
+
+<li>Creating a nice website</li>
+
+<li>Developping new or missing options</li>
+</ul>
+
+<p>All your suggestions, encouragements or even flaming will be
+welcome!</p>
+</body>
+</html>
+

@@ -1,0 +1,45 @@
+/* THIS FILE WILL BE OVERWRITTEN BY DEV-C++ */
+/* DO NOT EDIT! */
+
+#include <windows.h> // include for version info constants
+
+#include <wx/msw/wx.rc>
+
+A ICON MOVEABLE PURE LOADONCALL DISCARDABLE "Proximodo.ico"
+
+//
+// SUPPORT FOR WINDOWS XP THEMES:
+// THIS WILL MAKE THE PROGRAM USE THE COMMON CONTROLS
+// LIBRARY VERSION 6.0 (IF IT IS AVAILABLE)
+//
+1 24 "../bin/Proximodo.exe.Manifest"
+
+//
+// TO CHANGE VERSION INFORMATION, EDIT PROJECT OPTIONS...
+//
+1 VERSIONINFO
+FILEVERSION 0,2,5,0
+PRODUCTVERSION 0,2,5,0
+FILETYPE VFT_APP
+{
+  BLOCK "StringFileInfo"
+	 {
+		 BLOCK "040904E4"
+		 {
+			 VALUE "CompanyName", "(c) Antony Boucher"
+			 VALUE "FileVersion", "0.2.5"
+			 VALUE "FileDescription", "Proximodo Project"
+			 VALUE "InternalName", ""
+			 VALUE "LegalCopyright", "Distributed under GNU GPL"
+			 VALUE "LegalTrademarks", ""
+			 VALUE "OriginalFilename", ""
+			 VALUE "ProductName", "Proximodo"
+			 VALUE "ProductVersion", "0.2.5"
+		 }
+	 }
+  BLOCK "VarFileInfo"
+	 {
+		 VALUE "Translation", 0x0409, 1252
+	 }
+}
+

@@ -1,0 +1,1396 @@
+[Alias Redirector]
+ID=1
+Priority=999
+Type=out
+Version=4.5
+Author=Proxomitron development team
+Header=URL
+DefaultFilter=101
+Folder=Handy Tools/
+Comment=You can access your favorite sites by typing in the browser's URL field a dot followed by an alias. Aliases are defined in the AliasList list.
+URL=.$LST(AliasList)
+
+[Allow for frame resizing]
+ID=2
+Priority=430
+Type=text
+Multiple=no
+Width=256
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=102
+Folder=Layout/
+Comment=Makes all frames "resizeable" allowing you finally to see half-obscured frames or reclaim the screen space wasted by advertising frames.
+Bounds=<fram*>
+Match=(\#((frameborder|border)=$AV(*)|noresize|=$AV(0|no)$SET(\#==1 )))+ \1 >
+Replace=\@\1 border=1>
+
+[Allow right mouse click]
+ID=3
+Priority=530
+Type=text
+Multiple=no
+Width=256
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=103
+Folder=Navigation/
+Comment=For use with sites who use a JavaScript function to screw up your mouse so you can't add links to your favourites list or reload images that didn't load the first time.
+Match=.(onmousedown=|captureEvents\()\1
+Replace=.PrxOff_\1
+
+[Allow webpage encoding]
+ID=4
+Priority=999
+Type=out
+Version=4.5
+Author=Proxomitron development team
+Header=Accept-encoding
+DefaultFilter=104
+Folder=Connection Control/
+Comment=Tells the website that it can send files in a compressed form, and that the browser supports decoding.
+Match=*
+Replace=gzip, deflate
+
+[Always cache (cache control)]
+ID=5
+Priority=999
+Type=in
+Version=4.5
+Author=Proxomitron development team
+Header=Cache-Control
+DefaultFilter=105
+Folder=Cache Control/
+Comment=The website may force the browser not to cache files. This filter prevents this forcing, thus letting the browser manage its cache at best.
+Match=*
+
+[Always cache (expires)]
+ID=6
+Priority=999
+Type=in
+Version=4.5
+Author=Proxomitron development team
+Header=Expires
+DefaultFilter=106
+Folder=Cache Control/
+Comment=Pages can have an expiration date/time, after which the browser should remove it from its cache. This filter clears the expiration date, so that files can stay in cache until you explicitly have your browser reload them.
+Match=*
+
+[Always reload pages]
+ID=7
+Priority=999
+Type=out
+Version=4.5
+Author=Proxomitron development team
+Header=If-Modified-Since
+DefaultFilter=107
+Folder=Cache Control/
+Comment=When the browser requests a page already cached, it may tell the website not to send it if the page did not change since last dowload. When using this filter, requested page will always be redownloaded, even if unchanged.
+Match=*
+
+[Anti-Auto-Refresher]
+ID=8
+Priority=710
+Type=text
+Multiple=no
+Width=256
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=108
+Folder=Cache Control/
+Comment=Stops pages from "Auto Refreshing". Sometimes used to forward you automatically to a new page, but more often by pages with frames to load a new ad every so often. This filter also creates a link allowing you to refresh manually if needed.
+Bounds=<meta\s*>
+Match=*http-equiv=("|)refresh*content=("|) [#5:*]( ([;,]|) (url=|)("|)([^>"' ]+)\1|)*
+Replace=<center><font size=1><a href=\1 >[Refresh]</a></font></center>
+
+[Area Map Ad Blaster]
+ID=9
+Priority=940
+Type=text
+Multiple=yes
+Width=800
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=109
+Folder=Ad Removal/
+Comment=This is a two part filter designed to eliminate ads that use area maps. Area maps are different from normal banners in that they can contain several links. The first filter acts a bit like the banner blaster converting the first link it finds into text. If used alone, only the first link will be converted. The second part, when used with part 1, will continue to convert all additional links within the area map to text - retaining its full functionality. Usually, the Banner Replacer is the way to go.
+Bounds=<img\s[^>]+> <map\s*</map>
+Match=*usemap*>*
+_&*(ads.|log_click|/ad|clickthru|(banner|ad|acct|source|click)(id|)=|adbanner|clicker|sponsor|adver|promo|redirect)*
+_&*<map*<area (*href=(\w)\1 & (*alt="\2'|))*>\3</map>
+Replace=<br><killmap><font size=1><a href=\1>[\2]</a></font>\3</killmap>
+
+[Area Map Ad Blaster pt2 (show all links)]
+ID=10
+Priority=930
+Type=text
+Multiple=yes
+Width=800
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=110
+Folder=Ad Removal/
+Comment=This is a two part filter designed to eliminate ads that use area maps. Area maps are different from normal banners in that they can contain several links. The first filter acts a bit like the banner blaster converting the first link it finds into text. If used alone, only the first link will be converted. The second part, when used with part 1, will continue to convert all additional links within the area map to text - retaining its full functionality. Usually, the Banner Replacer is the way to go.
+Bounds=<killmap>*</killmap>
+Match=\1 <area (*href=(\w)\2 & (*alt="(?+{12})\3*|\3'|))*> \4
+Replace= \1 <font size=1><a href=\2 >[\3]</a></font> \4 
+
+[Banner Blaster (full text)]
+ID=11
+Priority=970
+Type=text
+Multiple=yes
+Width=900
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=111
+Folder=Ad Removal/
+Comment=Same as the banner replacer but replaces ads with a plain text link (using any original ALT text the image may have had). Since ads remain clickable, it keeps a web page's over-all function.
+Bounds=<a\s[^>]++href=*</a>|<input*>|<ilayer*</ilayer>|<iframe*</iframe>|<object*</object>
+Match=(<(ilayer|iframe|object)*|\1<i(mg|mage|nput)*src=$AV(*)*>\3)
+_&(*(href|src)=$AV($LST(AdKeys)*)|
+_*http://*<i(mg|mage|nput)\s(*>&&
+_(*width=[#460-480]&*height=[#55-60]*)|
+_(*width=[#88]&*height=[#31]*)))
+_&(*alt=$AV(\2)|$SET(2=Ad))
+Replace=<center>\1<font size=1 color=red>[\2]</font>\3</center>
+
+[Banner Blaster (limit text)]
+ID=12
+Priority=980
+Type=text
+Multiple=yes
+Width=900
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=112
+Folder=Ad Removal/
+Comment=Same as the banner blaster, but limits the amount of text to the first four words. Useful if sites you visit often cram in pages of ALT text.
+Bounds=<a\s[^>]++href=*</a>|<input*>|<ilayer*</ilayer>|<iframe*</iframe>|<object*</object>
+Match=(<(ilayer|iframe|object)*|\1<i(mg|mage|nput)*src=$AV(*)*>\3)
+_&(*(href|src)=$AV($LST(AdKeys)*)|
+_*http://*<i(mg|mage|nput)\s(*>&&
+_(*width=[#460-480]&*height=[#55-60]*)|
+_(*width=[#88]&*height=[#31]*)))
+_&(*alt=$AV((?+{18})\2*|\2)|$SET(2=Ad))
+Replace=<center>\1<font size=1 color=red>[\2]</font>\3</center>
+
+[Banner Replacer]
+ID=13
+Priority=990
+Type=text
+Multiple=yes
+Width=800
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=113
+Folder=Ad Removal/
+Comment=Replace banners with a transparent .GIF image surrounded by a border. It keeps the layout of the page close to the original. But you can use an image of your choice by editing the Replace pattern.
+Bounds=<a\s[^>]++href=*</a>
+Match=\0<img (\1border=\w|) \2 src=$AV(*) (\3border=\w|) \4
+_&(*(src|href)=$AV($LST(AdKeys)*)|
+_(*width=[#460-480] & *height=[#55-60])|
+_(*width=[#88] & *height=[#31]))*
+Replace=\0<img \1 border=1 \2 src=http://Local.ptron/killed.gif \3 \4
+
+[Blink Buster (Blink to Bold)]
+ID=14
+Priority=790
+Type=text
+Multiple=no
+Width=20
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=114
+Folder=Styles/
+Comment=Converts blink tags to bold ones instead. Saves some eyestrain!
+Match=<(/|)\1blink>
+Replace=<\1b>
+
+[Character set filter]
+ID=15
+Priority=999
+Type=in
+Version=4.5
+Author=Proxomitron development team
+Header=Content-Type
+DefaultFilter=115
+Folder=Styles/
+Comment=A character encoding is a method of converting bytes into characters. To display an HTML document, a program must choose a character encoding. This filter forces your browser to use its default character encoding instead of the one specified in the headers.
+Match=text/html;*charset*
+Replace=text/html
+
+[Close all connections (request)]
+ID=16
+Priority=999
+Type=in
+Version=4.5
+Author=Proxomitron development team
+Header=Connection
+DefaultFilter=116
+Folder=Connection Control/
+Comment=Prevents persistent connections. By using this filter, the browser will have to open a new socket for each document/image it want to download (it makes thing slower).
+Replace=close
+
+[Close all connections (response)]
+ID=17
+Priority=999
+Type=out
+Version=4.5
+Author=Proxomitron development team
+Header=Connection
+DefaultFilter=117
+Folder=Connection Control/
+Comment=Prevents persistent connections. By using this filter, the browser will have to open a new socket for each document/image it want to download (it makes thing slower).
+Replace=close
+
+[Convert Frames to Links]
+ID=18
+Priority=410
+Type=text
+Multiple=no
+Width=256
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=118
+Folder=Layout/
+Comment=Creates a link for each frame window. Use with DeFramer to still navigate pages with frames. Allows a non-frames browser to use a "frames only" site.
+Bounds=<frame\s*>
+Match=*src=("*'|\w)\1*
+Replace=<body><font size=2><a href=\1>Frame:\1</a></font><br></body>
+
+[Counter Killer]
+ID=19
+Priority=890
+Type=text
+Multiple=no
+Width=256
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=119
+Folder=Ad Removal/
+Comment=Kills many web page counters - counters slow down the loading of a page because the browser must wait for the counter to update.
+Bounds=<img\s*>
+Match=\1 src=$AV(*(count(er|.pl)|stat|tracker)([^a-z]*|(^?))) \2
+Replace=\1 src=http://Local.ptron/killed.gif border=1 \2
+
+[DOM Banner Blaster]
+ID=20
+Priority=960
+Type=text
+Multiple=no
+Width=8000
+Version=0.007
+Author=Proxomitron development team
+DefaultFilter=120
+Folder=Ad Removal/
+Comment=DOM Blaster/Killer are an alternative to the "banner blaster" series of filters. These two filters should always be used together, and for best results you should disable the other banner blaster filters above. They use the DOM (document object model) JavaScript functions available to most newer browsers to not only remove ads, but also the space surrounding them. In some cases this can make for a much more compact result.
+Bounds=<a\s*</(a|td|tr)>|<iframe*</iframe>|<ilayer*</ilayer>|<img*>|<input*>|<script(*(</sc|"*'))++ript >|<object*</object>|<form*</form>
+Match=*=$AV($LST(AdKeys)*)*&<((a|form)\s*<img\s[^>+]+>|[^fa])
+Replace=<a name=PDomTarget ></a>
+
+[DOM container killer]
+ID=21
+Priority=950
+Type=text
+Multiple=no
+Width=256
+Version=0.007
+Author=Proxomitron development team
+DefaultFilter=121
+Folder=Ad Removal/
+Comment=DOM Blaster/Killer are an alternative to the "banner blaster" series of filters. These two filters should always be used together, and for best results you should disable the other banner blaster filters. They use the DOM (document object model) JavaScript functions available to most newer browsers to not only remove ads, but also the space surrounding them. In some cases this can make for a much more compact result.
+Match=<end>
+Replace=\r\n<!-- // --><script src="http://local.ptron/DomConKiller.js"></script>
+
+[DeFramer]
+ID=22
+Priority=420
+Type=text
+Multiple=no
+Width=40
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=122
+Folder=Layout/
+Comment=Makes your browser act like it doesn't support frames at all. Will gives you the no-frames version of a page if it exists.
+Match=<(/|)\1(frameset|noframes)
+Replace=<\1NoFrameset
+
+[DeTabler]
+ID=23
+Priority=400
+Type=text
+Multiple=no
+Width=200
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=123
+Folder=Layout/
+Comment=Removes all tables from a web page. Not something you'll want to use all the time since it can drastically alter a page's layout, but it can come in handy on pages where tables make a lengthy list of items take forever to appear.
+Match=<(/|)t(able|r)*>
+Replace=<p>
+
+[Disable JavaScript]
+ID=24
+Priority=600
+Type=text
+Multiple=no
+Width=128
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=124
+Folder=JavaScript/
+Comment=Stops JavaScript - a good trick is to use the URL match in this filter to only disable JavaScript on selected pages.
+Match=<script*>
+Replace=<script language="ShonenScript 712.0">
+
+[Disable JavaScript (and meta) cookies]
+ID=25
+Priority=580
+Type=text
+Multiple=no
+Width=128
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=125
+Folder=Cookies/
+Comment=Prevents JavaScripts and META tags from setting or reading cookie information. Uses the CookieList to allow you to add exceptions for certain sites.
+URL=(^$LST(CookieList))
+Match=.cookie(*[(;)=])\1|http-equiv="Set-Cookie"
+Replace=.Cracker\1
+
+[Don't force reloads]
+ID=26
+Priority=999
+Type=out
+Version=4.5
+Author=Proxomitron development team
+Header=Pragma
+DefaultFilter=126
+Folder=Cache Control/
+Comment=The no-cache pragma tells a proxy to download a document from the website even if it has a cached copy of the page. This filter is useful when Proximodo uses a proxy, so that the latter will not send us an older version of the page.
+Match=no-cache
+
+[Embedded MIDI Silencer]
+ID=27
+Priority=800
+Type=text
+Multiple=no
+Width=256
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=127
+Folder=Sound/
+Comment=Attempts to make all autoplay and hidden embedded MIDI files both visible and non-autoplay. Allows you to play them only if you want.
+Bounds=<embed\s*>
+Match=*src=$AVQ(\1)*&*(.mid|midi)
+Replace=<embed src=\1 height=15 controls=smallconsole  >
+
+[Enable Keyword search]
+ID=28
+Priority=999
+Type=out
+Version=4.5
+Author=Proxomitron development team
+Header=URL
+DefaultFilter=128
+Folder=Handy Tools/
+Comment=Starts a Google search if you typed a single word in the browser's URL field.
+URL=[^./]+/(^?)&\w[a-z]&$JUMP(http://www.google.com/search?q=\h)
+
+[Example password entry]
+ID=29
+Priority=999
+Type=out
+Version=4.5
+Author=Proxomitron development team
+Header=Authorization
+DefaultFilter=129
+Folder=Identification/
+Comment=This is how you can automate password entry for websites that prompts for a password. Use BASE64 encode/decode to create/modify the provided login:password.
+URL=www.needspassword.com/this/area/protected.html
+Replace=basic bWljaGllOm5lb24temVicmE=
+
+[Fake X-Forwarded-For header]
+ID=30
+Priority=999
+Type=out
+Version=4.5
+Author=Proxomitron development team
+Header=X-Forwarded-For
+DefaultFilter=130
+Folder=Identification/
+Comment=X-Forwarded-For is a header proxy servers add to identify the client originating the request. With this filter you won't be considered at the origin of the request.
+Replace=yahoo.com, microsoft.com, netscape.com, aol.com, \h
+
+[Fake a cookie]
+ID=31
+Priority=999
+Type=out
+Version=4.5
+Author=Proxomitron development team
+Header=Cookie
+DefaultFilter=131
+Folder=Cookies/
+Comment=This cookie filter changes any cookie your browser sends out to say only "Monster" - kind of fun but probably not too useful. However you can use it as a basic example of custom cookie modification.
+Match=*
+Replace=monster
+
+[Filter out password requests]
+ID=32
+Priority=999
+Type=in
+Version=4.5
+Author=Proxomitron development team
+Header=WWW-Authenticate
+DefaultFilter=132
+Folder=Connection Control/
+Comment=Will stop web page password requests from being sent to your browser. However, it will NOT let you into a password protected site! It just stops your browser from pestering you about it.
+Match=Basic*realm="*"
+
+[Fix MIME types]
+ID=33
+Priority=999
+Type=in
+Version=20040913
+Author=Proxomitron users@2ch.net
+Header=Content-Type
+DefaultFilter=133
+Folder=Connection Control/
+Comment=Sometimes a web server will send items with an incorrect "Content-Type" header. This may prevent Proximodo or your browser from correctly dealing with the files. This filter uses the MIME-List list to fix many commonly misconfigured types. It's a good filter to use most of the time.
+Match=(text/|application/x-)$URL(https+://[^/]+/[^?]++.([a-z0-9]+{2,5}(^[^?])&&$LST(MIME-List)))
+Replace=\0
+
+[Flash animation killer]
+ID=34
+Priority=900
+Type=text
+Multiple=no
+Width=1024
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=134
+Folder=Ad Removal/
+Comment=Converts flash animations into a clickable links instead.
+Bounds=<object*</object>|<embed*>( </embed>|)
+Match=[^>]++(codebase|type)=$AV(*(flash|shockwave)*)*
+_&(*<param ( name=$AV(movie|src)| value=$AVQ(\1))+{2}|*src=$AVQ(\1))
+Replace=<a href=\1>[flash]</a>
+
+[Force pop-ups to have browser controls]
+ID=35
+Priority=730
+Type=text
+Multiple=no
+Width=256
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=135
+Folder=Navigation/
+Comment=This filter makes sure every pop-up window also includes some basic browser controls (like the location bar, forward and back buttons, status bar, and so on). It helps on sites that try and make pop-ups hard to close or resize. To work you also need to have the "Kill all pop-up windows" and "Restore pop-up windows after page loads" filters enabled too.
+URL=$TYPE(htm)
+Match= (<!DOCTYPE*> |)\1
+Replace=$STOP()\1\r\n
+_<!--//--><script>PrxModAtr=1;</script>\r\n
+
+[Foreign content-type filter]
+ID=36
+Priority=350
+Type=text
+Multiple=no
+Width=256
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=136
+Folder=Styles/
+Comment=Removes META tags that change the pages character set settings. Normally these changes are desirable, but sometimes they can be annoying - especially if you don't have the required fonts installed anyway.
+Bounds=<meta\s*>
+Match=*http-equiv="content-type"*charset=*
+
+[Frame Exploder]
+ID=37
+Priority=460
+Type=text
+Multiple=yes
+Width=4096
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=137
+Folder=Layout/
+Comment=On pages with frames, opens each frame in a new window. Rarely useful...
+URL=$TYPE(htm)
+Match= (<!DOCTYPE*> |)\1
+Replace=$STOP()\1\r\n
+_<!--//--><script> 
+_if (top.location != location){
+_window.open(location.href); window.close(); 
+_} </script>\r\n
+
+[Frame Jumper-Outer]
+ID=38
+Priority=500
+Type=text
+Multiple=yes
+Width=128
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=138
+Folder=Navigation/
+Comment=Prevents links to open within a frame of the current page. They will replace the current page instead.
+Bounds=<a\s*>
+Match=<a\s(\0http://\1&(^*_(top|blank)))
+Replace=<a target=_top \0http://\1
+
+[Freeze font's face]
+ID=39
+Priority=780
+Type=text
+Multiple=no
+Width=80
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=139
+Folder=Styles/
+Comment=Removes the "face" attribute from the font tag: keeps pages from using fonts you may not like or have installed.
+Match=<font\s\1face=\2>
+Replace=<font \1ecaf=\2>
+
+[GeoCities branding killer]
+ID=40
+Priority=690
+Type=text
+Multiple=no
+Width=2500
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=140
+Folder=Ad Removal/
+Comment=Specialized filter to stop GeoCities web page branding. Also see the "Kill add-on JavaScripts" which will do this and more.
+URL=*.geocities.
+Match=<div class="geobranding*</script>
+Replace=<font size=1>[GeoBrand killed]</font>
+
+[Hide Browser's Identity from JS]
+ID=41
+Priority=540
+Type=text
+Multiple=no
+Width=25
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=141
+Folder=Identification/
+Comment=Change the name reported by your browser to JavaScripts. This will confuse them, in case they would do browser-specific processing.
+Match=navigator.(appName|userAgent)
+Replace='ShonenScape'
+
+[Hide Browser's Referrer from JS]
+ID=42
+Priority=560
+Type=text
+Multiple=no
+Width=15
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=142
+Folder=Identification/
+Comment=The "referrer" is by far the most revealing data your browser sends out. By looking at referrer lists webmasters can tell not only the site you visited last, but if you clicked a link from email or a page on your hard drive, possibly more personal information as well! Note this is normally revealed in a HTTP header named "Referer" but JavaScript can be used to grab this information as well.
+Match=.referrer
+Replace=.referrer.substr(0,0)+"\u"
+
+[Hide Browser's Version from JS]
+ID=43
+Priority=550
+Type=text
+Multiple=no
+Width=25
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=143
+Folder=Identification/
+Comment=Make JavaScripts think you're using an earlier version of your web browser - can often prevent a JavaScript from attempting more "advanced" ways of annoying you. Good for stopping the loading of images that change when the mouse is over them.
+Match=navigator.appVersion
+Replace='2.1'
+
+[Hide where we've been]
+ID=44
+Priority=999
+Type=out
+Version=4.5
+Author=Proxomitron development team
+Header=Referer
+DefaultFilter=144
+Folder=Identification/
+Comment=The referrer normally tells a website the URL of the last page you visited. This may be something you prefer them not to know - especially if you are visiting the page by clicking a link in from your email or a private message board. Much sensitive information can be leaked this way. With this filter Proximodo will send the web page's own URL instead. This looks more or less normal to the server, but doesn't reveal any information. This filter is recommanded for security caution.
+Match=*
+Replace=\u
+
+[Kill All Backgrounds (even tables)]
+ID=45
+Priority=830
+Type=text
+Multiple=no
+Width=20
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=145
+Folder=Styles/
+Comment=Gets rid of any background image it finds, even those in tables.
+Match=background(=|-image:)\1
+Replace=nobak\1
+
+[Kill Dynamic HTML JavaScripts]
+ID=46
+Priority=630
+Type=text
+Multiple=no
+Width=256
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=146
+Folder=JavaScript/
+Comment=Often Dynamic HTML is used to do nothing more than push fresh ads and other annoyances in your direction. This filter stops several DHTML commands. Be careful though, some pages may actually use dynamic HTML for drop down menus and such.
+URL=$TYPE(htm)
+Match= (<!DOCTYPE*> |)\1
+Replace=$STOP()\1\r\n
+_<!--//--><script> function NoWrite(txt){return(1);} 
+_document.write=NoWrite; 
+_document.writeln=NoWrite; 
+_</script>\r\n
+
+[Kill JavaScript Banners]
+ID=47
+Priority=920
+Type=text
+Multiple=no
+Width=2048
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=147
+Folder=JavaScript/
+Comment=Many newer banners are dynamically generated using JavaScript. Often these new banners are even more invasive that their predecessors. This filter is designed to disable any JavaScripts that call advertising hosts or use common banner techniques.
+Bounds=<script($INEST(<script,</script)</script>( <noscript>|)|*)
+Match=*(://$AV($LST(AdList)*)|
+_(\=?\=?\=?\=?|ad(click|cycle)|.submit\(*focus\(|super_flashFileURL
+_|banner_height|<iframe|'ht'\+|.referrer|</script*</script))\1
+_&[^>]+>((*</script>)\0( <noscript>|)|\0)
+Replace=<!-- JS Banner blocked -->\r\n
+_<script language="ShonenScript">\0
+
+[Kill Layers]
+ID=48
+Priority=480
+Type=text
+Multiple=no
+Width=20
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=148
+Folder=Layout/
+Comment=Layers are a outdated and useless idea introduced by Netscape.
+Match=<(/|)\1(i|)layer
+Replace=<\1PeelLayer
+
+[Kill Nosey JavaScripts]
+ID=49
+Priority=590
+Type=text
+Multiple=no
+Width=16000
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=149
+Folder=JavaScript/
+Comment=Kills any JavaScript that try and access your personal information (such as referrer, cookies...). Use it to stop JavaScripts from revealing personal information about you or your computer. You can customize the list according to what you feel is appropriate to reveal.
+Bounds=$NEST(<script,</script>)
+Match=*(.(referrer|plugins|cookie|colorDepth|pixelDepth|external)|history.length)*
+Replace=<!-- Killed Nosey JavaScript -->
+
+[Kill Style Sheets]
+ID=50
+Priority=490
+Type=text
+Multiple=no
+Width=4096
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=150
+Folder=Styles/
+Comment=This disables style sheets (but not individual style tags).
+Match=<style*</style>
+Replace=<!-- style sheet killed -->
+
+[Kill a cookie]
+ID=51
+Priority=999
+Type=out
+Version=4.5
+Author=Proxomitron development team
+Header=Cookie
+DefaultFilter=151
+Folder=Cookies/
+Comment=Kills any outgoing cookies that may already be set in your browser before they reach the web server. If used, it will check the CookieList list for sites you want to allow cookies through.
+URL=(^$LST(CookieList))
+Match=*
+
+[Kill add-on JavaScripts]
+ID=52
+Priority=680
+Type=text
+Multiple=yes
+Width=1024
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=152
+Folder=JavaScript/
+Comment=This filter removes any JavaScript appended to the web page. Usually these scripts are added by free web space providers to pop-open advertising windows or even worse "brand" a web page with their logo. Makes visiting such pages much more pleasant.
+Match=</html>\1$NEST(<script,</script>)
+Replace=<font size=1>[PostScript Killed]</font><br>\r\n
+_</html>\1\r\n
+
+[Kill alert/confirm boxes]
+ID=53
+Priority=660
+Type=text
+Multiple=no
+Width=256
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=153
+Folder=Annoyances/
+Comment=Stops those JavaScript pop-up message boxes asking you to press OK to continue. Often used for disclaimers of one type or another.
+URL=$TYPE(htm)
+Match= (<!DOCTYPE*> |)\1
+Replace=$STOP()\1\r\n
+_<!--//--><script> 
+_function NoBox(txt){ return(1);} 
+_window.alert=NoBox; window.confirm=NoBox; window.prompt=NoBox;
+_</script>\r\n
+
+[Kill all Images on selected pages]
+ID=54
+Priority=870
+Type=text
+Multiple=no
+Width=256
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=154
+Folder=Ad Removal/
+Comment=This filter will kill all images on pages listed in the "NoImages" list. If you visit sites where all you're interested in is raw information and not pretty pictures, you can just add it's URL to this list.
+URL=$LST(NoImages)
+Bounds=<i(mg|mage|nput)*>
+Match=\1src=$AV(*)\2&(^*height=[#3:16])
+Replace=\1 border=1 
+_src="http://Local.ptron/killed.gif" \2
+
+[Kill anti-cache meta tags]
+ID=55
+Priority=370
+Type=text
+Multiple=no
+Width=40
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=155
+Folder=Cache Control/
+Comment=A useful filter that prevents several tricks pages will use to prevent your browser from "caching" (or storing) them. This can slow down your browsing as pages are forced to re-loaded more often (yet another trick commonly used to force new ads on you). However, there may be a few pages you really don't want to cache. This will usually be pages that update frequently where you always want to see the current data.
+Match=<meta http-equiv=("|)\#(expires|Last-Modified|pragma|cache)\#
+Replace=<moota http-ignore=\@
+
+[Kill bottom of page frame]
+ID=56
+Priority=440
+Type=text
+Multiple=yes
+Width=150
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=156
+Folder=Layout/
+Comment=Same idea as "Kill top of page frame" but for frames at the bottom of a page. Note in both these filters you can adjust the height range of the frames to close. For example, [#10:100] will close frames between 10 and 100 pixels high.
+Bounds=<frameset\s*>
+Match=\1 rows=$AV(\* , [#10:100] ) \3
+Replace=\1 rows="*,0" \3
+
+[Kill off-site Images]
+ID=57
+Priority=880
+Type=text
+Multiple=yes
+Width=800
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=157
+Folder=Ad Removal/
+Comment=This filter kills many images that originate somewhere other than the server the actual webpage came from. This one filter alone can kill many ads, but it may kill more than intended - it's a big gun so use it carefully.
+Bounds=<(a\s[^>]++href=*</a>|i(mg|nput)\s*>)
+Match=\1<i(mg|nput)(*alt="\0"|)*>\2&*http://(^\h)
+_&(^*(width=[#0-75]|height=[#0-20]))
+Replace= \1<font size=1>[\0]</font>\2
+
+[Kill pop-up windows]
+ID=58
+Priority=750
+Type=text
+Multiple=no
+Width=4096
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=158
+Folder=Ad Removal/
+Comment=Say bye bye to JavaScript pop up windows. This is the main pop-up filter and is needed for the two other pop-up filters to work. Often you'll want to use it along with one of the two others. However, enabling just this by itself will completely disable all pop-ups.
+URL=$TYPE(htm)
+Match= (<!DOCTYPE*> |)\1
+Replace=$STOP()\1\r\n
+_<!--//--><script src="http://local.ptron/WindowOpen.js"></script>\r\n
+
+[Kill specific Java applets]
+ID=59
+Priority=910
+Type=text
+Multiple=no
+Width=2048
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=159
+Folder=Ad Removal/
+Comment=This filter is designed to kill specific java applets. New applets can be included simply by adding their class name to the list in the match pattern.
+Bounds=<applet\s*</applet>
+Match=*code=$AV((scroll|NavigatorTicker|movie|WSSApplet|hyper).*)*
+Replace=<font size=1>[JavaApp Killed]</font><br>
+
+[Kill top of page frame]
+ID=60
+Priority=450
+Type=text
+Multiple=yes
+Width=150
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=160
+Folder=Layout/
+Comment=Closes narrow frames at the top of the page giving you more screen room - often used for ads or headers. If you use it with the "Allow for frame resizing" filter, you can drag open the frame if you find you need to.
+Bounds=<frameset\s*>
+Match=\1 rows=$AV([#20:90] , (\*|100%) ) \3
+Replace=\1 rows="0,*" \3
+
+[Kill window.external methods]
+ID=61
+Priority=520
+Type=text
+Multiple=no
+Width=40
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=161
+Folder=Annoyances/
+Comment=These JavaScript commands refer to things outside the web page. They can do many nasty things like change your bookmarks and worse. This filter helps protects you from their tampering.
+Match=window.external.[^(]+
+Replace=null; 
+
+[Link De-Obfuscator]
+ID=62
+Priority=720
+Type=text
+Multiple=no
+Width=50
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=162
+Folder=Exposure/
+Comment=Some pages "hide" the real URL a link is pointing to by placing some text on the status line instead. This filter will "unhide" those links.
+Match=onmouseover=($AV(*.status=*))\1
+Replace=nomouseover=\1
+
+[Lynx 2.8 agent]
+ID=63
+Priority=999
+Type=out
+Version=4.5
+Author=Proxomitron development team
+Header=User-Agent
+DefaultFilter=163
+Folder=Identification/
+Comment=The User-Agent header normally gives a website information about your web browser and operating system. Use these filters to tell it something different, and pretend to be using any browser or OS you choose. Just be sure to enable only one at a time. Some sites when faced with an unusual User-Agent may avoid sending "rich media" ads or other annoyances. But some sites won't let you in if they don't like your (supposed) browser.
+Match=*
+Replace=Lynx/2.8.3dev.8 libwww-FM/2.14FM
+
+[Make JS & Meta cookies session only]
+ID=64
+Priority=570
+Type=text
+Multiple=no
+Width=50
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=164
+Folder=Cookies/
+Comment=Same as "Make all cookies session only" but for the cookies set from within the HTML code.
+URL=^$LST(CookieList)
+Match=expires=(*["';])\1
+Replace=NoExp=\1
+
+[Make all cookies session only]
+ID=65
+Priority=999
+Type=in
+Version=4.5
+Author=Proxomitron development team
+Header=Set-cookie
+DefaultFilter=165
+Folder=Cookies/
+Comment=This will try and turn any "permanent" cookie into a "temporary" (or session-only) cookie. A temporary cookie is not stored on your computer's hard drive and will disappear the next time you start your browser. Making them temporary renders them "mostly harmless" while stopping the web server from complaining that you won't accept its cookies. Either use this filter or the "Never accept cookies" filter (for stricter control), but don't use both. This filter also uses the "CookieList" for those sites where you may actually want a permanent cookie (for example, sites that use automatic logins or preference settings). 
+URL=(^$LST(CookieList))
+Match=?&(\#; expires=[^;]+)+\#
+Replace=\@
+
+[Netscape BEOS agent]
+ID=66
+Priority=999
+Type=out
+Version=4.5
+Author=Proxomitron development team
+Header=User-Agent
+DefaultFilter=166
+Folder=Identification/
+Comment=The User-Agent header normally gives a website information about your web browser and operating system. Use these filters to tell it something different, and pretend to be using any browser or OS you choose. Just be sure to enable only one at a time. Some sites when faced with an unusual User-Agent may avoid sending "rich media" ads or other annoyances. But some sites won't let you in if they don't like your (supposed) browser.
+Match=*
+Replace=Mozilla/4.41  (BEOS; U ;Nav)
+
+[Netscape Linux agent]
+ID=67
+Priority=999
+Type=out
+Version=4.5
+Author=Proxomitron development team
+Header=User-Agent
+DefaultFilter=167
+Folder=Identification/
+Comment=The User-Agent header normally gives a website information about your web browser and operating system. Use these filters to tell it something different, and pretend to be using any browser or OS you choose. Just be sure to enable only one at a time. Some sites when faced with an unusual User-Agent may avoid sending "rich media" ads or other annoyances. But some sites won't let you in if they don't like your (supposed) browser.
+Match=*
+Replace=Mozilla/4.61 [ja] (X11; I; Linux 2.2.13-33cmc1 i686)
+
+[Netscape Mac 68k agent]
+ID=68
+Priority=999
+Type=out
+Version=4.5
+Author=Proxomitron development team
+Header=User-Agent
+DefaultFilter=168
+Folder=Identification/
+Comment=The User-Agent header normally gives a website information about your web browser and operating system. Use these filters to tell it something different, and pretend to be using any browser or OS you choose. Just be sure to enable only one at a time. Some sites when faced with an unusual User-Agent may avoid sending "rich media" ads or other annoyances. But some sites won't let you in if they don't like your (supposed) browser.
+Match=*
+Replace=Mozilla/3.01Gold (Macintosh; I; 68K)
+
+[Never accept cookies]
+ID=69
+Priority=999
+Type=in
+Version=4.5
+Author=Proxomitron development team
+Header=Set-cookie
+DefaultFilter=169
+Folder=Cookies/
+Comment=This filter will only allow cookies from sites in your "CookieList". Use it for stricter cookie management than the "Make cookies session only" filter.
+URL=(^$LST(CookieList))
+Match=*
+
+[OnLoad unloader]
+ID=70
+Priority=770
+Type=text
+Multiple=no
+Width=20
+Version=4.5
+Author=CyberDude
+DefaultFilter=171
+Folder=Annoyances/
+Comment=The "OnLoad" tag is one method used to autorun scripts (or pop-up windows). This filter will disable it. Often a good filter to use, but may cause problems on a few pages. If some feature of a page isn't working (especially drop-down menus and the like) try disabling this filter at that site.
+Match=onload=
+Replace=LoadOff=
+
+[OnUnload unloader]
+ID=71
+Priority=760
+Type=text
+Multiple=no
+Width=20
+Version=4.5
+Author=CyberDude
+DefaultFilter=170
+Folder=Annoyances/
+Comment=This very useful filter prevents "OnUnload" tag to run scripts when you leave a web page (i.e opening pop-up ad windows). When this filter is used with the "Kill All pop-up windows" or "Restore pop-up windows after page loads" filters, almost all "spam" pop-up windows will be killed while still allowing more appropriate pop-up windows to work.
+Match=onunload=
+Replace=UnLoadOff=
+
+[Opera 5.02 agent]
+ID=72
+Priority=999
+Type=out
+Version=4.5
+Author=Proxomitron development team
+Header=User-Agent
+DefaultFilter=172
+Folder=Identification/
+Comment=The User-Agent header normally gives a website information about your web browser and operating system. Use these filters to tell it something different, and pretend to be using any browser or OS you choose. Just be sure to enable only one at a time. Some sites when faced with an unusual User-Agent may avoid sending "rich media" ads or other annoyances. But some sites won't let you in if they don't like your (supposed) browser.
+Match=*
+Replace=Opera/5.02 (Windows 98; U)  [en]
+
+[Prevent webpage encoding]
+ID=73
+Priority=999
+Type=out
+Version=4.5
+Author=Proxomitron development team
+Header=Accept-encoding
+DefaultFilter=173
+Folder=Connection Control/
+Comment=This filter is the opposite of "Allow webpage encoding". It tells a web server not to use content-encoded (compressed) pages.
+Match=*
+
+[Remove Last-Modified header]
+ID=74
+Priority=999
+Type=in
+Version=4.5
+Author=Proxomitron development team
+Header=Last-Modified
+DefaultFilter=174
+Folder=Cache Control/
+Comment=Removes the date a web page was last modified from the server's reply. Probably not a filter you'll want to use regularly, but can force IE to recognize a new page (sometimes IE will actually ignore a page it's been sent and used its cached copy instead - this is useless since the bandwidth has already been used).
+Match=*
+
+[Restore pop-ups after a page loads]
+ID=75
+Priority=740
+Type=text
+Multiple=no
+Width=4096
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=175
+Folder=Ad Removal/
+Comment=When used with "Kill All pop-up windows" filter, this filter will re-enable pop-up windows after a page has loaded and you click a pop-up link. This filter will only open windows up to two seconds after a mouse click. The idea is to still allow "good" pop-ups while still preventing their annoying cousins. Please note this filter must be used along with the "Kill all pop-up windows" filter to work. Make sure you have them both enabled.
+Match=<end>
+Replace=\r\n<!--//--><script>PrxRST();</script>
+
+[Send password to proxy server]
+ID=76
+Priority=999
+Type=out
+Version=4.5
+Author=Proxomitron development team
+Header=Proxy-Authorization
+DefaultFilter=176
+Folder=Connection Control/
+Comment=Similar to the "Example password entry" filter, but this one is an example of how to send a password to a proxy server.
+Replace=basic cHJveHl1c2VyOnByb3h5cGFzcw==
+
+[Show contents of .pac files]
+ID=77
+Priority=999
+Type=in
+Version=4.5
+Author=Proxomitron development team
+Header=Content-Type
+DefaultFilter=177
+Folder=Exposure/
+Comment=Files ending in .pac are really JavaScripts used by Netscape and IE to set your browser's proxy. Sometimes your ISP or Firewall sysop will provide these files instead of the actual proxy settings. Checking this filter allows to to load these files in your browser and actually see what they contain. It may be helpful if you need the actual proxy information, but it's not something you'll want to use for regular surfing.
+Match=application/x-ns-proxy-autoconfig
+Replace=text/plain
+
+[Skinnier Table Border]
+ID=78
+Priority=380
+Type=text
+Multiple=no
+Width=128
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=178
+Folder=Styles/
+Comment=Prevents pages from using really fat table borders. Just a cosmetic touch.
+Match=<table\s\1border=[#4-*]\2>
+Replace=<table \1border=3\2>
+
+[Sound Silencer]
+ID=79
+Priority=810
+Type=text
+Multiple=no
+Width=20
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=179
+Folder=Sound/
+Comment=More aggressive than "Sounds to links", just eliminates most sounds and MIDI files with no link.
+Match=<(embed|bgsound)\s
+Replace=<keepquiet 
+
+[Sounds to links]
+ID=80
+Priority=820
+Type=text
+Multiple=no
+Width=1024
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=180
+Folder=Sound/
+Comment=Changes any <embed ... > or <bgsound ... > tags to links. Stops many background sounds and lets you download them instead. Also may stop many other plug-ins so use with caution.
+Bounds=<(embed|bgsound)\s*>
+Match=[<a-z]+ (*qtsrc|*src)=$AVQ(\1)&(*type=$AV(\2)|$SET(2=AV-Killed))*
+Replace=<a href=\1 >[\2]</a>
+
+[SpaceBison agent]
+ID=81
+Priority=999
+Type=out
+Version=4.5
+Author=Proxomitron development team
+Header=User-Agent
+DefaultFilter=181
+Folder=Identification/
+Comment=The User-Agent header normally gives a website information about your web browser and operating system. Use these filters to tell it something different, and pretend to be using any browser or OS you choose. Just be sure to enable only one at a time. Some sites when faced with an unusual User-Agent may avoid sending "rich media" ads or other annoyances. But some sites won't let you in if they don't like your (supposed) browser.
+Match=*
+Replace=Space Bison/0.02 [fu] (Win67; X; SK)
+
+[Stop JavaScript Redirects]
+ID=82
+Priority=610
+Type=text
+Multiple=no
+Width=30
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=182
+Folder=JavaScript/
+Comment=Disables certain JavaScript commands that redirects you to another page. Sometimes these are used to "force" you to visit a sponsor or as a cheesy way to try and prevent "deep linking". However a few sites may also use this for navigation.
+Match=.location(=|.)\1
+Replace=.NoLocation\1
+
+[Stop JavaScript Timers]
+ID=83
+Priority=620
+Type=text
+Multiple=no
+Width=4096
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=183
+Folder=JavaScript/
+Comment=Stops any timed JavaScript events. This is another way to effectively stop status bar scrollers and periodic ad updating as well as most JavaScript based animations.
+URL=$TYPE(htm)
+Match= (<!DOCTYPE*> |)\1
+Replace=$STOP()\1\r\n
+_<!--//--><script> function setTimeout(x,y){return(null);} </script>\r\n
+
+[Stop OnMouseOver events]
+ID=84
+Priority=510
+Type=text
+Multiple=no
+Width=20
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=184
+Folder=Annoyances/
+Comment=Stops things that happen when your mouse moves over a link. saves time, and these things tend to be mostly cosmetic anyway.
+Match=onmouseover=
+Replace=OnPheasantOver=
+
+[Stop browser window resizing]
+ID=85
+Priority=650
+Type=text
+Multiple=no
+Width=256
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=185
+Folder=Layout/
+Comment=This filter disables certain JavaScript commands used by pages to change the size or position of your browser's window (often to make it full screen).
+URL=$TYPE(htm)
+Match= (<!DOCTYPE*> |)\1
+Replace=$STOP()\1\r\n
+_<!--//--><script> 
+_function moveTo(){return true;}
+_function resizeTo(){return true;}
+_</script>\r\n
+
+[Stop status bar scrollers]
+ID=86
+Priority=640
+Type=text
+Multiple=no
+Width=256
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=186
+Folder=Annoyances/
+Comment=Disables the JavaScript command to send text to the status bar. Eliminates scrollers and other such beasts.
+URL=$TYPE(htm)
+Match= (<!DOCTYPE*> |)\1
+Replace=$STOP()\1\r\n
+_<!--//--><script> function status(txt){return(1);} </script>\r\n
+
+[Suppress all JavaScript errors]
+ID=87
+Priority=670
+Type=text
+Multiple=no
+Width=256
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=187
+Folder=JavaScript/
+Comment=Stops JavaScript error messages from poping up. This is a nice filter to use at all times since so many JavaScripts seem to fail of their own accord. Also it's added protection in case another filter stops a JavaScript from working properly. Note: many newer browsers now know better and allow you to do this through their config too.
+URL=$TYPE(htm)
+Match= (<!DOCTYPE*> |)\1
+Replace=$STOP()\1\r\n
+_<!--//--><script> function NoError(){return(true);} onerror=NoError; </script>\r\n
+
+[Table width unlimiter]
+ID=88
+Priority=390
+Type=text
+Multiple=no
+Width=256
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=188
+Folder=Layout/
+Comment=Removes any large fixed width limits from a table - useful sometimes when viewing pages at less than their intended screen size.
+Bounds=<t(able|d)\s*>
+Match=\0 width=[#500:*] \1
+Replace=\0 \1
+
+[Un-Prefix URLs]
+ID=89
+Priority=860
+Type=text
+Multiple=no
+Width=1024
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=189
+Folder=Connection Control/
+Comment=Many sites (especially search engines) may try and track what links you click on their page by running them through a "redirector" GCI script. You can usually spot these because the actual URL will be embedded after some sort of "prefix". This filter can remove many such prefixes which not only prevents tracking, but often makes the links respond faster. To use it with a site, just add the page to the filter's URL match. A few are included by default, but for safety this filter is applied only to pages you decide to include. 
+URL=[^.]+.(lycos|snap|yahoo|metacrawler)
+Match=href=($AV(?????*[^a-z0-9]((http|ftp)(%3A|:)(%2F|/)(%2F|/)(^\h)[^&]+)\1*)&("|)\0)
+Replace=href=\0$UESC(\1)\0
+
+[Un-Prefixer]
+ID=90
+Priority=999
+Type=out
+Version=4.5
+Author=Proxomitron development team
+Header=URL
+DefaultFilter=190
+Folder=Connection Control/
+Comment=This is similar to the "URL unprefixer" web filter but works at the header level using redirects. In most cases you'll probably want to stick with the Web filter version, but this is provided as an example.
+Match=[^\]+\w[^a-z]((http|ftp)(%3A|:)(%2F|/)[^&]+)\1
+Replace=$JUMP($UESC(\1))
+
+[View RealAudio links]
+ID=91
+Priority=999
+Type=in
+Version=4.5
+Author=Proxomitron development team
+Header=Content-Type
+DefaultFilter=191
+Folder=Exposure/
+Comment=Another rather "special case" filter. This one will show the contents of RealAudio links (which are often pointers to other URLs with the actual video or audio file). Sometimes this can be useful to see, but most of the time you won't want this filter.
+Match=*realaudio*
+Replace=text/html
+
+[Webpage Background Killer]
+ID=92
+Priority=850
+Type=text
+Multiple=yes
+Width=200
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=192
+Folder=Styles/
+Comment=Removes the main web page background, but leaves other background images (like those inside a table) intact.
+Match=<body \1background=\2>
+Replace=<body \1nobak=\2>
+
+[Webpage Background Replacer]
+ID=93
+Priority=840
+Type=text
+Multiple=yes
+Width=200
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=193
+Folder=Styles/
+Comment=Changes all web pages to use a background of your own. Change the replacement text to point to any image you like.
+Match=<body ( \1 background=\w|) \2>
+Replace=<body \1 background="http://Local.ptron/black.gif" \2>
+
+[Webpage Comment Viewer]
+ID=94
+Priority=360
+Type=text
+Multiple=no
+Width=256
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=194
+Folder=Exposure/
+Comment=This filter will cause any comment hidden in the HTML source to be shown. Not usually something you want to use all the time, but it can be interesting.
+Bounds=<!--*-->( </script>|)
+Match=<!--(\#<$SET(#=&lt;))+\#-->(^ </script)
+Replace=<font size=1><pre>&lt;!--\@--&gt;</pre></font>
+
+[Wordwrap all form textboxes]
+ID=95
+Priority=700
+Type=text
+Multiple=no
+Width=128
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=195
+Folder=Styles/
+Comment=Makes sure all text entry forms have word-wrap enabled. A must for posting to some web message boards.
+Match=<textarea\s\1>
+Replace=<textarea wrap=soft \1>
+
+[iFrame/iLayer to link]
+ID=96
+Priority=470
+Type=text
+Multiple=no
+Width=1000
+Version=4.5
+Author=Proxomitron development team
+DefaultFilter=196
+Folder=Layout/
+Comment=Converts Internet Explorer type "floating" frames and Netscape floating layers to normal links. This allows you access to such frames in other browsers, but is also useful for IE users since many ads come "wrapped" in floating frames. Because it's not supported by all browsers, pages seldom rely on floating frames, making legitimate uses rare.
+Bounds=<i(frame\s*</iframe|layer\s*</ilayer)>
+Match=<(iframe|ilayer)\0*src=$AVQ(\1)*
+Replace=<font size=1><a target=_blank href=\1 >[\0]</a></font>
+
+[kill-a-URL]
+ID=97
+Priority=999
+Type=out
+Version=4.5
+Author=Proxomitron development team
+Header=URL-Killer
+DefaultFilter=197
+Folder=Ad Removal/
+Comment=This filter will completely block connections to any host listed in your the "AdList" list. This insures that listed sites are never contacted and can't track you via web bugs, cookies, and such even if they slip past the banner filters. You can disable this filter for less aggressive blocking, but in most cases it's better to just remove a blocked site from the list.
+URL=$LST(AdList)
+Replace=URL killed \k
+

@@ -1,0 +1,682 @@
+---------------------------------------------------------------------
+Language: 日本語
+Author: Shimazaki Ryo  (2005-08-28)
+Contributions by: 
+Version: 0.2.4
+---------------------------------------------------------------------
+
+
+Pattern Parsing Errors
+
+MISSING_CURLY                 =} がありません（%1文字目）
+PARSING_INCOMPLETE            =パターンが正しく終了していません
+ESCAPE_AT_END                 =パターン末尾に \ があります
+MISSING_CROCHET               =] がありません（%1文字目）
+MISSING_PARENTHESE            =) がありません（%1文字目）
+NOT_A_NUMBER                  =数値を指定して下さい（%1文字目）
+UNKNOWN_COMMAND               =コマンド名が間違っています（%1文字目）
+MISSING_EQUAL                 =括弧内に = がありません（%1文字目）
+NEED_TRUE_FALSE               =true または false を指定して下さい（%1文字目）
+NEED_TEXT                     =文字の指定が必要です（%1文字目）
+TWO_THREE_INTEGERS            =, で区切って2～3個の正の整数を指定して下さい（%1文字目）
+MISSING_COLON                 =括弧内に : がありません（%1文字目）
+CROCHET_AT_END                =パターン末尾に [ があります
+MISSING_COMMA                 =, がありません（%1文字目）
+ERROR_MARKER                  =◆
+
+Web Error Messages
+
+404_NOT_FOUND                 =ファイルが見つかりません。
+502_BAD_GATEWAY               =DNS参照が失敗しました。
+503_UNAVAILABLE               =ホストとの接続に失敗しました。サーバが停止しているかビジー状態です。後で再試行して下さい。
+
+Filter Messages
+
+ADDLSTBOX_MESSAGE             =%1 に以下のエントリを追加します（ワイルドカードが使用できます）。
+INVALID_FILTER_TITLE          =タイトルが必要です。
+INVALID_FILTER_MATCHEMPTY     =マッチングパターンが空です。
+INVALID_FILTER_WIDTH          =上限バイト数の指定が間違っています。
+INVALID_FILTER_HEADEREMPTY    =ヘッダ名が必要です。
+
+Main Window
+
+BUTTON_MONITOR                =状況
+BUTTON_SETTINGS               =設定
+BUTTON_LOG                    =ログ
+BUTTON_FILTERS                =フィルタ
+BUTTON_CONFIG                 =構成
+BUTTON_HELP                   =ヘルプ
+BUTTON_QUIT                   =終了
+STAT_ACTIVE_REQS              =接続数: %1
+STAT_ACTIVE_REQ               =接続数: %1
+HELP_PAGE_CONTENT             =./help/ja/f_content.html
+HELP_PAGE_SYNTAX              =./help/ja/f_syntax.html
+HELP_PAGE_WELCOME             =./help/ja/f_welcome.html
+HELP_PAGE_LICENSE             =./help/ja/f_license.html
+HELP_PAGE_FILTERS             =./help/ja/f_filters.html
+HELP_ABOUT_TEXT               =Proximodo version %1
+_2004 (c) Antony Boucher
+_
+_A customizable web filtering proxy
+_inspired by Scott R. Lemmon's Proxomitron
+_
+_Open-Source project distributed under GNU GPL
+
+Menu Bar
+
+MENU_TOOLS                    =ツール(&T)
+MENU_FILTERS                  =フィルタ(&E)
+MENU_CONFIG                   =構成(&C)
+MENU_HELP                     =ヘルプ(&H)
+MENU_TOOLSMONITOR             =状況	Alt+M
+MENU_TOOLSSETTINGS            =設定	Alt+S
+MENU_TOOLSCONFIG              =構成	Alt+G
+MENU_TOOLSFILTERS             =フィルタ	Alt+F
+MENU_TOOLSLOG                 =ログウィンドウ	Alt+L
+MENU_TOOLSSAVE                =保存	Ctrl+S
+MENU_TOOLSRELOAD              =再読み込み	Ctrl+Y
+MENU_TOOLSQUIT                =終了(&X)	Ctrl+Q
+MENU_TOOLSICONIZE             =アイコン化	F4
+MENU_HELPABOUT                =バージョン情報(&A)
+MENU_HELPCONTENT              =目次(&H)	F1
+MENU_HELPSYNTAX               =メタキャラクタとコマンド(&C)
+MENU_HELPLICENSE              =ライセンス(&L)
+MENU_HELPFILTERS              =フィルタ編集(&E)
+MENU_FILTERSEDIT              =フィルタ編集(&J)	Enter
+MENU_FILTERSCHECK             =チェック反転(&C)	Alt+Space
+MENU_FOLDERSNEW               =フォルダ作成(&F)	Alt+F
+MENU_FILTERSAPPLY             =適用(&A)	F8
+MENU_FILTERSREVERT            =元に戻す(&R)	F9
+MENU_FILTERSDELETE            =削除(&X)	Alt+X
+MENU_FILTERSEXPORT            =エクスポート(&E)	Alt+C
+MENU_FILTERSIMPORT            =インポート(&I)	Alt+V
+MENU_FILTERSPROXOMITRON       =&Proxomitronからインポート	Alt+P
+MENU_FILTERSDUPLICATE         =複製(&D)	Alt+D
+MENU_FILTERSNEW               =新しいフィルタ(&N)	Alt+N
+MENU_FILTERSTEST              =テスト(&T)	Alt+T
+MENU_FILTERSENCODE            =Base64 エンコード(&B)
+MENU_FILTERSDECODE            =Base64 デコード(&S)
+MENU_CONFIGAPPLY              =適用(&A)	F8
+MENU_CONFIGREVERT             =元に戻す(&R)	F9
+MENU_CONFIGDELETE             =構成の削除(&X)	Alt+X
+MENU_CONFIGDUPLICATE          =構成の複製(&D)	Alt+D
+MENU_CONFIGNEW                =新しい構成(&N)	Alt+N
+MENU_CONFIGADD                =追加(&J)	Alt+Right
+MENU_CONFIGREMOVE             =削除(&K)	Alt+Left
+MENU_CONFIGMOVEUP             =上に移動(&U)	Alt+Up
+MENU_CONFIGMOVEDOWN           =下に移動(&S)	Alt+Down
+
+Settings Window
+
+SETTINGS_NOT_SAVED            =設定が変更されています。保存しますか？
+REVERT_SETTINGS               =変更した設定は失われます。元に戻しますか？
+APPLY_SETTINGS                =設定が変更されています。適用しますか？
+BAD_PATTERN                   =パターンに間違いがあります。
+PORT_UNAVAILABLE              =指定のポートは既に他のプロセスで使用されています。Proximodoの設定画面か、settings.txtで設定を変更して下さい。
+BAD_REMOTE_PROXY              =使用できないプロクシのようです。
+LB_SETTINGS_FILTERING         =フィルタ
+LB_SETTINGS_OUTGOING          =送信ヘッダ
+LB_SETTINGS_INCOMING          =受信ヘッダ
+LB_SETTINGS_TEXT              =ウェブページ
+LB_SETTINGS_GIF               =GIFアニメーションを止める
+LB_SETTINGS_ACTIVE            =現在のフィルタ構成
+LB_SETTINGS_BYPASS            =バイパスURLパターン
+LB_SETTINGS_GUI               =ユーザインターフェイス
+LB_SETTINGS_LANGUAGE          =言語
+LB_SETTINGS_PROXY             =プロクシ
+LB_SETTINGS_PORT              =ポート
+LB_SETTINGS_URLCMD            =URLコマンドを有効にする
+LB_SETTINGS_URLCMD_PREFIX     =接頭語
+LB_SETTINGS_USEPROXY          =リモートプロクシを使う
+LB_SETTINGS_NEXTPROXY         =プロクシ
+LB_SETTINGS_REMOVE            =削除
+LB_SETTINGS_ALLOWIP           =外部からの接続を許可する
+LB_SETTINGS_MINRANGE          =最小アドレス
+LB_SETTINGS_MAXRANGE          =最大アドレス
+LB_SETTINGS_APPLY             =適用
+LB_SETTINGS_SAVE              =保存
+LB_SETTINGS_REVERT            =元に戻す
+LB_SETTINGS_STARTUP_GUI       =起動時の表示：
+LB_SETTINGS_NO_GUI            =なし（トレイアイコンのみ）
+LB_SETTINGS_PROX_GUI          =Proximodo
+LB_SETTINGS_BROWSER_GUI       =標準のブラウザ
+LB_SETTINGS_BOTH_GUI          =Proximodoとブラウザ
+LB_SETTINGS_SHOWONSTARTUP     =起動時にProximodoのウィンドウを開く
+LB_SETTINGS_LIST              =リスト
+LB_SETTINGS_LISTNAME          =名称
+LB_SETTINGS_NEWLIST           =新規
+LB_SETTINGS_OPENLIST          =開く
+LB_SETTINGS_LISTFILE          =ファイル
+LB_SETTINGS_CHOOSEFILE        =参照
+LB_SETTINGS_SHOWGUI           =起動時にProximodoのウィンドウを開く
+LB_SETTINGS_STARTBROWSER      =起動時にプログラムを実行する：
+ASK_CREATE_NEWLIST            =ファイルがありません。作成しますか？
+OPEN_LISTFILE_QUESTION        =テキストファイルの選択
+OPEN_BROWSER_QUESTION         =実行ファイルの選択
+
+Edit Filter Window
+
+LB_EDIT_COL1                  =フィルタ名
+LB_EDIT_COL2                  =分類
+LB_EDIT_AUTHOR                =作者(&A)
+LB_EDIT_COMMENT               =説明(&C)
+LB_EDIT_HEADERNAME            =ヘッダ名(&H)
+LB_EDIT_MULTIMATCH            =再帰マッチングを許可する(&S)
+LB_EDIT_TITLE                 =フィルタ名(&N)
+LB_EDIT_CATEGORY              =分類
+LB_EDIT_TYPE                  =フィルタ種別
+LB_EDIT_TYPEIN                =受信ヘッダ
+LB_EDIT_TYPEOUT               =送信ヘッダ
+LB_EDIT_TYPETEXT              =ウェブページ
+LB_EDIT_VERSION               =&Version
+LB_EDIT_WIDTH                 =上限バイト数(&W)
+LB_EDIT_PRIORITY              =優先度(&P)
+LB_EDIT_URL                   =&URLパターン：
+LB_EDIT_BOUNDS                =範囲指定パターン(&B)：
+LB_EDIT_MATCH                 =マッチングパターン(&M)：
+LB_EDIT_REPLACE               =置換するテキスト(&R)：
+REVERT_EDITFILTERS            =変更したフィルタは失われます。フィルタリストを元に戻しますか？
+APPLY_EDITFILTERS             =フィルタが変更されています。適用しますか？
+DEFAULT_FILTER_NAME           =新しいフィルタ
+DEFAULT_FOLDER_NAME           =新しいフォルダ
+PROXOMITRON_CATEGORY          =Proxomitron
+EDIT_WINDOW_TITLE             =編集ウィンドウ - Proximodo
+
+Test Window
+
+TEST_WINDOW_TEST_BUTTON       =テスト(&T)
+TEST_WINDOW_PROF_BUTTON       =分析(&P)
+TEST_WINDOW_CLOSE_BUTTON      =閉じる
+TEST_WINDOW_TITLE             =テストウィンドウ - Proximodo
+TEST_NO_MATCH                 =(マッチなし)
+TEST_PROFILE_RESULTS          =分析結果...
+_  サンプルテキスト： %1 バイト
+_  一致回数： %2
+_  平均時間： %3 ミリ秒
+_  処理速度： %4 KB/s
+
+Configuration Window
+
+LB_CONFIG_NAME                =名称
+LB_CONFIG_COL1                =フィルタ名
+LB_CONFIG_COL2                =分類
+LB_CONFIG_COL3                =フィルタ種別
+APPLY_CONFIG                  =フィルタ構成が変更されています。適用しますか？
+REVERT_CONFIG                 =変更した構成は失われます。フィルタ構成を元に戻しますか？
+CONFIG_TYPE_OUT               =送信ヘッダ
+CONFIG_TYPE_IN                =受信ヘッダ
+CONFIG_TYPE_TEXT              =ウェブページ
+CONFIG_NEW_NAME               =新しい構成
+
+Log Window
+
+LOG_WINDOW_TITLE              =ログウィンドウ - Proximodo
+LOG_BUTTON_START              =開始(&S)
+LOG_BUTTON_STOP               =停止(&S)
+LOG_BUTTON_CLEAR              =消去(&R)
+LOG_CKB_HTTP                  =HTTPイベント(&T)
+LOG_CKB_POST                  =POSTデータ(&D)
+LOG_CKB_PROXY                 =プロクシイベント(&P)
+LOG_CKB_FILTER                =フィルタイベント(&F)
+LOG_CKB_LOG                   =$LOG()イベント(&L)
+LOG_CKB_BROWSER               =ブラウザ対話モード(&B)
+LOG_CKB_HEADERS               =ヘッダ(&H)
+EVT_FILTER_HMATCH             =>>> Req #%1: ヘッダフィルタ "%2" が "%3" にマッチ
+EVT_FILTER_HREPLACE           =>>> Req #%1: ヘッダフィルタ "%2" が "%3" に置換
+EVT_FILTER_LOG                =>>> Req #%1: フィルタ "%2" のログ:
+EVT_FILTER_TMATCH             =>>> Req #%1: ウェブページフィルタ "%2" が "%3" にマッチ
+EVT_FILTER_TREPLACE           =>>> Req #%1: ウェブページフィルタ "%2" が "%3" に置換
+EVT_HTTP_POSTOUT              =>>> Req #%1 (ポート %2): POST データ送信
+_%3
+EVT_HTTP_RECVIN               =>>> Req #%1 (ポート %2): ウェブサイトからのレスポンスを受信
+_%3
+EVT_HTTP_RECVOUT              =>>> Req #%1 (ポート %2): ブラウザからのリクエストを受信
+_%3
+EVT_HTTP_SENDIN               =>>> Req #%1 (ポート %2): ブラウザへレスポンスを送信
+_%3
+EVT_HTTP_SENDOUT              =>>> Req #%1 (ポート %2): ウェブサイトへリクエストを送信
+_%3
+EVT_HTTP_GENERIC              =>>> Req #%1 (ポート %2):
+_%3
+EVT_PROXY_ACCEPT              =>>> ポート %1 で接続しました
+EVT_PROXY_ENDREQ              =>>> ポート %1 のリクエストが完了しました
+EVT_PROXY_ENDSOCK             =>>> ポート %1 のソケットを閉じました
+EVT_PROXY_NEWREQ              =>>> ポート %1 から新しいリクエストを受信しました
+EVT_PROXY_NEWSOCK             =>>> ポート %1 に新しいソケットを作成しました
+EVT_PROXY_REFUSE              =>>> ポート %1 の接続が拒否されました
+EVT_PROXY_START               =>>> ポート %1 でプロクシ接続を開始します
+EVT_PROXY_STOP                =>>> プロクシを停止しました
+
+Monitoring Window
+
+LB_MONITOR_STATISTICS         =統計
+LB_MONITOR_OPENCNX            =接続数：
+LB_MONITOR_OPENREQ            =処理中：
+LB_MONITOR_ABORT              =中止
+
+Tray Icon Menu
+
+TRAY_CONFIG                   =フィルタ構成
+TRAY_FILTER                   =フィルタ
+TRAY_FILTERALL                =全て有効
+TRAY_FILTERIN                 =受信ヘッダ
+TRAY_FILTERNONE               =全て無効
+TRAY_FILTEROUT                =送信ヘッダ
+TRAY_FILTERTEXT               =ウェブページ
+TRAY_FILTERGIF                =GIFアニメ停止
+TRAY_LOG                      =ログウィンドウを開く
+TRAY_OPEN                     =メインウィンドウを開く
+TRAY_EXIT                     =終了
+TRAY_USEPROXY                 =リモートプロクシ使用
+
+Other Messages
+
+UTIL_OPEN_FILE                =プログラム %1 が見つかりません。
+
+Tool Tips
+
+CONFIG_ALLLIST_TIP            =使用可能なフィルタ。カラム名クリックでソートされます。
+CONFIG_ADD_TIP                =左側で選択したフィルタを構成に追加します。
+CONFIG_REMOVE_TIP             =右側で選択したフィルタを構成から削除します。
+CONFIG_UP_TIP                 =右側で選択したフィルタを一行上に移動します。
+CONFIG_DOWN_TIP               =右側で選択したフィルタを一行下に移動します。
+CONFIG_NAME_TIP               =編集中の構成名。書き換えでリネーム出来ます。
+CONFIG_OKLIST_TIP             =この構成で有効なフィルタ（ウェブページフィルタは上から下の順で動作します）。
+CONFIG_COMMENT_TIP            =選択したフィルタの説明。
+MENU_CONFIGADD_TIP            =左側選択したフィルタを構成に追加します。
+MENU_CONFIGREMOVE_TIP         =右側で選択したフィルタを構成から削除します。
+MENU_CONFIGMOVEUP_TIP         =右側で選択したフィルタを一行上に移動します。
+MENU_CONFIGMOVEDOWN_TIP       =右側で選択したフィルタを一行下に移動します。
+MENU_CONFIGNEW_TIP            =新しい構成を作成します。
+MENU_CONFIGDUPLICATE_TIP      =現在の構成を複写して新しい構成を作成します。
+MENU_CONFIGDELETE_TIP         =現在の構成を削除します。
+MENU_CONFIGAPPLY_TIP          =全ての構成の変更を適用します。
+MENU_CONFIGREVERT_TIP         =前回の適用・元に戻す後に加えた変更を元に戻します。
+EDIT_FILTERLIST_TIP           =クリックで編集できます。カラム名クリックでソートされます。
+EDIT_TITLE_TIP                =フィルタ名。他のフィルタと同一には出来ません。
+EDIT_CATEGORY_TIP             =フィルタの分類（表示用）。
+EDIT_COMMENT_TIP              =フィルタの説明（表示用）。
+EDIT_AUTHOR_TIP               =フィルタの作者（表示用）。
+EDIT_VERSION_TIP              =フィルタのバージョン（表示用）。
+EDIT_TYPE_TIP                 =フィルタの種別。送信ヘッダと受信ヘッダをフィルタリングする場合は複写して下さい。
+EDIT_HEADERNAME_TIP           =マッチさせるヘッダ名。ワイルドカードは使用できません。
+EDIT_WIDTH_TIP                =上限バイト数。出来るだけ小さくすること（より速くなります）。
+EDIT_PRIORITY_TIP             =実行優先度。優先度の大きいフィルタから実行されます。
+EDIT_MULTIMATCH_TIP           =チェックを入れると、置換したテキストも繰り返しフィルタリングします。
+EDIT_BOUNDS_TIP               =このパターンにマッチした部分だけがマッチングパターンで比較されます（指定時のみ）。可能な限り使うこと（より速くなります）。
+EDIT_URL_TIP                  =URLがマッチした場合のみ有効になります（指定時のみ）。可能な限り使うこと（より速くなります）。
+EDIT_MATCH_TIP                =検索するパターン。詳細はヘルプを参照して下さい。
+EDIT_REPLACE_TIP              =マッチングした部分を置換するテキスト（メタキャラクタやコマンドも使用できます）。
+MENU_FOLDERSNEW_TIP           =選択した場所にフォルダを作成します。
+MENU_FILTERSEDIT_TIP          =フィルタ編集ウィンドウを開きます。
+MENU_FILTERSCHECK_TIP         =選択した項目のチェック状態を反転します。
+MENU_FILTERSNEW_TIP           =新しいフィルタを作成します。
+MENU_FILTERSDUPLICATE_TIP     =編集中のフィルタを複製します。
+MENU_FILTERSDELETE_TIP        =選択した項目を削除します。
+MENU_FILTERSTEST_TIP          =テストウィンドウを開きます。開いたままでもフィルタの編集中が可能です。
+MENU_FILTERSENCODE_TIP        =クリップボードの内容をBASE64 (MIME)エンコードします（テキストのみ）。
+MENU_FILTERSDECODE_TIP        =クリップボードの内容をBASE64 (MIME)デコードします（テキストのみ）。
+MENU_FILTERSIMPORT_TIP        =クリップボードからProximodoのフィルタを取り込みます。名前が重なった場合は数字が加算されます。
+MENU_FILTERSPROXOMITRON_TIP   =クリップボードからProxomitronのフィルタを取り込みます。名前が重なった場合は数字が加算されます。
+MENU_FILTERSEXPORT_TIP        =選択したフィルタをクリップボードに送ります。
+MENU_FILTERSAPPLY_TIP         =全てのフィルタの変更を適用します。
+MENU_FILTERSREVERT_TIP        =前回の適用・元に戻す後に加えた変更を元に戻します。
+BUTTON_MONITOR_TIP            =状況監視画面を表示します。
+BUTTON_SETTINGS_TIP           =設定画面を表示します。
+BUTTON_LOG_TIP                =ログウィンドウを開きます。
+BUTTON_FILTERS_TIP            =フィルタ編集画面を表示します。
+BUTTON_CONFIG_TIP             =フィルタ構成の編集画面を表示します。
+BUTTON_HELP_TIP               =ブラウザでヘルプを表示します。
+BUTTON_QUIT_TIP               =プロクシを停止してProximodoを終了します。
+MENU_TOOLSMONITOR_TIP         =状況監視画面を表示します。
+MENU_TOOLSSETTINGS_TIP        =設定画面を表示します。
+MENU_TOOLSCONFIG_TIP          =フィルタ構成の編集画面を表示します。
+MENU_TOOLSFILTERS_TIP         =フィルタ編集画面を表示します。
+MENU_TOOLSLOG_TIP             =ログウィンドウを開きます。
+MENU_TOOLSSAVE_TIP            =全ての変更を適用してディスクに保存します。
+MENU_TOOLSRELOAD_TIP          =全ての設定をディスクから再読み込みします。
+MENU_TOOLSICONIZE_TIP         =Proximodoを通知領域にアイコン化します。
+MENU_TOOLSQUIT_TIP            =プロクシを停止してProximodoを終了します。
+MENU_HELPABOUT_TIP            =Proximodoのバージョン情報を表示します。
+MENU_HELPCONTENT_TIP          =ブラウザでヘルプを表示します。
+MENU_HELPSYNTAX_TIP           =ブラウザでメタキャラクタとコマンドのヘルプを表示します。
+MENU_HELPLICENSE_TIP          =Proximodoの複製・配布・変更に関するライセンスを表示します。
+MENU_HELPFILTERS_TIP          =ブラウザでフィルタ編集のヘルプを表示します。
+SETTINGS_OUTGOING_TIP         =送信ヘッダフィルタを有効にします。
+SETTINGS_INCOMING_TIP         =受信ヘッダフィルタを有効にします。
+SETTINGS_TEXT_TIP             =ウェブページフィルタを有効にします。
+SETTINGS_GIF_TIP              =GIFアニメーションの停止を有効にします。
+SETTINGS_CONFIG_TIP           =現在使用されているフィルタ構成。
+SETTINGS_BYPASS_TIP           =URLがマッチした場合はフィルタリングされません。
+SETTINGS_LANGUAGE_TIP         =GUI で使用する言語。再起動後に適用されます。
+SETTINGS_STARTUPGUI_TIP       =Proximodoを起動した時に表示するウィンドウを選択します。
+SETTINGS_PORT_TIP             =Proximodoの待ち受けポート番号。ブラウザのプロクシ設定に同じ番号を指定して下さい。
+SETTINGS_URLCMD_TIP           =URLコマンド（dbug、bypass等）を有効にします。
+SETTINGS_URLCMD_PREFIX_TIP    =接頭語を指定すると、URLコマンドの直前にこの接頭語を付けなければ実行できなくなります。
+SETTINGS_USEPROXY_TIP         =チェックを入れると、Proximodoがインターネットに接続する時にリモートプロクシを使います。
+SETTINGS_NEXTPROXY_TIP        =使用するリモートプロクシ。指定したプロクシが$SETPROXYコマンドで使用できます。
+SETTINGS_REMOVEPROXY_TIP      =選択したプロクシを削除します。
+SETTINGS_ALLOWIP_TIP          =他のPCからの接続を許可します。注意して使用すること（最小・最大アドレスと併用する）。
+SETTINGS_MINRANGE_TIP         =接続を許可するIPアドレスの範囲を指定します。
+SETTINGS_MAXRANGE_TIP         =接続を許可するIPアドレスの範囲を指定します。
+SETTINGS_LISTNAME_TIP         =使用可能なリスト。削除すると一覧から除外されます（ファイルは削除されません）。
+SETTINGS_NEWLIST_TIP          =新しいリストを追加します。名称とファイルを指定します。
+SETTINGS_OPENLIST_TIP         =テキストエディタでファイルを開きます。
+SETTINGS_LISTFILE_TIP         =リストのファイル名です。存在しない場合は作成するか問い合わせます。
+SETTINGS_FILECHOOSE_TIP       =ファイルを参照します。
+SETTINGS_APPLY_TIP            =変更した設定を適用します。
+SETTINGS_REVERT_TIP           =変更した設定を元に戻します。
+SETTINGS_SHOWGUI_TIP          =Proximodo起動時にウィンドウを表示します（チェックなしの場合、通知領域アイコンのみ）。
+SETTINGS_STARTBROWSER_TIP     =Proximodo起動時に指定した外部プログラムを実行します。
+SETTINGS_BROWSERPATH_TIP      =Proximodo起動時に実行するプログラム（普通はブラウザ）。
+SETTINGS_BROWSERCHOOSE_TIP    =プログラムを参照します。
+MONITOR_ABORT_TIP             =接続を打ち切ります（ダウンロード中の接続も切断されます）
+
+Default Filter Titles
+
+FILTER_101_TITLE    =Alias Redirector
+FILTER_101_COMMENT  =ブラウザのアドレス欄に'.'に続けてエイリアス名を入力することで、好きなサイトを開けます。エイリアス名はAliasListリストで定義します。
+
+FILTER_102_TITLE    =Allow for frame resizing
+FILTER_102_COMMENT  =全てのフレームをリサイズ可能にし、半分しか見えないフレームを見たり、広告のフレームで狭くなったスペースを広げられるようにします。
+
+FILTER_103_TITLE    =Allow right mouse click
+FILTER_103_COMMENT  =JavaScriptでマウス操作を制限されているため右クリックメニューでお気に入りに追加や表示されなかった画像の再表示が出来ないサイトで使います。
+
+FILTER_104_TITLE    =Allow webpage encoding
+FILTER_104_COMMENT  =ウェブサイトに、圧縮形式のファイルに対応していてブラウザがそれを展開できることを伝えます。
+
+FILTER_105_TITLE    =Always cache (cache control)
+FILTER_105_COMMENT  =ウェブサイトは、ブラウザがファイルをキャッシングしないように強要することがあります。このフィルタはそれを防ぎ、ブラウザが適切にキャッシュを管理できるようにします。
+
+FILTER_106_TITLE    =Always cache (expires)
+FILTER_106_COMMENT  =ページは有効期限を持つことができ、期限が過ぎたらブラウザはキャッシュを破棄するでしょう。このフィルタは有効期限を削除し、ブラウザに対し明示的にリロードするまでキャッシュに保持させておくことが出来ます。
+
+FILTER_107_TITLE    =Always reload pages
+FILTER_107_COMMENT  =ブラウザがキャッシュ済みのページを要求するとき、最後のダウンロード以降にページが変更されていない場合は送信しないようにウェブサイトに指示することがあります。このフィルタを使うと、ページが変更されていなくても常に再ダウンロードするように要求します。
+
+FILTER_108_TITLE    =Anti-Auto-Refresher
+FILTER_108_COMMENT  =ページの自動更新を無効化します。新しいページに転送する為に時々使われますが、それよりも、フレーム付きのページで新しい広告を表示するために使われます。このフィルタでは、必要なら手動で更新できるようにリンクを作成します。
+
+FILTER_109_TITLE    =Area Map Ad Blaster
+FILTER_109_COMMENT  =エリアマップを使用した広告を除去するための二つのフィルタです。エリアマップは通常のバナーとは違い複数のリンクを含むことが出来ます。第一のフィルタは最初に見つけたリンクをテキストに変換するBanner Blasterのように動作します。もし単独で使用されれば、最初のリンクだけが変換されます。第二のフィルタを共に使うと、エリアマップ内の後続のリンクもテキストに変換します──完全な機能を発揮します。Usually, the Banner Replacer is the way to go.
+
+FILTER_110_TITLE    =Area Map Ad Blaster pt2 (show all links)
+FILTER_110_COMMENT  =エリアマップを使用した広告を除去するための二つのフィルタです。エリアマップは通常のバナーとは違い複数のリンクを含むことが出来ます。第一のフィルタは最初に見つけたリンクをテキストに変換するBanner Blasterのように動作します。もし単独で使用されれば、最初のリンクだけが変換されます。第二のフィルタを共に使うと、エリアマップ内の後続のリンクもテキストに変換します──完全な機能を発揮します。Usually, the Banner Replacer is the way to go.
+
+FILTER_111_TITLE    =Banner Blaster (full text)
+FILTER_111_COMMENT  =Banner Replacerと同じですが、広告をテキスト形式のリンクに置換します（画像にalt属性があればそれを使います）。広告がクリック可能なままなので、ウェブページの全ての機能が維持されます。
+
+FILTER_112_TITLE    =Banner Blaster (limit text)
+FILTER_112_COMMENT  =Banner Replacerと同じですが、テキストを最初の4語に限定します。訪れるページがalt属性を詰め込む場合に有用です。
+
+FILTER_113_TITLE    =Banner Replacer
+FILTER_113_COMMENT  =バナーを枠で囲んだ透明GIF画像に置き換えます。ページのレイアウトは元と同じようになります。しかし置換テキストを編集して好みの画像を使っても構いません。
+
+FILTER_114_TITLE    =Blink Buster (Blink to Bold)
+FILTER_114_COMMENT  =BLINKタグをBoldタグに変換します。目の疲れを抑えます。
+
+FILTER_115_TITLE    =Character set filter
+FILTER_115_COMMENT  =キャラクタエンコーディングはバイト列を文字に変換する方法です。HTMLドキュメントを表示するために、プログラムはキャラクタエンコーディングを選ばなければなりません。このフィルタは、ヘッダで指定されていたエンコーディングの変わりにデフォルトのエンコーディングを使うことをブラウザに強制します。
+
+FILTER_116_TITLE    =Close all connections (request)
+FILTER_116_COMMENT  =永続的接続を禁止します。このフィルタを使うと、ブラウザはダウンロードしたいドキュメント／イメージごとにソケットを開きます（遅くなります）。
+
+FILTER_117_TITLE    =Close all connections (response)
+FILTER_117_COMMENT  =永続的接続を禁止します。このフィルタを使うと、ブラウザはダウンロードしたいドキュメント／イメージごとにソケットを開きます（遅くなります）。
+
+FILTER_118_TITLE    =Convert Frames to Links
+FILTER_118_COMMENT  =フレームをリンクに置き換えます。DeFramerと共に使用して下さい。フレーム非対応ブラウザで「フレームのみ」のサイトを閲覧できるようになります。
+
+FILTER_119_TITLE    =Counter Killer
+FILTER_119_COMMENT  =多くのウェブページカウンタを潰します──カウンタがあるとブラウザは更新を待たなければならないため、ページの表示が遅くなります。
+
+FILTER_120_TITLE    =DOM Banner Blaster
+FILTER_120_COMMENT  =DOM Blaster/Killerは"Banner Blaster"シリーズの代わりです。この二つのフィルタは常に一緒に使用し、最善の結果を得るためには他のBanner Blasterフィルタを無効にすべきです。これらは広告だけでなくそれを囲むスペースも除去する為に、ほとんどの新しいブラウザで使用可能なDOM（ドキュメント・オブジェクト・モデル）のJavaScriptを使います。いくらかの場合には非常に小さな結果となります。
+
+FILTER_121_TITLE    =DOM container killer
+FILTER_121_COMMENT  =DOM Blaster/Killerは"Banner Blaster"シリーズの代わりです。この二つのフィルタは常に一緒に使用し、最善の結果を得るためには他のBanner Blasterフィルタを無効にすべきです。これらは広告だけでなくそれを囲むスペースも除去する為に、ほとんどの新しいブラウザで使用可能なDOM（ドキュメント・オブジェクト・モデル）のJavaScriptを使います。いくらかの場合には非常に小さな結果となります。
+
+FILTER_122_TITLE    =DeFramer
+FILTER_122_COMMENT  =ブラウザが全くフレームに対応していないかのようにします。ページの非フレーム版があるかのようになります。
+
+FILTER_123_TITLE    =DeTabler
+FILTER_123_COMMENT  =ウェブページから全てのテーブルを除去します。ページのレイアウトを徹底的に変えるので常に使うものではなく、項目が多くてなかなか表示されないページでは有用になります。
+
+FILTER_124_TITLE    =Disable JavaScript
+FILTER_124_COMMENT  =JavaScriptを無効化します。選択したページのJavaScriptだけを無効化するためにURLマッチを使うのが良い方法です。
+
+FILTER_125_TITLE    =Disable JavaScript (and meta) cookies
+FILTER_125_COMMENT  =Cookie情報を読み書きするJavaScriptとMETAタグを向こうかします。任意のサイトを例外とするためにCookieListを使います。
+
+FILTER_126_TITLE    =Don't force reloads
+FILTER_126_COMMENT  =no-cacheプラグマはプロクシがページのキャッシュを持っていてもウェブサイトからドキュメントをダウンロードするように指示します。このフィルタはProximodoがリモートプロクシを使う場合に有用で、古いページのデータを送ってこなくなります。
+
+FILTER_127_TITLE    =Embedded MIDI Silencer
+FILTER_127_COMMENT  =自動演奏及び不可視の埋め込みMIDIファイルを可視・非自動演奏にするように試みます。あなたが望んだ時だけ演奏できます。
+
+FILTER_128_TITLE    =Enable Keyword search
+FILTER_128_COMMENT  =ブラウザのアドレス欄に単語を入力した時にGoogle検索を行います。
+
+FILTER_129_TITLE    =Example password entry
+FILTER_129_COMMENT  =このようにしてウェブサイトで自動的にパスワードを入力することが出来ます。提供されたlogin:passwordを作成・変更するためにBASE64エンコード／デコードを使います。
+
+FILTER_130_TITLE    =Fake X-Forwarded-For header
+FILTER_130_COMMENT  =X-Forwarded-Forは元のリクエストを出したクライアントを識別するためにプロクシサーバが付加するヘッダです。このフィルタによりあなたがリクエスト元とは見なされないでしょう。
+
+FILTER_131_TITLE    =Fake a cookie
+FILTER_131_COMMENT  =このフィルタはブラウザから送られるCookieを全て"monster"に置き換えます──ちょっと面白いけど恐らく有用ではありません。しかしながらこれをCookie変更の基本例として使うことも出来ます。
+
+FILTER_132_TITLE    =Filter out password requests
+FILTER_132_COMMENT  =ブラウザに送られようとしているウェブページのパスワードを削除します。しかしパスワードで保護されたサイトに入れなくなります。ブラウザがその件であなたを責めるのを止めます。
+
+FILTER_133_TITLE    =Fix MIME types
+FILTER_133_COMMENT  =※訳者注：不具合があるので決して使わないこと。時々ウェブサーバは正しくない"Content-Type"ヘッダを送ります。これはProximodoやブラウザが正しくファイルを扱う邪魔になるかも知れません。このフィルタは多くの一般的に誤生成されるContent-Typeを修正するためにMIME-Listリストを使います。通常使用する良いフィルタです。
+
+FILTER_134_TITLE    =Flash animation killer
+FILTER_134_COMMENT  =FLASHアニメーションをクリック可能なリンクに変換します。
+
+FILTER_135_TITLE    =Force pop-ups to have browser controls
+FILTER_135_COMMENT  =このフィルタは全てのポップアップウィンドウがいくつかの基本的なブラウザコントロール（アドレスバー、戻る・進むボタン、ステータスバーなど）を含むか確かめます。これはポップアップを閉じたりリサイズするのが困難なサイトで助けになります。動作の為に"Kill all pop-up windows"と"Restore pop-up windows after page loads"フィルタも有効にする必要があります。
+
+FILTER_136_TITLE    =Foreign content-type filter
+FILTER_136_COMMENT  =ページの文字セットを変更するMETAタグを除去します。通常はその変更は望ましいが、時々煩わしい──特に必要なフォントがインストールされていない場合。
+
+FILTER_137_TITLE    =Frame Exploder
+FILTER_137_COMMENT  =フレームのあるページで、フレームごとに新しいウィンドウを開きます。滅多に有用ではありません…。
+
+FILTER_138_TITLE    =Frame Jumper-Outer
+FILTER_138_COMMENT  =現在のページのフレーム内にリンクを開くのを防ぎます。代わりに現在のページに置き換えます。
+
+FILTER_139_TITLE    =Freeze font's face
+FILTER_139_COMMENT  =FONTタグからface属性を除去します：好きでないフォントやインストールしていないかも知れないフォントをページから差し控えます。
+
+FILTER_140_TITLE    =GeoCities branding killer
+FILTER_140_COMMENT  =GeoCitiesウェブページのロゴを除去する専用フィルタ。これと同じとより多くのことをする"Kill add-on JavaScripts"も見て下さい。
+
+FILTER_141_TITLE    =Hide Browser's Identity from JS
+FILTER_141_COMMENT  =ブラウザからJavaScriptに通知された名前を変更します。ブラウザ依存の処理を行う場合、混乱してしまうでしょう。
+
+FILTER_142_TITLE    =Hide Browser's Referrer from JS
+FILTER_142_COMMENT  ="referrer"はブラウザが送信したものよりはるかに最も参考になるデータです。リファラの一覧を見ることにより、ウェブマスターはあなたが最後に訪れたサイトだけでなく、電子メールかハードディスク上のページのリンクをクリックしたか、更に個人的な情報も知ることが出来ます。これは通常"Referer"というHTTPヘッダで明らかにされますが、この情報を掴む為にJavaScriptを使うことも出来ることに注意して下さい。
+
+FILTER_143_TITLE    =Hide Browser's Version from JS
+FILTER_143_COMMENT  =初期のバージョンのブラウザを使用しているとJavaScriptに思わせます──しばしばJavaScriptがあなたを悩ませる"高度な"方法を試みるのを防ぐことが出来ます。マウスオーバーで画像が変わるのを止めるのに適しています。
+
+FILTER_144_TITLE    =Hide where we've been
+FILTER_144_COMMENT  ="referrer"は通常最後に訪れたウェブサイトのURLを伝えます。これは好ましくないことがあります──特にあなたが電子メールや個人的な掲示板のリンクをクリックして訪れた場合には。多くの極秘の情報がこのように漏れてしまいます。このフィルタでProximodoは代わりにウェブページ自体のURLを送るでしょう。これは多かれ少なかれサーバには正常に見えますが、いかなる情報も見せません。このフィルタはセキュリティ注意のために推奨されています。
+
+FILTER_145_TITLE    =Kill All Backgrounds (even tables)
+FILTER_145_COMMENT  =テーブル内のものも含め、全ての背景画像を除去します。
+
+FILTER_146_TITLE    =Kill Dynamic HTML JavaScripts
+FILTER_146_COMMENT  =しばしばダイナミックHTMLはあなたの方へ新しい広告や他の迷惑を押し付けるために使われます。このフィルタはいくつかのDHTMLコマンドを無効化します。いくつかのページで実際にはプルダウンメニュー等の為にDHTMLを使うので注意して下さい。
+
+FILTER_147_TITLE    =Kill JavaScript Banners
+FILTER_147_COMMENT  =JavaScriptで多くの新しいバナーが生成されます。多くの場合これらの新しいバナーは昔のものより侵略的です。このフィルタは広告用ホストを呼びは共通的なバナー技術を使う全てのJavaScriptを向こうかするように設計されています。
+
+FILTER_148_TITLE    =Kill Layers
+FILTER_148_COMMENT  =レイヤーはNetscapeによって導入された時代遅れで役立たずのアイデアです。
+
+FILTER_149_TITLE    =Kill Nosey JavaScripts
+FILTER_149_COMMENT  =あなたの個人情報（"referrer"やCookie）を参照しようとする全てのJavaScriptを無効化します。JavaScriptがあなたPCの情報を見ようとするのを止めるために使います。あなたが見られても良いと感じるものによってリストを編集することができます。
+
+FILTER_150_TITLE    =Kill Style Sheets
+FILTER_150_COMMENT  =全てのSTYLEタグを無効化します（スタイルシートやstyle属性は無効化しない）。
+
+FILTER_151_TITLE    =Kill a cookie
+FILTER_151_COMMENT  =ブラウザから送信されるCookieをウェブサーバに届く前に除去します。使う場合は、Cookieを通過させたいサイトをCookieListで指定します。
+
+FILTER_152_TITLE    =Kill add-on JavaScripts
+FILTER_152_COMMENT  =このフィルタはウェブページに付け加えられた全てのJavaScriptを除去します。通常これらのスクリプトは、広告ウィンドウをポップアップしたりより悪質なロゴをウェブページに刻み付けるために、無料ウェブスペースのプロバイダにより加えられます。そのようなページを訪れることをより楽しくします。
+
+FILTER_153_TITLE    =Kill alert/confirm boxes
+FILTER_153_COMMENT  =続けるためにOKを押すように問い合わせるJavaScriptのポップアップメッセージボックスを無効化します。Often used for disclaimers of one type or another.
+
+FILTER_154_TITLE    =Kill all Images on selected pages
+FILTER_154_COMMENT  =このフィルタはNoImagesリストにあるページの画像を全て潰します。あなたが訪れるサイトで興味を持っているのが綺麗な絵ではなくて純粋な情報だけなら、リストにそのURLを加えることが出来ます。
+
+FILTER_155_TITLE    =Kill anti-cache meta tags
+FILTER_155_COMMENT  =ブラウザがページをキャッシングしないようにする細工を無効化する有用なフィルタです。これはページを強制的に再読み込みさせることで閲覧が遅くなります（新しい広告を表示するために一般的に用いられる別の方法）。しかし本当にキャッシングしたくないページがいくつかあるかも知れません。それはあなたがいつも最新のデータを見たい、頻繁に更新されるページです。
+
+FILTER_156_TITLE    =Kill bottom of page frame
+FILTER_156_COMMENT  ="Kill top of page frame"と同じアイデアですがページ下端のフレーム用です。これらのフィルタは閉じるフレームの高さの範囲を調節することが出来ます。例えば、[#10:100]は10～100ピクセルの高さのフレームを閉じます。
+
+FILTER_157_TITLE    =Kill off-site Images
+FILTER_157_COMMENT  =このフィルタは実際のウェブページのサーバ以外にある多くの画像を潰します。このフィルタは単独でも多くの広告を潰せますが、意図された以上に画像を潰してしまうかも知れません──強力なので注意して使って下さい。
+
+FILTER_158_TITLE    =Kill pop-up windows
+FILTER_158_COMMENT  =JavaScriptによるポップアップウィンドウにオサラバ。これはメインのポップアップフィルタで、他の二つのポップアップフィルタが動作するためにも必要です。大抵は他の二つのどちらかと併用したいと思うでしょう。しかし、このフィルタだけを有効にすると全てのポップアップが無効化されます。
+
+FILTER_159_TITLE    =Kill specific Java applets
+FILTER_159_COMMENT  =このフィルタは特定のJavaアプレットを無効化する為に設計されています。新しいアプレットは、クラス名をマッチングパターン中のリストに書くだけで追加することが出来ます。
+
+FILTER_160_TITLE    =Kill top of page frame
+FILTER_160_COMMENT  =ページ上端の狭いフレーム─しばしば広告やヘッダとして使われます─を閉じて画面を広くします。"Allow for frame resizing"と一緒に使えば、必要ならフレームをドラッグして開くことが出来ます。
+
+FILTER_161_TITLE    =Kill window.external methods
+FILTER_161_COMMENT  =これらのJavaScriptコマンドはウェブページ外のものに言及し、ブックマークを変更したりもっと酷い不快なことをします。このフィルターはそれらの干渉から保護してくれます。
+
+FILTER_162_TITLE    =Link De-Obfuscator
+FILTER_162_COMMENT  =ステータス行にテキストを表示することで実際のリンク先URLを"隠す"ページがあります。このフィルタはURLが隠されないようにします。
+
+FILTER_163_TITLE    =Lynx 2.8 agent
+FILTER_163_COMMENT  =User-Agentヘッダは通常、ブラウザやOSの情報をウェブサイトに伝えます。これらのフィルタは偽装した情報を送って他のブラウザやOSを使用している振りをします。どれか一つだけのフィルタを有効にして下さい。いくつかのサイトでは珍しいUser-Agentを見ると、豪華な広告やその他の迷惑を送らないようにするかも知れません。しかしあなたが偽装した（想像上の）ブラウザを受け付けず、変更出来ないサイトもあります。
+
+FILTER_164_TITLE    =Make JS & Meta cookies session only
+FILTER_164_COMMENT  ="Make all cookies session only"と同じですが、HTMLコード内で書き込まれたCookieに有効です。
+
+FILTER_165_TITLE    =Make all cookies session only
+FILTER_165_COMMENT  =このフィルタは期限付きのCookieをセッションオンリーに変更します。セッションオンリーのCookieはハードディスクには保存されず、ブラウザを再起動すると消えます。セッションオンリーにするとウェブサーバが、ブラウザがCookieを受け付けないと警告するのをほとんど無害にします。このフィルタか"Never accept cookies"（より厳密に制御します）のどちらかを使い、同時には使わないで下さい。このフィルタも、永続的なCookieを使いたいサイト（例えば自動ログインや設定を保存するサイト）を、CookieListリストで指定できます。
+
+FILTER_166_TITLE    =Netscape BEOS agent
+FILTER_166_COMMENT  =User-Agentヘッダは通常、ブラウザやOSの情報をウェブサイトに伝えます。これらのフィルタは偽装した情報を送って他のブラウザやOSを使用している振りをします。どれか一つだけのフィルタを有効にして下さい。いくつかのサイトでは珍しいUser-Agentを見ると、豪華な広告やその他の迷惑を送らないようにするかも知れません。しかしあなたが偽装した（想像上の）ブラウザを受け付けず、変更出来ないサイトもあります。
+
+FILTER_167_TITLE    =Netscape Linux agent
+FILTER_167_COMMENT  =User-Agentヘッダは通常、ブラウザやOSの情報をウェブサイトに伝えます。これらのフィルタは偽装した情報を送って他のブラウザやOSを使用している振りをします。どれか一つだけのフィルタを有効にして下さい。いくつかのサイトでは珍しいUser-Agentを見ると、豪華な広告やその他の迷惑を送らないようにするかも知れません。しかしあなたが偽装した（想像上の）ブラウザを受け付けず、変更出来ないサイトもあります。
+
+FILTER_168_TITLE    =Netscape Mac 68k agent
+FILTER_168_COMMENT  =User-Agentヘッダは通常、ブラウザやOSの情報をウェブサイトに伝えます。これらのフィルタは偽装した情報を送って他のブラウザやOSを使用している振りをします。どれか一つだけのフィルタを有効にして下さい。いくつかのサイトでは珍しいUser-Agentを見ると、豪華な広告やその他の迷惑を送らないようにするかも知れません。しかしあなたが偽装した（想像上の）ブラウザを受け付けず、変更出来ないサイトもあります。
+
+FILTER_169_TITLE    =Never accept cookies
+FILTER_169_COMMENT  =CookieListリストで指定したサイトのCookieだけを許可します。"Make cookies session only"フィルタより厳密な制御になります。
+
+FILTER_170_TITLE    =OnUnload unloader
+FILTER_170_COMMENT  =ウェブページから移動される時にスクリプトを実行する（つまりポップアップ広告ウィンドウを開く）"onunload"属性を無効化する非常に有用なフィルタです。"Kill All pop-up windows"か"Restore pop-up windows after page loads"と一緒に使うと、適切なポップアップウィンドウは許可したまま、"スパム"ポップアップウィンドウを全て無効化します。
+
+FILTER_171_TITLE    =OnLoad unloader
+FILTER_171_COMMENT  ="onload"属性はスクリプトを自動的に実行（またはポップアップウィンドウを表示する）方法の一つです。このフィルタはそれを無効化します。大抵は良好に動作しますが、問題が起きるページも多少あります。ページ内の機能（特にプルダウンメニューの類）が働かないときは、そのサイトではこのフィルタは無効にして下さい。
+
+FILTER_172_TITLE    =Opera 5.02 agent
+FILTER_172_COMMENT  =User-Agentヘッダは通常、ブラウザやOSの情報をウェブサイトに伝えます。これらのフィルタは偽装した情報を送って他のブラウザやOSを使用している振りをします。どれか一つだけのフィルタを有効にして下さい。いくつかのサイトでは珍しいUser-Agentを見ると、豪華な広告やその他の迷惑を送らないようにするかも知れません。しかしあなたが偽装した（想像上の）ブラウザを受け付けず、変更出来ないサイトもあります。
+
+FILTER_173_TITLE    =Prevent webpage encoding
+FILTER_173_COMMENT  ="Allow webpage encoding"の逆のフィルタです。ウェブサーバにページをエンコード（圧縮）しないように伝えます。
+
+FILTER_174_TITLE    =Remove Last-Modified header
+FILTER_174_COMMENT  =サーバから受信したウェブページの最終更新日時を除去します。常用するものではありませんが、IEに新しいページを認識するように強制することが出来ます（実際にIEは受信したページを無視して代わりにキャッシュされたコピーを使うことがあります──これは帯域が大きくなってからは役立ちません）。
+
+FILTER_175_TITLE    =Restore pop-ups after a page loads
+FILTER_175_COMMENT  ="Kill All pop-up windows"フィルタと一緒に使うと、ページが表示された後にクリックされたリンクのポップアップ・ウィンドウを有効にします。このフィルタはマウスクリック後2秒以内に要求されたウィンドウのみ開きます。これは迷惑なポップアップを防ぎながら問題のないポップアップを許可するためのアイデアです。このフィルタは"Kill all pop-up windows"と一緒に使う必要があるので注意して下さい。両方とも有効になっているか確認するように。
+
+FILTER_176_TITLE    =Send password to proxy server
+FILTER_176_COMMENT  ="Example password entry"フィルタと似ていますが、プロクシサーバにパスワードを送る一例です。
+
+FILTER_177_TITLE    =Show contents of .pac files
+FILTER_177_COMMENT  =.pacで終わるファイルはNetscapeとIEでプロクシを設定するために使われるJavaScriptです。ISPやファイアウォールの管理者はプロクシ設定の変わりにそのファイルを提供することがあります。このフィルタで、それらのファイルに何と書かれているかブラウザで表示させることが出来ます。実際のプロクシ設定が必要な場合は有用かも知れませんが、常用するものではありません。
+
+FILTER_178_TITLE    =Skinnier Table Border
+FILTER_178_COMMENT  =マジで太いテーブルの境界線を細くします。単なる表示調整用。
+
+FILTER_179_TITLE    =Sound Silencer
+FILTER_179_COMMENT  ="Sounds to links"より積極的で、リンクのないMIDIファイルを単に除去します。
+
+FILTER_180_TITLE    =Sounds to links
+FILTER_180_COMMENT  =<embed …>と<bgsound …>タグをリンクに置き換えます。多くのBGMを止めて代わりにダウンロード出来るようにします。他の多くのプラグインも止めるので注意して下さい。
+
+FILTER_181_TITLE    =SpaceBison agent
+FILTER_181_COMMENT  =User-Agentヘッダは通常、ブラウザやOSの情報をウェブサイトに伝えます。これらのフィルタは偽装した情報を送って他のブラウザやOSを使用している振りをします。どれか一つだけのフィルタを有効にして下さい。いくつかのサイトでは珍しいUser-Agentを見ると、豪華な広告やその他の迷惑を送らないようにするかも知れません。しかしあなたが偽装した（想像上の）ブラウザを受け付けず、変更出来ないサイトもあります。
+
+FILTER_182_TITLE    =Stop JavaScript Redirects
+FILTER_182_COMMENT  =別のページにリダイレクトするJavaScriptを無効化します。これはスポンサーを訪れるよう強制したりディープリンクを禁止する安っぽい方法として使われることがあります。しかし誘導の為に使うサイトも多少あります。
+
+FILTER_183_TITLE    =Stop JavaScript Timers
+FILTER_183_COMMENT  =JavaScriptのタイマーを無効化します。これは、ステータスバー・スクローラーと、JavaScriptによるアニメーションと同様な定期的な広告更新を止める有効なもう一つの方法です。
+
+FILTER_184_TITLE    =Stop OnMouseOver events
+FILTER_184_COMMENT  =マウスをリンク上に動かした時の動作を無効化します。時間の節約と共に、それらのほとんどは単なる装飾用です。
+
+FILTER_185_TITLE    =Stop browser window resizing
+FILTER_185_COMMENT  =ブラウザのウィンドウサイズや表示位置を変えるJavaScript（しばしば全画面にされます）を無効化します。
+
+FILTER_186_TITLE    =Stop status bar scrollers
+FILTER_186_COMMENT  =ステータスバーを書き換えるJavaScriptを無効化します。スクローラーやその他の酷い動作を除去します。
+
+FILTER_187_TITLE    =Suppress all JavaScript errors
+FILTER_187_COMMENT  =JavaScriptエラーがポップアップするのを止めます。多くのJavaScriptが自らエラーを起こすため、常用できる良いフィルタです。他のフィルタがJavaScriptが正常に動作しないようにした場合も保護します。多くの新しいブラウザでは設定で同じことが可能です。
+
+FILTER_188_TITLE    =Table width unlimiter
+FILTER_188_COMMENT  =テーブルから大きな幅指定を取り除きます──意図された画面サイズより小さい画面でページを見るときに有用です。
+
+FILTER_189_TITLE    =Un-Prefix URLs
+FILTER_189_COMMENT  =多くのサイト（特に検索エンジン）がリダイレクトCGIを通してクリックしたリンクを追跡しようとしています。実際のURLはある種の"接頭語"の後に埋め込まれるので、大抵はそれを取り出すことが出来ます。このフィルタはそういった接頭語を取り除き追跡を防ぐだけでなく、リンクの反応を速くします。使用するにはフィルタのURLマッチにサイトを書き加えます。標準でいくつかのサイトが含まれますが、安全の為にあなたが判断したサイトだけを適用して下さい。
+
+FILTER_190_TITLE    =Un-Prefixer
+FILTER_190_COMMENT  ="URL unprefixer"ウェブページ・フィルタに似ていますが、これはリダイレクトを使ってヘッダレベルで動作します。ほとんどの場合ウェブページ・フィルタ版を使いたいと思うでしょうが、これは例として提供されています。
+
+FILTER_191_TITLE    =View RealAudio links
+FILTER_191_COMMENT  =やや特殊なフィルタです。このフィルタはRealAudioリンク（たいていは実際の動画や音声ファイルのURLを指し示しています）の中身を表示します。それを見るのは有用なこともありますが、ほとんど使いません。
+
+FILTER_192_TITLE    =Webpage Background Killer
+FILTER_192_COMMENT  =ページのメインの背景画像を除去しますが、他の背景画像（テーブル内など）は残します。
+
+FILTER_193_TITLE    =Webpage Background Replacer
+FILTER_193_COMMENT  =ページのメインの背景画像を指定のものに変更します。好きな画像を設定するには置換テキストを書き換えます。
+
+FILTER_194_TITLE    =Webpage Comment Viewer
+FILTER_194_COMMENT  =HTMLソース内に隠れている全てのコメントを表示します。常用するものではありませんが、面白いでしょう。
+
+FILTER_195_TITLE    =Wordwrap all form textboxes
+FILTER_195_COMMENT  =テキストボックスの自動改行を有効にします。書き込みに不可欠なBBSもあります。
+
+FILTER_196_TITLE    =iFrame/iLayer to link
+FILTER_196_COMMENT  =IEのインラインフレームとNetscapeのインラインレイヤーを通常のリンクに置き換えます。他のブラウザでそういったフレームにアクセスできるようにしますが、多くの広告がインラインフレームにくるまっているので、IEでも役に立ちます。全てのブラウザが対応している訳ではないので、インラインフレームがあてにされることは滅多になく、正当に使われることは稀です。
+
+FILTER_197_TITLE    =kill-a-URL
+FILTER_197_COMMENT  =AdListリストで指定されたホストへの接続を完全に遮断します。指定されたホストには決して接続されず、ウェブバグ、Cookieやバナーフィルタをすり抜けたものから追跡されることはないと保証されます。積極的に遮断しないならこのフィルタは無効に出来ますが、ほとんどの場合はリストからブロックしたくないサイトを削除する方がよいでしょう。
+
+Default Folder Names
+
+FOLDER_101_NAME     =便利ツール
+FOLDER_102_NAME     =レイアウト
+FOLDER_103_NAME     =操作
+FOLDER_104_NAME     =接続制御
+FOLDER_105_NAME     =キャッシュ制御
+FOLDER_106_NAME     =広告除去
+FOLDER_107_NAME     =スタイル
+FOLDER_108_NAME     =JavaScript
+FOLDER_109_NAME     =クッキー
+FOLDER_110_NAME     =音楽
+FOLDER_111_NAME     =個人情報
+FOLDER_112_NAME     =迷惑
+FOLDER_113_NAME     =看破

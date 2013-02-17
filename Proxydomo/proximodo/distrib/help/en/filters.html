@@ -1,0 +1,167 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta name="generator" content=
+"HTML Tidy for Windows (vers 1st April 2002), see www.w3.org">
+<title>Proximodo - Filters</title>
+<link rel="stylesheet" type="text/css" href="help.css">
+</head>
+<body>
+<center><img src="filters.png"></center>
+
+<p class="section">Menu Items</p>
+
+<p class="option">Test</p>
+
+<p class="explain">Opens a test window. This simple window offers
+an editable text field where you would copy-paste some example html
+code, and a Test button that will show the effect of edited filter
+on the sample code. You can keep it open while you modify the
+filter.</p>
+
+<p class="option">Encode / Decode Base64</p>
+
+<p class="explain">Transforms the content of clipboard. If you put
+some plain text in the clipboard (e.g with Ctrl+C), use Encode
+Base64 to encode it to the Base64 format. You can retrieve the
+result with Ctrl+V. If you put a Base64-encoded string into the
+clipboard, use Decode Base64 to decode it.</p>
+
+<p class="section">Screen Items</p>
+
+<p class="option">Title</p>
+
+<p class="explain">This is the filter title, that appears in the
+configurations or in the log window. The title is mandatory.
+Proximodo makes sure there are never 2 filters with the same title
+(it is increased when needed). Keep it short yet meaningful.</p>
+
+<p class="option">Author</p>
+
+<p class="explain">If you want to trace filters' author, put your
+name or pseudo in. Just please don't modify the field for filters
+someone else wrote.</p>
+
+<p class="option">Version</p>
+
+<p class="explain">You can use this optional field to version your
+filters, especially in case you make them public and may later
+improve them.</p>
+
+<p class="option">Comment</p>
+
+<p class="explain">This optional comment explains what the filter
+does. The comment is visible in the configuration list, so that you
+can quickly remember what it does and decide to use it or not in a
+given configuration. Do not neglect it.</p>
+
+<p class="option">Priority</p>
+
+<p class="explain">This arbitrary number defines the order in which
+active filters are executed. Higher priority filters are executed
+first (e.g a filter with priority 200 is executed before a filter
+with priority 100). This order is very important: for example, if you
+use a filter that removes some JavaScripts and a filter that inserts
+a JavaScript, the former must run first, or it would undo the effect
+of the latter. Default filters' priorities are defined so that no
+such interference occur (from 1000 down to 0). When you write a new
+filter, you should choose a priority consistent with your custom
+filters and default filters too. A good practice is to use
+priorities over 500 for filters that remove parts of html code, and
+lower than 500 for filters that insert html code. Notes: 1/ you can
+use negative numbers. 2/ filters can have the same priority if
+their order does not matter. 3/ outgoing filters, incoming filters
+and text filters are three independent groups.</p>
+
+<p class="option">Window Width</p>
+
+<p class="explain">This is the size of text that the filter reads
+when it tries to match at a given position. You should keep it as
+small as possible while allowing matches to be detected. For
+example, if your match pattern is <span class=
+"example">border=$AV(\1)</span> a width of 20 would be enough (a
+border attribute and its value are never more than 20 characters
+long).</p>
+
+<p class="option">Allow Multiple Matches</p>
+
+<p class="explain">Usually, when a filter finds an occurrence,
+the replacement text is sent to the browser and the scanning
+continues after the occurrence. Neither the filter, nor other
+filters, will scan the replacement text. But if you check this
+option, the replacement text replaces the occurrence in the
+memory buffer, and the following filters will scan it. The filter
+will be able to match its own replacement text (except the first
+character, since the scanning process will have moved a byte to
+the right when the filter tries and matches again.) Use this option
+only when you really need it, for example when you have several
+filters that are supposed to match and modify the same tag.</p>
+
+<p class="option">Filter Type</p>
+
+<p class="explain">This field tells what kind of data the filter
+deals with. It can be an outgoing header (sent by your browser to
+the website), an incoming header (sent by the website in response
+to the browser's request), or the text (html code) that your
+browser downloads. In the case of header filters, the header name
+must be provided (see below). In the case of text filters, window
+width must be provided.</p>
+
+<p class="option">Header Name</p>
+
+<p class="explain">This is the name of the header the filter will
+read and modify. It is case-insensitive. Wildcards or codes are not
+allowed. For outgoing header filters, if the field starts with
+"URL" (no matter what follows), the filter will read the requested
+URL (including :// part) instead of a given header. Use this trick
+to test the URL and possibly alter it (acting like a transparent
+redirection) or call $commands.</p>
+
+<p class="option">URL Pattern</p>
+
+<p class="explain">If this field contains a pattern and the URL
+(without :// part) does not match, the filter will be bypassed, i.e it
+will not try and match anything in this header/text. Use this field
+when you want the filter to work only on specific URLs. Common patterns
+are <span class="example">$LST(someList)</span>, <span class=
+"example">(^$LST(someList))</span> or <span class=
+"example">$TYPE(htm)</span></p>
+
+<p class="option">Bounds Pattern</p>
+
+<p class="explain">If this field contains a pattern, the matching
+process will have two passes: 1- search the bounds pattern, 2- if
+an occurence is found, try and match the whole occurence with the
+match pattern. This is as if you used as a match pattern <span
+class="example">(bounds)&amp;&amp;(match)</span>. Simply it makes
+things clearer. Use a bounds pattern when you can, as it makes
+scanning faster, and sometimes better! For example to match an
+&lt;img&gt; tag containing ".gif", you could use bounds: <span
+class="example">&lt;img\s*&gt;</span> and match: <span class=
+"example">*.gif*</span>. If you simply use the match pattern <span
+class="example">&lt;img\s*.gif*&gt;</span> it would eat genuine
+text and put half the page in italic if the page contains<br>
+<span class="extext">&lt;i&gt;&lt;img src="bullet.jpg"&gt;Some .gif
+images are animated&lt;/i&gt;</span></p>
+
+<p class="option">Match Pattern</p>
+
+<p class="explain">This is the pattern for finding occurrences to
+replace within text. For a text filter, this pattern will be tried
+starting on each and every position in the html code. For a header
+filter, it is tried starting on the beginning of the header value
+(e.g you must use <span class="example">*nasty</span> and not just
+<span class="example">nasty</span> to match the Host header's value
+<span class="extext">www.nasty.com</span>).</p>
+
+<p class="option">Replacement Text</p>
+
+<p class="explain">This field can contain plain text, replacement
+codes and replace-compatible commands. Replacement codes are
+computed and commands are executed in order to produce an "expanded
+text". For text filters, each occurrence is replaced by this
+expanded text. For header filters, the whole header value is
+replaced by the expanded text.</p>
+</body>
+</html>
+

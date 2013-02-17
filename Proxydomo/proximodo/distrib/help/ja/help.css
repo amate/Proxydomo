@@ -1,0 +1,54 @@
+.en { display: none; }
+.ja { }
+.trans_note { }
+
+body     { background-color: #FFFFE8; background: url("../bg1.jpg");
+           font-family: "ÇlÇr ÇoÉSÉVÉbÉN", Osaka, arial, sans-serif; font-size: 100% /*17px*/;
+           margin-bottom: 5em;
+         }
+
+p        { margin-bottom: 10px; }
+.section { margin-bottom: 20px; font-size: 180% /*30px*/; }
+p.ja     { text-indent: 1em; }
+p.ja.section, p.ja.option { text-indent: 0em; font-weight: bold; }
+
+p.ja, .ja li { line-height: 150%; }
+
+td       { vertical-align: top; }
+td.center{ vertical-align: center; text-align: center; }
+
+p.syntax, p.indic
+         { text-indent: 0em; }
+.syntax  { color: #0000a0 /*blue*/; font-weight: bold;
+           font-family: "ÇlÇr ÉSÉVÉbÉN", Osaka-ìôïù, courier, monospace; }
+.syntax .n, var
+         { color: black; font: normal 100% "ÇlÇr ÇoÉSÉVÉbÉN",Osaka,arial,sans-serif; }
+
+.example, .extext, .indic
+         { border: 1px /*thin*/ solid black;
+           margin-left:  3px; margin-right:  3px;
+           padding-left: 3px; padding-right: 3px;
+           font-family: "ÇlÇr ÉSÉVÉbÉN", Osaka-ìôïù, courier, monospace; }
+.example { font-size: 95% /*15px*/; color: #0000a0 /*blue*/; }
+.extext  { font-size: 95% /*15px*/; }
+.indic   { font-size: 90% /*12px*/; word-break: keep-all; }
+.command { color: #0000a0 /*blue*/; font-weight: bold;
+           font-family: "ÇlÇr ÉSÉVÉbÉN", Osaka-ìôïù, courier, monospace; }
+.note    { font-weight: bold; text-decoration: underline; }
+
+.nav { position: absolute; left: 10px; top: 10px; }
+
+a:link    { color: #0000a0 /*blue*/; }
+a:visited { color: #0000a0 /*blue*/; }
+a:active  { color: red; }
+a:hover   { color: red; }
+
+a.topbar { white-space: nowrap; }
+a.topbar:link    { text-decoration: none; color: black; }
+a.topbar:visited { text-decoration: none; color: black; }
+a.topbar:active  { text-decoration: none; color: #0000a0 /*blue*/; }
+a.topbar:hover   { text-decoration: underline; color: #0000a0 /*blue*/; }
+
+.option  { margin-bottom: 10px; font-size: 120% /*20px*/; }
+.explain { margin-left: 20px; }
+.small   { font-size: 95% /*14px*/; }

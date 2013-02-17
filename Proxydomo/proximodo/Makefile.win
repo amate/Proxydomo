@@ -1,0 +1,123 @@
+# Project: Proximodo
+# Makefile created by Dev-C++ 4.9.9.2
+
+CPP  = g++.exe -D__DEBUG__
+CC   = gcc.exe -D__DEBUG__
+WINDRES = windres.exe
+RES  = ../obj/Proximodo_private.res
+OBJ  = ../obj/main.o ../obj/nodes.o ../obj/url.o ../obj/matcher.o ../obj/expander.o ../obj/textfilter.o ../obj/headerfilter.o ../obj/requestmanager.o ../obj/proxy.o ../obj/log.o ../obj/settings.o ../obj/descriptor.o ../obj/events.o ../obj/managerthread.o ../obj/filter.o ../obj/platform.o ../obj/util.o ../obj/filterowner.o ../obj/mainframe.o ../obj/welcomescreen.o ../obj/settingsscreen.o ../obj/controls.o ../obj/editscreen.o ../obj/testframe.o ../obj/configscreen.o ../obj/windowcontent.o ../obj/logframe.o ../obj/trayicon.o ../obj/zlibbuffer.o ../obj/giffilter.o ../obj/textbuffer.o $(RES)
+LINKOBJ  = ../obj/main.o ../obj/nodes.o ../obj/url.o ../obj/matcher.o ../obj/expander.o ../obj/textfilter.o ../obj/headerfilter.o ../obj/requestmanager.o ../obj/proxy.o ../obj/log.o ../obj/settings.o ../obj/descriptor.o ../obj/events.o ../obj/managerthread.o ../obj/filter.o ../obj/platform.o ../obj/util.o ../obj/filterowner.o ../obj/mainframe.o ../obj/welcomescreen.o ../obj/settingsscreen.o ../obj/controls.o ../obj/editscreen.o ../obj/testframe.o ../obj/configscreen.o ../obj/windowcontent.o ../obj/logframe.o ../obj/trayicon.o ../obj/zlibbuffer.o ../obj/giffilter.o ../obj/textbuffer.o $(RES)
+LIBS =  -L"C:/MinGW/lib" -mwindows -lz -lwx_msw_core-2.6 -lwx_base-2.6 -lwx_base_net-2.6 -lwx_msw_adv-2.6 -lrpcrt4  -loleaut32  -lole32  -luuid  -lwinspool  -lwinmm  -lshell32  -lcomctl32 -lcomdlg32  -lctl3d32  -ladvapi32  -lwsock32  -lgdi32  -g3 -march=pentium-mmx -mmmx 
+INCS =  -I"C:/MinGW/include" 
+CXXINCS =  -I"C:/MinGW/include" 
+BIN  = ../bin/Proximodo.exe
+CXXFLAGS = $(CXXINCS) -mthreads -D__WXMSW__  -DNO_GCC_PRAGMA -Wall -O3   -fexceptions -g3 -march=pentium-mmx -mmmx
+CFLAGS = $(INCS)   -fexceptions -g3 -march=pentium-mmx -mmmx
+RM = rm -f
+
+.PHONY: all all-before all-after clean clean-custom
+
+all: all-before ../bin/Proximodo.exe all-after
+
+
+clean: clean-custom
+	${RM} $(OBJ) $(BIN)
+
+$(BIN): $(OBJ)
+	$(CPP) $(LINKOBJ) -o "..\bin\Proximodo.exe" $(LIBS)
+
+../obj/main.o: main.cpp
+	$(CPP) -c main.cpp -o ../obj/main.o $(CXXFLAGS)
+
+../obj/nodes.o: nodes.cpp
+	$(CPP) -c nodes.cpp -o ../obj/nodes.o $(CXXFLAGS)
+
+../obj/url.o: url.cpp
+	$(CPP) -c url.cpp -o ../obj/url.o $(CXXFLAGS)
+
+../obj/matcher.o: matcher.cpp
+	$(CPP) -c matcher.cpp -o ../obj/matcher.o $(CXXFLAGS)
+
+../obj/expander.o: expander.cpp
+	$(CPP) -c expander.cpp -o ../obj/expander.o $(CXXFLAGS)
+
+../obj/textfilter.o: textfilter.cpp
+	$(CPP) -c textfilter.cpp -o ../obj/textfilter.o $(CXXFLAGS)
+
+../obj/headerfilter.o: headerfilter.cpp
+	$(CPP) -c headerfilter.cpp -o ../obj/headerfilter.o $(CXXFLAGS)
+
+../obj/requestmanager.o: requestmanager.cpp
+	$(CPP) -c requestmanager.cpp -o ../obj/requestmanager.o $(CXXFLAGS)
+
+../obj/proxy.o: proxy.cpp
+	$(CPP) -c proxy.cpp -o ../obj/proxy.o $(CXXFLAGS)
+
+../obj/log.o: log.cpp
+	$(CPP) -c log.cpp -o ../obj/log.o $(CXXFLAGS)
+
+../obj/settings.o: settings.cpp
+	$(CPP) -c settings.cpp -o ../obj/settings.o $(CXXFLAGS)
+
+../obj/descriptor.o: descriptor.cpp
+	$(CPP) -c descriptor.cpp -o ../obj/descriptor.o $(CXXFLAGS)
+
+../obj/events.o: events.cpp
+	$(CPP) -c events.cpp -o ../obj/events.o $(CXXFLAGS)
+
+../obj/managerthread.o: managerthread.cpp
+	$(CPP) -c managerthread.cpp -o ../obj/managerthread.o $(CXXFLAGS)
+
+../obj/filter.o: filter.cpp
+	$(CPP) -c filter.cpp -o ../obj/filter.o $(CXXFLAGS)
+
+../obj/platform.o: platform.cpp
+	$(CPP) -c platform.cpp -o ../obj/platform.o $(CXXFLAGS)
+
+../obj/util.o: util.cpp
+	$(CPP) -c util.cpp -o ../obj/util.o $(CXXFLAGS)
+
+../obj/filterowner.o: filterowner.cpp
+	$(CPP) -c filterowner.cpp -o ../obj/filterowner.o $(CXXFLAGS)
+
+../obj/mainframe.o: mainframe.cpp
+	$(CPP) -c mainframe.cpp -o ../obj/mainframe.o $(CXXFLAGS)
+
+../obj/welcomescreen.o: welcomescreen.cpp
+	$(CPP) -c welcomescreen.cpp -o ../obj/welcomescreen.o $(CXXFLAGS)
+
+../obj/settingsscreen.o: settingsscreen.cpp
+	$(CPP) -c settingsscreen.cpp -o ../obj/settingsscreen.o $(CXXFLAGS)
+
+../obj/controls.o: controls.cpp
+	$(CPP) -c controls.cpp -o ../obj/controls.o $(CXXFLAGS)
+
+../obj/editscreen.o: editscreen.cpp
+	$(CPP) -c editscreen.cpp -o ../obj/editscreen.o $(CXXFLAGS)
+
+../obj/testframe.o: testframe.cpp
+	$(CPP) -c testframe.cpp -o ../obj/testframe.o $(CXXFLAGS)
+
+../obj/configscreen.o: configscreen.cpp
+	$(CPP) -c configscreen.cpp -o ../obj/configscreen.o $(CXXFLAGS)
+
+../obj/windowcontent.o: windowcontent.cpp
+	$(CPP) -c windowcontent.cpp -o ../obj/windowcontent.o $(CXXFLAGS)
+
+../obj/logframe.o: logframe.cpp
+	$(CPP) -c logframe.cpp -o ../obj/logframe.o $(CXXFLAGS)
+
+../obj/trayicon.o: trayicon.cpp
+	$(CPP) -c trayicon.cpp -o ../obj/trayicon.o $(CXXFLAGS)
+
+../obj/zlibbuffer.o: zlibbuffer.cpp
+	$(CPP) -c zlibbuffer.cpp -o ../obj/zlibbuffer.o $(CXXFLAGS)
+
+../obj/giffilter.o: giffilter.cpp
+	$(CPP) -c giffilter.cpp -o ../obj/giffilter.o $(CXXFLAGS)
+
+../obj/textbuffer.o: textbuffer.cpp
+	$(CPP) -c textbuffer.cpp -o ../obj/textbuffer.o $(CXXFLAGS)
+
+../obj/Proximodo_private.res: Proximodo_private.rc ../../MinGW/include/wx/msw/wx.rc 
+	$(WINDRES) -i Proximodo_private.rc --input-format=rc -o ../obj/Proximodo_private.res -O coff  --include-dir C:/MinGW/include

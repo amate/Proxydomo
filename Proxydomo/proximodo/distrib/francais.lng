@@ -1,0 +1,689 @@
+---------------------------------------------------------------------
+Language: French
+Author: Antony Boucher
+Contributions by:
+Version: 0.2.1
+---------------------------------------------------------------------
+
+
+Pattern Parsing Errors
+
+MISSING_CURLY                 =Il manque une accolade fermante en position %1
+PARSING_INCOMPLETE            =Le motif ne peut être interprété intégralement
+ESCAPE_AT_END                 =Caractère d'échappement en fin de motif
+MISSING_CROCHET               =Il manque un crochet fermant en position %1
+MISSING_PARENTHESE            =Il manque une parenthèse fermante en position %1
+NOT_A_NUMBER                  =Un nombre est nécessaire en position %1
+UNKNOWN_COMMAND               =Commande inconnue en position %1
+MISSING_EQUAL                 =Il manque un signe = dans le contenu en %1
+NEED_TRUE_FALSE               =Seuls 'true' et 'false' sont autorisés en position %1
+NEED_TEXT                     =Du texte est nécessaire en position %1
+TWO_THREE_INTEGERS            =Il faut 2 ou 3 entiers strictements positifs, séparés par des virgules, en position %1
+MISSING_COLON                 =Il manque un signe : en position %1
+CROCHET_AT_END                =Crochet ouvert en fin de motif
+MISSING_COMMA                 =Il manque une virgule en position %1
+ERROR_MARKER                  =•
+
+Web Error Messages
+
+404_NOT_FOUND                 =Le document demandé n'a pas été trouvé.
+502_BAD_GATEWAY               =La recherche DNS a échoué.
+503_UNAVAILABLE               =La connection à ce domaine a échoué. Le serveur peut être stoppé ou occupé, veuillez réessayer ultérieurement.
+
+Filter Messages
+
+ADDLSTBOX_MESSAGE             =La ligne suivante va être ajoutée au fichier %1 (jokers autorisés)
+INVALID_FILTER_TITLE          =Le titre du filtre doit être défini.
+INVALID_FILTER_MATCHEMPTY     =Le motif de recherche ne doit pas être vide.
+INVALID_FILTER_WIDTH          =La taille limite est invalide.
+INVALID_FILTER_HEADEREMPTY    =Le nom d'en-tête HTTP doit être défini.
+
+Main Window
+
+BUTTON_MONITOR                =Contrôles
+BUTTON_SETTINGS               =Paramètres
+BUTTON_LOG                    =Journal
+BUTTON_FILTERS                =Filtres
+BUTTON_CONFIG                 =Config
+BUTTON_HELP                   =Aide
+BUTTON_QUIT                   =Quitter
+STAT_ACTIVE_REQS              =%1 requêtes actives
+STAT_ACTIVE_REQ               =%1 requête active
+HELP_PAGE_CONTENT             =./help/en/f_content.html
+HELP_PAGE_SYNTAX              =./help/en/f_syntax.html
+HELP_PAGE_WELCOME             =./help/en/f_welcome.html
+HELP_PAGE_LICENSE             =./help/en/f_license.html
+HELP_PAGE_FILTERS             =./help/en/f_filters.html
+HELP_ABOUT_TEXT               =Proximodo version %1
+_2004 (c) Antony Boucher
+_
+_Un proxy de filtrage web personnalisable
+_inspiré de Proxomitron par Scott R. Lemmon
+_
+_Projet Open-Source distribué sous licence GNU GPL
+_
+_Proximodo utilise les libraries suivantes :
+_* ZLib (C) 1995-2004 Jean-loup Gailly et Mark Adler
+_* wxWidgets (c) 1992-2002 Julian Smart, Robert Roebling,
+_   Vadim Zeitlin et autres membres de l'équipe wxWidgets
+_   Portions (c) 1996 Artificial Intelligence Applications
+_   Institute
+
+Menu Bar
+
+MENU_TOOLS                    =Outils
+MENU_FILTERS                  =Filtres
+MENU_CONFIG                   =Configurations
+MENU_HELP                     =Aide
+MENU_TOOLSMONITOR             =Contrôles	Alt+M
+MENU_TOOLSSETTINGS            =Paramètres	Alt+S
+MENU_TOOLSCONFIG              =Configurations	Alt+G
+MENU_TOOLSFILTERS             =Filtres	Alt+F
+MENU_TOOLSLOG                 =Journal	Alt+L
+MENU_TOOLSSAVE                =Enregistrer	Ctrl+S
+MENU_TOOLSRELOAD              =Recharger	Ctrl+Y
+MENU_TOOLSQUIT                =Quitter	Ctrl+Q
+MENU_TOOLSICONIZE             =Réduire	F4
+MENU_HELPABOUT                =A Propos
+MENU_HELPCONTENT              =Contenu	F1
+MENU_HELPSYNTAX               =Codes et Commandes
+MENU_HELPLICENSE              =Licence
+MENU_HELPFILTERS              =Edition de filtre
+MENU_FILTERSEDIT              =Editer filtre	Enter
+MENU_FILTERSCHECK             =Activer	Alt+Space
+MENU_FOLDERSNEW               =Nouveau dossier	Alt+F
+MENU_FILTERSAPPLY             =Appliquer	F8
+MENU_FILTERSREVERT            =Rétablir	F9
+MENU_FILTERSDELETE            =Supprimer	Alt+X
+MENU_FILTERSEXPORT            =Exporter	Alt+C
+MENU_FILTERSIMPORT            =Importer	Alt+V
+MENU_FILTERSPROXOMITRON       =Import Proxomitron
+MENU_FILTERSDUPLICATE         =Dupliquer	Alt+D
+MENU_FILTERSNEW               =Nouveau Filtre	Alt+N
+MENU_FILTERSTEST              =Test	Alt+T
+MENU_FILTERSENCODE            =Encoder Base64
+MENU_FILTERSDECODE            =Décoder Base64
+MENU_CONFIGAPPLY              =Appliquer	F8
+MENU_CONFIGREVERT             =Rétablir	F9
+MENU_CONFIGDELETE             =Supprimer Config
+MENU_CONFIGDUPLICATE          =Dupliquer Config
+MENU_CONFIGNEW                =Nouvelle Config
+MENU_CONFIGADD                =Ajouter	Alt+Right
+MENU_CONFIGREMOVE             =Retirer	Alt+Left
+MENU_CONFIGMOVEUP             =Monter	Alt+Up
+MENU_CONFIGMOVEDOWN           =Descendre	Alt+Down
+
+Settings Window
+
+SETTINGS_NOT_SAVED            =Les paramètres ont été modifiés. Voulez-vous les enregistrer ?
+REVERT_SETTINGS               =Vous allez perdre vos modifications. Voulez-vous toujours rétablir les paramètres ?
+APPLY_SETTINGS                =Les paramètres ont changé. Voulez-vous les appliquer ?
+BAD_PATTERN                   =Ce motif est malformé.
+PORT_UNAVAILABLE              =Ce port est actuellement indisponible.
+BAD_REMOTE_PROXY              =Cette adresse ne semble pas fonctionner.
+LB_SETTINGS_FILTERING         =Filtrage
+LB_SETTINGS_OUTGOING          =Filtrer les en-têtes sortantes
+LB_SETTINGS_INCOMING          =Filtrer les en-têtes entrantes
+LB_SETTINGS_TEXT              =Filtrer le texte
+LB_SETTINGS_GIF               =Figer les images GIF
+LB_SETTINGS_ACTIVE            =Configuration Active
+LB_SETTINGS_BYPASS            =Motif des URL non-filtrées
+LB_SETTINGS_GUI               =Interface
+LB_SETTINGS_LANGUAGE          =Langue
+LB_SETTINGS_PROXY             =Proxy
+LB_SETTINGS_PORT              =Port
+LB_SETTINGS_URLCMD            =Activer commandes URL
+LB_SETTINGS_URLCMD_PREFIX     =Préfixe
+LB_SETTINGS_USEPROXY          =Utiliser un proxy distant
+LB_SETTINGS_NEXTPROXY         =Proxy
+LB_SETTINGS_REMOVE            =Supprimer
+LB_SETTINGS_ALLOWIP           =Autoriser l'intervalle d'IP
+LB_SETTINGS_MINRANGE          =Début de l'intervalle
+LB_SETTINGS_MAXRANGE          =Fin de l'intervalle
+LB_SETTINGS_APPLY             =Appliquer
+LB_SETTINGS_SAVE              =Enregistrer
+LB_SETTINGS_REVERT            =Rétablir
+LB_SETTINGS_STARTUP_GUI       =Au démarrage, afficher:
+LB_SETTINGS_NO_GUI            =Icône de barre de tâche
+LB_SETTINGS_PROX_GUI          =Proximodo
+LB_SETTINGS_BROWSER_GUI       =Navigateur
+LB_SETTINGS_BOTH_GUI          =Proximodo et Navigateur
+LB_SETTINGS_SHOWONSTARTUP     =Afficher la fenêtre au demarrage
+LB_SETTINGS_LIST              =Listes
+LB_SETTINGS_LISTNAME          =Nom
+LB_SETTINGS_NEWLIST           =Nouveau
+LB_SETTINGS_OPENLIST          =Ouvrir
+LB_SETTINGS_LISTFILE          =Fichier
+LB_SETTINGS_CHOOSEFILE        =Choisir
+LB_SETTINGS_SHOWGUI           =Afficher cette fenêtre au démarrage
+LB_SETTINGS_STARTBROWSER      =Démarrer le programme suivant :
+ASK_CREATE_NEWLIST            =Ce fichier n'existe pas. Voulez-vous le créer ?
+OPEN_LISTFILE_QUESTION        =Choisissez un fichier texte
+OPEN_BROWSER_QUESTION         =Choisissez un fichier exécutable
+
+Edit Filter Window
+
+LB_EDIT_COL1                  =Titre du Filtre
+LB_EDIT_COL2                  =Catégorie
+LB_EDIT_AUTHOR                =Auteur
+LB_EDIT_COMMENT               =Commentaire
+LB_EDIT_HEADERNAME            =Nom d'En-tête
+LB_EDIT_MULTIMATCH            =Autoriser les remplacements multiples
+LB_EDIT_TITLE                 =Titre
+LB_EDIT_CATEGORY              =Catégorie
+LB_EDIT_TYPE                  =Type de Filtre
+LB_EDIT_TYPEIN                =En-tête entrante
+LB_EDIT_TYPEOUT               =En-tête sortante
+LB_EDIT_TYPETEXT              =Filtre texte
+LB_EDIT_VERSION               =Version
+LB_EDIT_WIDTH                 =Taille limite
+LB_EDIT_PRIORITY              =Priorité
+LB_EDIT_URL                   =Motif d'URL :
+LB_EDIT_BOUNDS                =Motif de Bornes :
+LB_EDIT_MATCH                 =Motif de Recherche :
+LB_EDIT_REPLACE               =Texte de Remplacement :
+REVERT_EDITFILTERS            =Vous allez perdre vos modifications. Voulez-vous toujours rétablir la liste de filtres ?
+APPLY_EDITFILTERS             =Les filtres ont changé. Voulez-vous les appliquer ?
+DEFAULT_FILTER_NAME           =Nouveau Filtre
+DEFAULT_FOLDER_NAME           =Nouveau Dossier
+PROXOMITRON_CATEGORY          =Proxomitron
+EDIT_WINDOW_TITLE             =Proximodo - Fenêtre d'édition
+
+Test Window
+
+TEST_WINDOW_TEST_BUTTON       =Tester
+TEST_WINDOW_PROF_BUTTON       =Profiler
+TEST_WINDOW_CLOSE_BUTTON      =Fermer
+TEST_WINDOW_TITLE             =Proximodo - Fenêtre de Test
+TEST_NO_MATCH                 =(Pas de correspondance trouvée)
+TEST_PROFILE_RESULTS          =Résultats du profilage...
+_  Taille échantillon:  %1 bytes
+_  Occurrences trouvées:  %2
+_  Durée moyenne:  %3 microseconds
+_  Débit:  %4 KB/s
+
+Configuration Window
+
+LB_CONFIG_NAME                =Nom
+LB_CONFIG_COL1                =Titre du Filtre
+LB_CONFIG_COL2                =Catégorie
+LB_CONFIG_COL3                =Type
+APPLY_CONFIG                  =Les configurations ont changé. Voulez-vous les appliquer ?
+REVERT_CONFIG                 =Vous allez perdre vos modifications. Voulez-vous toujours rétablir les configurations ?
+CONFIG_TYPE_OUT               =Sortant
+CONFIG_TYPE_IN                =Entrant
+CONFIG_TYPE_TEXT              =Texte
+CONFIG_NEW_NAME               =Nouvelle Configuration
+
+Log Window
+
+LOG_WINDOW_TITLE              =Proximodo - Journal
+LOG_BUTTON_START              =Démarrer
+LOG_BUTTON_STOP               =Arrêter
+LOG_BUTTON_CLEAR              =Effacer
+LOG_CKB_HTTP                  =Evénements HTTP
+LOG_CKB_POST                  =Données POST
+LOG_CKB_PROXY                 =Evénements Proxy
+LOG_CKB_FILTER                =Evénements Filtres
+LOG_CKB_LOG                   =Messages $LOG()
+LOG_CKB_BROWSER               =Dialogue côté navigateur
+LOG_CKB_HEADERS               =Afficher les en-têtes
+EVT_FILTER_HMATCH             =>>> Req #%1: Le filtre d'en-tête "%2" a trouvé "%3"
+EVT_FILTER_HREPLACE           =>>> Req #%1: Le filtre d'en-tête "%2" a remplacé par "%3"
+EVT_FILTER_LOG                =>>> Req #%1: Le filtre "%2" a envoyé:
+EVT_FILTER_TMATCH             =>>> Req #%1: Le filtre texte "%2" a trouvé "%3"
+EVT_FILTER_TREPLACE           =>>> Req #%1: Le filtre texte "%2" a remplacé par "%3"
+EVT_HTTP_POSTOUT              =>>> Req #%1 (port %2): Données POST envoyées
+_%3
+EVT_HTTP_RECVIN               =>>> Req #%1 (port %2): Réponse reçue du site web
+_%3
+EVT_HTTP_RECVOUT              =>>> Req #%1 (port %2): Requête reçue du navigateur
+_%3
+EVT_HTTP_SENDIN               =>>> Req #%1 (port %2): Réponse envoyée au navigateur
+_%3
+EVT_HTTP_SENDOUT              =>>> Req #%1 (port %2): Requête envoyée au site web
+_%3
+EVT_HTTP_GENERIC              =>>> Req #%1 (port %2):
+_%3
+EVT_PROXY_ACCEPT              =>>> Connexion acceptée sur le port %1
+EVT_PROXY_ENDREQ              =>>> Requête terminée sur le port %1
+EVT_PROXY_ENDSOCK             =>>> Socket fermée sur le port %1
+EVT_PROXY_NEWREQ              =>>> Nouvelle requête reçue sur le port %1
+EVT_PROXY_NEWSOCK             =>>> Nouvelle socket créée sur le port %1
+EVT_PROXY_REFUSE              =>>> Connexion refusée sur le port %1
+EVT_PROXY_START               =>>> Proxy démarré sur le port %1
+EVT_PROXY_STOP                =>>> Proxy arrêté
+
+Monitoring Window
+
+LB_MONITOR_STATISTICS         =Statistiques
+LB_MONITOR_OPENCNX            =Connexions ouvertes :
+LB_MONITOR_OPENREQ            =Requêtes en cours :
+LB_MONITOR_ABORT              =Interrompre
+
+Tray Icon Menu
+
+TRAY_CONFIG                   =Configurations
+TRAY_FILTER                   =Filtrer
+TRAY_FILTERALL                =Tout
+TRAY_FILTERIN                 =Entrant
+TRAY_FILTERNONE               =Rien
+TRAY_FILTEROUT                =Sortant
+TRAY_FILTERTEXT               =Texte
+TRAY_FILTERGIF                =GIF
+TRAY_LOG                      =Journal
+TRAY_OPEN                     =Ouvrir
+TRAY_EXIT                     =Quitter
+TRAY_USEPROXY                 =Passer par proxy
+
+Other Messages
+
+UTIL_OPEN_FILE                =Ne peut trouver le programme pour ouvrir %1
+
+Tool Tips
+
+CONFIG_ALLLIST_TIP            =Filtres disponibles. Cliquez sur un titre de colonne pour trier
+CONFIG_ADD_TIP                =Ajouter à la configuration les filtres sélectionnés à gauche
+CONFIG_REMOVE_TIP             =Retirer de la configuration les filtres sélectionnés à droite
+CONFIG_UP_TIP                 =Déplacer les filtres sélectionnés à droite d'une ligne vers le haut
+CONFIG_DOWN_TIP               =Déplacer les filtres sélectionnés à droite d'une ligne vers le bas
+CONFIG_NAME_TIP               =Nom de la configuration affichée. Changez-le pour renommer la configuration
+CONFIG_OKLIST_TIP             =Filtres utilisés dans cette configuration (les filtre textes seront exécutés dans l'ordre)
+CONFIG_COMMENT_TIP            =Commentaire du filtre sélectionné
+MENU_CONFIGADD_TIP            =Ajouter à la configuration les filtres sélectionnés à gauche
+MENU_CONFIGREMOVE_TIP         =Retirer de la configuration les filtres sélectionnés à droite
+MENU_CONFIGMOVEUP_TIP         =Déplacer les filtres sélectionnés à droite d'une ligne vers le haut
+MENU_CONFIGMOVEDOWN_TIP       =Déplacer les filtres sélectionnés à droite d'une ligne vers le bas
+MENU_CONFIGNEW_TIP            =Créer une nouvelle configuration vide
+MENU_CONFIGDUPLICATE_TIP      =Créer une nouvelle configuration contenant les mêmes filtres
+MENU_CONFIGDELETE_TIP         =Supprimer la configuration affichée
+MENU_CONFIGAPPLY_TIP          =Valider toutes les modifications faites sur les configurations
+MENU_CONFIGREVERT_TIP         =Annuler toutes les modifications depuis la dernière validation/annulation
+EDIT_FILTERLIST_TIP           =Cliquez sur un filtre pour l'éditer. Cliquez sur un titre de colonne pour trier
+EDIT_TITLE_TIP                =Titre du filtre (obligatoire). Doublons non permis
+EDIT_CATEGORY_TIP             =Catégorie du filtre (pour une classification plus facile)
+EDIT_COMMENT_TIP              =Commentaire du filtre (indicatif)
+EDIT_AUTHOR_TIP               =Auteur du filtre (indicatif)
+EDIT_VERSION_TIP              =Version du filtre (indicatif)
+EDIT_TYPE_TIP                 =Type du filtre. Dupliquez le filtre si vous avez besoin du même filtre sur en-têtes entrante et sortante
+EDIT_HEADERNAME_TIP           =Nom du header concerné. Les jokers ne sont pas autorisés
+EDIT_WIDTH_TIP                =Taille de fenêtre glissante. Gardez-la aussi petite que possible (plus rapide)
+EDIT_PRIORITY_TIP             =Priorité d'éxecution, les filtres sont éxecutés par ordre décroissant
+EDIT_MULTIMATCH_TIP           =Si coché, ce filtre scannera aussi le texte remplacé
+EDIT_BOUNDS_TIP               =Le filtre scannera uniquement ce que ce motif a trouvé (si défini). Utilisez ces bornes si vous pouvez (plus rapide)
+EDIT_URL_TIP                  =Le filtre ne sera actif que sur les URLs correspondantes (si ce motif est défini). Utilisez-le si vous pouvez (plus rapide)
+EDIT_MATCH_TIP                =Motif à trouver et remplacer. Consultez l'aide pour la syntaxe
+EDIT_REPLACE_TIP              =Texte de remplacement pour les occurrences trouvées (peut contenir des codes et commandes)
+MENU_FOLDERSNEW_TIP           =Créer un nouveau dossier à l'emplacement sélectionné
+MENU_FILTERSEDIT_TIP          =Ouvrir la fenétre de modification de filtre
+MENU_FILTERSCHECK_TIP         =Activer/Désactiver les élements sélectionnés
+MENU_FILTERSNEW_TIP           =Créer un nouveau filtre
+MENU_FILTERSDUPLICATE_TIP     =Dupliquer le filtre affiché
+MENU_FILTERSDELETE_TIP        =Supprimer le filtre affiché
+MENU_FILTERSTEST_TIP          =Ouvrir la fenetre de test. Vous pouvez la garder ouverte pendant que vous créez le filtre
+MENU_FILTERSENCODE_TIP        =Encoder en BASE64 (MIME) le contenu du presse papier (texte seulement)
+MENU_FILTERSDECODE_TIP        =Décoder le contenu du presse-papier codé en BASE64 (texte seulement)
+MENU_FILTERSIMPORT_TIP        =Importer des filtres Proximodo depuis le presse-papier. Les titres sont incrémentés pour éviter les doublons
+MENU_FILTERSPROXOMITRON_TIP   =Importer des filtres Proxomitron depuis le presse-papier. Les titres sont incrémentés pour éviter les doublons
+MENU_FILTERSEXPORT_TIP        =Exporter les filtres sélectionnés vers le presse papier (simplifie pour les échanges)
+MENU_FILTERSAPPLY_TIP         =Valider toutes les modifications de filtres
+MENU_FILTERSREVERT_TIP        =Annuler toutes les modifications de filtres faites depuis la dernière validation/annulation
+BUTTON_MONITOR_TIP            =Afficher l'écran des contrôles
+BUTTON_SETTINGS_TIP           =Afficher l'écran de paramètres
+BUTTON_LOG_TIP                =Ouvrir la fenêtre de journal
+BUTTON_FILTERS_TIP            =Afficher l'écran d'édition de filtre
+BUTTON_CONFIG_TIP             =Afficher l'écran d'édition de configuration
+BUTTON_HELP_TIP               =Ouvrir la page principale d'aide dans le navigateur web par défaut
+BUTTON_QUIT_TIP               =Arrêter le proxy et terminer Proximodo
+MENU_TOOLSMONITOR_TIP         =Afficher l'écran des contrôles
+MENU_TOOLSSETTINGS_TIP        =Afficher l'écran de paramètres
+MENU_TOOLSCONFIG_TIP          =Afficher l'écran d'édition de configuration
+MENU_TOOLSFILTERS_TIP         =Afficher l'écran d'édition de filtre
+MENU_TOOLSLOG_TIP             =Ouvrir la fenêtre de journal
+MENU_TOOLSSAVE_TIP            =Valider les modifications en cours et enregistrer tout
+MENU_TOOLSRELOAD_TIP          =Recharger tout
+MENU_TOOLSICONIZE_TIP         =Icônifier Proximodo dans la barre des tâches (près de l'horloge)
+MENU_TOOLSQUIT_TIP            =Arrêter le proxy et terminer Proximodo
+MENU_HELPABOUT_TIP            =Afficher des informations sur cette version de Proximodo
+MENU_HELPCONTENT_TIP          =Ouvrir la page principale d'aide dans le navigateur web par défaut
+MENU_HELPSYNTAX_TIP           =Ouvrir la page d'aide sur les Codes et Commandes
+MENU_HELPLICENSE_TIP          =Afficher la license de copie, distribution et modification de Proximodo
+MENU_HELPFILTERS_TIP          =Ouvrir la page d'aide  sur la fenêtre de modification de filtre
+SETTINGS_OUTGOING_TIP         =Activer le filtrage des en-têtes sortantes (envoyées au site web)
+SETTINGS_INCOMING_TIP         =Activer le filtrage des en-têtes entrantes (reçues par le navigateur)
+SETTINGS_TEXT_TIP             =Activer le filtrage des pages
+SETTINGS_GIF_TIP              =Activer le filtrage des images GIF
+SETTINGS_CONFIG_TIP           =Configuration utilisée pour le filtrage
+SETTINGS_BYPASS_TIP           =Les URLs qui satisfont ce motif ne seront pas filtrées
+SETTINGS_LANGUAGE_TIP         =Langue de l'interface graphique. Pris en compte au redémarrage de Proximodo
+SETTINGS_STARTUP_TIP          =Afficher cette fenêtre au démarrage de Proximodo
+SETTINGS_PORT_TIP             =Port d'écoute de Proximodo (8080 par défaut). Copiez-le dans les paramètres de votre navigateur
+SETTINGS_URLCMD_TIP           =Autoriser le passage de commandes par URL (dbug, bypass, etc.)
+SETTINGS_URLCMD_PREFIX_TIP    =Si défini, Proximodo exécutera seulement les commandes précédées par ce code
+SETTINGS_USEPROXY_TIP         =Si coché, Proximodo passera par un autre proxy pour atteindre le réseau internet
+SETTINGS_NEXTPROXY_TIP        =Proxy que Proximodo utilisera pour accéder au net. Les proxys listés sont disponibles pour les commandes $SETPROXY
+SETTINGS_REMOVEPROXY_TIP      =Retirer de la liste le proxy affiché
+SETTINGS_ALLOWIP_TIP          =Autoriser les connections en provenance d'autres ordinateurs. Utilisez avec précaution, conjointement à l'intervalle d'IP
+SETTINGS_MINRANGE_TIP         =Si la case précédente est cochée, les connexions en provenance de ces IP seront acceptées
+SETTINGS_MAXRANGE_TIP         =Si la case précédente est cochée, les connexions en provenance de ces IP seront acceptées
+SETTINGS_LISTNAME_TIP         =Listes gérées par Proximodo. Effacez la case pour effacer la liste (le fichier est conservé)
+SETTINGS_NEWLIST_TIP          =Ajouter une nouvelle liste. Définissez ensuite le nom et le fichier
+SETTINGS_OPENLIST_TIP         =Ouvrir le fichier dans l'éditeur de texte par défaut
+SETTINGS_LISTFILE_TIP         =Chemin du fichier contenant la liste. Si le fichier n'existe pas, sa création vous sera proposée
+SETTINGS_FILECHOOSE_TIP       =Sélectionner un fichier du disque dur
+SETTINGS_APPLY_TIP            =Valider les modifications des paramètres
+SETTINGS_REVERT_TIP           =Annuler les modifications des paramètres
+SETTINGS_SHOWGUI_TIP          =Afficher cette fenêtre quand Proximodo démarre (sinon seulement l'icône de barre de tâches)
+SETTINGS_STARTBROWSER_TIP     =Le programme indiqué ci-dessous démarrera en même temps que Proximodo
+SETTINGS_BROWSERPATH_TIP      =Programme externe à démarrer en même temps que Proximodo (en pratique, votre navigateur)
+SETTINGS_BROWSERCHOOSE_TIP    =Choisir le programme sur le disque dur
+MONITOR_ABORT_TIP             =Fermer les connexions actives (stoppe les téléchargements en cours)
+
+Default Filter Titles
+
+FILTER_101_TITLE    =Raccourcis par alias
+FILTER_101_COMMENT  =Vous pouvez accéder à vos sites favoris en tapant dans le champ URL du navigateur un point suivi d'un alias. Les alias sont définis dans la liste AliasList.
+
+FILTER_102_TITLE    =Permettre le redimensionnement de frames
+FILTER_102_COMMENT  =Toutes les frames deviennent redimensionnables, vous permettant ainsi de voir entièrement des frames trop petites ou récupérer la place prise par des frames de publicité.
+
+FILTER_103_TITLE    =Autoriser les click-droits souris
+FILTER_103_COMMENT  =Permet de contourner les limitations imposées par certains sites qui utilisent du JavaScript pour vous empêcher d'ajouter des liens à vos favoris ou recharger des images qui n'ont pas été chargées du premier coup.
+
+FILTER_104_TITLE    =Autoriser l'encodage de page web
+FILTER_104_COMMENT  =Indique au site web qu'il peut envoyer les fichiers sous forme compressée, et que le navigateur saura les décoder.
+
+FILTER_105_TITLE    =Toujours mettre en cache
+FILTER_105_COMMENT  =Le site web peut forcer le navigateur à ne pas mettre en cache les pages. Ce filtre empêche ce forcage, laissant au navigateur le soin de gérer au mieux son système de cache.
+
+FILTER_106_TITLE    =Toujours mettre en cache (pas d'expiration)
+FILTER_106_COMMENT  =Les pages peuvent comporter une date d'expiration au delà de laquelle elles sont supprimées du cache. Ce filtre efface cette date d'expiration, de sorte que les pages restent en cache jusqu'à ce que vous en demandiez explicitement le rechargement au navigateur.
+
+FILTER_107_TITLE    =Toujours recharger les pages
+FILTER_107_COMMENT  =Quand le navigateur demande au site web une page dejà en cache, il peut lui dire de ne pas l'envoyer si la page n'a pas changé depuis le dernier téléchargement. En utilisant ce filtre, les pages demandées seront (re)téléchargées même si elles n'ont pas changé.
+
+FILTER_108_TITLE    =Anti-auto-rafraîchissement
+FILTER_108_COMMENT  =Empêche le rechargement automatique des pages. Parfois utilisé pour vous rediriger automatiquement vers une nouvelle page, mais plus souvent par des pages avec des frames qui se rafraîchissent régulièrement. Ce filtre crée aussi un lien pour effectuer manuellement le rafraîchissement si besoin.
+
+FILTER_109_TITLE    =Eclater les pubs de type Map (partie 1)
+FILTER_109_COMMENT  =Ce filtre en deux parties est conçu pour éliminer les publicitée qui utilisent des "area maps". Celles-ci sont différentes des autres en ce qu'elles peuvent contenir plusieurs liens. Le premier filtre agit un peu comme l'éclateur de bannières, convertissant en texte le premier lien qu'il trouve. Utilisé seul, uniquement le premier lien sera converti. Le deuxième filtre, utilisé en complément du premier, converti de même les liens suivants - conservant toute la fonctionnalité de l'area map. Habituellement, "Remplacer les bannière" est le filtre de choix.
+
+FILTER_110_TITLE    =Eclater les pubs de type Map (partie 2)
+FILTER_110_COMMENT  =Ce filtre en deux parties est conçu pour éliminer les publicitée qui utilisent des "area maps". Celles-ci sont différentes des autres en ce qu'elles peuvent contenir plusieurs liens. Le premier filtre agit un peu comme l'éclateur de bannières, convertissant en texte le premier lien qu'il trouve. Utilisé seul, uniquement le premier lien sera converti. Le deuxième filtre, utilisé en complément du premier, converti de même les liens suivants - conservant toute la fonctionnalité de l'area map. Habituellement, "Remplacer les bannière" est le filtre de choix.
+
+FILTER_111_TITLE    =Eclater les bannières (afficher le texte)
+FILTER_111_COMMENT  =Comme le remplacement de bannières, mais remplace la bannière par un lien texte clickable (utilisant le texte ALT original associé à l'image). Comme les publicités restent clickables, le filtre conserve à la page toute sa fonctionnalité.
+
+FILTER_112_TITLE    =Eclater les bannières (limiter le texte)
+FILTER_112_COMMENT  =Comme l'éclateur de bannière, mais limite le texte affiché aux seuls 4 premiers mots. Utile si les pages web que vous visitez comportent des textes ALT à n'en plus finir.
+
+FILTER_113_TITLE    =Remplacer les bannières
+FILTER_113_COMMENT  =Remplace les bannières avec une image GIF tranparente entourée par un cadre. Ce filtre conserve à la page une disposition proche de l'originale. Mais vous pouvez utiliser une autre image en editant le texte de remplacement.
+
+FILTER_114_TITLE    =Pas de texte clignotant (s'affichera en gras)
+FILTER_114_COMMENT  =Convertit le texte clignotant en texte gras. Cela épargnera vos yeux !
+
+FILTER_115_TITLE    =Jeu de caractères par défaut
+FILTER_115_COMMENT  =Un jeu de caractères est une méthode pour convertir les octets en caractères. Pour afficher un document HTML, un programme doit choisir un jeu de caractères. Ce filtre force votre navigateur à utiliser son jeu de caractères par défault, au lieu de celui spécifié dans les en-têtes.
+
+FILTER_116_TITLE    =Fermer les connexions (requête)
+FILTER_116_COMMENT  =Empêche les connexions persistantes. En utilisant ce filtre, le navigateur devra ouvrir une nouvelle socket pour chaque document/image qu'il veut télécharger (cela ralentit la récupération des pages).
+
+FILTER_117_TITLE    =Fermer les connexions (réponse)
+FILTER_117_COMMENT  =Empêche les connexions persistantes. En utilisant ce filtre, le navigateur devra ouvrir une nouvelle socket pour chaque document/image qu'il veut télécharger (cela ralentit la récupération des pages).
+
+FILTER_118_TITLE    =Convertir les frames en liens
+FILTER_118_COMMENT  =Crée un lien pour chaque frame. Utilisez ce filtre avec "Désactiver les frames" pour naviguer malgré tout dans des sites avec frames. Permet à un navigateur qui n'accepte pas les frames de visiter quand même ces sites.
+
+FILTER_119_TITLE    =Pas de compteurs
+FILTER_119_COMMENT  =Elimine les compteurs d'un grand nombre de pages web - les compteurs ralentissent les pages car le navigateur doit attendre que le compteur se mette à jour.
+
+FILTER_120_TITLE    =Pas de bannières DOM
+FILTER_120_COMMENT  ="Pas de bannières/conteneurs DOM" sont une alternative à la série de filtre "Eclater/Remplacer les bannières". Ces deux filtres sont à utiliser en même temps, et pour de meilleurs résusltats vous devriez activer les autres suppresseurs de bannières. Ils utilisent les fonctions JavaScript DOM (Modèle Objet de Document) disponibles dans la plupart des navigateurs actuels pour non seulement éliminer les publicités, mais aussi l'espace qui les entoure. Cela peut rendre dans certains le résultat plus compact.
+
+FILTER_121_TITLE    =Pas de conteneurs DOM
+FILTER_121_COMMENT  ="Pas de bannières/conteneurs DOM" sont une alternative à la série de filtre "Eclater/Remplacer les bannières". Ces deux filtres sont à utiliser en même temps, et pour de meilleurs résusltats vous devriez activer les autres suppresseurs de bannières. Ils utilisent les fonctions JavaScript DOM (Modèle Objet de Document) disponibles dans la plupart des navigateurs actuels pour non seulement éliminer les publicités, mais aussi l'espace qui les entoure. Cela peut rendre dans certains le résultat plus compact.
+
+FILTER_122_TITLE    =Désactiver les frames
+FILTER_122_COMMENT  =Fait croire à la page web que votre navigateur ne supporte pas les frames. Vous obtiendrez la version sans frames de la page, si elle existe.
+
+FILTER_123_TITLE    =Désassembler les tableaux
+FILTER_123_COMMENT  =Enlève tous tableaux de la page web. Vous ne le voudrez pas la plupart du temps car il peut altérer drastiquement la disposition de la page, mais cela peut rendre service pour certaines pages dont une longue liste d'élements met une éternité à apparaître.
+
+FILTER_124_TITLE    =Désactiver JavaScript
+FILTER_124_COMMENT  =Empêche lexécution des scripts. Une bonne idée est de définir un motif d'URL pour ne désactiver JavaScript que les pages souhaitées.
+
+FILTER_125_TITLE    =Désactiver les cookies JavaScript et Meta
+FILTER_125_COMMENT  =Empêche les tags META et les scripts de définir ou lire des cookies. Utilise la liste CookieList pour vous permettre de déclarer des exceptions pour certains sites.
+
+FILTER_126_TITLE    =Ne pas forcer les rechargements
+FILTER_126_COMMENT  =Le pragma no-cache indique à un proxy de télécharger un document même s'il en a une copie en cache. Ce filtre est utile lorsque Proximodo passe par un autre proxy, pour que ce dernier de renvoie toujours une version fraîche de la page.
+
+FILTER_127_TITLE    =Pas de son MIDI dans les pages
+FILTER_127_COMMENT  =Les fichiers MIDI incorporés peuvent être masqués et démarrer autonatiquement. Ce filtre tente de les rendre visibles et manuels. De cette façon, vous pourrez les écouter uniquement si vous le souhaitez.
+
+FILTER_128_TITLE    =Activer la recherche par mot clef
+FILTER_128_COMMENT  =Lance une recherche Google si vous tapez un seul mot dans la zone URL du navigateur.
+
+FILTER_129_TITLE    =Exemple d'entrée de mot de passe
+FILTER_129_COMMENT  =Ce filtre illustre comment vous pouvez automatiser l'entrée de mot de passe pour un site que le demande. Utilisez l'encodage/décodage BASE64 du menu pour créer/modifier le login:mot-de-passe fournis.
+
+FILTER_130_TITLE    =Falsifier l'en-tête X-Forwarded-For
+FILTER_130_COMMENT  =X-Forwarded-For est une en-tête qu'ajoutent les erveurs proxy pour  identifier le client à l'origine de la requête. Avec ce filtre vous ne serez pas considéré à l'origine de la requête.
+
+FILTER_131_TITLE    =Falsifier un cookie
+FILTER_131_COMMENT  =Ce filtre change toutes les cookies qu'envoie votre navigateur pour dire seulement "Monster" - rigolo mais inutile en l'état. Par contre vous pouvez partir de cet exemple pour contruire une modification personnalisée de cookie.
+
+FILTER_132_TITLE    =Filtrer les demandes de mot de passe
+FILTER_132_COMMENT  =Stoppe les demande de mot de passe en provenance des pages web d'atteindre votre navigateur. En conséquence, ce filtre vous empêchera d'entrer dans un site protégé par mot de passe ! Il évite simplement que votre navigateur vous sollicite à ce sujet.
+
+FILTER_133_TITLE    =Réparer les types MIME
+FILTER_133_COMMENT  =Parfois un serveur web envoie des éléments avec un "Content-Type" incorrect. Ceci risque d'empêcher Proximodo ou votre navigateur de traiter correctement ces documents. Ce filtre utilise la liste "MIME-List" pour corriger les erreurs courantes sur le type. C'est un filtre bon à utiliser la plupart du temps.
+
+FILTER_134_TITLE    =Pas d'animation Flash
+FILTER_134_COMMENT  =Convertit les animations flash en liens clickables.
+
+FILTER_135_TITLE    =Forcer les boutons de navigation sur les pop-ups
+FILTER_135_COMMENT  =Ce filtre s'assure que les fenêtres pop-up présentent les contrôles de navigations (tels que la barre d'adresse, les boutons Précédent/Suivant, la barre de statut etc). Il rend service pour les sites qui essaient de rendre les pop-ups difficiles à fermer ou redimensionner. Pour qu'il fonctionne vous devez aussi utiliser en même temps "Eliminer les pop-ups" et "Rétablir les pop-ups après chargement".
+
+FILTER_136_TITLE    =Filtrer les types de contenu étrangers
+FILTER_136_COMMENT  =Supprime les tags META qui changent les paramètres d'encodage de charactères. Normalement ces changements sont souhaitables, mais parfois elle peuvent êtres ennuyantes - surtout si vous n'avez pas installé les polices de caractères requises.
+
+FILTER_137_TITLE    =Ouvrir une fenêtre par frame
+FILTER_137_COMMENT  =Pour les pages avec frames, ouvre chaque frame dans une fenêtre. Rarement utile...
+
+FILTER_138_TITLE    =Pas de page dans la page
+FILTER_138_COMMENT  =Empêche les liens de charger une page web à l'intérieur d'une frame de la page courante. Les liens remplaceront la page courante.
+
+FILTER_139_TITLE    =Figer la police de caractères
+FILTER_139_COMMENT  =Enlève l'attribut "Face" des tags "Font" : empêche les pages d'utiliser des polices que vous n'aimez pas ou n'avez pas installées.
+
+FILTER_140_TITLE    =Eliminer les pubs GeoCities
+FILTER_140_COMMENT  =Filtre spécialisé pour arrêter les publicités des sites GeoCities. Cf le filtre "Eliminer les scripts ajoutés" qui est plus général.
+
+FILTER_141_TITLE    =Cacher le nom du navigateur à JavaScript
+FILTER_141_COMMENT  =Change le nom que votre navigateur fournit aux scripts. Cela les embrouille, au cas où ils voudraient faire des traitements spécifiques au navigateur.
+
+FILTER_142_TITLE    =Cacher le référant à JavaScript
+FILTER_142_COMMENT  =Le "référant" est de loin l'information la plus révélatrice qu'envoie votre navigateur. En consultant les listes des référants, les webmestres peuvent savoir non seulement quel site vous avez visité en dernier, mais éventuellement, si vous avez cliqué un lien dans un email où une page sur disque dur, d'autres informations plus personnelles ! Notez que cette information transite normalement par une en-tête HTTP "Referrer", mais JavaScript peut aussi être utilisé pour la récupérer.
+
+FILTER_143_TITLE    =Cacher la version du navigateur à JavaScript
+FILTER_143_COMMENT  =Fait croire à JavaScript que vous utilisez une ancienne version de votre navigateur. Cela peut souvent éviter que JavaScript utilise des façons plus "avancées" pour vous ennuyer. Bon pour stopper le chargement d'images qui changent lorsque la souris passe au-dessus.
+
+FILTER_144_TITLE    =Cacher le nom du précédent site visité
+FILTER_144_COMMENT  =Le référant indique normalement à un site web l'URL de la dernière page que vous avez visitée. Vous ne voulez peut-être pas divulguer cette information - surtout si vous visitez cette page en ayant cliqué dans un email ou un forum privé. Beaucoup d'information sensible peut être diffusé par ce biais. Avec ce filtre Proximodo enverra au site web sa propre URL à la place. Cela paraîtra normal au serveur, mais ne révèle aucune information. Ce filtre est recommandé pour des raisons de sécurité.
+
+FILTER_145_TITLE    =Pas d'images de fonds
+FILTER_145_COMMENT  =Se débarrasse de toutes les images de fond qu'il trouve, même ceux dans les tableaux.
+
+FILTER_146_TITLE    =Pas de HTML Dynamique JavaScript
+FILTER_146_COMMENT  =Souvent le HTML Dynamique n'est utilisé que juste pour vous envoyer à la figure de nouvelles publicités et autres joyeusetés. Ce filtre bloque plusieurs commandes DHTML. Soyez prudent cependant, certaines pages utilisent le DHTML pour gérer leurs menus déroulants ou autres.
+
+FILTER_147_TITLE    =Pas de bannières JavaScript
+FILTER_147_COMMENT  =Beaucoup de nouvelles bannières sont générées dynamiquement avec du JavaScript. Souvent ces bannières sont encore plus invasives que leurs prédécesseuses. Ce filtre est conçu pour désactiver tou script qui appelle des hébergeurs de publicités ou utilisent des techniques courantes de bannières.
+
+FILTER_148_TITLE    =Pas de Layers
+FILTER_148_COMMENT  =Les Layers sont une idée périmée et inutile introduite par Netscape.
+
+FILTER_149_TITLE    =Eliminer les scripts trop curieux
+FILTER_149_COMMENT  =Elimine tout script qui essaie d'accéder à vos informations personnelles (telles que référant, cookies...). Utilisez ce filtre pour empêcher JavaScript de divulguer des informations personnelles sur vous ou votre ordinateur. Vous pouvez personnaliser la liste suivant ce aue vous juger acceptable de révéler.
+
+FILTER_150_TITLE    =Pas de feuilles de styles
+FILTER_150_COMMENT  =Elimine les feuilles de styles CSS (mais pas les styles individuels des tags).
+
+FILTER_151_TITLE    =Pas de cookies
+FILTER_151_COMMENT  =Elimine tous les cookies sortants, qui ont pu être antérieurement définis dans votre navigateur, avant qu'ils n'atteignent le serveur web. Si utilisé, ce filtre examine la liste CookieList pour laisser passer les cookies vers les sites autorisés.
+
+FILTER_152_TITLE    =Eliminer les JavaScripts ajoutés
+FILTER_152_COMMENT  =Ce filtre élimine tout JavaScript ajouté en fin de page web. Habituellement, ces scripts sont ajoutés par les fournisseurs d'espace web gratuit pour ouvrir des pop-up de publicité, ou pire insérer leur logo dans la page. Ce filtre rend la consultation de ces pages plus agréable.
+
+FILTER_153_TITLE    =Pas de boîtes d'alerte/confirmation
+FILTER_153_COMMENT  =Bloque ces boîtes pop-up JavaScript qui vous demandent de presser OK pour continuer. Souvent utilisées pour les messages de décharge de responsabilité.
+
+FILTER_154_TITLE    =Pas d'images sur les pages sélectionnées
+FILTER_154_COMMENT  =Ce filtre élimine toutes les images contenues dans les pages de la liste NoImages. Si vous consultez des pages où seules l'information textuelle vous intéresse et non les images, il vous suffit d'ajouter leur URL à la liste.
+
+FILTER_155_TITLE    =Pas de tags META anti-cache
+FILTER_155_COMMENT  =Ce filtre utile bloque plusieurs trucs utilisés par les pages pour empêcher votre navigateur de les mettre en cache (les stocker sur disque dur), ce qui ralentit la navigation, les pages devant être rechargées plus souvent (encore une façon de vous asséner des pubs fraîches). En pratique, il y a peu de pages que vous ne voudriez pas mettre en cache, par exemple des pages qui changent fréquemment et dont vous voulez avoir toujours le contenu le plus récent.
+
+FILTER_156_TITLE    =Pas de frame bas-de-page
+FILTER_156_COMMENT  =Même idée que "Pas de frame de haut-de-page" mais pour le bas-de-page. Notez que dans ces deux filtres vous pouvez ajuster la hauteur limite des frames à fermer. Par exemple [#10:100] fermera les frames de 10 à 100 pixels de hauteur.
+
+FILTER_157_TITLE    =Pas d'images hors-site
+FILTER_157_COMMENT  =Ce filtre élimine les images qui proviennent d'un autre serveur que celui hébergeant la page. Rien que ce filtre éradique déjà un grand nombre de publicités, bien qu'il puisse faire disparaître plus que souhaité - c'est de la grosse artillerie donc à utiliser avec prudemment. 
+
+FILTER_158_TITLE    =Pas de fenêtres pop-up
+FILTER_158_COMMENT  =Pour dire adieu aux fenêtres pop-up JavaScript. Ceci est le filtre principal de pop-ups, il est nécessaire pour faire marcher les deux autres filtres de pop-ups. Souvent vous souhaiterez l'utiliser conjointement à l'un des deux autres. Cependant, activer celui-ci uniquement désactivera complètement les pop-ups.
+
+FILTER_159_TITLE    =Eliminer des applets Java spécifiques
+FILTER_159_COMMENT  =Ce filtre est conçu pour éliminer des applets Java spécifiques. De nouvelles applets peuvent être inclues simplement en ajoutant leur nom de classe à la liste dans le Motif de Recherche.
+
+FILTER_160_TITLE    =Pas de frame haut-de-page
+FILTER_160_COMMENT  =Ferme les frames étroites en haut de la page (souvent utilisées pour des publicitées et des en-têtes), vous donnant plus d'espace à l'écran. Si vous l'utilisez en même temps que "Permettre le redimensionnement de frames", vous pourrez réouvrir la frame avec la souris si besoin.
+
+FILTER_161_TITLE    =Pas de methodes window.external
+FILTER_161_COMMENT  =Ces commandes JavaScript accèdent à d'autres éléments que ceux de la page. Elles peuvent faire beaucoup de vilaines choses, comme changer vos signets ou pire. Ce filtre vous protège de leurs tentatives. 
+
+FILTER_162_TITLE    =Révéler les liens
+FILTER_162_COMMENT  =Certaines pages dissimulent la véritable URL vers laquelle pointe un lien en la remplaçant dans la barre de statut par du texte. Ce filtre révèle ces liens.
+
+FILTER_163_TITLE    =Agent Lynx 2.8
+FILTER_163_COMMENT  =L'en-tête User-Agent donne normalement au site web des informations sur votre navigateur et votre système d'exploitation. Utilisez l'un de ces filtres pour forcer des infos différentes, et prétendre utiliser le navigateur et l'OS de votre choix. Assurez-vous juste de n'en utiliser qu'un seul à la fois. Certains sites recevant des infos inhabituelles éviteront de vous transmettre des pubs "rich media" ou autres animations inutiles. Mais d'autres sites pourront vous refuser l'accès s'il sont conçus pour un navigateur en particulier.
+
+FILTER_164_TITLE    =Tous les cookies JS et META session-seulement"
+FILTER_164_COMMENT  =Comme "Tous les cookies session-seulement" mais pour les cookies définis depuis le code HTML.
+
+FILTER_165_TITLE    =Tous les cookies session-seulement
+FILTER_165_COMMENT  =Essaie de transformer tous les cookies "permanents" en cookies "temporaires" (ou session-seulement). Un cookie temporaire n'est pas stocké sur votre disque dur et disparaîtra au prochain redémarrage du navigateur. Les rendre temporaires les rend pratiquement inoffensifs, tout en évitant aux sites web de se plaindre que vous refusiez ses cookies. Utilisez ce filtre ou "Ne jamais accepter les cookies" (pour un contrôle plus strict), mais n'utilisez pas les deux. Ce filtre utilise aussi la liste CookieList pour ces sites qui peuvent utiliser des cookies permanents (par exemple, les sites qui utilisent des logins ou préférences automatiques).
+
+FILTER_166_TITLE    =Agent Netscape BEOS
+FILTER_166_COMMENT  =L'en-tête User-Agent donne normalement au site web des informations sur votre navigateur et votre système d'exploitation. Utilisez l'un de ces filtres pour forcer des infos différentes, et prétendre utiliser le navigateur et l'OS de votre choix. Assurez-vous juste de n'en utiliser qu'un seul à la fois. Certains sites recevant des infos inhabituelles éviteront de vous transmettre des pubs "rich media" ou autres animations inutiles. Mais d'autres sites pourront vous refuser l'accès s'il sont conçus pour un navigateur en particulier.
+
+FILTER_167_TITLE    =Agent Netscape Linux
+FILTER_167_COMMENT  =L'en-tête User-Agent donne normalement au site web des informations sur votre navigateur et votre système d'exploitation. Utilisez l'un de ces filtres pour forcer des infos différentes, et prétendre utiliser le navigateur et l'OS de votre choix. Assurez-vous juste de n'en utiliser qu'un seul à la fois. Certains sites recevant des infos inhabituelles éviteront de vous transmettre des pubs "rich media" ou autres animations inutiles. Mais d'autres sites pourront vous refuser l'accès s'il sont conçus pour un navigateur en particulier.
+
+FILTER_168_TITLE    =Agent Netscape Mac 68k
+FILTER_168_COMMENT  =L'en-tête User-Agent donne normalement au site web des informations sur votre navigateur et votre système d'exploitation. Utilisez l'un de ces filtres pour forcer des infos différentes, et prétendre utiliser le navigateur et l'OS de votre choix. Assurez-vous juste de n'en utiliser qu'un seul à la fois. Certains sites recevant des infos inhabituelles éviteront de vous transmettre des pubs "rich media" ou autres animations inutiles. Mais d'autres sites pourront vous refuser l'accès s'il sont conçus pour un navigateur en particulier.
+
+FILTER_169_TITLE    =Ne jamais accepter les cookies
+FILTER_169_COMMENT  =Ce filtre n'autorisera les cookies que pour les sites répertoriés dans la liste "CookieList". Utilisez-le pour un gestion des cookies plus stricte que "Tous les cookies session-seulement".
+
+FILTER_170_TITLE    =Désactiver OnUnload
+FILTER_170_COMMENT  =Ce filtre très utile empêche les tags "OnUnload" d'exécuter des scripts quand vous quittez une page web (notamment pour ouvrir des pop-ups publicitaires). Quand ce filtre est utilisé avec "Pas de fenêtres pop-up" ou "Autoriser les pop-ups après la fin du chargement", presque toutes les pop-ups de "spam" seront éliminées tout en autorisant les pop-ups légitimes à s'ouvrir.
+
+FILTER_171_TITLE    =Désactiver OnLoad
+FILTER_171_COMMENT  =Le tag "OnLoad" est un moyen utilisé pour exécuter automatiquement des scripts (ou pop-ups). Ce filtre le désactive. Souvent une bonne chose, mais peu causer des problèmes à quelques pages. Si certaines options d'une page ne fonctionnent pas (comme les menus déroulants) essayez de désactiver ce filtre pour ce site.
+
+FILTER_172_TITLE    =Agent Opera 5.02
+FILTER_172_COMMENT  =L'en-tête User-Agent donne normalement au site web des informations sur votre navigateur et votre système d'exploitation. Utilisez l'un de ces filtres pour forcer des infos différentes, et prétendre utiliser le navigateur et l'OS de votre choix. Assurez-vous juste de n'en utiliser qu'un seul à la fois. Certains sites recevant des infos inhabituelles éviteront de vous transmettre des pubs "rich media" ou autres animations inutiles. Mais d'autres sites pourront vous refuser l'accès s'il sont conçus pour un navigateur en particulier.
+
+FILTER_173_TITLE    =Prevent webpage encoding
+FILTER_173_COMMENT  =Ce filtre est l'opposé de "Autoriser l'encodage de page web". Il demande au site web de ne pas compresser les pages.
+
+FILTER_174_TITLE    =Pas d'en-tête Last-Modified
+FILTER_174_COMMENT  =Efface de la réponse du serveur la date de dernière modification de la page. Probablement pas un filtre que vous souhaiterez utiliser régulièrement, mais peut forcer IE à reconnaître une nouvelle page (parfois IE ignore effectivement la page qu'il reçoit et utilise la copie en cache à la place - ce qui est inutile dès lors que la bande passante a déjà été consommée).
+
+FILTER_175_TITLE    =Autoriser les pop-ups après la fin du chargement
+FILTER_175_COMMENT  =Quand utilisé avec "Pas de fenêtres pop-up", ce filtre réactive l'ouverture de pop-ups aprês le chargement de la page et que vous cliquez sur un lien ouvrant une pop-up. Avec ce filtre les pop-ups n'ont que 2 secondes après un click souris pour s'ouvrir. L'idée est de n'autoriser que les pop-ups que vous sollicitez vous-même. Notez que ce filtre doit être associé à "Pas de fenêtres pop-up" pour fonctionner.
+
+FILTER_176_TITLE    =Envoyer un mot de passe au serveur proxy
+FILTER_176_COMMENT  =Similaire à "Exemple d'entrée de mot de passe" mais ce filtre concerne le serveur proxy au lieu du serveur web.
+
+FILTER_177_TITLE    =Voir le contenu des fichiers .pac
+FILTER_177_COMMENT  =Les fichiers avec extension .pac sont en fait des JavaScripts utilisés par Netscape et IE pour configurer leurs paramètres proxy. Parfois un FAI ou opérateur Firewall fournit ces fichiers au lieu des paramètres proxy. Activer ce filtre vous permet de visualiser ces fichiers dans votre navigateur au lieu de les exécuter. Cela peut être utile s'il vous faut vraiment connaître les paramètres, mais vous n'en aurez pas besoin pour naviguer sur internet.
+
+FILTER_178_TITLE    =Bordures de tableau plus fines
+FILTER_178_COMMENT  =Empêche les pages d'utiliser des bordures de tableau trop épaisses. Juste une retouche cosmétique.
+
+FILTER_179_TITLE    =Pas de son
+FILTER_179_COMMENT  =Plus agressif que "Transformer les sons en liens", élimine simplement la plupart des sons et fichiers MIDI sans les remplacer par un lien.
+
+FILTER_180_TITLE    =Transformer les sons en liens
+FILTER_180_COMMENT  =Transforme en liens tous les tags <embed ... > ou <bgsound ... >. Cela empêche la majorité des fonds sonores et vous permet de les télécharger à la place. Mais bloque aussi beaucoup de plug-ins, à utiliser donc avec précaution.
+
+FILTER_181_TITLE    =Agent SpaceBison
+FILTER_181_COMMENT  =L'en-tête User-Agent donne normalement au site web des informations sur votre navigateur et votre système d'exploitation. Utilisez l'un de ces filtres pour forcer des infos différentes, et prétendre utiliser le navigateur et l'OS de votre choix. Assurez-vous juste de n'en utiliser qu'un seul à la fois. Certains sites recevant des infos inhabituelles éviteront de vous transmettre des pubs "rich media" ou autres animations inutiles. Mais d'autres sites pourront vous refuser l'accès s'il sont conçus pour un navigateur en particulier.
+
+FILTER_182_TITLE    =Pas de redirections JavaScript
+FILTER_182_COMMENT  =Désactive certaines commandes JavaScript qui vous redirige vers une autre page. Elles sont parfois utilisées pour vous forcer à visiter un sponsor. Cependant certains sites les utilisent pour la navigation.
+
+FILTER_183_TITLE    =Pas de temporisations JavaScript
+FILTER_183_COMMENT  =Evite tous les événements JavaScript temporisés. C'est une autre manière d'éliminer efficacement des barres de statut défilantes et les mises à jour périodiques des pubs, ainsi que la plupart des animations basées sur JavaScript.
+
+FILTER_184_TITLE    =Pas d'événements OnMouseOver
+FILTER_184_COMMENT  =Fait en sorte que rien ne se passe quand votre souris passe au dessus d'un lien. C'est un gain de temps, et de toute façon ces actions déclenchées sont essentiellement cosmétiques.
+
+FILTER_185_TITLE    =Empêcher les redimensionnements automatiques de fenêtre
+FILTER_185_COMMENT  =Ce filtre désactive certaines commandes JavaScript utilisées par les pages pour changer la taille ou la position de la fenêtre du navigateur (souvent pour la mettre en plein-écran).
+
+FILTER_186_TITLE    =Pas de barre de statut défilante
+FILTER_186_COMMENT  =Désactive la commande JavaScript qui envoie du texte à la barre de statut. Elimine les textes défilants et animations du même genre.
+
+FILTER_187_TITLE    =Supprimer les erreurs JavaScript
+FILTER_187_COMMENT  =Empêche les messages d'erreur JavaScript d'apparaître à l'écran.  C'est un filtre utile en permanence, comme beaucoup de scripts semblent planter tout seuls. Par ailleurs c'est une protection supplémentaire au cas où un autre filtre empêche un script de fonctionner correctement. Note : les navigateurs modernes proposent aussi dans leurs préférences de taire les messages d'erreur.
+
+FILTER_188_TITLE    =Pas de forçage de la largeur des tableaux
+FILTER_188_COMMENT  =Enlève les grandes largeurs fixes d'un tableau - utile lorsque la fenêtre de votre navigateur n'est pas assez grande pour voir un tableau dans toute sa largeur.
+
+FILTER_189_TITLE    =Pas de préfixe d'URL
+FILTER_189_COMMENT  =Beaucoup de sites (en particulier les moteurs de recherche) essaient de pister quels liens vous cliquez sur leurs pages en les faisant d'habord passer par un script CGI de redirection. Vous pouvez facilement les reconnaître car la véritable URL se retrouve inclue dans une URL du serveur de départ. Ce filtre enlève ce préfixe, ce qui non seulement evite le pistage, mais rend le lien plus rapide. Pour l'utiliser sur un site, ajoutez le site dans le motif d'URL du filtre. Quelques-uns sont fournis par défaut, mais par prudence ce filtre n'agit que sur les sites que vous énumérez.
+
+FILTER_190_TITLE    =Rediriger sur les URLs préfixées
+FILTER_190_COMMENT  =Similaire à "Pas de préfixe d'URL" mais agit au niveau de l'en-tête en utilisant une redirection. Dans la plupart des cas vous préférerez le filtre texte, mais celui-ci est fourni en exemple.
+
+FILTER_191_TITLE    =Voir les liens RealAudio
+FILTER_191_COMMENT  =Ce filtre vous montre le contenu des liens RealAudio (qui sont souvent des pointeurs vers d'autres URLs pour le véritable fichier audio ou vidéo). Cela peut parfois être utile à savoir, mais la plupart du temps vous ne voudrez pas utiliser ce filtre.
+
+FILTER_192_TITLE    =Pas d'image de fond de page
+FILTER_192_COMMENT  =Enlève le fond de la page, sans toucher aux autres images de fond (comme celles des tableaux).
+
+FILTER_193_TITLE    =Remplace l'image de fond de page
+FILTER_193_COMMENT  =Change toutes les pages web pour utiliser l'image de fond de votre choix. Changez le texte de remplacement pour pointer vers l'image que vous voulez.
+
+FILTER_194_TITLE    =Voir les commentaires HTML
+FILTER_194_COMMENT  =Ce filtre rend visible les commentaires inclus dans le code HTML de la page. Vous n'aurez pas un usage courant de ce filtre.
+
+FILTER_195_TITLE    =Retour à la ligne automatique dans les zones de saisie
+FILTER_195_COMMENT  =S'assure que toutes les zones de saisie dans les formulaires ont le retour à la ligne activé. Un must pour postersur les forums web.
+
+FILTER_196_TITLE    =Transformer en liens les iFrame/iLayer
+FILTER_196_COMMENT  =Convertit en liens classiques les frames "flottantes" d'IE et les couches flottantes de Netscape. Cela vous permet d'accéder à ces frames dans d'autres navigateurs, mais c'est aussi utile pour les utilisateurs d'IE, car beaucoup de pubs s'affichent par leur intermédiaire. Comme elles ne sont pas supportées par tous les navigateurs, les pages comptent rarement sur les frames flottantes, ce qui rend rare leur usage légitime.
+
+FILTER_197_TITLE    =Bloquer certaines URLs
+FILTER_197_COMMENT  =Ce filtre bloque complètement les connections à tout serveur énuméré dans la liste "AdList", de sorte que ces sites ne sont jamais contactés et ne peuvent pas vous pister via des espions web et cookies, et ce même s'il échappent aux filtres de bannières. Vous pouvez désactiver ce filtre pour un filtrage moins agressif, mais dans la plupart des cas il est préférable de simplement exclure de la liste le site bloqué.
+
+Default Folder Names
+
+FOLDER_101_NAME     =Accessoires utiles
+FOLDER_102_NAME     =Mise en page
+FOLDER_103_NAME     =Navigation
+FOLDER_104_NAME     =Contrôle de la connexion
+FOLDER_105_NAME     =Contrôle du cache
+FOLDER_106_NAME     =Bannières et publicités
+FOLDER_107_NAME     =Styles
+FOLDER_108_NAME     =JavaScript
+FOLDER_109_NAME     =Cookies
+FOLDER_110_NAME     =Sons
+FOLDER_111_NAME     =Identification
+FOLDER_112_NAME     =Nuisances
+FOLDER_113_NAME     =Révélation

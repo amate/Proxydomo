@@ -1,0 +1,164 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta name="generator" content=
+"HTML Tidy for Windows (vers 1st April 2002), see www.w3.org">
+<title>Proximodo - Welcome</title>
+<link rel="stylesheet" type="text/css" href="help.css">
+</head>
+<body>
+
+<center>
+<p><img src="../../html/logo200.png" alt="Proximodo"><br>
+Open-Source Customizable<br>
+Web Filtering Proxy Server</p>
+</center>
+
+<p class="section">Thank you for trying Proximodo!</p>
+
+<p><em>For the impatient...</em> If you are in a big hurry, here's
+the <a href="#use">quick-start guide</a>.</p>
+
+<p>Proximodo is still in development, so you are
+invited to report bugs and problems to kuruden@users.sourceforge.net .
+Also, check the 
+<a href="http://proximodo.sf.net">Proximodo home page</a> periodically 
+for updates.</p>
+
+<p>I encourage you to have a look at the GNU GPL license under
+which Proximodo is distributed, as it comes with no warranty of any
+kind and you use it at your own risk. This includes
+instructions present in these help pages.</p>
+
+<p class="section">What does it do?</p>
+
+<p>When you access the Internet with your web browser, a lot of
+things happen that are hidden to you. The browser and the website
+exchange "headers" that define the behaviour of the browser's cache
+system, create or use cookies, tell the website who you are and
+where you came from, and so on. Further, the page's html code
+contains hidden tags or javascript programs that control the
+browser's behaviour, such as "mouse-over" animation, page layering,
+URL masking or pop-up messages. And last but not least, the page
+often contains ads and banners that pollute the screen and slow
+down your web experience.</p>
+
+<p>Proximodo acts as a mediator between the browser and the
+website. It "sees" everything that is going on and, according to
+your choices, modifies headers and html page content on-the-fly to
+make things right. You don't want pop-ups and banners? Just
+activate the corresponding filters and they will disappear. You
+want cookies to be deleted when you close your browser? Proximodo
+will do it for you. You want fast navigation to the pages you
+already visited? Proximodo will cache them.</p>
+
+<p>Proximodo is a clone of a great piece of software
+called The Proxomitron, developed by Scott R. Lemmon. Now that
+for sad reasons Proxomitron is no longer maintained, I started this
+project to carry on the idea. Though a few Proxomitron
+features are still missing in Proximodo (mainly SSL support)
+the essential feature is already there:
+100% of Proxomitron filters will run under Proximodo.</p>
+
+<p>Proximodo currently comes with default Proxomitron filters,
+which can do quite a lot of different things. You can also write
+your own filters, using a powerful syntax that, despite its seeming
+complexity, is quite easy to use and master.</p>
+
+<a name="install"></a>
+<p class="section">How to install it</p>
+
+<p>These installation instructions apply only to Windows, as this is
+the only platform for which we currently supply an end-user installation
+package. We would welcome assistance with installation packages for Linux, 
+Unix, and Macintosh.</p>
+
+<p>If you are reading this page, you have probably already downloaded 
+and executed an installer <span class="extext">.exe</span> file from the 
+<a href="http://proximodo.sf.net">Proximodo home page</a>. If not, do this 
+now, and the installer will guide you through installation.</p>
+
+<p>There is one further step you may need to take after running the
+installer: configuring your browser. For most users, the installer 
+offers to automatically configure Internet Explorer to use Proximodo -
+if you accepted this option, you can skip the rest of this section and
+go on to <a href="#use">How to use it</a>. Users who 
+already have a proxy configured are not offered this option, and it
+does not help users of other browsers such as Firefox; if you fall
+into either of these categories, follow the instructions below.</p>
+
+<p>If you are using Internet Explorer, go into the menu 
+Tools - Internet Options - Connections tab. Then press 
+Settings or LAN Settings and locate "Proxy Server" settings, then
+click "Advanced" button. On the HTTP line, if Address/Port fields are
+already filled in, write those values down and copy them into Proximodo
+settings (put <span class="extext">address:port</span> in "Proxy"
+field and check "Use a remote proxy", then click Apply). Now, in IE
+settings, put <span class="extext">localhost</span> in "Address"
+field and Proximodo's Port value in "Port" field. Proximodo is a
+HTTP proxy only, so do not change the settings on the other lines 
+(Secure/FTP/Gopher/Sock).</p>
+
+<p>If you are using another web browser, such as Mozilla or Opera,
+same instructions apply but the proxy settings are located in your
+browser's preferences. For instance, in Firefox, navigate to
+<span class="extext">about:config</span> and adjust the proxy settings.</p>
+
+<p><span class="note">Important note:</span> Write down your old
+settings and keep them safe, as you will need to restore them in your
+browser if you ever uninstall Proximodo!</p>
+
+<a name="use"></a>
+<p class="section">How to use it - quick start</p>
+
+<p>Instead of starting your browser, start Proximodo instead, for instance
+by double-clicking its icon <img src="../../html/favicon.ico"/> on your
+desktop. Proximodo starts your browser, and the browser uses Proximodo to 
+filter its data. Want to open another copy of your browser, perhaps to
+view another web page at the same time? Just start Proximodo again - you
+can do this as many times as you like, to start many copies of your browser.</p>
+
+<p><em>Warning:</em> if you start the browser on its own, and Proximodo 
+is not running, the browser will not work - you'll get strange errors
+about proxies not being present. To avoid this, just get in the habit 
+of double-clicking Proximodo instead of your browser.</p>
+
+<p><em>If this doesn't work</em>: You may need to configure proxy settings.
+Read the <a href="#install">installation instructions</a> to see how to do
+this.</p>
+
+<p>Running Proximodo this way gives you some protection against the
+worst web annoyances. To get the most out of Proximodo, read the next
+section to see how to use Proximodo screens to adjust its behaviour.</p>
+
+<p class="section">How to use it - adjusting Proximodo</p>
+
+<p>If you want to enable filters, write filters, or change settings, you
+need to see Proximodo screens. If you run with the quick-start method
+above, you'll never see these screens (except for the very first time
+you run Proximodo, when it shows itself to say hello). So what do you
+do?</p>
+
+<p><em>To make occasional adjustments</em>, first launch Proximodo as
+normal, then click its icon <img src="../../html/favicon.ico"/> 
+in the system tray (normally at the lower right of your screen). 
+<em>(Note this is Windows-specific - can someone please help with 
+corresponding Linux, Unix, and Macintosh directions?)</em></p>
+
+<p><em>If you tinker regularly</em>, you may want to change the startup
+settings so that Proximodo launches its screens on startup. See the
+<a href="settings.html">settings screen help</a> for details.</p>
+
+<p>The other sections of this help guide explain how to use Proximodo
+screens to adjust its behaviour. You can turn off all adverts, write
+your own filters, and more! Just click the icons above to see how.</p>
+
+<p><span class="note">Note</span> concerning banner filtering:
+Proximodo does not include an extensive list of forbidden URLs. But
+you can find such lists in forums or personal web pages that deal
+with Proximodo or Proxomitron. Have a search on google for
+"proxomitron deny list". To add your own filtered URLs, open and
+add lines to the default "AdList" list.</p>
+</body>
+</html>
+

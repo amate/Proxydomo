@@ -1,0 +1,15 @@
+#
+# (NOADDURL) Proxomitron MIME type fixes
+#
+# Called by the "Content-Type: Fix MIME types based on URL" header filter
+# This file matches URL extensions to their proper MIME types
+#
+# Format:  extension $SET(0=correct/content-type)
+#
+
+js  $SET(0=text/javascript)
+css $SET(0=text/css)
+mp3 $SET(0=audio/x-mpeg)
+swf $SET(0=application/x-shockwave-flash)
+mid $SET(0=audio/mid)
+

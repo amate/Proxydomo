@@ -1,0 +1,30 @@
+#
+# Proxomitron URL Alias (NOADDURL)
+# In this list you can substutite short aliases
+# for commonly used URLs. Just use the following syntax...
+#
+# alias_name/ $JUMP(http://url.to.alias/)
+#
+# To use the alias just enter it in your browser with a leading '.'
+# For example, type ".ms" to jump to www.microsoft.com
+#
+
+# Go to samspade network tool page: .sam/host or IP address to check
+sam/\1 & $JUMP(http://www.samspade.org/t/refer.cgi?a=\1)
+
+# Proxomitron Links
+list/ $JUMP(http://groups.yahoo.com/group/prox-list/)
+prx/  $JUMP(http://proxomitron.cjb.net/)
+nfo/  $JUMP(http://local.ptron/.pinfo/)
+ul/   $JUMP(http://local.ptron/.pinfo/urls/)
+bl/   $JUMP(http://local.ptron/.pinfo/lists/)
+
+# A few other examples
+ms/   $JUMP(http://www.microsoft.com/)
+sd/   $JUMP(http://www.slashdot.org/)
+meme/ $JUMP(http://www.memepool.com/)
+bbc/  $JUMP(http://news.bbc.co.uk/)
+
+# Default catch-all: send anything else to Google
+\1/ & $JUMP(http://www.google.com/search?q=\1)
+

@@ -1,0 +1,172 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta name="generator" content=
+"HTML Tidy for Windows (vers 1st April 2002), see www.w3.org">
+<title>Proximodo - Settings</title>
+<link rel="stylesheet" type="text/css" href="help.css">
+</head>
+<body>
+<center><img src="settings.png"></center>
+
+<p class="section">Buttons</p>
+
+<p class="option">Apply</p>
+
+<p class="explain">This will apply your changes. In fact, the proxy
+server continues running with the same settings until you press
+this button (or use the menu item). If you change screen or
+minimize the window, Proximodo will prompt you for applying the new
+settings, otherwise your modifications are lost. If you save the
+settings using the menu, your changes are also applied.</p>
+
+<p class="option">Revert</p>
+
+<p class="explain">By clicking this button, your modifications on
+the settings in this screen are lost. Use it if you think you
+mistyped something (e.g losing your list names or proxy addresses)
+and want to get the settings back to their values when you opened
+the screen or last applied the settings.</p>
+
+<p class="section">Filtering Settings</p>
+
+<p class="option">Bypass URL Pattern</p>
+
+<p class="explain">This field contains a pattern for selecting
+pages that must not be filtered at all. If the URL (without :// part)
+of a document/image matches this pattern, no filter from the current
+configuration will alter the request, response or document.
+Meanwhile, all other pages will be filtered with regard to above
+settings. The default is <span class="example">$LST(Bypass)</span>,
+which means every pattern in the "Bypass" list (see Lists below)
+will be tried. This is more powerful and flexible than enumerating
+pages in this tiny text field! If there is a page or website you
+want to leave untouched, add a line in the Bypass list once and for
+all instead of deactivating/reactivating Proximodo filters.</p>
+
+<p class="section">User Interface</p>
+
+<p class="option">Language</p>
+
+<p class="explain">This is the language for the graphical
+interface, filter titles and comments. Changes will take effect
+upon next restart (i.e by quitting/reloading Proximodo).</p>
+
+<p class="option">Show GUI On Start-Up</p>
+
+<p class="explain">By default, Proximodo window opens each
+time Proximodo starts. If you only need the tray icon, uncheck
+this checkbox. You will still be able to open the window, by
+clicking on the icon in the system tray.</p>
+
+<p class="option">Launch This App On Start-Up</p>
+
+<p class="explain">By default, when Proximodo starts, it
+automatically opens a browser window for you. You can change this
+behaviour. Uncheck the checkbox to prevent Proximodo from opening
+anything else. Or change the executable path, to launch another
+program than the default browser (initially set to the browser
+associated with the text/html MIME type). Use the folder button to
+browse your hard drive.</p>
+
+<p class="section">Proxy Settings</p>
+
+<p class="option">Port</p>
+
+<p class="explain">This is the port Proximodo is listening to.
+Choose any value between 1024 and 65535 (but 8080 or 8088 are the
+standard), then put that value in your browser's Proxy parameters,
+along with the 'localhost' host (or your computer's IP address for
+distant connections to Proximodo). You may have to configure your
+firewall for letting Proximodo through.</p>
+
+<p class="option">Enable URL commands</p>
+
+<p class="explain">When you check this option, you can ask Proximodo
+to do additional processing to a page by prefixing the domain with
+a "URL command". Known URL commands are:
+<ul>
+<li><code>bin.. </code>: bypass incoming header filters for this page</li>
+<li><code>bout.. </code>: bypass outgoing header filters for this page</li>
+<li><code>bweb.. </code>: bypass text filters for this page</li>
+<li><code>bypass.. </code>: bypass all filters for this page</li>
+<li><code>dbug.. </code>: insert debug markers where filters are triggered</li>
+<li><code>src.. </code>: display web page source code</li>
+</ul>
+</p>
+
+<p class="option">Prefix</p>
+
+<p class="explain">In order to prevent websites from using URL commands
+to disable filters on their pages, you can customize the URL commands
+with an additional prefix. For example, with the prefix <code>foo</code>
+the URL command to bypass filters will become <code>foobypass..</code></p>
+
+<p class="option">Use a remote Proxy</p>
+
+<p class="explain">When this box is checked, Proximodo will access
+Internet through the selected proxy. If not, Proximodo will
+directly connect to the Internet using the Internet connection
+available on the local computer. See Proxy below.</p>
+
+<p class="option">Proxy</p>
+
+<p class="explain">If you want/need to access the Internet via
+another proxy server, put its host:port value in this field. You
+would do that if your computer is not directly connected to the
+internet, but through a local network. You can select a proxy from
+those you previously entered in this field, by using the dropdown.
+This dropdown list is also used by your custom filters containing a
+$USEPROXY command. To add a proxy to the list, simply type the
+host:port value in the field and type [Enter]. To delete a proxy
+from the list, select it with the dropdown then click the trash
+button on the right. If you are setting Proximodo up for the first
+time, you might want to use the proxy values currently set in your
+browser's parameters, before replacing those by localhost:8080</p>
+
+<p class="option">Allow IP Range</p>
+
+<p class="explain">If this box is unchecked, only programs running
+on the local computer can connect to Proximodo. If checked,
+connections attempts from distant computers may be accepted (if the
+client's IP is within the following range). Use with caution, only
+if you really want to grant Internet access to other users on your
+local network (for example children).</p>
+
+<p class="option">Range starts/stops at</p>
+
+<p class="explain">If the 'Allow IP Range' box is checked, these
+two values delimit IP addresses from which connections will be
+accepted. Make it as narrow as possible, depending on your local
+network.</p>
+
+<p class="section">Lists Settings</p>
+
+<p class="option">Name</p>
+
+<p class="explain">Lists are in fact files loaded into memory,
+whose lines are patterns that can be tried one after another by the
+$LST filter command. This is a very powerful feature, as it allows
+to share patterns between filters, and make them dynamic: you can
+add manually or automatically new patterns to a list, and they are
+instantly taken into account by filters that use it. Plus they can
+be hundreds of lines, while the filters can remain small and
+unchanged.<br>
+- To add a new list, click on the Plus button then type a name then
+a file path (or choose the file with the Folder button).<br>
+- To rename a list, select it with the dropdown then modify the
+name and type [Enter].<br>
+- To delete a list, select it with the dropdown then erase the name
+and type [Enter].<br>
+- To view / edit the content of a list, select it then click on the
+little magnifying glass button on the right.</p>
+
+<p class="option">File</p>
+
+<p class="explain">The file path for the selected list. You can
+type it in, or choose a file (existing or new) with the Folder
+button. If the file does not exist, Proximodo asks you if you want
+the file to be created (with you should accept).</p>
+</body>
+</html>
+

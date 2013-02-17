@@ -1,0 +1,33 @@
+#
+# Allow cookies from the following sites...
+#
+# Cookies will be allowed to any URLs matched in this list.
+# All wildcard are allowed.
+#
+# This is used by several of Proxomitron's cookie filters
+# including...
+#
+# Web Filters   :  Disable JavaScript (and meta) cookies
+#
+# Header Filters:  Set-cookie: Make all cookies session only (in)
+#                  Set-cookie: Never accept cookies (In) 
+#                  Cookie: Kill a cookie (out)             
+#
+# For basic cookie control using "Disable JavaScript (and meta) cookies" 
+# and "Set-cookie: Make all cookies session only" works pretty well. 
+# This will allow most cookies but make them temporary (and mostly harmless)
+# 
+# For a more hard line approach, use the "Set-cookie: Never accept cookies"
+# and "Cookie: Kill a cookie" header filters in place of "session only"
+# this will block all cookies not explicitly permitted in this list
+#
+# EXAMPLE ENTRIES: 
+#
+# [a-z]+.microsoft.com/
+# (www.|)slashdot.org/
+# *.myhost.com/mypage.html
+# 
+#
+
+
+

@@ -1,0 +1,32 @@
+-----------------------------------
+DOM based banner filters v0.007: 
+From Proxomitron by Scott R. Lemmon
+-----------------------------------
+
+This javascript tries to kill most ads and the table
+elements that contain them closing most of the empty
+space normally left behind. To work it needs a DOM 
+compliant browser.  Right now this includes IE 5.5 
+and up or Mozilla 1.x or Netscape 6 or up.  Unfortunately
+Opera's DOM support doesn't yet allow for page modification.
+
+HOW TO ADJUST:
+
+You can make the filter kill more or less by adjusting the
+"KillScore" value on the first line. 25 is the default, but
+higher values will kill more and lower vlaues will kill
+less. Beware if you crank it too high, large parts of a 
+page may go missing!
+
+For more advanced tuning you can mess with the PDomScore() 
+function. This gives different page elements different "non-spam"
+scores. Most elements score +1 by default, but long lines of
+text score an additional +1 for every 40 characters while 
+text with certain ad keywords scores a -10. A high score makes
+something *less* likely to be killed, while a low (or even
+negative) score, make it more likely to get the ax.
+You can adjust the score of any individual element, or add
+scores for other other page elements too.
+ 
+-Scott-
+

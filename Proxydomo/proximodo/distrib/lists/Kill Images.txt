@@ -1,0 +1,16 @@
+#
+# Kill all Images list
+# 
+# This list works with the "Kill all Images on selected pages" filter.
+#
+# Any URLs matched in this list will have all images on the page
+# replaced with a transparent .gif file.  Its useful for sites
+# you wish to load as fast as possible where images are not 
+# important to you (like message boards or news/info sites). 
+#
+# EXAMPLES:
+# 
+# www.cnn.com
+# [a-z]+.mymessageboard.com
+# 
+

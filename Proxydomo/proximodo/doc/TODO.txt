@@ -1,0 +1,74 @@
+GUI:
+
+- Tray icon: "Edit Config"
+- Tray icon: Left-click enables/disables filtering (the icon color changes)
+- Tray icon: "Reload All"
+- Tray icon: sub-menu to edit lists
+- Log window: option to write to log file (+ log file settings)
+- Log window: save options to config
+- Log window: option for shorter filter events (just the title on a single line)
+- Log window: timestamps
+- Log window: search field
+- Test window: show text length
+- Test window: dropdown to choose what to test (url, bounds, match, bounds+match)
+- Test window: save text to settings.txt
+- Order filters and folders by name
+- Syntax highlighting: special chars, command names, open ( or )
+- Stealth mode for use on public computers (or password on tray icon usage? must be secure)
+- Menu option to import a whole Proxomitron configuration (filters, config, lists, proxies, options)
+- Menu option to import/export a whole Proximodo config
+- Design an "Add to List" dialog
+- Use this "Add to List" dialog in tray icon, and for $ADDLSTBOX()
+- Make very minor changes in code so that it compiles and runs smoothly on Mac, Linux or Unix platforms
+- Generate .PAC files for easy proxy changes in browsers
+- Additional test window with Pattern field, for testing some expression instead of current filter
+- Add homepage link and new-version-checker (RSS) to help menu
+- Nicer About window
+- Command line options
+- Show header names for header filters, and priorities, in tree (if a menu option is on)
+- 3-state folders: possibility to restore filter selection after disabling a folder
+- Screen dedicated to lists management and edition
+- Have RW files stored in user's personal folders (install dir should be considered read-only)
+- A way for the filter designer to specify filter dependencies within their packs:
+  dependent filters are automatically (de)activated when the end-user checks filters.
+- Store all filters, settings and lists in a database (SQLite), exposed via the GUI
+- Be able to get proxy configuration from "proxy.pac" (i.e. include SpiderMonkey engine to run Javascript from C++)
+
+Engine:
+
+- $LOG(%...) to write to log file
+- Command for inserting application-defined variables in replace pattern
+  (ex: filter name, last matched $LST pattern, time in seconds, time of last config change)
+- Estimate and improve performance and stability
+- Global variables accessed with $GSET and $GGET (beware multithreaded access!)
+- \xhh \b \B \S \d \D macros (see Perl regexp)
+- New commands:
+	$INC(var[,num]) $DEC(var)           change variable content and match without consuming/inserting
+	$ADD(var,pattern) $MUL $DIV         change variable content and match without consuming/inserting
+	$MATH(operation,pattern[,pattern])  inserts the result of operation (except for comparisons) and matches (unless false comparison)
+	$HEX(pattern[,size]) $DEC(pattern)  inserts the result of conversion
+	$RNDSTR(chars,minsize,maxsize)      inserts a random number of random chars
+- "No GIF animation looping" option
+
+Proxy:
+
+- Next proxy login/password settings
+- Support for 206 response code
+- Fix gzip/deflate output, that seems to be corrupted after a few KB (use another zlib version?)
+- maximum HTTP 1.1 compliance
+- HTTP 1.0 option
+- Filter html pages going through SSL tunneling
+- Let FTP through (currently, only works when HTTP request is redirected to next proxy)
+- Act as a real proxy when not forwarding to a next proxy
+- Add more %%name%% variables for html error page
+- Add a way to have specific filters be the only ones to act on specific URLs (e.g if the URL
+  matches the 'Specific URL' pattern of 1+ filters, all other non-matching filters are bypassed)
+- Prevent 304 responses on a given URL if the config changed after previous access
+- Clone Proxomitron's Advanced Proxy Configuration
+
+Distributing:
+
+- Write help pages for non-english languages
+- Design a nice website
+- Rethink SF.net forums and trackers
+- Build a 64-bit version for Windows

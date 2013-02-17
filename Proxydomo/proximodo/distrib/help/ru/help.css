@@ -1,0 +1,28 @@
+.en { display: none; }
+.ja { display: none; }
+.ru { }
+.trans_note { }
+
+body     {background-color: #FFFFE8; background: url("../bg1.jpg"); font-family: arial; font-size: 17px; }
+p        {margin-bottom: 10px; }
+.section {margin-bottom: 20px; font-size: 30px; }
+td       {vertical-align: top; }
+td.center{vertical-align: center; text-align: center; }
+.syntax  {font-family: courier; color:blue; font-weight: bold; }
+.example {font-family: courier; border: thin solid; font-size: 15px; color:blue; }
+.extext  {font-family: courier; border: thin solid; font-size: 15px; }
+.indic   {font-family: courier; font-size: 12px; border: thin solid; padding-left: 3px; padding-right: 3px; }
+.command {font-family: courier; color:blue; font-weight: bold; }
+.note    {font-weight: bold; text-decoration:underline; }
+.nav { position:absolute; left:10px; top:10px; }
+a:link    { color: blue; }
+a:visited { color: blue; }
+a:active  { color: red; }
+a:hover   { color: red; }
+a.topbar:link    { text-decoration:none; color: black; }
+a.topbar:visited { text-decoration:none; color: black; }
+a.topbar:active  { text-decoration:none; color: blue; }
+a.topbar:hover   { text-decoration:underline; color: blue; }
+.option  { margin-bottom: 10px; font-size: 20px; }
+.explain { margin-left: 20px; }
+.small   { font-size: 14px; }

@@ -1,0 +1,315 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta name="generator" content=
+"HTML Tidy for Windows (vers 1st April 2002), see www.w3.org">
+<meta http-equiv="Content-Type" content="text/html; charset=Shift_JIS" />
+<title>フィルタ - Proximodo</title>
+<link rel="stylesheet" type="text/css" href="help.css">
+</head>
+<body>
+<center>
+<img class="en" src="../en/filters.png">
+<img class="ja" src="filters.png" width="403" height="447">
+</center>
+
+<p class="en section">Menu Items</p>
+<p class="ja section">メニュー項目</p>
+
+<p class="en option">Test</p>
+<p class="ja option">テスト</p>
+
+<p class="en explain">Opens a test window. This simple window offers
+an editable text field where you would copy-paste some example html
+code, and a Test button that will show the effect of edited filter
+on the sample code. You can keep it open while you modify the
+filter.</p>
+<p class="ja explain">テストウィンドウを開きます。
+上のテキストフィールドにHTMLコードを記入またはコピー＆ペーストして
+「テスト」ボタンをクリックすると、
+編集中のフィルタでそのコードを置換した結果が下のテキストフィールドに表示されます。</p>
+<p class="ja explain">このウィンドウを開いたまま、
+フィルタ編集ウィンドウで編集を行うことも可能です。</p>
+
+<p class="en option">Encode / Decode Base64</p>
+<p class="ja option">Base64 エンコード / デコード</p>
+
+<p class="en explain">Transforms the content of clipboard. If you put
+some plain text in the clipboard (e.g with Ctrl+C), use Encode
+Base64 to encode it to the Base64 format. You can retrieve the
+result with Ctrl+V. If you put a Base64-encoded string into the
+clipboard, use Decode Base64 to decode it.</p>
+<p class="ja explain">クリップボードの内容を Base64
+方式でエンコード／デコードします。</p>
+<p class="ja explain">テキストを Base64 形式にエンコードする場合は、Ctrl+C
+などでクリップボードにコピーし、「Base64 エンコード」
+をクリックします。結果はクリップボードに格納されるので、Ctrl+V
+で貼り付けて下さい。</p>
+<p class="ja explain">Base64 形式でエンコードされたデータをデコードする場合は、
+同様にして「Base64 デコード」をクリックします。</p>
+
+<p class="en section">Screen Items</p>
+<p class="ja section">画面説明</p>
+
+<p class="en option">Title</p>
+<p class="ja option">フィルタ名</p>
+
+<p class="en explain">This is the filter title, that appears in the
+configurations or in the log window. The title is mandatory.
+Proximodo makes sure there are never 2 filters with the same title
+(it is increased when needed). Keep it short yet meaningful.</p>
+<p class="ja explain">フィルタ構成ウィンドウやログウィンドウで表示される、
+フィルタの名称です。必ず入力する必要があります。
+同じ名称のフィルタが複数存在するか確認され、必要なら自動的に数値が付加されます
+（<span class="trans_note">訳注【Proximodo 0.2.1 ではまだ実装されていないようです】</span>）。
+簡潔で意味の分かるフィルタ名を付けましょう。</p>
+
+<p class="en option">Author</p>
+<p class="ja option">作者</p>
+
+<p class="en explain">If you want to trace filters' author, put your
+name or pseudo in. Just please don't modify the field for filters
+someone else wrote.</p>
+<p class="ja explain">フィルタの作者名を残したい場合は、
+名前かニックネームを記入します。作者以外の名前に変更しないで下さい。</p>
+
+<p class="en option">Version</p>
+<p class="ja option">Version</p>
+
+<p class="en explain">You can use this optional field to version your
+filters, especially in case you make them public and may later
+improve them.</p>
+<p class="ja explain">フィルタを公開して後から改良する場合などに、
+バージョン番号を記入することが出来ます。省略可能です。</p>
+
+<p class="en option">Comment</p>
+<p class="ja option">説明</p>
+
+<p class="en explain">This optional comment explains what the filter
+does. The comment is visible in the configuration list, so that you
+can quickly remember what it does and decide to use it or not in a
+given configuration. Do not neglect it.</p>
+<p class="ja explain">フィルタの動作の説明を記入します。
+説明はフィルタ構成画面でも表示されるので、
+フィルタの動作の確認や、使用するかどうかの決定がすぐに出来ます。
+省略可能ですが、必ず記入して下さい。</p>
+
+<p class="en option">Priority</p>
+<p class="ja option">優先度</p>
+
+<p class="en explain">This arbitrary number defines the order in which
+active filters are executed. Higher priority filters are executed
+first (e.g a filter with priority 200 is executed before a filter
+with priority 100). This order is very important: for example, if you
+use a filter that removes some JavaScripts and a filter that inserts
+a JavaScript, the former must run first, or it would undo the effect
+of the latter. Default filters' priorities are defined so that no
+such interference occur (from 1000 down to 0). When you write a new
+filter, you should choose a priority consistent with your custom
+filters and default filters too. A good practice is to use
+priorities over 500 for filters that remove parts of html code, and
+lower than 500 for filters that insert html code. Notes: 1/ you can
+use negative numbers. 2/ filters can have the same priority if
+their order does not matter. 3/ outgoing filters, incoming filters
+and text filters are three independent groups.</p>
+<p class="ja explain">有効なフィルタが実行される順番を、
+任意の数値で指定します。優先度が大きいフィルタから先に実行されます
+（例えば、優先度200のフィルタは優先度100のフィルタより先に実行されます）。</p>
+<p class="ja explain">この順番はとても重要です。例えば、
+JavaScriptを削除するフィルタとJavaScriptを挿入するフィルタを使う場合は、
+前者を先に実行しないと、後者の結果を打ち消してしまいます。
+標準のフィルタは優先度が設定されているので（0～1000の範囲です）、
+そのような干渉は起こりません。</p>
+<p class="ja explain">新しいフィルタを書くときは、
+自分のフィルタと標準のフィルタが整合するような優先度を設定して下さい。
+HTMLコードを削除するフィルタに500以上、
+HTMLコードを挿入するフィルタには500未満の優先度をつけるのが良い方法でしょう。</p>
+
+<p class="ja">注意：</p>
+<ol>
+  <li>負数も使えます。</li>
+  <li>実行する順番が重要でないなら、
+      複数のフィルタに同じ優先度を付けることができます。</li>
+  <li>送信ヘッダフィルタ、受信ヘッダフィルタ、
+      ウェブページフィルタはそれぞれ独立したグループになります。</li>
+</ol>
+
+<p class="en option">Window Width</p>
+<p class="ja option">上限バイト数</p>
+
+<p class="en explain">This is the size of text that the filter reads
+when it tries to match at a given position. You should keep it as
+small as possible while allowing matches to be detected. For
+example, if your match pattern is <span class=
+"example">border=$AV(\1)</span> a width of 20 would be enough (a
+border attribute and its value are never more than 20 characters
+long).</p>
+<p class="ja explain">マッチングを開始した位置から、
+最大で何バイトのデータまで読むかを指定します。
+マッチングが成功する範囲で、出来る限り小さい値にして下さい。</p>
+<p class="ja explain">例えば、マッチングパターンが
+<span class="example">border=$AV(\1)</span>
+なら、上限バイト数は20で十分です
+（border属性とその値は20バイトを超えることはありません）。</p>
+
+<p class="en option">Allow Multiple Matches</p>
+<p class="ja option">再帰マッチングを許可する</p>
+
+<p class="en explain">Usually, when a filter finds an occurrence,
+the replacement text is sent to the browser and the scanning
+continues after the occurrence. Neither the filter, nor other
+filters, will scan the replacement text. But if you check this
+option, the replacement text replaces the occurrence in the
+memory buffer, and the following filters will scan it. The filter
+will be able to match its own replacement text (except the first
+character, since the scanning process will have moved a byte to
+the right when the filter tries and matches again.) Use this option
+only when you really need it, for example when you have several
+filters that are supposed to match and modify the same tag.</p>
+<p class="ja explain">通常、フィルタがマッチすると置換テキストはブラウザに送られ、
+一致した部分の後ろから検索が続けられます。一致したフィルタもそれ以外のフィルタも、
+置換テキストの中は検索しません。</p>
+<p class="ja explain">しかしこの項目にチェックを入れると、
+一致した部分は入力バッファの中で置換テキストに置き換えられ、
+引き続くフィルタの検索対象になります。置換テキストは、
+それを出力したフィルタ自身にもマッチします（繰り返しの検索処理は1バイト右から行われるため、
+最初の文字は除きます）。</p>
+<p class="ja explain">この機能は本当に必要な時、
+例えば同じタグにマッチして書き換えを行うようになっているフィルタが他にある場合などに限り、
+使用して下さい。</p>
+
+<p class="en option">Filter Type</p>
+<p class="ja option">フィルタ種別</p>
+
+<p class="en explain">This field tells what kind of data the filter
+deals with. It can be an outgoing header (sent by your browser to
+the website), an incoming header (sent by the website in response
+to the browser's request), or the text (html code) that your
+browser downloads. In the case of header filters, the header name
+must be provided (see below). In the case of text filters, window
+width must be provided.</p>
+<p class="ja explain">フィルタがどのデータに対する処理を行うかを指定します。
+送信ヘッダ（ブラウザからウェブサイトに送られます）、
+受信ヘッダ（ブラウザからのリクエストの応答としてウェブサイトから受け取ります）、
+ウェブページフィルタ（ブラウザがダウンロードする
+HTML コード）のいずれかを選択します。</p>
+<p class="ja explain">送信ヘッダフィルタと受信ヘッダフィルタでは、
+ヘッダ名が入力可能になります（下記参照）。ウェブページフィルタでは、
+上限バイト数、再帰マッチング、範囲指定パターンが入力可能になります。</p>
+
+<p class="en option">Header Name</p>
+<p class="ja option">ヘッダ名</p>
+
+<p class="en explain">This is the name of the header the filter will
+read and modify. It is case-insensitive. Wildcards or codes are not
+allowed. For outgoing header filters, if the field starts with
+"URL" (no matter what follows), the filter will read the requested
+URL (including :// part) instead of a given header. Use this trick
+to test the URL and possibly alter it (acting like a transparent
+redirection) or call $commands.</p>
+<p class="ja explain">書き換えるヘッダの名称を指定します。
+大文字小文字を区別せず（case-insensitive）、
+ワイルドカードやメタキャラクタは使えません。</p>
+<p class="ja explain">送信ヘッダフィルタにおいて URL
+からはじまるヘッダ名（何が続いてもよい）を指定すると、
+マッチングパターンの処理において、実際のヘッダの値の代わりにリクエスト先の
+URL 自体（:// 部分を含む）を読み込みます。これは URL をテストして置き換えたり
+（透過リダイレクトのように動作します）、$command を呼び出すために使います。</p>
+
+<p class="en option">URL Pattern</p>
+<p class="ja option">URLパターン</p>
+
+<p class="en explain">If this field contains a pattern and the URL
+(without :// part) does not match, the filter will be bypassed, i.e it
+will not try and match anything in this header/text. Use this field
+when you want the filter to work only on specific URLs. Common patterns
+are <span class="example">$LST(someList)</span>, <span class=
+"example">(^$LST(someList))</span> or <span class=
+"example">$TYPE(htm)</span></p>
+<p class="ja explain">この項目にマッチングパターンを記入すると、URL（://
+部分を含まない）と比較されて一致しない場合はフィルタがバイパスされます。
+すなわち、ヘッダやウェブページに対してマッチングを行いません。
+フィルタを特定の URL だけで動作させたい場合はこの項目を指定して下さい。</p>
+<p class="ja explain">一般的には、<span class="example">$LST(someList)</span>、
+<span class="example">(^$LST(someList))</span>、
+<span class="example">$TYPE(htm)</span> といったパターンが使われます。</p>
+
+<p class="en option">Bounds Pattern</p>
+<p class="ja option">範囲指定パターン</p>
+
+<p class="en explain">If this field contains a pattern, the matching
+process will have two passes: 1- search the bounds pattern, 2- if
+an occurence is found, try and match the whole occurence with the
+match pattern. This is as if you used as a match pattern <span
+class="example">(bounds)&amp;&amp;(match)</span>. Simply it makes
+things clearer. Use a bounds pattern when you can, as it makes
+scanning faster, and sometimes better! For example to match an
+&lt;img&gt; tag containing ".gif", you could use bounds: <span
+class="example">&lt;img\s*&gt;</span> and match: <span class=
+"example">*.gif*</span>. If you simply use the match pattern <span
+class="example">&lt;img\s*.gif*&gt;</span> it would eat genuine
+text and put half the page in italic if the page contains<br>
+<span class="extext">&lt;i&gt;&lt;img src="bullet.jpg"&gt;Some .gif
+images are animated&lt;/i&gt;</span></p>
+<p class="ja explain">この項目にパターンを記入すると、
+マッチング処理は二段階で行われます：</p>
+<ol class="ja explain">
+  <li>範囲指定パターンにマッチする部分を検索する。</li>
+  <li>見つかった場合、それがマッチングパターンと一致するか調べる。</li>
+</ol>
+<p class="ja explain">これは、
+<span class="example">(範囲指定パターン)&amp;&amp;(マッチングパターン)</span>
+というパターンを指定したのと同じことになります。
+これにより、パターンが簡潔になります。
+可能であれば範囲指定パターンを指定して下さい。
+検索が高速になりますし、より良いフィルタになります。</p>
+<p class="ja explain">例えば、".gif" を含む &lt;img&gt;
+タグにマッチさせる場合、範囲指定パターンを
+<span class="example">&lt;img\s*&gt;</span>、マッチングパターンを
+<span class="example">*.gif*</span> とすることが出来ます。
+単純に <span class="example">&lt;img\s*.gif*&gt;</span>
+というマッチングパターンを使うと、<span class="extext">&lt;i&gt;&lt;img
+src="bullet.jpg"&gt;Some .gif images are animated&lt;/i&gt;</span>
+という内容を含むページでは、目的の文字列を消費するだけでなく、
+ページの残りの文をイタリック体にしてしまいます。</p>
+
+<p class="en option">Match Pattern</p>
+<p class="ja option">マッチングパターン</p>
+
+<p class="en explain">This is the pattern for finding occurrences to
+replace within text. For a text filter, this pattern will be tried
+starting on each and every position in the html code. For a header
+filter, it is tried starting on the beginning of the header value
+(e.g you must use <span class="example">*nasty</span> and not just
+<span class="example">nasty</span> to match the Host header's value
+<span class="extext">www.nasty.com</span>).</p>
+<p class="ja explain">置換したいテキストを検索するためのパターンを指定します。</p>
+<p class="ja explain">ウェブページフィルタでは、
+HTMLコード内の全ての位置で一致するかテストされます。</p>
+<p class="ja explain">ヘッダフィルタでは、
+ヘッダの値の先頭に一致するかテストされます（すなわち、
+<span class="extext">www.nasty.com</span> という Host
+ヘッダの値にマッチさせる為には、<span class="example">nasty</span>
+ではなく <span class="example">*nasty</span>
+というパターンを指定しなければなりません）。</p>
+
+<p class="en option">Replacement Text</p>
+<p class="ja option">置換テキスト</p>
+
+<p class="en explain">This field can contain plain text, replacement
+codes and replace-compatible commands. Replacement codes are
+computed and commands are executed in order to produce an "expanded
+text". For text filters, each occurrence is replaced by this
+expanded text. For header filters, the whole header value is
+replaced by the expanded text.</p>
+<p class="ja explain">この項目にはプレーンテキストと、
+置換用メタキャラクタ、置換用コマンドからなる「拡張テキスト」
+を記入できます。置換用メタキャラクタやとコマンドは、
+置換が行われる際に実行されます。</p>
+<p class="ja explain">ウェブページフィルタでは、
+マッチングパターンに一致した部分が拡張テキストに置き換わります。</p>
+<p class="ja explain">ヘッダフィルタでは、
+ヘッダの値全体が拡張テキストに置き換わります。</p>
+
+</body>
+</html>

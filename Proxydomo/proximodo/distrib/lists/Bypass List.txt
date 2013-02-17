@@ -1,0 +1,31 @@
+##
+## This is a list of URLs (web addresses) not to filter in Proxomitron 
+##
+## You can add any "problem" sites to this list or just any site you
+## don't wish to filter here.
+##
+## As in other lists, you can use any matching expression wildcards.
+## Also remember not to add "http://" in front of your URLs.
+##
+## NOTE: Since only the items that match the URL will be bypassed,
+## images and banners on the page from other sites might still
+## be filtered. If something is still being filtered that you don't
+## want, look closely at the actual URL of the item and add it to
+## the list too.
+##
+##
+
+# Don't filter our own custom filter scripts
+local.ptron
+
+# Entry to allow Microsoft browser search to work 
+# since some filters can interfere with it.
+[^/]++search.msn.com/
+
+# Entry to allow Windows Update to do it's stuff
+[^/]++windowsupdate.(microsoft|).com[:/]
+
+# Bypasses for Yahoo messenger (ok to remove if you don't use it)
+[^/]++(edit|address|pager|cs[bc]).yahoo.com/
+
+

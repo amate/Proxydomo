@@ -1,0 +1,260 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta name="generator" content=
+"HTML Tidy for Windows (vers 1st April 2002), see www.w3.org">
+<meta http-equiv="Content-Type" content="text/html; charset=Shift_JIS" />
+<title>設定 - Proximodo</title>
+<link rel="stylesheet" type="text/css" href="help.css">
+</head>
+<body>
+<center>
+<img class="en" src="../en/settings.png">
+<img class="ja" src="settings.png" width="580" height="402">
+</center>
+
+<p class="en section">Buttons</p>
+<p class="ja section">ボタン</p>
+
+<p class="en option">Apply</p>
+<p class="ja option">適用</p>
+
+<p class="en explain">This will apply your changes. In fact, the proxy
+server continues running with the same settings until you press
+this button (or use the menu item). If you change screen or
+minimize the window, Proximodo will prompt you for applying the new
+settings, otherwise your modifications are lost. If you save the
+settings using the menu, your changes are also applied.</p>
+<p class="ja explain">変更した設定を適用します。適用ボタン
+（またはメニューの適用）をクリックするまでは、
+プロクシサーバは以前の設定のまま動作します。</p>
+<p class="ja explain">別の画面に切り替えるかウィンドウを最小化すると、
+適用するか問い合わせがあり、適用しない場合は変更は破棄されます。
+メニューから設定の保存を行った場合は、適用したものとみなされます。</p>
+
+<p class="en option">Revert</p>
+<p class="ja option">元に戻す</p>
+
+<p class="en explain">By clicking this button, your modifications on
+the settings in this screen are lost. Use it if you think you
+mistyped something (e.g losing your list names or proxy addresses)
+and want to get the settings back to their values when you opened
+the screen or last applied the settings.</p>
+<p class="ja explain">この設定画面で変更した内容が破棄されます。</p>
+<p class="ja explain">入力を間違えて
+（リストの名称やプロクシのアドレスを消してしまった時など）、
+設定内容を画面を開いた時か最後に適用した時の状態に戻したい場合に使います。</p>
+
+<p class="en section">Filtering Settings</p>
+<p class="ja section">フィルタの設定</p>
+
+<p class="en option">Bypass URL Pattern</p>
+<p class="ja option">バイパスURLパターン</p>
+
+<p class="en explain">This field contains a pattern for selecting
+pages that must not be filtered at all. If the URL of a
+document/image matches this pattern, no filter from the current
+configuration will alter the request, response or document.
+Meanwhile, all other pages will be filtered with regard to above
+settings. The default is <span class="example">$LST(Bypass)</span>,
+which means every pattern in the "Bypass" list (see Lists below)
+will be tried. This is more powerful and flexible than enumerating
+pages in this tiny text field! If there is a page or website you
+want to leave untouched, add a line in the Bypass list once and for
+all instead of deactivating/reactivating Proximodo filters.</p>
+<p class="ja explain">全くフィルタリングしないページを指定するパターンを記入します。
+ドキュメント・画像のURLがパターンにマッチした場合、リクエストやレスポンス、
+ドキュメントは使用中のフィルタ構成で指定されたフィルタにより変更されません。</p>
+<p class="ja explain">一方、
+それ以外の全てのページは設定に従ってフィルタリングされます。</p>
+<p class="ja explain">標準で <span class="example">$LST(Bypass)</span>
+という値になっており、これは「Bypass」リスト（後述の「リスト」の項を参照のこと）
+に記載されたそれぞれのパターンがテストされます。これは、
+この小さなテキストフィールドでページを列挙するより強力で柔軟な方法です。
+フィルタリングしたくないページやウェブサイトがあれば、
+Proximodoの全てのフィルタを無効化したり有効に戻す代わりに、
+Bypass リストに書き加えて下さい。</p>
+
+<p class="en section">User Interface</p>
+<p class="ja section">ユーザインターフェイス</p>
+
+<p class="en option">Language</p>
+<p class="ja option">言語</p>
+
+<p class="en explain">This is the language for the graphical
+interface, filter titles and comments. Changes will take effect
+upon next restart (i.e by quitting/reloading Proximodo).</p>
+<p class="ja explain">画面表示やフィルタ名・説明で使う言語を指定します。
+変更はProximodoの再起動（すなわち終了・再実行）後に有効になります。</p>
+
+<p class="en option">Show GUI On Start-Up</p>
+<p class="ja option">起動時にProximodoのウィンドウを開く</p>
+
+<p class="en explain">By default, Proximodo window opens each
+time Proximodo starts. If you only need the tray icon, uncheck
+this checkbox. You will still be able to open the window, by
+clicking on the icon in the system tray.</p>
+<p class="ja explain">標準では、Proximodoを起動するたびにProximodoのウィンドウが開かれます。
+トレイアイコンの表示だけでよければ、このチェックを外します。その場合でも、
+通知領域のアイコンをクリックすることでウィンドウを開くことが出来ます。</p>
+
+<p class="en option">Launch This App On Start-Up</p>
+<p class="ja option">起動時にプログラムを実行する</p>
+
+<p class="en explain">By default, when Proximodo starts, it
+automatically opens a browser window for you. You can change this
+behaviour. Uncheck the checkbox to prevent Proximodo from opening
+anything else. Or change the executable path, to launch another
+program than the default browser (initially set to the browser
+associated with the text/html MIME type). Use the folder button to
+browse your hard drive.</p>
+<p class="ja explain">標準では、Proximodoが起動されると自動的にブラウザを開きます。
+ブラウザを開くのをやめたい場合はチェックを外します。また、
+実行ファイルのパス名を変更すれば標準のブラウザ以外のプログラムを実行することも出来ます
+（標準では MIME タイプ text/html に割り当てられたブラウザが設定されています）。
+フォルダボタンをクリックすればハードディスクを参照できます。</p>
+
+<p class="en section">Proxy Settings</p>
+<p class="ja section">プロクシの設定</p>
+
+<p class="en option">Port</p>
+<p class="ja option">ポート</p>
+
+<p class="en explain">This is the port Proximodo is listening to.
+Choose any value between 1024 and 65535 (but 8080 or 8088 are the
+standard), then put that value in your browser's Proxy parameters,
+along with the 'localhost' host (or your computer's IP address for
+distant connections to Proximodo). You may have to configure your
+firewall for letting Proximodo through.</p>
+<p class="ja explain">Proximodoが接続を受け付けるポート番号です。
+1024から65535までの値を指定します。そして、ブラウザのプロクシ設定でホスト
+「localhost」（または外部からの接続の場合は、
+Proximodoを起動しているパソコンのIPアドレス）に加えて、
+その値をポート番号として設定して下さい。Proximodoの通信を許可するように、
+ファイアウォールを設定しなければならないかも知れません。</p>
+
+<p class="en option">Use a remote Proxy</p>
+<p class="ja option">リモートプロクシを使う</p>
+
+<p class="en explain">When this box is checked, Proximodo will access
+Internet through the selected proxy. If not, Proximodo will
+directly connect to the Internet using the Internet connection
+available on the local computer. See Proxy below.</p>
+<p class="ja explain">このチェックを入れると、
+Proximodoは選択したプロクシを通してインターネットにアクセスします。</p>
+<p class="ja explain">チェックを外すと、
+Proximodoを起動しているパソコンで使用可能なインターネット接続を使って直接インターネットに接続します。
+下記プロクシの項を参照のこと。</p>
+
+<p class="en option">Proxy</p>
+<p class="ja option">プロクシ</p>
+
+<p class="en explain">If you want/need to access the Internet via
+another proxy server, put its host:port value in this field. You
+would do that if your computer is not directly connected to the
+internet, but through a local network. You can select a proxy from
+those you previously entered in this field, by using the dropdown.
+This dropdown list is also used by your custom filters containing a
+$USEPROXY command. To add a proxy to the list, simply type the
+host:port value in the field and type [Enter]. To delete a proxy
+from the list, select it with the dropdown then click the trash
+button on the right. If you are setting Proximodo up for the first
+time, you might want to use the proxy values currently set in your
+browser's parameters, before replacing those by localhost:8080</p>
+<p class="ja explain">他のプロクシサーバを通してインターネットにアクセスしたい場合や、
+その必要がある場合は、ホスト:ポート番号の形式で記入します。
+パソコンをローカルエリア接続で繋いでいても、
+インターネットに直接接続できない場合はプロクシサーバが必要です。</p>
+<p class="ja explain">以前入力したプロクシはドロップダウンリストから選ぶことが出来ます。
+このドロップダウンリストは、$USEPROXYコマンドを含む自作のフィルタでも使われます。</p>
+<p class="ja explain">リストにプロクシを追加するには、
+ホスト:ポート番号の形式で入力して[Enter]キーを押します。
+リストからプロクシを削除するには、
+ドロップダウンリストから選択して右にあるゴミ箱ボタンをクリックします。</p>
+<p class="ja explain">はじめてProximodoをセットアップする時は、
+ブラウザの設定をlocalhost:8080に書き換える前にその値を追加した方がよいでしょう。</p>
+
+<p class="en option">Allow IP Range</p>
+<p class="ja option">外部からの接続を許可する</p>
+
+<p class="en explain">If this box is unchecked, only programs running
+on the local computer can connect to Proximodo. If checked,
+connections attempts from distant computers may be accepted (if the
+client's IP is within the following range). Use with caution, only
+if you really want to grant Internet access to other users on your
+local network (for example children).</p>
+<p class="ja explain">チェックを外すと、
+Proximodoと同じパソコンで実行しているプログラムだけがProximodoに接続できます。</p>
+<p class="ja explain">チェックを入れると、他のパソコンからの接続も許可されます
+（クライアントのIPアドレスが後述の最小／最大アドレスに含まれる場合のみ）。</p>
+<p class="ja explain">ローカルネットワーク上の他のユーザ
+（例えば子供）に本当にインターネット接続を許可したい場合のみ、
+注意して使用して下さい。</p>
+
+<p class="en option">Range starts/stops at</p>
+<p class="ja option">最小／最大アドレス</p>
+
+<p class="en explain">If the 'Allow IP Range' box is checked, these
+two values delimit IP addresses from which connections will be
+accepted. Make it as narrow as possible, depending on your local
+network.</p>
+<p class="ja explain">「外部からの接続を許可する」にチェックを入れている時、
+最小アドレスと最大アドレスで接続を受け付けるIPアドレスの範囲を指定します。</p>
+<p class="ja explain">ローカルネットワークに従って、
+できるだけ狭い範囲にして下さい。</p>
+
+<p class="en section">Lists Settings</p>
+<p class="ja section">リストの設定</p>
+
+<p class="en option">Name</p>
+<p class="ja option">名称</p>
+
+<p class="en explain">Lists are in fact files loaded into memory,
+whose lines are patterns that can be tried one after another by the
+$LST filter command. This is a very powerful feature, as it allows
+to share patterns between filters, and make them dynamic: you can
+add manually or automatically new patterns to a list, and they are
+instantly taken into account by filters that use it. Plus they can
+be hundreds of lines, while the filters can remain small and
+unchanged.<br>
+- To add a new list, click on the Plus button then type a name then
+a file path (or choose the file with the Folder button).<br>
+- To rename a list, select it with the dropdown then modify the
+name and type [Enter].<br>
+- To delete a list, select it with the dropdown then erase the name
+and type [Enter].<br>
+- To view / edit the content of a list, select it then click on the
+little magnifying glass button on the right.</p>
+<p class="ja explain">リストは実際にはファイルをメモリに読み込んだもので、
+$LSTコマンドにより一行ずつパターンがマッチするかテストすることが出来ます。</p>
+<p class="ja explain">リストはとても強力な機能で、
+複数のフィルタで同じパターンを共有でき、より動的なフィルタを作ることが出来ます。
+パターンは手動または自動的にリストに追加することができ、
+即座に反映されます。加えて、フィルタを変更せず小さく保ったまま、
+数百行のパターンを持つことが出来ます。</p>
+
+<ul class="ja">
+  <li>新しいリストを追加するには、＋ボタンをクリックしてリスト名とファイル名を入力します
+      （またはフォルダボタンをクリックしてファイルを選択します）。</li>
+  <li>リスト名を変更するには、ドロップダウンリストから選んでリスト名を書き換え、
+      [Enter]キーを押します。</li>
+  <li>リストを削除するには、ドロップダウンリストから選んでリスト名を消し、
+      [Enter]キーを押します。
+      <span class="trans_note">訳注【ファイル自体は削除されません。】</span></li>
+  <li>リストの内容を閲覧・編集にするには、
+      リストを選んで右側の虫眼鏡ボタンをクリックします。</li>
+</ul>
+
+<p class="en option">File</p>
+<p class="ja option">ファイル</p>
+
+<p class="en explain">The file path for the selected list. You can
+type it in, or choose a file (existing or new) with the Folder
+button. If the file does not exist, Proximodo asks you if you want
+the file to be created (with you should accept).</p>
+<p class="ja explain">選択したリストのファイルのパス名が表示されます。
+ファイル名を直接入力したり、フォルダボタンをクリックして既存または新規のファイルを指定することが出来ます。
+存在しないファイルを指定すると、ファイルを作成するかどうか問い合わせられます。</p>
+
+</body>
+</html>

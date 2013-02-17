@@ -1,0 +1,1903 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta name="generator" content=
+"HTML Tidy for Windows (vers 1st April 2002), see www.w3.org">
+<meta http-equiv="Content-Type" content="text/html; charset=Shift_JIS" />
+<title>メタキャラクタとコマンド - Proximodo</title>
+<link rel="stylesheet" type="text/css" href="help.css">
+</head>
+<body>
+
+<p class="en section">Matching Special Codes</p>
+<p class="ja section">検索用メタキャラクタ</p>
+
+<table>
+<tr>
+<td style="width: 5em;">
+<p class="en"><span class="syntax">*</span></p>
+<p class="ja syntax">*</p>
+</td>
+<td>
+<p class="en">any text, whatever the length (even zero)<br>
+ <span class="example">foo*bar</span> will match <span class=
+"extext">foobar</span>, <span class="extext">foo-bar</span>, <span
+class="extext">foodoodlebar</span></p>
+<p class="ja">任意のバイト数の全てのテキストにマッチします（0
+バイトの文字列も含みます）。</p>
+<p class="ja"><span class="example">foo*bar</span> は
+<span class="extext">foobar</span>、<span class="extext">foo-bar</span>、
+<span class="extext">foodoodlebar</span> などにマッチします。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">?</span></p>
+<p class="ja syntax">?</p>
+</td>
+<td>
+<p class="en">any single character</p>
+<p class="ja">任意の 1 バイトにマッチします。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">[</span>abc<span class=
+"syntax">]</span></p>
+<p class="ja syntax">[<var>abc</var>]</p>
+</td>
+<td>
+<p class="en">a single character if present in <span class=
+"example">[]</span><br>
+ To include a whole range (case sensitive), seperate first and last
+characters by a minus sign (example <span class=
+"example">[abc0-9]</span>). You can also use \ to escape a character,
+and %hh (where hh is an hexadecimal number) to specify an ASCII
+character. \ and % notations are case-sensitive, and can be used
+to define a range (in this case, the range is case-sensitive).</p>
+<p class="ja"><span class="example">[]</span> 内の任意の
+1 バイトにマッチします。</p>
+<p class="ja">開始文字と終了文字をマイナス記号で繋げることで（例:
+<span class="example">[abc0-9]</span>）、範囲指定
+（大文字小文字を区別します）になります。文字をエスケープする為に \
+を、また ASCII 文字を記述するために %hh（hh は16進数）を使えます。
+\ と %hh は大文字小文字を区別し、範囲指定も使えます
+（その場合も大文字小文字を区別します）。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">[^</span>abc<span class=
+"syntax">]</span></p>
+<p class="ja syntax">[^<var>abc</var>]</p>
+</td>
+<td>
+<p class="en">a single character NOT present in <span class=
+"example">[]</span></p>
+<p class="ja"><span class="example">[]</span>
+内に含まれない任意の 1 バイトにマッチします。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">[#</span>n<span class=
+"syntax">:</span>m<span class="syntax">]</span></p>
+<p class="ja syntax">[#<var>n</var>:<var>m</var>]</p>
+</td>
+<td>
+<p class="en">an integer if within range<br>
+ Negative values allowed. Use * on the left for -infinity, * on the
+right for +infinity. <span class="example">[#n]</span> is the same
+as <span class="example">[#n:n]</span></p>
+<p class="ja">指定範囲内の任意の整数にマッチします。</p>
+<p class="ja">負数も指定できます。左側に * を指定すると負の無限大、
+右側に * を指定すると正の無限大として扱われます。
+<span class="example">[#n]</span> は <span class="example">[#n:n]</span>
+と同じです。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en">space</p>
+<p class="ja syntax">space</p>
+</td>
+<td>
+<p class="en">zero of more spaces or tabs or CR or LF</p>
+<p class="ja">0 個以上のスペース、タブ、CR、LF の列にマッチします。</p>
+<p class="ja trans_note">訳注【実際には、%00～%20 の文字全てにマッチします。】</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">\s</span></p>
+<p class="ja syntax">\s</p>
+</td>
+<td>
+<p class="en">a single space</p>
+<p class="ja">1 個以上のスペース、タブ、CR、LF の列にマッチします。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">\r</span></p>
+<p class="ja syntax">\r</p>
+</td>
+<td>
+<p class="en">a carriage return symbol</p>
+<p class="ja">キャリッジリターン（CR）にマッチします。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">\n</span></p>
+<p class="ja syntax">\n</p>
+</td>
+<td>
+<p class="en">a newline symbol</p>
+<p class="ja">ニューライン（LF）にマッチします。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">\t</span></p>
+<p class="ja syntax">\t</p>
+</td>
+<td>
+<p class="en">a tab character</p>
+<p class="ja">タブ（TAB）にマッチします。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">\w</span></p>
+<p class="ja syntax">\w</p>
+</td>
+<td>
+<p class="en">a word (possibly of length zero)<br>
+ A word is composed of any characters except space, tab, CR, LF,
+and "&gt;" (which is the end of an HTML tag)</p>
+<p class="ja">1 個の「単語」にマッチします（空文字列も含みます）。</p>
+<p class="ja">「単語」とは、スペース、タブ、CR、LF、&gt;
+（HTML タグの終端）以外の文字が連続したものです。</p>
+<p class="ja trans_note">訳注【[^ \t\r\n&gt;]+ と同じです。】</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">\0</span> to <span class=
+"syntax">\9</span></p>
+<p class="ja syntax">\0<span class="n">～</span>\9</p>
+</td>
+<td>
+<p class="en">same as <span class="example">*</span>, but records the matched
+text in a slot<br>
+ The recorded text can be retrieved in the replacement pattern,
+using the same notation.</p>
+<p class="ja"><span class="example">*</span> と同じですが、
+マッチしたテキストは変数に記録されます。</p>
+<p class="ja">置換パターンで同じメタキャラクタを使えば、
+記録した内容を取り出すことが出来ます。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">\#</span></p>
+<p class="ja syntax">\#</p>
+</td>
+<td>
+<p class="en">same as <span class="example">*</span>, but records the matched
+text in a queue<br>
+ The recorded text can be retrieved in the replacement pattern,
+using <span class="example">\#</span> or <span class=
+"example">\@</span></p>
+<p class="ja"><span class="example">*</span> と同じですが、
+マッチしたテキストはキューに追加されます。</p>
+<p class="ja">置換パターンで <span class="example">\#</span>
+か <span class="example">\@</span> を使えば、
+記録した内容を取り出すことが出来ます。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en">...<span class="syntax">|</span>...</p>
+<p class="ja syntax"><var>...</var>|<var>...</var></p>
+</td>
+<td>
+<p class="en">left pattern or right pattern<br>
+ This is an OR operation. <span class="example">foo|bar</span> will
+try and match <span class="extext">foo</span> first, then if it
+can't, <span class="extext">bar</span>. <span class=
+"example">|</span> operator has a higher operator precedence than 
+<span class="example">&amp;</span> and 
+<span class="example">&amp;&amp;</span> but a lower precedence than 
+all other symbols.</p>
+<p class="ja">左側のパターンか右側のパターンにマッチします。</p>
+<p class="ja">論理和演算です。<span class="example">foo|bar</span>
+というパターンであれば、まず最初に <span class="extext">foo</span>
+がマッチするかテストされ、マッチしなければ <span class="extext">bar</span>
+がテストされます。<span class="example">|</span> 演算は
+<span class="example">&amp;</span> と <span class="example">&amp;&amp;</span>
+より高い優先順位を持ちますが、他の全ての演算よりは低くなっています。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en">...<span class="syntax">&amp;</span>...</p>
+<p class="ja syntax"><var>...</var>&amp;<var>...</var></p>
+</td>
+<td>
+<p class="en">left pattern and right pattern<br>
+ This is an AND operation. <span class=
+"example">*foo&amp;*bar</span> will only match if there are both
+<span class="extext">foo</span> and <span class="extext">bar</span>
+somewhere in the text, for example <span class=
+"extext">doobardoofoo</span>, <span class="extext">bar foo</span>
+but not <span class="extext">foo foo</span>. Text is consumed up to
+the end of the longest match. This operator has the lowest operator
+precedence of all.</p>
+<p class="ja">左側のパターンにマッチし、
+かつ右側のパターンにもマッチした時に真となります。</p>
+<p class="ja">論理積演算です。<span class="example">*foo&amp;*bar</span>
+はテキスト中に <span class="extext">foo</span> と
+<span class="extext">bar</span> が両方含まれる場合、例えば
+<span class="extext">doobardoofoo</span> や <span class="extext">bar foo</span>
+にマッチしますが、<span class="extext">foo foo</span>
+にはマッチしません。テキストは最長マッチの終端まで消費されます。
+<span class="example">&amp;</span> 演算は最も低い優先順位を持ちます。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en">...<span class="syntax">&amp;&amp;</span>...</p>
+<p class="ja syntax"><var>...</var>&amp;&amp;<var>...</var></p>
+</td>
+<td>
+<p class="en">left pattern, and right pattern within text matched by left
+one.<br>
+ The difference with <span class="example">&amp;</span> is that the
+right match will be limited to what the left pattern matched, and
+it must match exactly the same length.</p>
+<p class="ja">左側のパターンにマッチしたテキストが、
+右側のパターンにもマッチした時に真となります。</p>
+<p class="ja"><span class="example">&amp;</span> との違いは、
+右側のパターンのマッチングが、左側のパターンでマッチした範囲に限られ、
+全く同じ長さにマッチするということです。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">(</span>...<span class=
+"syntax">)</span></p>
+<p class="ja syntax">(<var>...</var>)</p>
+</td>
+<td>
+<p class="en">what the pattern within parentheses matches<br>
+ You can use parentheses to group <span class=
+"example">|</span>-separated patterns, or in conjunction with <span
+class="example">+</span>. For example, <span class=
+"example">(foo|bar)+</span> will match <span class=
+"extext">foobarfoofoobar</span></p>
+<p class="ja"><span class="example">()</span>
+内のパターンにマッチします。</p>
+<p class="ja"><span class="example">|</span> で連結されたパターンや
+<span class="example">+</span> の対象を結合したい時に使います。
+例えば、<span class="example">(foo|bar)+</span> は
+<span class="extext">foobarfoofoobar</span> にマッチします。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">(^</span>...<span class=
+"syntax">)</span></p>
+<p class="ja syntax">(^<var>...</var>)</p>
+</td>
+<td>
+<p class="en">Matches (without consuming anything) if the embedded pattern
+does not.<br>
+You can use <span class="example">(^(^...))</span> for testing a
+pattern but not consuming it. Note that if the parentheses
+contain the full pattern, they are optional.</p>
+<p class="ja"><span class="example">()</span>
+内のパターンにマッチしない時に真となります（文字を消費しません）。</p>
+<p class="ja"><span class="example">(^(^...))</span>
+で、パターンがマッチするか文字を消費せずにテストすることが出来ます。
+<!-- 2005-02-08 翻訳に自信なし -->
+<p class="ja">() 内にパターンを最後まで書く必要はありません。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">(</span>...<span class=
+"syntax">)\#</span><br>
+ <span class="syntax">(</span>...<span class="syntax">)\0</span> to
+<span class="syntax">9</span></p>
+<p class="ja syntax">(<var>...</var>)\0<span class="n">～</span>9</p>
+</td>
+<td>
+<p class="en">Same as <span class="example">(...)</span> but in addtion, if it
+matches, the matched text is saved into a slot or the queue.</p>
+<p class="ja"><span class="example">(...)</span>と同じですが、
+マッチした場合は、マッチしたテキストが変数に記録されます。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="ja syntax">(<var>...</var>)\#
+</td>
+<td>
+<p class="ja"><span class="example">(...)</span>と同じですが、
+マッチした場合は、マッチしたテキストがキューに追加されます。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en">...<span class="syntax">+</span></p>
+<p class="ja syntax"><var>...</var>+</p>
+</td>
+<td>
+<p class="en">the previous symbol zero or more times<br>
+ <span class="example">ab+</span> will match <span class=
+"extext">a</span>, <span class="extext">ab</span>, <span class=
+"extext">abbb</span> but not <span class="extext">aaab</span>.
+<span class="example">(ab)+</span> will match <span class=
+"extext">ab</span>, <span class="extext">abab</span>, <span class=
+"extext">ababab</span>, or zero character.</p>
+<p class="ja">直前のパターンの 0 回以上の繰り返しにマッチします。</p>
+<p class="ja"><span class="example">ab+</span> は
+<span class="extext">a</span>、<span class="extext">ab</span>、
+<span class="extext">abbb</span> にマッチしますが、
+<span class="extext">aaab</span> にはマッチしません。
+<span class="example">(ab)+</span> は <span class="extext">ab</span>、
+<span class="extext">abab</span>、<span class="extext">ababab</span>
+や空文字列にマッチします。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en">...<span class="syntax">+{</span>n<span class=
+"syntax">,</span>m<span class="syntax">}</span></p>
+<p class="ja syntax"><var>...</var>+{<var>n</var>,<var>m</var>}</p>
+</td>
+<td>
+<p class="en">the previous symbol a number of times between n and m<br>
+ <span class="example">a+{2,4}</span> will match <span class=
+"extext">aa</span>, <span class="extext">aaa</span>, <span class=
+"extext">aaaa</span> but not <span class="extext">a</span> or <span
+class="extext">aaaaa</span>. Use * on the left for -infinity, * on
+the right for +infinity. <span class="example">+{n}</span> is the
+same as <span class="example">+{n,n}</span> ("must match exactly n
+times"). Stars are optional.</p>
+<p class="ja">直前のパターンの、n 回以上 m 回以下の繰り返しにマッチします。</p>
+<p class="ja"><span class="example">a+{2,4}</span> は
+<span class="extext">aa</span>、<span class="extext">aaa</span>、
+<span class="extext">aaaa</span> にマッチしますが、
+<span class="extext">a</span> や <span class="extext">aaaaa</span>
+にはマッチしません。</p>
+<p class="ja">左側に * を指定すると 0、右側に * を指定すると
+無限大として扱われます。<span class="example">+{n}</span> は
+<span class="example">+{n,n}</span> と同じです（n
+回ちょうどにマッチします）。* は省略できます。</p>
+<!-- +{,n} は +{0,n}、+{n,} は +{n,*} と同じということ。-->
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en">...<span class="syntax">++</span></p>
+<p class="ja syntax"><var>...</var>++</p>
+</td>
+<td>
+<p class="en">same as <span class="example">+</span> but may match less times
+than is possible<br>
+ <span class="example">+</span> is blind, it consumes as much text
+as is possible, never less. For this reason, <span class=
+"example">a+ab</span> cannot match <span class=
+"extext">aaab</span>, whereas <span class="example">a++ab</span>
+can. <span class="example">++</span> is slower though. Use <span
+class="example">++{n,m}</span> to provide minimum and maximum
+number of times.</p>
+<p class="ja"><span class="example">+</span> と同じですが、
+可能な限り少ない回数にマッチします。</p>
+<!-- blind は「盲目的」だが微妙な気がするため「貪欲」に -->
+<p class="ja"><span class="example">+</span> は貪欲で、
+可能な限りマッチしてテキストを消費し、決して食べ残すことはありません。
+この違いにより、<span class="example">a+ab</span> が
+<span class="extext">aaab</span> にマッチしないのに対し、
+<span class="example">a++ab</span> はマッチします。</p>
+<p class="ja">しかし、<span class="example">++</span>
+を使うと遅くなるので、出来る限り <span class="example">++{n,m}</span>
+の形式で最小・最大回数を指定して下さい。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">\</span>...</p>
+<p class="ja syntax">\<var>...</var></p>
+</td>
+<td>
+<p class="en">the next character in the pattern<br>
+ This is the escape code, for matching the special characters.
+<span class="example">a\*b</span> will match <span class=
+"extext">a*b</span>.</p>
+<p class="ja">次の 1 バイト文字そのものにマッチします。</p>
+<p class="ja">特殊記号を記述するためのエスケープコードです。
+<span class="example">a\*b</span> は
+<span class="extext">a*b</span> にマッチします。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">=</span></p>
+<p class="ja syntax">=</p>
+</td>
+<td>
+<p class="en">the equal sign and preceding/following spaces<br>
+ Simplifies html tag matching. You won't have to worry about the
+possibility of tag parameters being preceded/followed by spaces in
+the html code.</p>
+<p class="ja">等号と、その前後にあるスペースにマッチします。</p>
+<p class="ja">HTML コード内のタグの属性と属性値の間に、
+スペースがあるかどうかを気にせずにパターンを書けるので、
+HTML タグのマッチングを簡潔に記述できます。</p>
+<p class="ja trans_note">訳注【スペースは、%00～%20 の文字全てです。】</p>
+</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">"</span></p>
+<p class="ja syntax">"</p>
+</td>
+<td>
+<p class="en">a simple quote or a double quote<br>
+ Simplifies html tag matching. You won't have to worry if a tag
+parameter is enclosed is simple or double quotes.</p>
+<p class="ja">シングルクオートかダブルクオートにマッチします。</p>
+<p class="ja">属性値がシングルクオートで括られているか、
+ダブルクオートで括られているかを気にせずにパターンを書けるので、
+HTML タグのマッチングを簡潔に記述できます。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">'</span> (quote)</p>
+<p class="ja syntax">'<span class="n"> (quote)</span></p>
+</td>
+<td>
+<p class="en">a simple quote if opening quote, the corresponding quote if
+closing quote<br>
+ Allows matching nested quotes. <span class="example">"*'</span>
+will match <span class="extext">"foo 'doodle' bar"</span> instead
+of only <span class="extext">"foo '</span></p>
+<p class="ja">クオーティング開始時はシングルクオートに、
+クオーティング終了時は対応するクオート
+（シングルクオートかダブルクオート）にマッチします。</p>
+<p class="ja">クオーティングのネストにも追従します。
+<span class="example">"*'</span> は単なる
+<span class="extext">"foo '</span> の代わりに、
+<span class="extext">"foo 'doodle' bar"</span>
+にマッチします。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">\h</span></p>
+<p class="ja syntax">\h</p>
+</td>
+<td>
+<p class="en">the host part of the page URL</p>
+<p class="ja">URL のホスト部分にマッチします。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">\q</span></p>
+<p class="ja syntax">\q</p>
+</td>
+<td>
+<p class="en">the query part of the URL (including first "?")</p>
+<p class="ja">URL のクエリー部分にマッチします
+（先頭の ? を含みます）。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">\p</span></p>
+<p class="ja syntax">\p</p>
+</td>
+<td>
+<p class="en">the path part of the URL (including first "/")</p>
+<p class="ja">URL のパス部分にマッチします
+（先頭の / を含みます）。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">\a</span></p>
+<p class="ja syntax">\a</p>
+</td>
+<td>
+<p class="en">the anchor part of the URL (including "#")</p>
+<p class="ja">URL のアンカー部分にマッチします
+（# を含みます）。</p>
+<p class="ja trans_note">訳注【ほとんどのブラウザでは使用できません。】</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">\u</span></p>
+<p class="ja syntax">\u</p>
+</td>
+<td>
+<p class="en">the full URL (including protocol)</p>
+<p class="ja">URL 全てにマッチします
+（プロトコルを含みます）。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">\k</span></p>
+<p class="ja syntax">\k</p>
+</td>
+<td>
+<p class="en">zero character, but kills the connection<br>
+In text filters, it truncates data after the replacement
+text.</p>
+<p class="ja">空文字列にマッチしますが、接続を切断します。</p>
+<p class="ja">ウェブページフィルタでは、
+置換テキスト以降のデータは切り捨てられます。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">&lt;start&gt;</span></p>
+<p class="ja syntax">&lt;start&gt;</p>
+</td>
+<td>
+<p class="en">the beginning of the text<br>
+This code must be used alone in the Match Pattern of a
+text filter to be effective. It does not consume anything, but
+allows to insert some text at the very beginning of the file.
+It will match only once, and bounds pattern, window size and
+multiple match checkbox are not taken into account.</p>
+<p class="ja">ページの先頭にマッチします。</p>
+<p class="ja">このメタキャラクタは、
+ウェブページフィルタのマッチングパターンで単独で記述したときだけ有効になります。
+これによりテキストを消費せずに、
+ファイルの一番先頭に何か文字を挿入することが出来ます。
+これは一度だけマッチし、範囲指定パターン、上限バイト数、
+再帰マッチングのチェックボックスは無視されます。
+</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">&lt;end&gt;</span></p>
+<p class="ja syntax">&lt;end&gt;</p>
+</td>
+<td>
+<p class="en">the end of the text<br>
+This code must be used alone in the Match Pattern of a
+text filter to be effective. It does not consume anything, but
+allows to insert some text at the very end of the file.
+It will match only once, and bounds pattern, window size and
+multiple match checkbox are not taken into account.</p>
+<p class="ja">ページの末尾にマッチします。<br>
+<p class="ja">このメタキャラクタは、
+ウェブページフィルタのマッチングパターンで単独で記述したときだけ有効になります。
+これによりテキストを消費せずに、
+ファイルの一番最後に何か文字を挿入することが出来ます。
+これは一度だけマッチし、範囲指定パターン、上限バイト数、
+再帰マッチングのチェックボックスは無視されます。
+</td>
+</tr>
+</table>
+
+<p class="en section">Replacement Special Codes</p>
+<p class="ja section">置換用メタキャラクタ</p>
+
+<table>
+<tr>
+<td>
+<p class="en"><span class="syntax">\h</span></p>
+<p class="ja syntax">\h</p>
+</td>
+<td>
+<p class="en">the host part of the page URL</p>
+<p class="ja">URL のホスト部分に展開されます</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">\q</span></p>
+<p class="ja syntax">\q</p>
+</td>
+<td>
+<p class="en">the query part of the URL (including first "?")</p>
+<p class="ja">URL のクエリー部分に展開されます
+（先頭の ? を含みます）。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">\p</span></p>
+<p class="ja syntax">\p</p>
+</td>
+<td>
+<p class="en">the path part of the URL (including first "/")</p>
+<p class="ja">URL のパス部分に展開されます
+（先頭の / を含みます）。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">\a</span></p>
+<p class="ja syntax">\a</p>
+</td>
+<td>
+<p class="en">the anchor part of the URL (including "#")</p>
+<p class="ja">URL のアンカー部分に展開されます
+（# を含みます）。</p>
+<p class="ja trans_note">訳注【ほとんどのブラウザでは使用できません。】</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">\u</span></p>
+<p class="ja syntax">\u</span></p>
+</td>
+<td>
+<p class="en">the full URL (including protocol)</p>
+<p class="ja">URL 全てに展開されます
+（プロトコルを含みます）。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">\k</span></p>
+<p class="ja syntax">\k</p>
+</td>
+<td>
+<p class="en">nothing, but kills the connection</p>
+<p class="ja">空文字列に展開され、接続が切断されます。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">\0</span> to <span class=
+"syntax">\9</span></p>
+<p class="ja syntax">\0<span class="n">～</span>\9</span></p>
+</td>
+<td>
+<p class="en">the corresponding text last recorded in the bounds/match
+patterns</p>
+<p class="ja">範囲指定パターンかマッチングパターンにおいて、
+対応するメタキャラクタで最後に記録されたテキストに展開されます。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">\#</span></p>
+<p class="ja syntax">\#</p>
+</td>
+<td>
+<p class="en">the next unfetched string recorded to the queue in the
+bounds/match patterns</p>
+<p class="ja">範囲指定パターンかマッチングパターンにおいてキューに保存されたテキストで、
+先頭のものが取り出されて展開されます。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">\@</span></p>
+<p class="ja syntax">\@</p>
+</td>
+<td>
+<p class="en">all remaining unfetched strings in the queue</p>
+<p class="ja">キューに残っているテキストが全て取り出されて展開されます。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="syntax">\</span>...</p>
+<p class="ja syntax">\<var>...</var></p>
+</td>
+<td>
+<p class="en">the next character is processed as a non-special
+character (escape code). Use it to insert "\", "$", "(" or ")" 
+characters.</p>
+<p class="ja">次の 1 バイト文字を通常の文字として扱います
+（エスケープコード）。\、$、(、) をそのまま挿入したいときに使います。</p>
+</td>
+</tr>
+</table>
+
+<p class="en section">Commands</p>
+<p class="ja section">コマンド</p>
+
+<p class="en">Commands can be used in a match pattern ( <span class=
+"indic">M</span> ) or in a replacement text ( <span class=
+"indic">R</span> ).<br>
+ Unless otherwise stated, commands in a match pattern always match
+without consuming any character.<br>
+ Commands in a replacement text can match or not. When they don't,
+The replacement text stops at this point, which means the
+replacement does occur, but does not include the text after the
+unmatching command (and commands following it are not executed).
+Unless otherwise stated, commands in a replacement text always
+match.<br>
+ Because commands can be nested, you should always make sure
+parentheses are consistent. If you need to insert/match the
+parentheses characters themselves, escape them.<br>
+ Unknown commands are ignored, so you can use for example
+<span class="example">$NOP(some ignored text)</span>
+to disable a part of the pattern or insert some comment.</p>
+
+<p class="ja">コマンドはマッチングパターン
+（<span class="indic">検索</span>）か、置換テキスト
+（<span class="indic">置換</span>）で使うことが出来ます。</p>
+<p class="ja">置換でのみ使えるコマンドをマッチングパターンに記述すると、
+文字を消費せずにマッチします。</p>
+<p class="ja">コマンドを置換テキストに記述するとマッチするかテストされ、
+マッチしなかった場合、置換テキストの処理はその位置で止まります。
+それまでの置換テキストは出力されますが、
+マッチしなかったコマンドより後のテキストは出力されません
+（また、後ろにあるコマンドも実行されません）。</p>
+<p class="ja">検索でのみ使えるコマンドを置換テキストに記述すると、
+常にマッチします。</p>
+<p class="ja">コマンドはネストすることが出来るので、
+( と ) が一致していることを常に確認して下さい。
+( や ) 自体をマッチ・挿入したい場合はエスケープします。</p>
+<p class="ja">未知のコマンドは無視されます。そのため、
+パターンの一部を無効化したりコメントを記述するために、
+<span class="example">$NOP(無視されるテキスト)</span>
+といった書き方が出来ます。</p>
+
+<table>
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><span class="indic">R</span></p>
+<p class="ja indic">置換</p>
+</td>
+<td>
+<p class="en command">$ADDLST(ListName, expanded text to add)</p>
+<p class="ja command">$ADDLST(<var>リスト名</var>, <var>追加する拡張テキスト</var>)</p>
+
+<p class="en">Adds a line to a list<br>
+ The line is immediately added to the file. If it is a valid match
+pattern, it is also immediately taken into account by all $LST
+commands that use this list.<br>
+It is possible to add a line to a list that is not defined in the
+GUI: in this case, the line is not appended to a file, but remains
+available in memory for subsequent $LST commands, until the
+application is exited or more than 1000 lines are added to the
+same list (fixed-size virtual list).</p>
+<p class="ja">リストに新しい行を追加します。</p>
+<p class="ja">追加した行は直ちにファイルに書き込まれます。
+それが適正なマッチングパターンであれば、そのリストを参照する全ての
+$LST コマンドにも直ちに反映されます。</p>
+<p class="ja">GUI で定義されていないリストにも追加することが出来ます。
+追加した行はファイルには書き込まれませんがメモリに記録され、
+Proximodo を終了するか同じリストに1000行以上追加されるまでは、
+$LST コマンドで参照することが出来ます（固定長仮想リスト）。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><span class="indic">R</span></p>
+<p class="ja indic">置換</p>
+</td>
+<td>
+<p class="en command">$ADDLSTBOX(ListName, [expanded title,] expanded
+text to add)</p>
+<p class="ja command">$ADDLSTBOX(<var>リスト名</var>,
+[<var>タイトル</var>,] <var>追加する拡張テキスト</var>)</p>
+
+<p class="en">Same as $ADDLST, but prompt the user first.<br>
+ The user can change the line or cancel the addition.</p>
+<p class="ja">$ADDLST と同じですが、その前にユーザーに確認します。
+追加する行を書き換えたり、キャンセルすることが出来ます。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><span class="indic">R</span></p>
+<p class="ja indic">置換</p>
+</td>
+<td>
+<p class="en command">$ALERT(expanded text)</p>
+<p class="ja command">$ALERT(<var>拡張テキスト</var>)</p>
+
+<p class="en">Displays a message dialog box on screen.<br>
+ The filter waits for the user to click the OK button.</p>
+<p class="ja">ダイアログボックスを開いてメッセージを表示します。
+OK ボタンをクリックするまで、フィルタは停止します。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><br></p>
+</td>
+<td>
+<p class="en command">$ASK(AllowList, DenyList, expanded prompt,
+expanded text to add [, expanded text to find])</p>
+<p class="ja command">$ASK(<var>許可リスト名</var>, <var>拒否リスト</var>,
+<var>プロンプト</var>, <var>追加する拡張テキスト</var>[,
+<var>検索する拡張テキスト</var>])</p>
+
+<p class="en">Prompts the user for inserting a text in an Allow list or Deny
+list.<br>
+ The text to find (by default the URL without http://) is matched
+against the two lists (like two $LST commands). If the Allow list
+matches, $ASK does not match. If the Deny list matches, $ASK
+matches. Else, a dialog box opens on the screen showing the text to
+add, and the user is prompted to allow it or not. If the user
+chooses yes, the text is added to the Allow list (like $ADDLST
+command) and $ASK does not match. If he chooses no, the text is
+added to the Deny list and $ASK matches.<br>
+ Note: reporting a match for the Deny list instead of the Allow
+list allows the filter to bypass allowed URLs.</p>
+
+<p class="ja">テキストを許可リストか拒否リストのどちらに追加するか問い合わせます。</p>
+<p class="ja">検索する拡張テキスト（省略時は http:// を除いた URL）
+が二つのリストのどちらにマッチするか（$LST コマンド二回のように）
+テストされます。許可リストにマッチした場合、
+$ASK はマッチしません。拒否リストにマッチした場合、
+$ASK はマッチします。</p>
+<p class="ja">どちらにもマッチしなかった場合、
+ダイアログボックスを開いて追加するテキストを表示し、
+許可か拒否の選択をユーザに促します。「はい」を選ぶと、
+テキストは（＄ADDLST コマンドのように）許可リストに追加され、
+$ASK はマッチしません。「いいえ」を選ぶと、
+テキストは拒否リストに追加され、$ASK はマッチします。</p>
+<p class="ja">Note: reporting a match for the Deny list instead of the Allow
+list allows the filter to bypass allowed URLs.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><br></p>
+</td>
+<td>
+<p class="en command">$AV(pattern)</p>
+<p class="ja command">$AV(<var>パターン</var>)</p>
+
+<p class="en">Locates the end of an HTML tag parameter, which can be a single
+word or a string enclosed by single or double quotes. Then try and
+match the pattern against the value of the tag (without quotes). If
+the pattern matches the whole tag value, $AV matches and consumes
+the tag value (including quotes).<br>
+ src=$AV(\1) will match and consume src="url" and \1 will contain
+url</p>
+<p class="ja">まず、一つの単語か、
+シングルクオートかダブルクオートで括られた文字列からなる
+HTML タグの属性値を末尾まで取り込みます。次に、その属性値
+（クオートは含みません）とパターンがマッチするかテストします。
+パターンが属性値にマッチしたら、$AV
+はマッチして属性値を消費します（クオートも消費します）。</p>
+<p class="ja"><span class="example">src=$AV(\1)</span> は
+<span class="extext">src="url"</span> にマッチして消費し、
+\1 には url が記録されます。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><br></p>
+</td>
+<td>
+<p class="en command">$AVQ(pattern)</p>
+<p class="ja command">$AVQ(<var>パターン</var>)</p>
+
+<p class="en">Same as $AV but the pattern is matched against the tag value
+including quotes.<br>
+ src=$AV(\1) will match and consume src="url" and \1 will contain
+"url"</p>
+<p class="ja">$AV と同じですが、パターンはクオートを含む属性値と
+マッチするかテストされます。</p>
+<p class="ja"><span class="example">src=$AV(\1)</span> は
+<span class="extext">src="url"</span> にマッチして消費し、
+\1 には "url" が記録されます。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><br></p>
+</td>
+<td>
+<p class="en command">$CON:(x,y[,z])</p>
+<p class="ja command">$CON:(<var>x</var>, <var>y</var>[, <var>z</var>])</p>
+
+<p class="en">Matches if the connection number is "x of y". The rotation
+occurs at every z connections (1 by default).<br>
+ The three parameters must be strictly positive integers.</p>
+<p class="ja">接続番号が「y 回のうちの x 番目」の時にマッチします。
+z 回の接続（省略時は 1 回）ごとにローテーションされます。</p>
+<p class="ja">三つの引数は全て正の整数でなければなりません。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><span class="indic">R</span></p>
+<p class="ja indic">置換</p>
+</td>
+<td>
+<p class="en command">$CONFIRM(expanded text)</p>
+<p class="ja command">$CONFIRM(<var>拡張テキスト</var>)</p>
+
+<p class="en">Displays a message box with a yes/no choice. Matches only if
+user user presses Yes.</p>
+<p class="ja">メッセージボックスを開いて「はい」「いいえ」
+の選択を表示します。「はい」をクリックした時だけマッチします。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><br></p>
+</td>
+<td>
+<p class="en"><span class="indic">R</span></p>
+<p class="ja indic">置換</p>
+</td>
+<td>
+<p class="en command">$DTM(format)</p>
+<p class="ja command">$DTM(<var>フォーマット</var>)</p>
+
+<p class="en">Generates a date/time string, following the given format.<br>
+ The format can contain any character or escaped character, plus
+the following special codes:<br>
+</p>
+<p class="ja">指定されたフォーマットに従って、
+日時を文字列にして展開します。</p>
+<p class="ja">フォーマットにはあらゆる文字やエスケープされた文字を記述でき、
+加えて以下の特殊コードを使えます。</p>
+
+<table>
+<tr>
+<td>
+<ul class="en">
+<li>Y : year</li>
+
+<li>M : month</li>
+
+<li>D : day</li>
+
+<li>H : hour (00-23)</li>
+
+<li>h : hour (01-12)</li>
+
+<li>a : (am/pm)</li>
+
+<li>m : minute</li>
+
+<li>s : second</li>
+</ul>
+<ul class="ja">
+<li>Y : 西暦（4桁）</li>
+
+<li>M : 月（2桁）</li>
+
+<li>D : 日（2桁）</li>
+
+<li>H : 時間（00～23）</li>
+
+<li>h : 時間（01～12）</li>
+
+<li>a : （am/pm）</li>
+
+<li>m : 分（2桁）</li>
+
+<li>s : 秒（2桁）</li>
+</ul>
+</td>
+<td>
+<ul class="en">
+<li>t : millisecond</li>
+
+<li>w : three letter weekday (Sun,Mon,Tue...)</li>
+
+<li>T : same as H:m:s</li>
+
+<li>U : same as M/D/Y</li>
+
+<li>E : same as D/M/Y</li>
+
+<li>d : same as Y-M-D</li>
+
+<li>I : Internet formatted UTC</li>
+
+<li>c : current connection number</li>
+</ul>
+<ul class="ja">
+<li>t : ミリ秒</li>
+
+<li>w : 3文字の曜日（Sun、Mon、Tue、…）</li>
+
+<li>T : H:m:s と同じ</li>
+
+<li>U : M/D/Y と同じ</li>
+
+<li>E : D/M/Y と同じ</li>
+
+<li>d : Y-M-D と同じ</li>
+
+<li>I : インターネット形式の UTC</li>
+
+<li>c : 現在の接続番号</li>
+</ul>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><br></p>
+</td>
+<td>
+<p class="en"><span class="indic">R</span></p>
+<p class="ja indic">置換</p>
+</td>
+<td>
+<p class="en command">$ESC(expanded text)</p>
+<p class="ja command">$ESC(<var>拡張テキスト</var>)</p>
+
+<p class="en">Converts non-alphanumeric characters in the text to their %xx
+representation.<br>
+ It is the opposite of $UESC</p>
+<p class="ja">テキスト中の英数字以外の文字を %xx
+形式に変換して展開します。</p>
+<p class="ja">$UESC の反対です。</p>
+<p class="ja trans_note">訳注【@*-_+./
+も英数字同様変換されずに出力されます。】</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><br></p>
+</td>
+<td>
+<p class="en"><span class="indic">R</span></p>
+<p class="ja indic">置換</p>
+</td>
+<td>
+<p class="en command">$FILE(filename)</p>
+<p class="ja command">$FILE(<var>ファイル名</var>)</p>
+
+<p class="en">Inserts the content of the file in the replacement string.<br>
+ The path can be absolute or relative to Proximodo directory. Use
+\\ or / in the path.</p>
+<p class="ja">指定したファイルの内容を置換テキストとして挿入します。</p>
+<p class="ja">絶対パス表記か、Proximodo
+のディレクトリからの相対パス表記で指定できます。
+パスデリミタは \\ か / を使って下さい。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><span class="indic">R</span></p>
+<p class="ja indic">置換</p>
+</td>
+<td>
+<p class="en command">$FILTER(True or False)</p>
+<p class="ja command">$FILTER(<var>True または False</var>)</p>
+
+<p class="en">Activates or deactivates all text filters for this request.<br>
+ Only works in a header filter.</p>
+<p class="ja">この接続においてウェブページフィルタを有効化または無効化します。</p>
+<p class="ja">ヘッダフィルタでのみ動作します。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><br></p>
+</td>
+<td>
+<p class="en"><span class="indic">R</span></p>
+<p class="ja indic">置換</p>
+</td>
+<td>
+<p class="en command">$GET(VariableName)</p>
+<p class="ja command">$GET(<var>変数名</var>)</p>
+
+<p class="en">Fetches the value of the variable.<br>
+ The value is not expanded (the expansion is done by the $SET
+command).</p>
+<p class="ja">変数の値を展開します。</p>
+<p class="ja">変数の値の内容は、メタキャラクタやコマンドの
+展開は行われません（$SET コマンドで行われています）。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><span class="indic">R</span></p>
+<p class="ja indic">置換</p>
+</td>
+<td>
+<p class="en command">$IHDR(header-name:pattern)</p>
+<p class="ja command">$IHDR(<var>ヘッダ名</var>:<var>パターン</var>)</p>
+
+<p class="en">Matches if the chosen incoming header matches the given
+pattern.</p>
+<p class="ja">受信ヘッダの値が指定したパターンとマッチするかテストします。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><br></p>
+</td>
+<td>
+<p class="en command">$INEST(start pattern, [inner pattern], end
+pattern)</p>
+<p class="ja command">$INEST(<var>開始パターン</var>,
+[<var>内部パターン</var>,] <var>終了パターン</var>)</p>
+
+<p class="en">Like $NEST, but considers that the start tag has previously been
+consumed, and does not consume the end tag.</p>
+<p class="ja">$NEST と似ていますが、開始タグはすでに消費されており、
+終了タグを消費することはないと考えて下さい。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><span class="indic">R</span></p>
+<p class="ja indic">置換</p>
+</td>
+<td>
+<p class="en command">$JUMP(http://some.url.com/)</p>
+<p class="ja command">$JUMP(<var>http://some.url.com/</var>)</p>
+
+<p class="en">Sends a fake redirection response (302 Found) to the
+browser.</p>
+<p class="ja">ブラウザに偽のリダイレクションレスポンス
+（302 Found）を送ります。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><span class="indic">R</span></p>
+<p class="ja indic">置換</p>
+</td>
+<td>
+<p class="en command">$KEYCHK(keycode list)</p>
+<p class="ja command">$KEYCHK(<var>キーコードリスト</var>)</p>
+
+<p class="en">Matches if the given keyboard keys are pressed.<br>
+ The list can contain any letter or symbol (corresponding to a key
+on the keyboard, like A), or the following ^-escaped codes:</p>
+<p class="ja">指定したキーボードのキーが押されている時にマッチします。</p>
+<p class="ja">キーコードリストには全ての英字や記号を記述できます
+（A のように、対応するキーを書きます）。また、以下の
+^-エスケープコードを記述することが出来ます。</p>
+
+<ul class="en">
+<li>^C : Ctrl</li>
+
+<li>^A : Alt</li>
+
+<li>^S : Shift</li>
+
+<li>^T : Tab</li>
+
+<li>^F1 : Function key F1, and so on</li>
+
+<li>^number : the number corresponds to the ascii value, like ^32
+for Space</li>
+</ul>
+<ul class="ja">
+<li>^C : Ctrl</li>
+
+<li>^A : Alt</li>
+
+<li>^S : Shift</li>
+
+<li>^T : Tab</li>
+
+<li>^F1 : ファンクションキー F1、他も同様</li>
+
+<li>^数値 : 対応する ASCII 文字。^32 でスペースなど</li>
+</ul>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><span class="indic">R</span></p>
+<p class="ja indic">置換</p>
+</td>
+<td>
+<p class="en command">$LOCK()</p>
+<p class="ja command">$LOCK()</p>
+
+<p class="en">Waits until any other filter that previously ran $LOCK (whatever
+the connection) executes $UNLOCK.<br>
+ This is the principle known as "Mutex". There is only one mutex in
+Proximodo for filters, and only one filter can have it at a
+time.</p>
+<p class="ja">これに先立って（他の接続で）$LOCK
+を使っていたフィルタが、$UNLOCK を実行するまで待機します。</p>
+<p class="ja">これは「ミューテックス」として知られている仕組みです。
+Proximodo はただ一つのミューテックスを持ち、
+一時に一つのフィルタだけがそれを占有することが出来ます。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><span class="indic">R</span></p>
+<p class="ja indic">置換</p>
+</td>
+<td>
+<p class="en command">$LOG([!]Xexpanded text)</p>
+<p class="ja command">$LOG([<var>!</var>]<var>X</var><var>拡張テキスト</var>)</p>
+
+<p class="en">Sends some text to the log window. If "!" is present, the log
+window opens and is turned on.<br>
+ X is a single letter that indicates the color of the line in the
+window. It is one of:<br>
+ R: red, G: green, B: blue, Y: yellow, V: violet, C: cyan, W:
+white, w: gray</p>
+<p class="ja">ログウィンドウにテキストを表示します。先頭に !
+を書くと、ログウィンドウが開いて表示が開始されます。</p>
+<p class="ja">X はテキストを表示する色の指定で、次の色が使えます。
+R: 赤、G: 緑、B: 青、Y: 黄色、V: 青紫、C: 青緑、W: 白、w: 灰色。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><br></p>
+</td>
+<td>
+<p class="en command">$LST(ListName)</p>
+<p class="ja command">$LST(<var>リスト名</var>)</p>
+
+<p class="en">Tries and matches patterns in the list one after another.<br>
+ Like ((...)|(...)|(...)|(...)) with all the lines in the list.<br>
+ Lines starting by #, empty lines and invalid patterns are
+excluded.</p>
+<p class="ja">リスト中のパターンを一つずつマッチするかテストします。</p>
+<p class="ja">リスト中の全ての行を ((...)|(...)|(...)|(...))
+と書いたように動作します。# から始まる行、空行、
+間違ったパターンが書かれた行は除かれます。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><br></p>
+</td>
+<td>
+<p class="en command">$NEST(start pattern, [inner pattern,] end
+pattern)</p>
+<p class="ja command">$NEST(<var>開始パターン</var>,
+[<var>内部パターン</var>,] <var>終了パターン</var>)</p>
+
+<p class="en">Matches and consumes nested tags.<br>
+ If the text matches the first pattern (start tag), $NEST tries and
+locates the corresponding end tag (with the end pattern). If found,
+$NEST consumes the text up to the end of the end tag.<br>
+ But there may be an additional condition: if an inner pattern is
+provided, it is tried on the text between start and end tags. If it
+does not match, $NEST fails.</p>
+<p class="ja">ネストしたタグにマッチして消費します。</p>
+<p class="ja">テキストが開始パターン（開始タグ）にマッチすると、
+$NEST は対応する終了タグ（終了パターン）を見つけようと試みます。
+見つかったら、$NEST は終了タグの末尾までのテキストを消費します。
+<p class="ja">また、内部パターンを書き加えると、
+開始タグと終了タグの間のテキストにマッチするかテストされます。
+マッチしない場合、$NEST は失敗します。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><span class="indic">R</span></p>
+<p class="ja indic">置換</p>
+</td>
+<td>
+<p class="en command">$OHDR(header-name:pattern)</p>
+<p class="ja command">$OHDR(<var>ヘッダ名</var>:<var>パターン</var>)</p>
+
+<p class="en">Matches if the chosen outgoing header matches the given
+pattern.</p>
+<p class="ja">送信ヘッダの値が指定したパターンとマッチするかテストします。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><span class="indic">R</span></p>
+<p class="ja indic">置換</p>
+</td>
+<td>
+<p class="en command">$RDIR(http://some.url.com/)</p>
+<p class="ja command">$RDIR(<var>http://some.url.com/</var>)</p>
+
+<p class="en">Transparently redirects to another URL.<br>
+ The browser is not aware of the redirection.</p>
+<p class="ja">他の URL に透過的にリダイレクトします。
+ブラウザは、リダイレクトされたことに気づきません。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><span class="indic">R</span></p>
+<p class="ja indic">置換</p>
+</td>
+<td>
+<p class="en command">$RESP(pattern)</p>
+<p class="ja command">$RESP(<var>パターン</var>)</p>
+
+<p class="en">Try and match the pattern against the response code (3-digit
+number followed by a space and a response message)<br>
+ Useless in an outgoing header filter (the response code is unknown
+at that time).</p>
+<p class="ja">パターンと、レスポンスコード（3桁の数字と、
+それに続くスペース、レスポンスメッセージ）がマッチするかテストします。</p>
+<p class="ja">送信ヘッダフィルタにおいては役に立ちません
+（その時点ではレスポンスコードは不明なので）。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><span class="indic">R</span></p>
+<p class="ja indic">置換</p>
+</td>
+<td>
+<p class="en command">$SET(\# or \0-\9=text)</p>
+<p class="ja command">$SET(<var>\0<span class="n">～</span>\9</var>=<var>テキスト</var>)</p>
+
+<p class="en">Saves the text in a slot or in the queue.<br>
+ The text is not expanded at this point, the expansion occurs when
+the value is retrieved in the replacement text with \# or \0</p>
+<p class="ja">テキストを変数に記録します。</p>
+<p class="ja">この時点ではテキストに含まれるメタキャラクタやコマンドは実行されず、
+置換テキストで \0～\9 を展開する際にはじめて実行されます。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><span class="indic">R</span></p>
+<p class="ja indic">置換</p>
+</td>
+<td>
+<p class="ja command">$SET(<var>\#</var>=<var>テキスト</var>)</p>
+<p class="ja">テキストをキューに追加します。</p>
+<p class="ja">この時点ではテキストに含まれるメタキャラクタやコマンドは実行されず、
+置換テキストで \0～\9 を展開する際にはじめて実行されます。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><span class="indic">R</span></p>
+<p class="ja indic">置換</p>
+</td>
+<td>
+<p class="en command">$SET(Variable=expanded text)</p>
+<p class="ja command">$SET(<var>変数名</var>=<var>拡張テキスト</var>)</p>
+
+<p class="en">Saves the text in a variable.<br>
+ The scope of a variable is the request : variables are shared by
+all filters working on the same request. So you can set a variable
+in a header filter and use it in a text filter.<br>
+ Note: variable names are case-sensitive.</p>
+<p class="ja">テキストを変数に記録します。</p>
+<p class="ja">変数のスコープはそのリクエストだけで、
+変数は同じリクエスト内で実行される全てのフィルタで共有されます。よって、
+ヘッダフィルタで変数を記録してウェブページフィルタで参照することが出来ます。</p>
+<p class="ja">注意：変数名は大文字小文字を区別します。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><span class="indic">R</span></p>
+<p class="ja indic">置換</p>
+</td>
+<td>
+<p class="en command">$SETPROXY(remote.proxy.name[:port])</p>
+<p class="ja command">$SETPROXY(<var>リモートプロクシ</var>[:<var>ポート番号</var>])</p>
+
+<p class="en">Forces the use of a particular proxy.<br>
+ The proxy must be in the list available in Proximodo settings. You
+don't need to write all the name, only the first letters will
+suffice.<br>
+ Only works in outgoing header filters (after connection, it is too
+late).</p>
+<p class="ja">指定したリモートプロクシを強制的に使用します。</p>
+<p class="ja">リモートプロクシは、Proximodo
+の設定でリストに登録したものでなければなりません。
+プロクシ名を全て書く必要は無く、最初の一文字だけでも十分です。</p>
+<p class="ja">送信ヘッダフィルタでのみ動作します
+（接続したあとでは遅すぎます）。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><span class="indic">R</span></p>
+<p class="ja indic">置換</p>
+</td>
+<td>
+<p class="en command">$STOP()</p>
+<p class="ja command">$STOP()</p>
+
+<p class="en">Deactivates the filter.<br>
+ The match is allowed to complete but it will be the last until the
+request/response completes.</p>
+<p class="ja">フィルタを無効化します。</p>
+<p class="ja">マッチング中のフィルタは最後までテストされますが、
+その後はリクエスト／レスポンスが完了するまでそのフィルタは動作しなくなります。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><br></p>
+</td>
+<td>
+<p class="en command">$TST(\# or \0-\9)</p>
+<p class="ja command">$TST(<var>\0<span class="n">～</span>\9</var>)</p>
+
+<p class="en">Try and match (and consume) the text against the pattern stored
+in the slot (or last item in queue).</p>
+<p class="ja">変数に記録されたパターンと、
+テキストがマッチするかテストします（そして消費します）。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><br></p>
+</td>
+<td>
+<p class="ja command">$TST(<var>\#</var>)</p>
+
+<p class="ja">キューに最後に追加されたパターンと、
+テキストがマッチするかテストします（そして消費します）。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><span class="indic">R</span></p>
+<p class="ja indic">置換</p>
+</td>
+<td>
+<p class="en command">$TST(\# or \0-\9=pattern)</p>
+<p class="ja command">$TST(<var>\0<span class="n">～</span>\9</var>=<var>パターン</var>)</p>
+
+<p class="en">Matches if the content of the slot (or last item in queue)
+matches the pattern.<br>
+But does not match if the slot is empty.</p>
+<p class="ja">変数に記録されたテキストと、
+パターンがマッチするかテストします。変数が空の場合はマッチしません。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><span class="indic">R</span></p>
+<p class="ja indic">置換</p>
+</td>
+<td>
+<p class="ja command">$TST(<var>\#</var>=<var>パターン</var>)</p>
+
+<p class="ja">キューに最後に追加されたテキストと、
+パターンがマッチするかテストします。キューが空の場合はマッチしません。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><br></p>
+</td>
+<td>
+<p class="en command">$TST(VariableName)</p>
+<p class="ja command">$TST(<var>変数名</var>)</p>
+
+<p class="en">Try and match (and consume) the text against the pattern stored
+in the variable.</p>
+<p class="ja">変数に記録されたパターンと、
+テキストがマッチするかテストします（そして消費します）。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><span class="indic">R</span></p>
+<p class="ja indic">置換</p>
+</td>
+<td>
+<p class="en command">$TST(VariableName=pattern)</p>
+<p class="ja command">$TST(<var>変数名</var>=<var>パターン</var>)</p>
+
+<p class="en">Matches if the content of the variable matches the pattern.<br>
+But does not match if the variable is empty.</p>
+<p class="ja">変数に記録されたテキストと、
+パターンがマッチするかテストします。変数が空の場合はマッチしません。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><br></p>
+</td>
+<td>
+<p class="en command">$TST((expanded text))</p>
+<p class="ja command">$TST((<var>拡張テキスト</var>))</p>
+
+<p class="en">Try and match (and consume) the text against the pattern obtained
+by expanding the parameter.</p>
+<p class="ja">パラメータを展開して得られたパターンと、
+テキストがマッチするかテストします（そして消費します）。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><span class="indic">R</span></p>
+<p class="ja indic">置換</p>
+</td>
+<td>
+<p class="en command">$TST((expanded text)=pattern)</p>
+<p class="ja command">$TST((<var>拡張テキスト</var>)=<var>パターン</var>)</p>
+
+<p class="en">Matches if the expanded text matches the pattern.<br>
+But does not match if the expanded text is empty.</p>
+<p class="ja">展開されたテキストと、パターンがマッチするかテストします。
+展開されたテキストが空の場合はマッチしません。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><br></p>
+</td>
+<td>
+<p class="en command">$TYPE(code)</p>
+<p class="ja command">$TYPE(<var>種別</var>)</p>
+
+<p class="en">Tests the type of the returned file.<br>
+ Allowed codes are:</p>
+<p class="ja">受信したファイルが、指定した種類であるかテストします。</p>
+<p>　以下の種別が指定できます。</p>
+
+<ul class="en">
+<li>htm : html document</li>
+
+<li>css : css stylesheet</li>
+
+<li>js : javascript file</li>
+
+<li>vbs : VBscript file</li>
+
+<li>oth : other types</li>
+</ul>
+<ul class="ja">
+<li>htm : HTML ドキュメント</li>
+
+<li>css : CSS スタイルシート</li>
+
+<li>js : JavaScript ファイル</li>
+
+<li>vbs : VBscript ファイル</li>
+
+<li>oth : その他</li>
+</ul>
+
+<p class="en">Note: this is only an estimation based on a few tokens at the
+beginning of the file (for text filters) or based on the URL's file
+extension (for header filters). Use $IHDR(Content-Type=...) for a
+more reliable test.</p>
+<p class="ja">注意：これは、ファイルの初めの少数の単語
+（ウェブページフィルタの場合）か、URL の拡張子（ヘッダフィルタの場合）
+に基づいて判断されます。より確実にテストするには、
+<span class="example">$IHDR(<var>Content-Type</var>: <var>...</var>)</span>
+を使って下さい。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><br></p>
+</td>
+<td>
+<p class="en"><span class="indic">R</span></p>
+<p class="ja indic">置換</p>
+</td>
+<td>
+<p class="en command">$UESC(expanded text)</p>
+<p class="ja command">$UESC(<var>拡張テキスト</var>)</p>
+
+<p class="en">Replaces all %nn codes in the text by the corresponding ascii
+character.<br>
+ It is the opposite of $ESC.</p>
+<p class="ja">テキスト中の %hh を全て、対応する ASCII
+文字に変換して展開します。</p>
+<p class="ja">$ESC の反対です。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><span class="indic">R</span></p>
+<p class="ja indic">置換</p>
+</td>
+<td>
+<p class="en command">$UNLOCK()</p>
+<p class="ja command">$UNLOCK()</p>
+
+<p class="en">Frees the mutex acquired by the $LOCK command.<br>
+ You don't really need to use this command, because it is
+automatically executed at the end of the match/replace.</p>
+<p class="ja">$LOCK コマンドによって占有したミューテックスを開放します。</p>
+<p class="ja">マッチ・置換の完了時に自動的に実行されるので、
+このコマンドを使わなくても構いません。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><span class="indic">R</span></p>
+<p class="ja indic">置換</p>
+</td>
+<td>
+<p class="en command">$URL(pattern)</p>
+<p class="ja command">$URL(<var>パターン</var>)</p>
+
+<p class="en">Try and match the pattern against the requested URL.</p>
+<p class="ja">リクエストした URL と、パターンがマッチするかテストします。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><span class="indic">M</span></p>
+<p class="ja indic">検索</p>
+</td>
+<td>
+<p class="en"><span class="indic">R</span></p>
+<p class="ja indic">置換</p>
+</td>
+<td>
+<p class="en command">$USEPROXY(True or False)</p>
+<p class="ja command">$USEPROXY(<var>True または False</var>)</p>
+
+<p class="en">Forces Proximodo to use or not use a proxy to access the
+internet.<br>
+ The proxy is the one selected in Proximodo settings.</p>
+<p class="ja">インターネットへのアクセスにリモートプロクシを使用するか、
+または使用しないかを強制的に指定します。</p>
+<p class="ja">リモートプロクシは Proximodo
+の設定で選択したものが使われます。</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p class="en"><br></p>
+</td>
+<td>
+<p class="en"><span class="indic">R</span></p>
+<p class="ja indic">置換</p>
+</td>
+<td>
+<p class="en command">$WESC(expanded text)</p>
+<p class="ja command">$WESC(<var>拡張テキスト</var>)</p>
+
+<p class="en">Like $ESC but only for Proximodo's special characters.</p>
+<p class="ja">$ESC とほぼ同じですが、Proximodo
+で使われる特別な文字だけを変換します。</p>
+</td>
+</tr>
+</table>
+
+</body>
+</html>

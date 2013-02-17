@@ -1,0 +1,137 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta name="generator" content=
+"HTML Tidy for Windows (vers 1st April 2002), see www.w3.org">
+<meta http-equiv="Content-Type" content="text/html; charset=Shift_JIS" />
+<title>状況監視 - Proximodo</title>
+<link rel="stylesheet" type="text/css" href="help.css">
+</head>
+<body>
+<center>
+<img class="en" src="../en/monitor.png">
+<img class="ja" src="monitor.png" width="342" height="273">
+</center>
+
+<p class="en section">Filtering Options</p>
+<p class="ja section">フィルタのオプション</p>
+
+<p class="en option">Filter Outgoing Headers</p>
+<p class="ja option">送信ヘッダ</p>
+
+<p class="en explain">If this box is unchecked, outgoing headers (that
+is, headers included in the requests your browser sends to
+websites) will not be affected by filters. If the box is checked,
+headers may be changed / added / deleted by a header filter that
+matches it. Note that Proximodo being a proxy server, it may change
+a few proxy-related headers for its proper functioning, whether the
+box is checked or not.</p>
+<p class="ja explain">このチェックを外すと、送信ヘッダ
+（ブラウザからウェブサイトに送られるリクエストに含まれるヘッダ）
+は送信ヘッダフィルタの作用を受けなくなります。</p>
+<p class="ja explain">チェックを入れると、
+マッチしたフィルタによりヘッダが変更・追加・削除されます。</p>
+<p class="ja explain">Proximodoはプロクシサーバであるため、
+チェックが入っていても外れていても、
+プロクシに関連する少数のヘッダは適切に動作するため書き換えられる事があるので注意して下さい。</p>
+
+<p class="en option">Filter Incoming Headers</p>
+<p class="ja option">受信ヘッダ</p>
+
+<p class="en explain">If this box is unchecked, incoming headers
+(headers that websites send along with html documents and images)
+are not affected by header filters. If the box is checked, headers
+may be changed / added / deleted by header filters in the current
+configuration.</p>
+<p class="ja explain">このチェックを外すと、受信ヘッダ
+（ウェブサイトからHTMLドキュメントや画像とともに送られてくるヘッダ）
+は受信ヘッダフィルタの作用を受けなくなります。</p>
+<p class="ja explain">チェックを入れると、
+現在のフィルタ構成内でマッチしたフィルタにより、
+ヘッダが変更・追加・削除されます。</p>
+
+<p class="en option">Filter Text</p>
+<p class="ja option">ウェブページ</p>
+
+<p class="en explain">If this box is unchecked, downloaded html
+documents are left untouched. If checked, the documents go through
+all text filters in the current configuration. Those filters are
+chained, and they may replace bits of text or not. The document's
+content is then sent to the browser for viewing.</p>
+<p class="ja explain">このチェックを外すと、
+ダウンロードしたHTMLドキュメントはフィルタの作用を受けなくなります。</p>
+<p class="ja explain">チェックを入れると、
+ドキュメントは現在のフィルタ構成内の全てのウェブページフィルタで書き換えられます。
+フィルタは順番に実行され、テキストの一部を書き換えることがあります。
+その後、ドキュメントの内容は表示のためブラウザに送られます。</p>
+
+<p class="en option">Freeze GIF Images</p>
+<p class="ja option">GIFアニメーションを止める</p>
+
+<p class="en explain">If this box is checked, animated GIF images will
+be transformed into fixed GIF images. Use this when flashy blinking
+images all over the screen make you dizzy.</p>
+<p class="ja explain">チェックを入れると、
+アニメーションGIF画像を静止画のGIF画像に変換します。
+画面の至るところに派手に点滅する画像があってめまいが起きるときに使います。</p>
+
+<p class="en option">Active Configuration</p>
+<p class="ja option">現在のフィルタ構成</p>
+
+<p class="en explain">This is the active configuration for header/text
+processing. A configuration is a set of selected filters that you
+want to use. Proximodo comes with many filters, and you can add
+more, but hopefully they are not all being used at the same time.
+Instead, you can select the filters you want to use and "group"
+them in a configuration. You can create several configurations, so
+that switching from one set to another (for example for a set of
+very unforgiving filters to a more permissive one) comes just to
+changing the value of this setting.</p>
+<p class="ja explain">現在選択している、
+ヘッダやウェブページを処理するフィルタ構成です。</p>
+<p class="ja explain">フィルタ構成は、使いたいフィルタを選択したセットです。
+Proximodoには多くのフィルタが付属し、自分で追加することも出来ますが、
+必ずしも全てを同時に使うことはないでしょう。
+その代わりに、使いたいフィルタを選んでフィルタ構成として纏める事が出来ます。
+フィルタ構成は複数作ることができ、この項目で選んで切り替えることが出来ます
+  （例えば非常に厳格なフィルタ類からより緩やかなものへ）。</p>
+
+<p class="en section">Statistics</p>
+<p class="ja section">統計</p>
+
+<p class="en option">Running Requests</p>
+<p class="ja option">処理中</p>
+
+<p class="en explain">This is the number of pages or files being
+currently downloaded from the Internet. When zero, Proximodo is
+idle, even though there may still be open connections
+(persistent connections are used to improve Internet access time).</p>
+<p class="ja explain">インターネットからページやファイルをダウンロードしている数です。
+ゼロの場合、たとえオープンしている接続がまだあったとしても、
+Proximodoは待機状態になっています（インターネットのアクセス速度を向上させるために、
+永続的接続が使われます）。</p>
+
+<p class="en option">Open Connections</p>
+<p class="ja option">接続数</p>
+
+<p class="en explain">This is the number of connections (sockets)
+still alive between browser windows and Proximodo.</p>
+<p class="ja explain">ブラウザとProximodoとの間で開かれている接続
+（ソケット）の数です。</p>
+
+<p class="en option">Abort Button</p>
+<p class="ja option">中止ボタン</p>
+
+<p class="en explain">It will close all connections, thus stopping
+downloads. Use it if you want to interrupt a frozen download without
+exiting the browser. Note that Proximodo continues to accept new
+connections, the button does not stop the proxy server.</p>
+<p class="ja explain">全ての接続を閉じ、ダウンロードを中止します。
+ダウンロードが途中で固まってしまった場合に、
+ブラウザを閉じずにダウンロードを中断したい場合に使います。
+Proximodoは新しい接続を受け付けることに注意して下さい。
+中止ボタンはプロクシサーバとしての動作を止める訳ではありません。</p>
+
+</body>
+</html>
+

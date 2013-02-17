@@ -1,0 +1,44 @@
+/* ViewSource.css - CSS file for Proximodo's filter debug mode.  Colors HTTP
+ *   headers, match text, and replace text, and provides a simple form of HTML
+ *   syntax highlighting.
+ */
+body {
+  color: black;
+  background-color: white;
+}
+
+/* Div containing the HTTP headers */
+#headers {
+  background-color: #ddd;
+  border: thin solid black;
+  padding: 1ex;
+  margin-bottom: 2em;
+}
+
+/* Individual HTTP headers:
+ *   res - HTTP result code
+ *   hdr - header name
+ *   val - header value
+ */
+.res { color: purple; }
+.hdr { color: maroon; }
+.val { color: navy; }
+
+/* Syntax highlighting:
+ *   tag - HTML tag
+ *   attr - HTML attribute within a tag
+ *   aval - attribute value, possibly quoted
+ */
+.tag { font-weight: bold; }
+.attr { color: blue; }
+.aval { color: green; }
+
+/* Filter match block:
+ *   filter - name of matching filter
+ *   in - input text
+ *   repl - replacement text
+ */
+.match { border: thin dotted gray; padding: 0.5ex; }
+.filter { color: red; }
+.in, .in * { color: maroon; }
+.repl, .repl * { color: navy; }

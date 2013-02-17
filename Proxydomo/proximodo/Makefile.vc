@@ -1,0 +1,195 @@
+#
+# Project: Proximodo
+# Usage:  nmake -f Makefile.vc all
+#
+# You need first to compile zlib and wxMSW.
+# For wxMSW, go into wxWidgets-2.6.0\build\msw\ and run:
+#      nmake -f makefile.vc BUILD=release
+# You can have a working development environment by gathering:
+#       Microsoft VC++ Toolkit 2003  ]  
+#       Microsoft Platform SDK       ]
+#       Microsoft .Net Framework SDK ] see www.microsoft.com
+#       Microsoft NMake 1.5          ]
+#       CVTRES.EXE                   ]
+#       RC.EXE
+#       LIB.EXE     (but if you have LINK.EXE instead, you can create LIB.CMD :
+#
+#                          @echo off
+#                          if "%1" == "" goto nocmd
+#                          echo link /lib %* > TMPlink.bat
+#                          call TMPlink.bat
+#                          del TMPlink.bat
+#                          goto end
+#                          :nocmd
+#                          link /lib
+#                          :end
+#
+# Don't forget to set environment variables by running batch files
+# from VC++ Toolkit, Platform SDK.
+#
+# Note: if you don't have RC.EXE, you can use GNU windres.exe instead.
+# In that case you would replace the "$(RC) /r /fo=" line by:
+# 	windres -i Proximodo_private.rc --input-format=rc -o ../obj/Proximodo_vc.res --include-dir C:/MinGW/include
+#
+
+#
+# PROJECT FILES
+#
+
+BIN = ..\bin\prox.exe
+
+RES = ..\obj\Proximodo_vc.res
+
+OBJ = ..\obj\main.obj ..\obj\nodes.obj ..\obj\url.obj ..\obj\matcher.obj ..\obj\expander.obj ..\obj\textfilter.obj ..\obj\headerfilter.obj ..\obj\requestmanager.obj ..\obj\proxy.obj ..\obj\log.obj ..\obj\settings.obj ..\obj\descriptor.obj ..\obj\events.obj ..\obj\managerthread.obj ..\obj\filter.obj ..\obj\platform.obj ..\obj\util.obj ..\obj\filterowner.obj ..\obj\mainframe.obj ..\obj\welcomescreen.obj ..\obj\settingsscreen.obj ..\obj\controls.obj ..\obj\editscreen.obj ..\obj\testframe.obj ..\obj\configscreen.obj ..\obj\windowcontent.obj ..\obj\logframe.obj ..\obj\trayicon.obj ..\obj\zlibbuffer.obj ..\obj\giffilter.obj ..\obj\textbuffer.obj
+
+#
+# DEVELOPMENT ENVIRONMENT
+#
+
+CPP = cl.exe /nologo
+
+RC = rc.exe
+
+!IF "$(DEBUG)" != ""
+CXXFLAGS = /MTd /Zi
+!ELSE
+CXXFLAGS = /MT  /Ox /G5
+!ENDIF
+CXXFLAGS = /c /W3 /GR /EHsc $(CXXFLAGS)
+
+!IF "$(DEBUG)" != ""
+LIBS = wxmsw26d_core.lib wxbase26d.lib wxbase26d_net.lib wxmsw26d_adv.lib 
+!ELSE
+LIBS = wxmsw26_core.lib wxbase26.lib wxbase26_net.lib wxmsw26_adv.lib
+!ENDIF
+LIBS = $(LIBS) zlib.lib rpcrt4.lib oleaut32.lib ole32.lib uuid.lib winspool.lib winmm.lib shell32.lib comctl32.lib comdlg32.lib ctl3d32.lib advapi32.lib wsock32.lib gdi32.lib user32.lib kernel32.lib
+
+!IF "$(DEBUG)" != ""
+LINKOPT = /nodefaultlib:LIBC /nodefaultlib:MSVCRT /debug
+!ELSE
+LINKOPT = /nodefaultlib:LIBC
+!ENDIF
+LINKOPT = /link $(LINKOPT)
+
+LINKOBJ = $(OBJ) $(RES)
+
+#
+# TARGETS
+#
+
+all: $(BIN)
+
+clean:
+	del /q $(OBJ) $(BIN) $(RES)
+
+#
+# BINARY
+#
+
+$(BIN): $(OBJ) $(RES)
+	$(CPP) $(LINKOBJ) /Fe"..\bin\prox.exe" $(LIBS) $(LINKOPT)
+
+#
+# RESOURCES
+#
+
+..\obj\Proximodo_vc.res: Proximodo_private.rc
+	REM $(RC) /r /fo=..\obj\Proximodo_vc.res Proximodo_private.rc
+	windres -i Proximodo_private.rc --input-format=rc -o ../obj/Proximodo_vc.res --include-dir C:/MinGW/include
+
+#
+# OBJECTS
+#
+
+..\obj\main.obj: main.cpp proxy.h const.h settings.h descriptor.h mainframe.h util.h log.h events.h trayicon.h
+	$(CPP) $(CXXFLAGS) main.cpp /Fo..\obj\main.obj
+
+..\obj\nodes.obj: nodes.cpp nodes.h node.h memory.h const.h util.h settings.h descriptor.h expander.h log.h events.h logframe.h url.h matcher.h filter.h filterowner.h
+	$(CPP) $(CXXFLAGS) nodes.cpp /Fo..\obj\nodes.obj
+
+..\obj\url.obj: url.cpp url.h
+	$(CPP) $(CXXFLAGS) url.cpp /Fo..\obj\url.obj
+
+..\obj\matcher.obj: matcher.cpp matcher.h settings.h descriptor.h nodes.h node.h memory.h const.h util.h url.h log.h events.h filter.h filterowner.h
+	$(CPP) $(CXXFLAGS) matcher.cpp /Fo..\obj\matcher.obj
+
+..\obj\expander.obj: expander.cpp expander.h url.h memory.h const.h util.h settings.h descriptor.h matcher.h log.h events.h logframe.h filter.h filterowner.h
+	$(CPP) $(CXXFLAGS) expander.cpp /Fo..\obj\expander.obj
+
+..\obj\textfilter.obj: textfilter.cpp textfilter.h filter.h memory.h receptor.h url.h expander.h const.h log.h events.h descriptor.h filterowner.h matcher.h
+	$(CPP) $(CXXFLAGS) textfilter.cpp /Fo..\obj\textfilter.obj
+
+..\obj\textbuffer.obj: textbuffer.cpp textbuffer.h descriptor.h events.h filter.h filterowner.h log.h matcher.h memory.h receptor.h settings.h textfilter.h url.h util.h
+	$(CPP) $(CXXFLAGS) textbuffer.cpp /Fo..\obj\textbuffer.obj
+
+..\obj\headerfilter.obj: headerfilter.cpp headerfilter.h filter.h memory.h url.h expander.h util.h log.h events.h descriptor.h filterowner.h matcher.h
+	$(CPP) $(CXXFLAGS) headerfilter.cpp /Fo..\obj\headerfilter.obj
+
+..\obj\requestmanager.obj: requestmanager.cpp requestmanager.h receptor.h filterowner.h url.h util.h settings.h descriptor.h log.h events.h const.h matcher.h giffilter.h headerfilter.h filter.h memory.h zlibbuffer.h textbuffer.h
+	$(CPP) $(CXXFLAGS) requestmanager.cpp /Fo..\obj\requestmanager.obj
+
+..\obj\proxy.obj: proxy.cpp proxy.h util.h settings.h descriptor.h events.h log.h platform.h managerthread.h requestmanager.h receptor.h filterowner.h url.h
+	$(CPP) $(CXXFLAGS) proxy.cpp /Fo..\obj\proxy.obj
+
+..\obj\log.obj: log.cpp log.h events.h const.h trayicon.h logframe.h mainframe.h
+	$(CPP) $(CXXFLAGS) log.cpp /Fo..\obj\log.obj
+
+..\obj\settings.obj: settings.cpp settings.h descriptor.h util.h const.h matcher.h
+	$(CPP) $(CXXFLAGS) settings.cpp /Fo..\obj\settings.obj
+
+..\obj\descriptor.obj: descriptor.cpp descriptor.h matcher.h util.h settings.h
+	$(CPP) $(CXXFLAGS) descriptor.cpp /Fo..\obj\descriptor.obj
+
+..\obj\events.obj: events.cpp events.h
+	$(CPP) $(CXXFLAGS) events.cpp /Fo..\obj\events.obj
+
+..\obj\managerthread.obj: managerthread.cpp managerthread.h log.h events.h requestmanager.h receptor.h filterowner.h url.h
+	$(CPP) $(CXXFLAGS) managerthread.cpp /Fo..\obj\managerthread.obj
+
+..\obj\filter.obj: filter.cpp filter.h memory.h log.h events.h
+	$(CPP) $(CXXFLAGS) filter.cpp /Fo..\obj\filter.obj
+
+..\obj\platform.obj: platform.cpp platform.h
+	$(CPP) $(CXXFLAGS) platform.cpp /Fo..\obj\platform.obj
+
+..\obj\util.obj: util.cpp util.h platform.h const.h settings.h descriptor.h
+	$(CPP) $(CXXFLAGS) util.cpp /Fo..\obj\util.obj
+
+..\obj\filterowner.obj: filterowner.cpp filterowner.h url.h util.h
+	$(CPP) $(CXXFLAGS) filterowner.cpp /Fo..\obj\filterowner.obj
+
+..\obj\mainframe.obj: mainframe.cpp mainframe.h settings.h descriptor.h proxy.h log.h events.h util.h const.h welcomescreen.h windowcontent.h settingsscreen.h configscreen.h logframe.h trayicon.h images\btn_settings.xpm images\btn_log.xpm images\btn_config.xpm images\btn_help.xpm images\btn_monitor.xpm images\btn_quit.xpm images\icon32.xpm
+	$(CPP) $(CXXFLAGS) mainframe.cpp /Fo..\obj\mainframe.obj
+
+..\obj\welcomescreen.obj: welcomescreen.cpp welcomescreen.h windowcontent.h proxy.h log.h events.h settings.h descriptor.h controls.h
+	$(CPP) $(CXXFLAGS) welcomescreen.cpp /Fo..\obj\welcomescreen.obj
+
+..\obj\settingsscreen.obj: settingsscreen.cpp settingsscreen.h windowcontent.h mainframe.h settings.h descriptor.h util.h const.h proxy.h controls.h matcher.h images\btn_add20.xpm images\btn_view20.xpm images\btn_file20.xpm images\btn_trash20.xpm
+	$(CPP) $(CXXFLAGS) settingsscreen.cpp /Fo..\obj\settingsscreen.obj
+
+..\obj\controls.obj: controls.cpp util.h controls.h events.h
+	$(CPP) $(CXXFLAGS) controls.cpp /Fo..\obj\controls.obj
+
+..\obj\editscreen.obj: editscreen.cpp editscreen.h matcher.h settings.h descriptor.h const.h util.h controls.h testframe.h images\icon32.xpm
+	$(CPP) $(CXXFLAGS) editscreen.cpp /Fo..\obj\editscreen.obj
+
+..\obj\testframe.obj: testframe.cpp testframe.h settings.h descriptor.h filterowner.h url.h matcher.h expander.h filter.h memory.h const.h log.h events.h controls.h images\icon32.xpm
+	$(CPP) $(CXXFLAGS) testframe.cpp /Fo..\obj\testframe.obj
+
+..\obj\configscreen.obj: configscreen.cpp configscreen.h windowcontent.h descriptor.h mainframe.h settings.h const.h util.h proxy.h testframe.h controls.h editscreen.h images\box_on.xpm images\box_off.xpm images\box_half.xpm images\btn_addfold32.xpm images\btn_addfilt32.xpm images\btn_trash32.xpm images\btn_edit32.xpm images\btn_ok32.xpm images\btn_undo32.xpm
+	$(CPP) $(CXXFLAGS) configscreen.cpp /Fo..\obj\configscreen.obj
+
+..\obj\windowcontent.obj: windowcontent.cpp windowcontent.h util.h settings.h descriptor.h
+	$(CPP) $(CXXFLAGS) windowcontent.cpp /Fo..\obj\windowcontent.obj
+
+..\obj\logframe.obj: logframe.cpp logframe.h images\icon32.xpm util.h log.h events.h const.h settings.h descriptor.h controls.h
+	$(CPP) $(CXXFLAGS) logframe.cpp /Fo..\obj\logframe.obj
+
+..\obj\trayicon.obj: trayicon.cpp trayicon.h images\icon32.xpm settings.h descriptor.h log.h events.h proxy.h mainframe.h util.h const.h logframe.h
+	$(CPP) $(CXXFLAGS) trayicon.cpp /Fo..\obj\trayicon.obj
+
+..\obj\zlibbuffer.obj: zlibbuffer.cpp zlibbuffer.h const.h
+	$(CPP) $(CXXFLAGS) zlibbuffer.cpp /Fo..\obj\zlibbuffer.obj
+
+..\obj\giffilter.obj: giffilter.cpp giffilter.h receptor.h
+	$(CPP) $(CXXFLAGS) giffilter.cpp /Fo..\obj\giffilter.obj

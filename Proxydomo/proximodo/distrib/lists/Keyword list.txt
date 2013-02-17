@@ -1,0 +1,30 @@
+#
+# Proxomitron banner filter keyword list (NOADDURL)
+# 
+# This file contains keywords used by the various banner filters
+# to detect ads. It also checks the URL killer list.
+# Keyword detection can be safer as it only kills image tags
+# while the URL killer may kill entire pages.
+#
+# Note: indented lines are combined with the previous line 
+#       to form one expression
+#
+
+# Basic Adv keyword regexp
+\w[^a-z0-9](
+    ad([sv]|banner|click|fu|ver|name|x|log|)[^a-z0-9]|
+    top[0-9]+{1,5}|
+    (double|ad|log_)click|
+    click(thru|er|.pl)|
+    phpads|
+    rotator[0-9]+|
+    (acc_random|_to|Ctx|banner|click|offer|r(ef|un)|s(ite|eed|ource|ubproduct)|pal)(_|)(id|)=|
+    ngadclient|
+    banner(s;jump|event.asp)|
+    webconnect.dll|
+    (web|)sponsor|
+    promo)
+
+# Also check Adv URL list
+http(s|)://$LST(AdList)
+

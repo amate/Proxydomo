@@ -1,0 +1,1304 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta name="generator" content=
+"HTML Tidy for Windows (vers 1st April 2002), see www.w3.org">
+<title>Proximodo - Codes and Commands</title>
+<link rel="stylesheet" type="text/css" href="help.css">
+</head>
+<body>
+
+<p class="section">Matching Special Codes</p>
+
+<table>
+<tr>
+<td>
+<p><span class="syntax">*</span></p>
+</td>
+<td>
+<p>any text, whatever the length (even zero)<br>
+ <span class="example">foo*bar</span> will match <span class=
+"extext">foobar</span>, <span class="extext">foo-bar</span>, <span
+class="extext">foodoodlebar</span></p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">?</span></p>
+</td>
+<td>
+<p>any single character</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">[</span>abc<span class=
+"syntax">]</span></p>
+</td>
+<td>
+<p>a single character if present in <span class=
+"example">[]</span><br>
+ To include a whole range (case-insensitive), seperate first and last
+characters by a minus sign (example <span class=
+"example">[abc0-9]</span>). You can also use \ to escape a character,
+and %hh (where hh is an hexadecimal number) to specify an ASCII
+character. \ and % notations are case-sensitive, and can be used
+to define a range (in this case, the range becomes case-sensitive).</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">[^</span>abc<span class=
+"syntax">]</span></p>
+</td>
+<td>
+<p>a single character NOT present in <span class=
+"example">[]</span></p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">[#</span>n<span class=
+"syntax">:</span>m<span class="syntax">]</span></p>
+</td>
+<td>
+<p>an integer if within range<br>
+ Negative values allowed. Use * on the left for -infinity, * on the
+right for +infinity. <span class="example">[#n]</span> is the same
+as <span class="example">[#n:n]</span></p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p>space</p>
+</td>
+<td>
+<p>zero of more spaces or tabs or CR or LF</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">\s</span></p>
+</td>
+<td>
+<p>a single space</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">\r</span></p>
+</td>
+<td>
+<p>a carriage return symbol</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">\n</span></p>
+</td>
+<td>
+<p>a newline symbol</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">\t</span></p>
+</td>
+<td>
+<p>a tab character</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">\w</span></p>
+</td>
+<td>
+<p>a word (possibly of length zero)<br>
+ A word is composed of any characters except space, tab, CR, LF,
+and "&gt;" (which is the end of an HTML tag)</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">\0</span> to <span class=
+"syntax">\9</span></p>
+</td>
+<td>
+<p>same as <span class="example">*</span>, but records the matched
+text in a slot<br>
+ The recorded text can be retrieved in the replacement pattern,
+using the same notation.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">\#</span></p>
+</td>
+<td>
+<p>same as <span class="example">*</span>, but records the matched
+text in a queue<br>
+ The recorded text can be retrieved in the replacement pattern,
+using <span class="example">\#</span> or <span class=
+"example">\@</span></p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p>...<span class="syntax">|</span>...</p>
+</td>
+<td>
+<p>left pattern or right pattern<br>
+ This is an OR operation. <span class="example">foo|bar</span> will
+try and match <span class="extext">foo</span> first, then if it
+can't, <span class="extext">bar</span>. <span class=
+"example">|</span> operator has a higher operator precedence than 
+<span class="example">&amp;</span> and 
+<span class="example">&amp;&amp;</span> but a lower precedence than 
+all other symbols.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p>...<span class="syntax">&amp;</span>...</p>
+</td>
+<td>
+<p>left pattern and right pattern<br>
+ This is an AND operation. <span class=
+"example">*foo&amp;*bar</span> will only match if there are both
+<span class="extext">foo</span> and <span class="extext">bar</span>
+somewhere in the text, for example <span class=
+"extext">doobardoofoo</span>, <span class="extext">bar foo</span>
+but not <span class="extext">foo foo</span>. Text is consumed up to
+the end of the longest match. This operator has the lowest operator
+precedence of all.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p>...<span class="syntax">&amp;&amp;</span>...</p>
+</td>
+<td>
+<p>left pattern, and right pattern within text matched by left
+one.<br>
+ The difference with <span class="example">&amp;</span> is that the
+right match will be limited to what the left pattern matched, and
+it must match exactly the same length.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">(</span>...<span class=
+"syntax">)</span></p>
+</td>
+<td>
+<p>what the pattern within parentheses matches<br>
+ You can use parentheses to group <span class=
+"example">|</span>-separated patterns, or in conjunction with <span
+class="example">+</span>. For example, <span class=
+"example">(foo|bar)+</span> will match <span class=
+"extext">foobarfoofoobar</span></p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">(^</span>...<span class=
+"syntax">)</span></p>
+</td>
+<td>
+<p>Matches (without consuming anything) if the embedded pattern
+does not.<br>
+You can use <span class="example">(^(^...))</span> for testing a
+pattern but not consuming it. Note that if the parentheses
+contain the full pattern, they are optional.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">(</span>...<span class=
+"syntax">)\#</span><br>
+ <span class="syntax">(</span>...<span class="syntax">)\0</span> to
+<span class="syntax">9</span></p>
+</td>
+<td>
+<p>Same as <span class="example">(...)</span> but in addtion, if it
+matches, the matched text is saved into a slot or the queue.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p>...<span class="syntax">+</span></p>
+</td>
+<td>
+<p>the previous symbol zero or more times<br>
+ <span class="example">ab+</span> will match <span class=
+"extext">a</span>, <span class="extext">ab</span>, <span class=
+"extext">abbb</span> but not <span class="extext">aaab</span>.
+<span class="example">(ab)+</span> will match <span class=
+"extext">ab</span>, <span class="extext">abab</span>, <span class=
+"extext">ababab</span>, or zero character.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p>...<span class="syntax">+{</span>n<span class=
+"syntax">,</span>m<span class="syntax">}</span></p>
+</td>
+<td>
+<p>the previous symbol a number of times between n and m<br>
+ <span class="example">a+{2,4}</span> will match <span class=
+"extext">aa</span>, <span class="extext">aaa</span>, <span class=
+"extext">aaaa</span> but not <span class="extext">a</span> or <span
+class="extext">aaaaa</span>. Use * on the left for zero, * on
+the right for +infinity. <span class="example">+{n}</span> is the
+same as <span class="example">+{n,n}</span> ("must match exactly n
+times"). Stars are optional.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p>...<span class="syntax">++</span></p>
+</td>
+<td>
+<p>same as <span class="example">+</span> but may match less times
+than is possible<br>
+ <span class="example">+</span> is blind, it consumes as much text
+as is possible, never less. For this reason, <span class=
+"example">a+ab</span> cannot match <span class=
+"extext">aaab</span>, whereas <span class="example">a++ab</span>
+can. <span class="example">++</span> is slower though. Use <span
+class="example">++{n,m}</span> to provide minimum and maximum
+number of times.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">\</span>...</p>
+</td>
+<td>
+<p>the next character in the pattern<br>
+ This is the escape code, for matching the special characters.
+<span class="example">a\*b</span> will match <span class=
+"extext">a*b</span>.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">=</span></p>
+</td>
+<td>
+<p>the equal sign and preceding/following spaces<br>
+ Simplifies html tag matching. You won't have to worry about the
+possibility of tag parameters being preceded/followed by spaces in
+the html code.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">"</span></p>
+</td>
+<td>
+<p>a simple quote or a double quote<br>
+ Simplifies html tag matching. You won't have to worry if a tag
+parameter is enclosed is simple or double quotes.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">'</span> (quote)</p>
+</td>
+<td>
+<p>a simple quote if opening quote, the corresponding quote if
+closing quote<br>
+ Allows matching nested quotes. <span class="example">"*'</span>
+will match <span class="extext">"foo 'doodle' bar"</span> instead
+of only <span class="extext">"foo '</span></p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">\h</span></p>
+</td>
+<td>
+<p>the host part of the page URL</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">\q</span></p>
+</td>
+<td>
+<p>the query part of the URL (including first "?")</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">\p</span></p>
+</td>
+<td>
+<p>the path part of the URL (including first "/")</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">\a</span></p>
+</td>
+<td>
+<p>the anchor part of the URL (including "#")</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">\u</span></p>
+</td>
+<td>
+<p>the full URL (including :// part)</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">\k</span></p>
+</td>
+<td>
+<p>zero character, but kills the connection<br>
+In text filters, it truncates data after the replacement
+text.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">&lt;start&gt;</span></p>
+</td>
+<td>
+<p>the beginning of the text<br>
+This code must be used alone in the Match Pattern of a
+text filter to be effective. It does not consume anything, but
+allows to insert some text at the very beginning of the file.
+It will match only once, and bounds pattern, window size and
+multiple match checkbox are not taken into account.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">&lt;end&gt;</span></p>
+</td>
+<td>
+<p>the end of the text<br>
+This code must be used alone in the Match Pattern of a
+text filter to be effective. It does not consume anything, but
+allows to insert some text at the very end of the file.
+It will match only once, and bounds pattern, window size and
+multiple match checkbox are not taken into account.</p>
+</td>
+</tr>
+</table>
+
+<p class="section">Replacement Special Codes</p>
+
+<table>
+<tr>
+<td>
+<p><span class="syntax">\h</span></p>
+</td>
+<td>
+<p>the host part of the page URL</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">\q</span></p>
+</td>
+<td>
+<p>the query part of the URL (including first "?")</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">\p</span></p>
+</td>
+<td>
+<p>the path part of the URL (including first "/")</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">\a</span></p>
+</td>
+<td>
+<p>the anchor part of the URL (including "#")</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">\u</span></p>
+</td>
+<td>
+<p>the full URL (including protocol)</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">\k</span></p>
+</td>
+<td>
+<p>nothing, but kills the connection</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">\0</span> to <span class=
+"syntax">\9</span></p>
+</td>
+<td>
+<p>the corresponding text last recorded in the bounds/match
+patterns</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">\#</span></p>
+</td>
+<td>
+<p>the next unfetched string recorded to the queue in the
+bounds/match patterns</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">\@</span></p>
+</td>
+<td>
+<p>all remaining unfetched strings in the queue</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="syntax">\</span>...</p>
+</td>
+<td>
+<p>the next character is processed as a non-special
+character (escape code). Use it to insert "\", "$", "(" or ")" 
+characters.</p>
+</td>
+</tr>
+</table>
+
+<p class="section">Commands</p>
+
+<p>Commands can be used in a match pattern ( <span class=
+"indic">M</span> ) or in a replacement text ( <span class=
+"indic">R</span> ).<br>
+ Unless otherwise stated, commands in a match pattern always match
+without consuming any character.<br>
+ Commands in a replacement text can match or not. When they don't,
+The replacement text stops at this point, which means the
+replacement does occur, but does not include the text after the
+unmatching command (and commands following it are not executed).
+Unless otherwise stated, commands in a replacement text always
+match.<br>
+ Because commands can be nested, you should always make sure
+parentheses are consistent. If you need to insert/match the
+parentheses characters themselves, escape them.<br>
+ Unknown commands are ignored, so you can use for example
+<span class="example">$NOP(some ignored text)</span>
+to disable a part of the pattern or insert some comment.</p>
+
+<table>
+<tr>
+<td width="20">
+<p><span class="indic">M</span></p>
+</td>
+<td width="20">
+<p><span class="indic">R</span></p>
+</td>
+<td>
+<p class="command">$ADDLST(ListName, expanded text to add)</p>
+
+<p>Adds a line to a list<br>
+ The line is immediately added to the file. If it is a valid match
+pattern, it is also immediately taken into account by all $LST
+commands that use this list.<br>
+It is possible to add a line to a list that is not defined in the
+GUI: in this case, the line is not appended to a file, but remains
+available in memory for subsequent $LST commands, until the
+application is exited or more than 1000 lines are added to the
+same list (fixed-size virtual list).</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="indic">M</span></p>
+</td>
+<td>
+<p><span class="indic">R</span></p>
+</td>
+<td>
+<p class="command">$ADDLSTBOX(ListName, [expanded title,] expanded
+text to add)</p>
+
+<p>Same as $ADDLST, but prompt the user first.<br>
+ The user can change the line or cancel the addition.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="indic">M</span></p>
+</td>
+<td>
+<p><span class="indic">R</span></p>
+</td>
+<td>
+<p class="command">$ALERT(expanded text)</p>
+
+<p>Displays a message dialog box on screen.<br>
+ The filter waits for the user to click the OK button.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="indic">M</span></p>
+</td>
+<td>
+<p><br>
+</p>
+</td>
+<td>
+<p class="command">$ASK(AllowList, DenyList, expanded prompt,
+expanded text to add [, expanded text to find])</p>
+
+<p>Prompts the user for inserting a text in an Allow list or Deny
+list.<br>
+ The text to find (by default the URL without http://) is matched
+against the two lists (like two $LST commands). If the Allow list
+matches, $ASK does not match. If the Deny list matches, $ASK
+matches. Else, a dialog box opens on the screen showing the text to
+add, and the user is prompted to allow it or not. If the user
+chooses yes, the text is added to the Allow list (like $ADDLST
+command) and $ASK does not match. If he chooses no, the text is
+added to the Deny list and $ASK matches.<br>
+ Note: reporting a match for the Deny list instead of the Allow
+list allows the filter to bypass allowed URLs.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="indic">M</span></p>
+</td>
+<td>
+<p><br>
+</p>
+</td>
+<td>
+<p class="command">$AV(pattern)</p>
+
+<p>Locates the end of an HTML tag parameter, which can be a single
+word or a string enclosed by single or double quotes. Then try and
+match the pattern against the value of the tag (without quotes). If
+the pattern matches the whole tag value, $AV matches and consumes
+the tag value (including quotes).<br>
+ src=$AV(\1) will match and consume src="url" and \1 will contain
+url</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="indic">M</span></p>
+</td>
+<td>
+<p><br>
+</p>
+</td>
+<td>
+<p class="command">$AVQ(pattern)</p>
+
+<p>Same as $AV but the pattern is matched against the tag value
+including quotes.<br>
+ src=$AV(\1) will match and consume src="url" and \1 will contain
+"url"</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="indic">M</span></p>
+</td>
+<td>
+<p><br>
+</p>
+</td>
+<td>
+<p class="command">$CON:(x,y[,z])</p>
+
+<p>Matches if the connection number is "x of y". The rotation
+occurs at every z connections (1 by default).<br>
+ The three parameters must be strictly positive integers.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="indic">M</span></p>
+</td>
+<td>
+<p><span class="indic">R</span></p>
+</td>
+<td>
+<p class="command">$CONFIRM(expanded text)</p>
+
+<p>Displays a message box with a yes/no choice. Matches only if
+user user presses Yes.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><br>
+</p>
+</td>
+<td>
+<p><span class="indic">R</span></p>
+</td>
+<td>
+<p class="command">$DTM(format)</p>
+
+<p>Generates a date/time string, following the given format.<br>
+ The format can contain any character or escaped character, plus
+the following special codes:<br>
+</p>
+
+<table>
+<tr>
+<td>
+<ul>
+<li>Y : year</li>
+
+<li>M : month</li>
+
+<li>D : day</li>
+
+<li>H : hour (00-23)</li>
+
+<li>h : hour (01-12)</li>
+
+<li>a : (am/pm)</li>
+
+<li>m : minute</li>
+
+<li>s : second</li>
+</ul>
+</td>
+<td>
+<ul>
+<li>t : millisecond</li>
+
+<li>w : three letter weekday (Sun,Mon,Tue...)</li>
+
+<li>T : same as H:m:s</li>
+
+<li>U : same as M/D/Y</li>
+
+<li>E : same as D/M/Y</li>
+
+<li>d : same as Y-M-D</li>
+
+<li>I : Internet formatted UTC</li>
+
+<li>c : current connection number</li>
+</ul>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><br>
+</p>
+</td>
+<td>
+<p><span class="indic">R</span></p>
+</td>
+<td>
+<p class="command">$ESC(expanded text)</p>
+
+<p>Converts non-alphanumeric characters in the text to their %xx
+representation.<br>
+ It is the opposite of $UESC</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><br>
+</p>
+</td>
+<td>
+<p><span class="indic">R</span></p>
+</td>
+<td>
+<p class="command">$FILE(filename)</p>
+
+<p>Inserts the content of the file in the replacement string.<br>
+ The path can be absolute or relative to Proximodo directory. Use
+\\ or / in the path.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="indic">M</span></p>
+</td>
+<td>
+<p><span class="indic">R</span></p>
+</td>
+<td>
+<p class="command">$FILTER(True or False)</p>
+
+<p>Activates or deactivates all text filters for this request.<br>
+ Only works in a header filter.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><br>
+</p>
+</td>
+<td>
+<p><span class="indic">R</span></p>
+</td>
+<td>
+<p class="command">$GET(VariableName)</p>
+
+<p>Fetches the value of the variable.<br>
+ The value is not expanded (the expansion is done by the $SET
+command).</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="indic">M</span></p>
+</td>
+<td>
+<p><span class="indic">R</span></p>
+</td>
+<td>
+<p class="command">$IHDR(header-name:pattern)</p>
+
+<p>Matches if the chosen incoming header matches the given
+pattern.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="indic">M</span></p>
+</td>
+<td>
+<p><br>
+</p>
+</td>
+<td>
+<p class="command">$INEST(start pattern, [inner pattern], end
+pattern)</p>
+
+<p>Like $NEST, but considers that the start tag has previously been
+consumed, and does not consume the end tag.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="indic">M</span></p>
+</td>
+<td>
+<p><span class="indic">R</span></p>
+</td>
+<td>
+<p class="command">$JUMP(http://some.url.com/)</p>
+
+<p>Sends a fake redirection response (302 Found) to the
+browser.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="indic">M</span></p>
+</td>
+<td>
+<p><span class="indic">R</span></p>
+</td>
+<td>
+<p class="command">$KEYCHK(keycode list)</p>
+
+<p>Matches if the given keyboard keys are pressed.<br>
+ The list can contain any letter or symbol (corresponding to a key
+on the keyboard, like A), or the following ^-escaped codes:</p>
+
+<ul>
+<li>^C : Ctrl</li>
+
+<li>^A : Alt</li>
+
+<li>^S : Shift</li>
+
+<li>^T : Tab</li>
+
+<li>^F1 : Function key F1, and so on</li>
+
+<li>^number : the number corresponds to the ascii value, like ^32
+for Space</li>
+</ul>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="indic">M</span></p>
+</td>
+<td>
+<p><span class="indic">R</span></p>
+</td>
+<td>
+<p class="command">$LOCK()</p>
+
+<p>Waits until any other filter that previously ran $LOCK (whatever
+the connection) executes $UNLOCK.<br>
+ This is the principle known as "Mutex". There is only one mutex in
+Proximodo for filters, and only one filter can have it at a
+time.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="indic">M</span></p>
+</td>
+<td>
+<p><span class="indic">R</span></p>
+</td>
+<td>
+<p class="command">$LOG([!]Xexpanded text)</p>
+
+<p>Sends some text to the log window. If "!" is present, the log
+window opens and is turned on.<br>
+ X is a single letter that indicates the color of the line in the
+window. It is one of:<br>
+ R: red, G: green, B: blue, Y: yellow, V: violet, C: cyan, W:
+white, w: gray</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="indic">M</span></p>
+</td>
+<td>
+<p><br>
+</p>
+</td>
+<td>
+<p class="command">$LST(ListName)</p>
+
+<p>Tries and matches patterns in the list one after another.<br>
+ Like ((...)|(...)|(...)|(...)) with all the lines in the list.<br>
+ Lines starting by #, empty lines and invalid patterns are
+excluded.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="indic">M</span></p>
+</td>
+<td>
+<p><br>
+</p>
+</td>
+<td>
+<p class="command">$NEST(start pattern, [inner pattern,] end
+pattern)</p>
+
+<p>Matches and consumes nested tags.<br>
+ If the text matches the first pattern (start tag), $NEST tries and
+locates the corresponding end tag (with the end pattern). If found,
+$NEST consumes the text up to the end of the end tag.<br>
+ But there may be an additional condition: if an inner pattern is
+provided, it is tried on the text between start and end tags. If it
+does not match, $NEST fails.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="indic">M</span></p>
+</td>
+<td>
+<p><span class="indic">R</span></p>
+</td>
+<td>
+<p class="command">$OHDR(header-name:pattern)</p>
+
+<p>Matches if the chosen outgoing header matches the given
+pattern.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="indic">M</span></p>
+</td>
+<td>
+<p><span class="indic">R</span></p>
+</td>
+<td>
+<p class="command">$RDIR(http://some.url.com/)</p>
+
+<p>Transparently redirects to another URL.<br>
+ The browser is not aware of the redirection.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="indic">M</span></p>
+</td>
+<td>
+<p><span class="indic">R</span></p>
+</td>
+<td>
+<p class="command">$RESP(pattern)</p>
+
+<p>Try and match the pattern against the response code (3-digit
+number followed by a space and a response message)<br>
+ Useless in an outgoing header filter (the response code is unknown
+at that time).</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="indic">M</span></p>
+</td>
+<td>
+<p><span class="indic">R</span></p>
+</td>
+<td>
+<p class="command">$SET(\# or \0-\9=text)</p>
+
+<p>Saves the text in a slot or in the queue.<br>
+ The text is not expanded at this point, the expansion occurs when
+the value is retrieved in the replacement text with \# or \0</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="indic">M</span></p>
+</td>
+<td>
+<p><span class="indic">R</span></p>
+</td>
+<td>
+<p class="command">$SET(Variable=expanded text)</p>
+
+<p>Saves the text in a variable.<br>
+ The scope of a variable is the request : variables are shared by
+all filters working on the same request. So you can set a variable
+in a header filter and use it in a text filter.<br>
+ Note: variable names are case-sensitive.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="indic">M</span></p>
+</td>
+<td>
+<p><span class="indic">R</span></p>
+</td>
+<td>
+<p class="command">$SETPROXY(remote.proxy.name[:port])</p>
+
+<p>Forces the use of a particular proxy.<br>
+ The proxy must be in the list available in Proximodo settings. You
+don't need to write all the name, only the first letters will
+suffice.<br>
+ Only works in outgoing header filters (after connection, it is too
+late).</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="indic">M</span></p>
+</td>
+<td>
+<p><span class="indic">R</span></p>
+</td>
+<td>
+<p class="command">$STOP()</p>
+
+<p>Deactivates the filter.<br>
+ The match is allowed to complete but it will be the last until the
+request/response completes.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="indic">M</span></p>
+</td>
+<td>
+<p><br>
+</p>
+</td>
+<td>
+<p class="command">$TST(\# or \0-\9)</p>
+
+<p>Try and match (and consume) the text against the pattern stored
+in the slot (or last item in queue).</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="indic">M</span></p>
+</td>
+<td>
+<p><span class="indic">R</span></p>
+</td>
+<td>
+<p class="command">$TST(\# or \0-\9=pattern)</p>
+
+<p>Matches if the content of the slot (or last item in queue)
+matches the pattern.<br>
+But does not match if the slot is empty.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="indic">M</span></p>
+</td>
+<td>
+<p><br>
+</p>
+</td>
+<td>
+<p class="command">$TST(VariableName)</p>
+
+<p>Try and match (and consume) the text against the pattern stored
+in the variable.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="indic">M</span></p>
+</td>
+<td>
+<p><span class="indic">R</span></p>
+</td>
+<td>
+<p class="command">$TST(VariableName=pattern)</p>
+
+<p>Matches if the content of the variable matches the pattern.<br>
+But does not match if the variable is empty.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="indic">M</span></p>
+</td>
+<td>
+<p><br>
+</p>
+</td>
+<td>
+<p class="command">$TST((expanded text))</p>
+
+<p>Try and match (and consume) the text against the pattern obtained
+by expanding the parameter.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="indic">M</span></p>
+</td>
+<td>
+<p><span class="indic">R</span></p>
+</td>
+<td>
+<p class="command">$TST((expanded text)=pattern)</p>
+
+<p>Matches if the expanded text matches the pattern.<br>
+But does not match if the expanded text is empty.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="indic">M</span></p>
+</td>
+<td>
+<p><br>
+</p>
+</td>
+<td>
+<p class="command">$TYPE(code)</p>
+
+<p>Tests the type of the returned file.<br>
+ Allowed codes are:</p>
+
+<ul>
+<li>htm : html document</li>
+
+<li>css : css stylesheet</li>
+
+<li>js : javascript file</li>
+
+<li>vbs : VBscript file</li>
+
+<li>oth : other types</li>
+</ul>
+
+<p>Note: this is only an estimation based on a few tokens at the
+beginning of the file (for text filters) or based on the URL's file
+extension (for header filters). Use $IHDR(Content-Type=...) for a
+more reliable test.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><br>
+</p>
+</td>
+<td>
+<p><span class="indic">R</span></p>
+</td>
+<td>
+<p class="command">$UESC(expanded text)</p>
+
+<p>Replaces all %nn codes in the text by the corresponding ascii
+character.<br>
+ It is the opposite of $ESC.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="indic">M</span></p>
+</td>
+<td>
+<p><span class="indic">R</span></p>
+</td>
+<td>
+<p class="command">$UNLOCK()</p>
+
+<p>Frees the mutex acquired by the $LOCK command.<br>
+ You don't really need to use this command, because it is
+automatically executed at the end of the match/replace.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="indic">M</span></p>
+</td>
+<td>
+<p><span class="indic">R</span></p>
+</td>
+<td>
+<p class="command">$URL(pattern)</p>
+
+<p>Try and match the pattern against the requested URL.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><span class="indic">M</span></p>
+</td>
+<td>
+<p><span class="indic">R</span></p>
+</td>
+<td>
+<p class="command">$USEPROXY(True or False)</p>
+
+<p>Forces Proximodo to use or not use a proxy to access the
+internet.<br>
+ The proxy is the one selected in Proximodo settings.</p>
+</td>
+</tr>
+
+<tr>
+<td>
+<p><br>
+</p>
+</td>
+<td>
+<p><span class="indic">R</span></p>
+</td>
+<td>
+<p class="command">$WESC(expanded text)</p>
+
+<p>Like $ESC but only for Proximodo's special characters.</p>
+</td>
+</tr>
+</table>
+</body>
+</html>
+

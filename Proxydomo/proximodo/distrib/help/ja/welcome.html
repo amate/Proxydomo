@@ -1,0 +1,307 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta name="generator" content=
+"HTML Tidy for Windows (vers 1st April 2002), see www.w3.org">
+<meta http-equiv="Content-Type" content="text/html; charset=Shift_JIS" />
+<title>ようこそ - Proximodo - Welcome</title>
+<link rel="stylesheet" type="text/css" href="help.css">
+</head>
+<body>
+
+<center>
+<p><img src="../../html/logo200.png" alt="Proximodo" width="200" height="130"><br>
+Open-Source Customizable<br>
+Web Filtering Proxy Server</p>
+</center>
+
+<p class="en section">Thank you for trying Proximodo!</p>
+<p class="ja section">Thank you for trying Proximodo!</p>
+
+<p class="en"><em>For the impatient...</em> If you are in a big hurry, here's
+the <a href="#use">quick-start guide</a>.</p>
+<p class="ja"><em>せっかちさん用：</em> すぐに使いたい場合は、
+<a href="#use">クイックスタートガイド</a>をご覧下さい。</p>
+
+<p class="en">Proximodo is still in development, so you are
+invited to report bugs and problems to kuruden@users.sourceforge.net .
+Also, check the 
+<a href="http://proximodo.sf.net">Proximodo home page</a> periodically 
+for updates.</p>
+<p class="ja">Proximodoは未だ開発途上なので、不具合や問題点を
+kuruden&#64;users&#46;sourceforge&#46;net
+宛てに報告していただくよう願いします。</p>
+<p class="ja">また、アップデートがないか
+<a href="http://proximodo.sf.net/">Proximodo home page</a>
+も定期的にご覧下さい。</p>
+<p class="ja trans_note">訳注【日本語の言語ファイル及びヘルプページの問題につきましては、
+ryo&#45;s&#64;users&#46;sourceforge&#46;net
+までご連絡下さい。】</p>
+
+<p class="en">I encourage you to have a look at the GNU GPL license under
+which Proximodo is distributed, as it comes with no warranty of any
+kind and you use it at your own risk. This includes
+instructions present in these help pages.</p>
+<p class="ja">ProximodoはGNU GPLに従って配布されているので、
+同ライセンスに目を通すことをお勧めします。
+また、Proximodoは無保証なので、あなた自身の責任において使用して下さい。</p>
+<p class="ja">ヘルプページの内容についても同様です。</p>
+
+<p class="en section">What does it do?</p>
+<p class="ja section">Proximodoとは？</p>
+
+<p class="en">When you access the Internet with your web browser, a lot of
+things happen that are hidden to you. The browser and the website
+exchange "headers" that define the behaviour of the browser's cache
+system, create or use cookies, tell the website who you are and
+where you came from, and so on. Further, the page's html code
+contains hidden tags or javascript programs that control the
+browser's behaviour, such as "mouse-over" animation, page layering,
+URL masking or pop-up messages. And last but not least, the page
+often contains ads and banners that pollute the screen and slow
+down your web experience.</p>
+<p class="ja">ブラウザでインターネットにアクセスする時、
+あなたが知らないうちに多くの出来事が起きます。
+ブラウザのキャッシュ管理の挙動を指定したり、クッキーを記録・読み込んだり、
+あなたが誰でどこのサイトから来たかをウェブサイトに伝える情報などの「ヘッダ」を、
+ブラウザとウェブサイトが交換します。</p>
+<p class="ja">さらに、ページのHTMLコードは、ブラウザのふるまいを制御したり、
+「マウスオーバー」アニメーション、レイヤー表示、URLの隠蔽、
+ポップアップメッセージの表示などを行う秘密のタグやJavaScriptプログラムを含んでいます。</p>
+<p class="ja">そして最後になりましたが無視できない要素として、
+ウェブ閲覧を遅くさせる広告やバナー広告がしばしばページに含まれています。</p>
+
+<p class="en">Proximodo acts as a mediator between the browser and the
+website. It "sees" everything that is going on and, according to
+your choices, modifies headers and html page content on-the-fly to
+make things right. You don't want pop-ups and banners? Just
+activate the corresponding filters and they will disappear. You
+want cookies to be deleted when you close your browser? Proximodo
+will do it for you. You want fast navigation to the pages you
+already visited? Proximodo will cache them.</p>
+<p class="ja">Proximodoはブラウザとウェブサイトの間で仲介として動作します。
+そして、何が起きているか全てを「見て」、
+あなたの指示によりヘッダやHTMLのページ内容をこっそりと修正します。</p>
+<p class="ja">ポップアップや広告バナーが不要なら、
+対応したフィルタを有効にすれば、それらは消えるでしょう。</p>
+<p class="ja">ブラウザを閉じたときにクッキーを削除したいなら、
+Proximodoで可能です。</p>
+<p class="ja">一度訪れたページの表示を速くしたいなら、
+キャッシュ可能にすることも出来ます。</p>
+
+<p class="en">Proximodo is a clone of a great piece of software
+called The Proxomitron, developed by Scott R. Lemmon. Now that
+for sad reasons Proxomitron is no longer maintained, I started this
+project to carry on the idea. Though a few Proxomitron
+features are still missing in Proximodo (mainly SSL support)
+the essential feature is already there:
+100% of Proxomitron filters will run under Proximodo.</p>
+<p class="ja">Proximodoは、Scott R. Lemmonによって開発された
+Proxomitronと呼ばれる偉大な作品のクローン・ソフトウェアです。</p>
+<p class="ja">今や、悲しい事情によりProxomitronはもはやメンテナンスされていません。
+私はその思想を引き継ぐためにこのプロジェクトを開始しました。</p>
+<p class="ja">Proxomitronの一部の機能（主にSSL対応）
+はまだProximodoに搭載されていませんが、本質的な機能については既に、
+Proxomitronのフィルタは100%、Proximodoで動作するようになっています。</p>
+
+<p class="en">Proximodo currently comes with default Proxomitron filters,
+which can do quite a lot of different things. You can also write
+your own filters, using a powerful syntax that, despite its seeming
+complexity, is quite easy to use and master.</p>
+<p class="ja">Proximodoには、
+Proxomitronの標準フィルタを移植したものが付属しており、
+それらのフィルタでさまざまな処理を行うことが出来ます。
+また自分でフィルタを書くこともでき、その為の文法は強力ですが、
+複雑な見た目にもかかわらず簡単に使ったりマスターすることが出来ます。</p>
+
+<p class="en section" id="install">How to install it</p>
+<p class="ja section" id="install">インストール方法</p>
+
+<p class="en">These installation instructions apply only to Windows, as this is
+the only platform for which we currently supply an end-user installation
+package. We would welcome assistance with installation packages for Linux, 
+Unix, and Macintosh.</p>
+<p class="ja">一般利用者向けのインストールパッケージが用意されているのは、
+現在は Windows 版のみとなっており、以下のインストール手順も
+Windows にだけ適用されます。</p>
+<p class="ja">Linux、Unix、
+マッキントッシュ用のインストールパッケージを作成してくれる人がいれば歓迎します。</p>
+
+<p class="en">If you are reading this page, you have probably already downloaded 
+and executed an installer <span class="extext">.exe</span> file from the 
+<a href="http://proximodo.sf.net">Proximodo home page</a>. If not, do this 
+now, and the installer will guide you through installation.</p>
+<p class="ja">このページを読んでいるあなたは多分既に、
+<a target="_top" href="http://proximodo.sf.net/">Proximodo home page</a>
+からインストーラの<span class="extext">.exe</span>
+ファイルをダウンロードして実行しているでしょう。</p>
+<p class="ja">もしまだなら、それをダウンロードして実行して下さい。
+インストーラ中で説明があります。</p>
+
+<p class="en">There is one further step you may need to take after running the
+installer: configuring your browser. For most users, the installer 
+offers to automatically configure Internet Explorer to use Proximodo -
+if you accepted this option, you can skip the rest of this section and
+go on to <a href="#use">How to use it</a>. Users who 
+already have a proxy configured are not offered this option, and it
+does not help users of other browsers such as Firefox; if you fall
+into either of these categories, follow the instructions below.</p>
+<p class="ja">インストーラを実行した後に、
+ブラウザを設定する作業が必要になるかも知れません。ほとんどの場合は、Internet Explorer
+でProximodoを使うようにインストーラで自動的に設定させることが出来ます。
+自動で設定したなら、この項目の残りの作業は飛ばして、
+<a href="#use">使用方法</a>から続けて下さい。</p>
+<p class="ja">もともとプロクシを使用していると自動的に設定することが出来ません。
+また、Firefoxのような他のブラウザも設定できません。
+いずれかに該当する場合は、以下の手順に従って下さい。</p>
+
+<p class="en">If you are using Internet Explorer, go into the menu 
+Tools - Internet Options - Connections tab. Then press 
+Settings or LAN Settings and locate "Proxy Server" settings, then
+click "Advanced" button. On the HTTP line, if Address/Port fields are
+already filled in, write those values down and copy them into Proximodo
+settings (put <span class="extext">address:port</span> in "Proxy"
+field and check "Use a remote proxy", then click Apply). Now, in IE
+settings, put <span class="extext">localhost</span> in "Address"
+field and Proximodo's Port value in "Port" field. Proximodo is a
+HTTP proxy only, so do not change the settings on the other lines 
+(Secure/FTP/Gopher/Sock).</p>
+<p class="ja">Internet Explorerを使っている場合は、
+「ツール」メニューの「インターネットオプション」をクリックし、
+「接続」タブを押して下さい。そして、「LANの設定」ボタンを押して
+「LANにプロキシサーバーを使用する…」
+にチェックを入れてから「詳細設定」ボタンを押します。</p>
+<p class="ja">HTTPの行の「使用するプロキシのアドレス」「ポート」
+に既に何か記入されていたら、それを書き留めてProximodoに設定して下さい
+（プロクシ欄に<span class="extext">アドレス:ポート番号</span>の形式で記入し、
+リモートプロクシを使うにチェックを入れ、適用を押します）。</p>
+<p class="ja">今度はIEの設定で、「使用するプロキシのアドレス」
+に<span class="extext">localhost</span>を、
+「ポート」にProximodoのポート番号を記入します。</p>
+<p class="ja">ProximodoはHTTPプロキシとしてしか動作しないので、
+他の行の設定（Secure・FTP・Gopher・Socks）は書き換えないで下さい。</p>
+
+<p class="en">If you are using another web browser, such as Mozilla or Opera,
+same instructions apply but the proxy settings are located in your
+browser's preferences. For instance, in Firefox, navigate to
+<span class="extext">about:config</span> and adjust the proxy settings.</p>
+<p class="ja">MozillaやOperaのような他のブラウザを使っている場合も、
+同じように設定して下さい。ただし、
+プロクシ設定はそのブラウザの設定で行います。例えばFirefoxでは、
+<span class="extext">about:config</span>を開いてプロクシの設定を調整して下さい。</p>
+
+<p class="en"><span class="note">Important note:</span> Write down your old
+settings and keep them safe, as you will need to restore them in your
+browser if you ever uninstall Proximodo!</p>
+<p class="ja">
+<span class="note">重要注意事項</span>：Proximodo
+をアンインストールする時はブラウザの設定を元に戻す必要があるので、
+今までの設定を書き留めて保存しておいて下さい。</p>
+
+<p class="en section" id="use">How to use it - quick start</p>
+<p class="ja section" id="use">使用方法 ── クイックスタートガイド</p>
+
+<p class="en">Instead of starting your browser, start Proximodo instead, for instance
+by double-clicking its icon <img src="../../html/favicon.ico" width="32" height="32" /> on your
+desktop. Proximodo starts your browser, and the browser uses Proximodo to 
+filter its data. Want to open another copy of your browser, perhaps to
+view another web page at the same time? Just start Proximodo again - you
+can do this as many times as you like, to start many copies of your browser.</p>
+<p class="ja">ブラウザを開きたい場合は代わりに、
+デスクトップのアイコン <img src="../../html/favicon.ico" width="32" height="32" />
+をダブルクリックするなどしてProximodoを起動して下さい。
+Proximodoが自動的にブラウザを開き、
+ブラウザは送受信データをフィルタリングするためにProximodoと接続します。</p>
+<p class="ja">別のウェブサイトを同時に見るなど、
+ブラウザをもう一つ開きたいときはProximodoを再度実行して下さい。
+ブラウザを開くために何度でも実行することができます。</p>
+<p class="ja trans_note">訳注【IEなら「新しいウィンドウ」Ctrl+Nでもいいと思います。】</p>
+
+<p class="en"><em>Warning:</em> if you start the browser on its own, and Proximodo 
+is not running, the browser will not work - you'll get strange errors
+about proxies not being present. To avoid this, just get in the habit 
+of double-clicking Proximodo instead of your browser.</p>
+<p class="ja"><em>注意</em>：ブラウザを直接実行して、
+Proximodoが起動していない場合は、ブラウザは正しく動作しません
+── プロクシが存在しないという奇妙なエラーが表示されます。</p>
+<p class="ja">それを避けるため、
+ブラウザの代わりにProximodoをダブルクリックする習慣をつけて下さい。</p>
+<p class="ja trans_note">訳注【またはProximodoをスタートアップに入れておきましょう。】</p>
+
+<p class="en"><em>If this doesn't work</em>: You may need to configure proxy settings.
+Read the <a href="#install">installation instructions</a> to see how to do
+this.</p>
+<p class="ja"><em>動作しない場合</em>：
+プロクシの設定を見直す必要があるかも知れません。
+<a href="#install">インストール方法</a>を参照して下さい。</p>
+
+<p class="en">Running Proximodo this way gives you some protection against the
+worst web annoyances. To get the most out of Proximodo, read the next
+section to see how to use Proximodo screens to adjust its behaviour.</p>
+<p class="ja">Proximodoを起動しておけば、
+最悪のウェブ公害に対するある種の防御を得ることが出来ます。</p>
+<p class="ja">Proximodoを最大限に利用するには、次の項目の、
+Proximodoの動作を調整するための設定画面の使い方を読んで下さい。</p>
+
+<p class="en section">How to use it - adjusting Proximodo</p>
+<p class="ja section">使用方法 ── Proximodoの調整</p>
+
+<p class="en">If you want to enable filters, write filters, or change settings, you
+need to see Proximodo screens. If you run with the quick-start method
+above, you'll never see these screens (except for the very first time
+you run Proximodo, when it shows itself to say hello). So what do you
+do?</p>
+<p class="ja">フィルタを有効にしたり新しく書いたり、
+設定を変更するには、Proximodoのウィンドウを表示します。</p>
+<p class="ja">前述のクイックスタートガイドの方法でProximodoを起動した場合は、
+ウィンドウが表示されていないと思います
+（ただし、はじめてProximodoを実行したときは必ず表示されます）</p>
+<!-- So what do you do? -->
+
+<p class="en"><em>To make occasional adjustments</em>, first launch Proximodo as
+normal, then click its icon <img src="../../html/favicon.ico"/> 
+in the system tray (normally at the lower right of your screen). 
+<em>(Note this is Windows-specific - can someone please help with 
+corresponding Linux, Unix, and Macintosh directions?)</em></p>
+<p class="ja"><em>時々設定を変更するだけなら</em>、
+まずProximodoを普通に起動しておいてから、通知領域
+（通常は画面の一番右下）のアイコン
+<img src="../../html/favicon.ico" width="32" height="32" />
+をクリックして下さい。</p>
+<p class="ja"><em>（これはWindowsに限った方法です。
+誰かLinux、Unix、マッキントッシュでのやり方を書くのを手伝って下さい。）</em></p>
+
+<p class="en"><em>If you tinker regularly</em>, you may want to change the startup
+settings so that Proximodo launches its screens on startup. See the
+<a href="settings.html">settings screen help</a> for details.</p>
+<p class="ja"><em>定期的に設定を手直しするなら</em>、
+Proximodoの起動時にウィンドウを表示するように設定を変えたいこともあるでしょう。
+詳細は<a href="settings.html">設定画面の説明</a>をご覧下さい。</p>
+
+<p class="en">The other sections of this help guide explain how to use Proximodo
+screens to adjust its behaviour. You can turn off all adverts, write
+your own filters, and more! Just click the icons above to see how.</p>
+<p class="ja">このヘルプガイドの他のページは、
+Proximodoの動作を調整するために設定画面を操作する方法を説明しています。
+Proximodoで全ての広告を消したり、
+自分でフィルタを書いたりすることが出来ます。
+詳しくは上端のアイコンをクリックして下さい。</p>
+
+<p class="en"><span class="note">Note</span> concerning banner filtering:
+Proximodo does not include an extensive list of forbidden URLs. But
+you can find such lists in forums or personal web pages that deal
+with Proximodo or Proxomitron. Have a search on google for
+"proxomitron deny list". To add your own filtered URLs, open and
+add lines to the default "AdList" list.</p>
+<p class="ja"><span class="note">備考</span>：
+広告バナーのフィルタリングに関して、Proximodoには、
+禁止URLを多く含んだリストは付属されていません。</p>
+<p class="ja">しかし、
+ProximodoやProxomitronの話題を扱う掲示板や個人のウェブサイトで、
+そういったリストを見つけることが出来ます。Google
+でproxomitron deny list を検索して下さい。</p>
+<p class="ja">フィルタリングするURLを追加したい場合は、
+「AdList」リストを開いて書き込んで下さい。</p>
+
+</body>
+</html>

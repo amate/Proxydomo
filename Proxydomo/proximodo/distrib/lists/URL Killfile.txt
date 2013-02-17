@@ -1,0 +1,101 @@
+#
+# Proxomitron Killfile
+#
+# The URL killer header filter, if enabled, will kill 
+# any URLs matched in this list.  This will completely
+# block access to the given site so be cautious.
+#
+# Note: the AdKey list also calls this list to give the
+# banner filters a chance to block these items before
+# they reach your browser.
+#
+# List Indexing:  New in Naoko-4 BetaFour is the ability
+# to index some regular expressions. This can greatly speed
+# lookup in large lists. No changes to existing lists are necessary
+# but to fully take advantage of these features it helps to know
+# what can and can't be indexed. This includes...
+#
+# 1) lines that begin without any wildcards can be index up to the
+#    first wildcard.  As in "www.somesite.com/\w/ads.html"
+#
+# 2) URLs with specific leading wildcards and no further wildcards
+#    for the rest of the hostname up to and including the first "/" 
+#    For example...
+#
+#    *.somesite.com/
+#    \w.somesite.com/
+#    [^.]+.somesite.com/
+#    [^/]++somesite.com/
+#    ([^/]++.|)somesite.com/    
+#    
+#    Valid leading wildcards include *, \w, [...]+, [...]++, and (...|)
+#    Note that you must include the "/" before any further wildcards. 
+#    For instance, "[^.]+.somesite.(com|net)/" won't be indexable
+#    because the host includes both leading and trailing wildcards.
+#
+#
+#
+
+# The WWW's
+www.clickXchange.com/
+www.custom-click.com/
+www.eads.com/
+www.hotlinks.com/images/ban
+www.maximumcash.com/
+www.net3media.com/
+www.PayPopup.com/
+www.popupad.net/
+www.sitetracker.com/
+www.TheCounter.com/
+www.whatsfind.com/
+
+# Matches that disregard 1st sub-domain
+[^.]+.adsag.com/
+[^.]+.adserver.com/
+[^.]+.advertising.com/
+[^.]+.atdmt.com/
+[^.]+.atwola.com/
+[^.]+.counted.com/
+[^.]+.hotrank.com/
+[^.]+.msads.net/
+[^.]+.mtree.com/
+[^.]+.nedstatbasic.net/
+[^.]+.sitemeter.com/
+
+# Specific ad server hostnames (before the first "/")
+[^/]++.adbureau.net/
+[^/]++.adquest3d.com/
+[^/]++.adserver.com/
+[^/]++.advert.com/
+[^/]++.burstnet.com/
+[^/]++.doubleclick.net/
+[^/]++.fastclick.com/
+[^/]++.fastclick.net/
+[^/]++.flycast.com/
+[^/]++.gator.com/
+[^/]++.hitbox.com/
+[^/]++.imrworldwide.com/
+[^/]++.linkexchange.com/ 
+[^/]++.mediaplex.com/
+[^/]++.orbitcycle.com/
+[^/]++.usads.futurenet.com/
+[^/]++.valueclick.com/
+[^/]++.valueclick.net/
+[^/]++extreme-dm.com/
+
+
+mediamgr.ugo.com/
+us.a1.yimg.com/
+rd.yahoo.com/M=[0-9.]+{5,*}/
+ar.atwola.com/
+
+# Match leading hostname components (ads.something  adserver.something ...)
+(us.|)(ad(s(erver|rv|)|force|tegrity|c|)[0-9]+
+  |leader
+  |counter).
+
+# Specific pathname components (after the first "/")
+[^/]+\w[/?.](ad(s|erver|verts|log.pl)[0-9]+/|banner(s|)/|GetAd|cookie.crumb|js_source|hitometer.js|index.cgi\?id=???)
+
+# User added URLs
+

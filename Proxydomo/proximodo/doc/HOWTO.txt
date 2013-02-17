@@ -1,0 +1,143 @@
+Installing Proximodo on Mandrake 10.1
+-------------------------------------
+
+Written by Griptypethyne.
+Version 2    24/4/05   (wxGTK 2.6.0 & gtk 2.4.9)
+Version 1.1  27/3/05  ( wxWidgets 2.5.4 & gtk 1.2.10)
+
+Follow these steps in the order given to compile and run Proximodo. 
+
+
+************************** A. Check GCC Version ********************************************
+
+Proximodo will compile with gcc 3.4.1.
+  
+I received syntax errors when using gcc 3.3. The errors were in gcc file mathcalls.h. I do not know if the errors were caused by gcc 3.3 or some other problem.  Note that it was at a very early stage in my efforts to compile Proximodo.
+ 
+
+********************  B. Install  GTK2 ******************************************************
+
+Use rpmdrake to install:
+	gtk+2.0-2.4.9-9.1.101mdk
+	libgtk+2.0_0-devel-2.4.9-9.1.101mdk
+
+I also have libgtk+2.0_0-2.4.9-9.1.101mdk installed. Not sure if it is needed. It may have been installed as a dependant file of the -devel- package. I think that it is the runtime libraries (dynamic linking). 
+
+GTK2 does not use gtk-config. It uses uses pkg-config instead.
+
+From a terminal run
+	pkg-config gtk+-2.0  --modversion
+
+and confirm that it returns 2.4.9
+
+The development package of libgtk is required because in the next step wxGTK will be installed and compiled from source. If someone creates a development package (binaries + headers) for wxGTK 2.6.0 then I assume that a libgtk binary only package would be sufficient i.e. the headers would not be needed.
+
+
+********************  C. Install wxGTK  with GTK2 ************************************************
+
+Go to  http://www.wxwidgets.org  -> Downloads and download 
+
+	wxGTK-2.6.0.tar.bz2
+
+Open a terminal and su root. Then enter the following:
+
+	tar -zxvf wxGTK-2.6.0.tar.bz2		//To unzip the files.
+	cd /wxWidgets-2.6.0			//Unzipped files are placed in this directory.
+	./configure –enable-log			//Defaults are log off & with-gtk=2.
+	make clean				//If a previous make has failed.
+	make					//Be patient - it will finish without errors!
+	make install
+	ldconfig
+
+Notes:
+	(a) Do not need to set CFLAGS or LDFLAGS to install wxGTK 2.6.0 because ./configure uses pkg-config to set the flags.
+	(b) log is off by default when running  ./configure.
+	(c) Use ./configure --with-gtk=1 if gtk2 is not installed.
+
+Note:  If someone creates a development package (binaries + headers) for wxGTK 2.6.0 then I assume that you could install that package rather than compiling wxGTKs from source. The wxGTK headers are needed so that Proximodo can be compiled.
+
+
+************************* E. Compile Proximodo ************************************************
+
+Download the Proximodo source package and unzip to <Proximodo source path>.
+
+Open a terminal:
+
+	<wxGTK path>/wxGTK-2.6.0/wx-config --version	//Make sure result is 2.6.0
+	<wxGTK path>/wxGTK-2.6.0/wx-config --cxxflags 	//Set WXINC_REL in Proximodo Makefile	
+	<wxGTK path>/wxGTK-2.6.0/wx-config --libs 	//Set WXLIB_REL in Proximodo Makefile
+	
+Open Proximodo Makefile in a text editor and follow the instructions to set WXINC_REL & WXLIB_REL, using the values obtained above.
+
+In a termnal enter:
+	cd <Proximodo source path>
+	make       
+              
+The Proximodo executable can now be found in <Proximodo source path>/distrib
+
+Notes: 
+
+(a) I unzipped the Proximodo source to my /home directory. As a result the Proximodo binary installed in /home/<middle part of path>/src/distrib and so I did not need to su root. Maybe it would be better to edit Makefile so that the binary is placed in /usr/Proximodo, in which case it would be necessary to su root.
+
+(b) Create a file proximodo.compile.sh:
+
+	#!/bin/sh
+	cd /home/dad/SetUpLinux/Proximodo/src
+	make distrib/proximodo
+
+(c) Important: Make sure that you are using the correct version of wx-config - I have at least four copies on my system.
+
+
+*************************  F.  Linux Path Conventions ********************************************
+
+cd <Proximodo source path>/distrib
+
+Open file settings.txt in a text editor and change the "\" to "/" in the list-file names.
+
+
+************************* G.  Run Proximodo ****************************************************
+
+Create a shell script proximodo.sh to run Proximodo:
+
+	#!/bin/sh
+	cd <path>/src/distrib 
+	export LD_LIBRARY_PATH=/usr/local/lib
+	export LD_LIBRARY_PATH=/usr/lib
+	export LD_LIBRARY_PATH=/usr/X11R6/lib
+	./proximodo&
+
+You may wish to experiment to determine which of the export statements is required.
+
+
+********************** H. Changes to Proximodo Source ****************************************
+
+If you make changes to a Proximodo source file you can compile just the changed file (and save time) by entering
+
+	cd <Proximodo source path>
+	make distrib/proximodo
+
+To force a compile of all files enter
+
+	cd <Proximodo source path>
+	make clean
+	make 
+
+Note: Testing changes is quick and easy:
+
+Open source file in kwrite (or your favourite editor - I recommend kwrite). 
+Make and save changes.
+
+In a terminal:
+	cd <Proximodo script path>
+	./proximodo.compile.sh
+	./proximodo.sh
+
+
+***************** I. Known Problems   *****************************************************
+
+(a) Fixed in wxGTK2.6.0 - The mouse wheel works only when the cursor is in the vertical slider. It does not work if the cursor is in the window.
+
+(b) Does not work in GTK2.6.0 - The GetOpenCommand function does not work so the browser cannot be opened and help pages displayed.Proximodo opens a message window when this occurs.
+
+
+

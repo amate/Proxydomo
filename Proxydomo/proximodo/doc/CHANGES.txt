@@ -1,0 +1,141 @@
+Engine
+- Fixed $DTM(M) displaying month-1
+- Added support for "URL" incoming header filters
+
+--------------------------------------------------------------------------------
+Version 0.2.5
+-------------
+
+Proxy
+- Support for URL commands
+- HTML debug info (to allow filter designers to troubleshoot their filters)
+
+GUI
+- Imported Proxomitron filters are activated in the edited configuration if they
+  were active in the Proxomitron file.
+
+Engine
+- Hashing of blocklist entries that start with a constant string (e.g. foo*,
+  but not *foo, or even [fg]oo).  Unhashed entries are checked sequentially as
+  before.  Proxomitron's 'NoHash' hint has no effect.
+- Added recognition of ~ patterns in lists
+
+
+--------------------------------------------------------------------------------
+Version 0.2.4 (July 20th, 2005)
+-------------
+
+Engine
+- URL pseudo-headers now always work (detection was case-sensitive)
+- Improved processing (less function calls while scanning text)
+- Bug fix: pattern "(f*)\1bar" was not matching "foobar"
+- There is now only 1 buffer, shared by all filters (like in Proxomitron)
+- The "Allow Multiple Match" indicator now has the same meaning as in Proxomitron
+
+GUI
+- Wider "active configuration" field on Monitor screen
+- Better synchronization between filter edition window and config window
+- Profile button in filter test dialog; shows input length, number of matches,
+  average time per run, approximate data throughput in kbps
+
+Proxy
+- Fixed freezing on 304 responses
+- SSL tunneling (https can now go through Proximodo, though not filtered)
+
+Other
+- Replaced many includes by forward declarations, to reduce dependencies
+- Sources now compile with Visual C++
+
+--------------------------------------------------------------------------------
+Version 0.2.3 (Apr 20th, 2005)
+-------------
+
+Engine
+- Bypass URL and URL Match now work like in Proxomitron
+- Fixed $TYPE() which was causing hangings
+
+Proxy
+- Don't reorder or concatenate headers (cookies must not be concatenated!)
+- Idle persistent connections expire after 10 seconds
+
+GUI
+- Created a monitoring screen, with checkboxes, statistics and abort button
+- Can run any external program when Proximodo starts
+- Opening default browser on start-up should now work fine under Linux
+- Compatibility with wxWidgets 2.5.4
+- Changed colors and font in Log window
+- Simplified internal management of windows
+- Fixed bad drag&drop in config tree
+
+Other
+- Invalid filters are now loaded too
+- Eliminated memory leaks
+
+--------------------------------------------------------------------------------
+Version 0.2.1 (Jan 8th, 2005)
+-------------
+
+Engine
+- Content of $RDIR and $JUMP is now expanded
+- "URL" header filters will scan the URL _including_ the http://
+- $TST won't match if variable is empty
+- Added usage of \k in text filters
+- Added $TST((expandedText)=pattern) and $TST((expandedText))
+- Note: unknown commands being ignored, you can use $NOP(some comment text)
+- stars are now optional in [#n:n] and {n,n}
+- Added [%nn-%nn]  [%nn-z]  and  [z-%nn]  (all are case-sensitive)
+- In [], \char is now case-sensitive: [\A-Z] will match uppercase letters only
+- Added fixed-size virtual lists
+
+Proxy
+- Can process request/response with LF instead of CRLF
+- Improved URL redir code
+- Redirections by incoming headers are limited to 3 (to avoid infinite loop)
+- Improved compatibility with Internet Explorer
+
+GUI
+- Added an option to start a browser automatically
+
+Other
+- Fixed bad management of config names containing a comma
+- Installer has an option to set IE proxy automatically
+
+
+--------------------------------------------------------------------------------
+Version 0.2 (Nov 28th, 2004)
+-----------
+
+GUI
+- Turned config list into a tree with checkable items
+- Made the filter edition screen a non-modal window accessible from config screen
+- Reorganized items on Filters window, to make the window fit in 800x600 desktop
+- Added 'priority' as a filter property
+
+Proxy
+- Reordered proxy code to improve stability (still some images are randomly broken in IE)
+- Headers now get reordered (in HTTP RFC recommended order)
+
+Engine
+- Fixed $FILTER command ('true' and 'false' were inverted)
+- Header filters with "*" and "\digit" pattern will not match an empty header
+- Filters are now executed in 'Priority" order, instead of display order
+- Recognizes ^ notation at beginning of pattern
+- Added infinite-loop protection in "+" notation
+- Added [%nn] notation (case-sensitive)
+
+Config files
+- Filters now have an ID and Folder ID (both invisible in GUI) to retain config structure
+- Folders are recorded in settings.txt using Folders= lines
+- Configs are now recorded using filters' IDs
+- Changed 'Lists' to 'lists' in settings.txt to be case-consistent with folder
+- Title= no more needed in filters.txt
+
+Other
+- Made filenames respect OS directory separator char
+- A #include was missing in trayicon.cpp
+
+--------------------------------------------------------------------------------
+Version 0.1 (Nov 8th, 2004)
+-----------
+
+(Proximodo development started on Oct 1st, 2004)
