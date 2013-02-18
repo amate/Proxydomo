@@ -41,13 +41,13 @@ void	CLogViewWindow::ShowWindow()
 void CLogViewWindow::ProxyEvent(LogProxyEvent Event, const IPv4Address& addr)
 {
 	CString msg;
-	msg.Format(_T(">>> ポート %d : "), addr.GetPort());
+	msg.Format(_T(">>> ポート %d : "), addr.GetPortNumber());
 	switch (Event) {
 	case kLogProxyNewRequest:
 		msg	+= _T("新しいリクエストを受信しました\n");
 		{
 			CCritSecLock	lock(m_csActiveRequestLog);
-			m_vecActiveRequestLog.emplace_back(new EventLog(addr.GetPort(), msg, LOG_COLOR_PROXY));
+			m_vecActiveRequestLog.emplace_back(new EventLog(addr.GetPortNumber(), msg, LOG_COLOR_PROXY));
 		}
 		break;
 
@@ -55,7 +55,7 @@ void CLogViewWindow::ProxyEvent(LogProxyEvent Event, const IPv4Address& addr)
 		msg += _T("リクエストが完了しました\n");
 		{
 			CCritSecLock	lock(m_csActiveRequestLog);
-			uint16_t port = addr.GetPort();
+			uint16_t port = addr.GetPortNumber();
 			auto result = std::remove_if(m_vecActiveRequestLog.begin(), m_vecActiveRequestLog.end(), 
 				[port](const std::unique_ptr<EventLog>& log) { return log->port == port; }
 			);
@@ -78,7 +78,7 @@ void CLogViewWindow::ProxyEvent(LogProxyEvent Event, const IPv4Address& addr)
 void CLogViewWindow::HttpEvent(LogHttpEvent Event, const IPv4Address& addr, int RequestNumber, const std::string& text)
 {
 	CString msg;
-	msg.Format(_T(">>> #%d : "), RequestNumber);
+	msg.Format(_T(">>> ポート %d #%d : "), addr.GetPortNumber(), RequestNumber);
 	switch (Event) {
 	case kLogHttpRecvOut:
 		msg += _T("ブラウザ ⇒ Proxy(this)");
@@ -110,7 +110,7 @@ void CLogViewWindow::HttpEvent(LogHttpEvent Event, const IPv4Address& addr, int 
 	
 	{
 		CCritSecLock	lock(m_csActiveRequestLog);
-		m_vecActiveRequestLog.emplace_back(new EventLog(addr.GetPort(), msg, color));
+		m_vecActiveRequestLog.emplace_back(new EventLog(addr.GetPortNumber(), msg, color));
 	}
 	_AppendText(msg, color);
 }
@@ -153,6 +153,11 @@ void CLogViewWindow::OnCancel(UINT uNotifyCode, int nID, CWindow wndCtl)
 {
 	CLog::RemoveLogTrace();
 
+	{
+		CCritSecLock	lock(m_csActiveRequestLog);
+		m_vecActiveRequestLog.clear();
+	}
+
 	using namespace boost::property_tree;
 	
 	CString settingsPath = Misc::GetExeDirectory() + _T("settings.ini");
@@ -182,6 +187,10 @@ void CLogViewWindow::OnClear(UINT uNotifyCode, int nID, CWindow wndCtl)
 void CLogViewWindow::OnShowActiveRequestLog(UINT uNotifyCode, int nID, CWindow wndCtl)
 {
 	OnClear(0, 0, NULL);
+
+	CString title;
+	title.Format(_T("ログ - Active[ %d ]"), CLog::GetActiveRequestCount());
+	SetWindowText(title);
 
 	CCritSecLock	lock(m_csActiveRequestLog);
 	for (auto& log : m_vecActiveRequestLog) {

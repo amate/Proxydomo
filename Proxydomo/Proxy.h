@@ -9,6 +9,8 @@
 #include <vector>
 #include "Socket.h"
 
+class CRequestManager;
+
 
 class CProxy
 {
@@ -26,6 +28,6 @@ private:
 	CSocket	m_sockServer;
 	std::thread	m_threadServer;
 	bool	m_bServerActive;
-	std::vector<std::unique_ptr<std::thread>>	m_vecpRequestManagerThread;
+	std::vector<std::unique_ptr<CRequestManager>>	m_vecpRequestManager;
 };
 

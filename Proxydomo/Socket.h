@@ -34,12 +34,12 @@ public:
 struct IPv4Address
 {
 	sockaddr_in	addr;
+#ifdef _DEBUG
+	std::string	ip;
+	uint16_t	port;	
+#endif
 
-	IPv4Address()
-	{
-		::SecureZeroMemory(&addr, sizeof(addr));
-		addr.sin_family	= AF_INET;
-	}
+	IPv4Address();
 
 	IPv4Address& operator = (sockaddr_in sockaddr)
 	{
@@ -49,49 +49,12 @@ struct IPv4Address
 
 	operator sockaddr*() { return (sockaddr*)&addr; }
 
-	void SetPortNumber(unsigned short port)
-	{
-		addr.sin_port = htons(port);
-	}
+	void		SetPortNumber(uint16_t port);
+	uint16_t	GetPortNumber() const { return ::ntohs(addr.sin_port); }
 
-	uint16_t	GetPort() const { return ::ntohs(addr.sin_port); }
+	bool SetService(const std::string& protocol);
 
-	bool SetService(const std::string& protocol)
-	{
-		if (protocol == "http") {
-			SetPortNumber(80);
-			return true;
-		} else if (protocol == "https") {
-			SetPortNumber(443);
-			return true;
-		}
-		try {
-			SetPortNumber(boost::lexical_cast<uint16_t>(protocol));
-			return true;
-		} catch (...) {
-
-			return false;
-		}
-	}
-
-	bool SetHostName(const std::string& IPorHost)
-	{
-		auto ipret = ::inet_addr(IPorHost.c_str());
-		if (ipret != INADDR_NONE) {
-			addr.sin_addr.S_un.S_addr = ipret;
-			return true;
-		}
-		addrinfo* result = nullptr;
-		addrinfo hinsts = {};
-		hinsts.ai_socktype	= SOCK_STREAM;
-		hinsts.ai_family	= AF_INET;
-		if (::getaddrinfo(IPorHost.c_str(), nullptr, &hinsts, &result) != 0)
-			return false;
-		sockaddr_in sockaddr = *(sockaddr_in*)result->ai_addr;
-		addr.sin_addr.S_un.S_addr = sockaddr.sin_addr.S_un.S_addr;
-		::freeaddrinfo(result);
-		return true;
-	}	
+	bool SetHostName(const std::string& IPorHost);
 };
 
 

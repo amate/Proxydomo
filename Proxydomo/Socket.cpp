@@ -19,6 +19,70 @@ SocketException::SocketException(const char* errmsg /*= "socket error"*/, int e 
 	TRACEIN("SocketException (%d) : %s", e, errmsg);
 }
 
+////////////////////////////////////////////////////////////////////
+// IPv4Address
+
+IPv4Address::IPv4Address()
+{
+	::SecureZeroMemory(&addr, sizeof(addr));
+	addr.sin_family	= AF_INET;
+#ifdef _DEBUG
+	port = 0;
+#endif
+}
+
+void IPv4Address::SetPortNumber(uint16_t port)
+{
+	addr.sin_port = htons(port);
+#ifdef _DEBUG
+	this->port = port;
+#endif
+}
+
+
+bool IPv4Address::SetService(const std::string& protocol)
+{
+	if (protocol == "http") {
+		SetPortNumber(80);
+		return true;
+	} else if (protocol == "https") {
+		SetPortNumber(443);
+		return true;
+	}
+	try {
+		SetPortNumber(boost::lexical_cast<uint16_t>(protocol));
+		return true;
+	} catch (...) {
+		return false;
+	}
+}
+
+bool IPv4Address::SetHostName(const std::string& IPorHost)
+{
+	auto ipret = ::inet_addr(IPorHost.c_str());
+	if (ipret != INADDR_NONE) {
+		addr.sin_addr.S_un.S_addr = ipret;
+#ifdef _DEBUG
+		ip = ::inet_ntoa(addr.sin_addr);
+#endif
+		return true;
+	}
+	addrinfo* result = nullptr;
+	addrinfo hinsts = {};
+	hinsts.ai_socktype	= SOCK_STREAM;
+	hinsts.ai_family	= AF_INET;
+	if (::getaddrinfo(IPorHost.c_str(), nullptr, &hinsts, &result) != 0)
+		return false;
+	sockaddr_in sockaddr = *(sockaddr_in*)result->ai_addr;
+	addr.sin_addr.S_un.S_addr = sockaddr.sin_addr.S_un.S_addr;
+	::freeaddrinfo(result);
+#ifdef _DEBUG
+		ip = ::inet_ntoa(addr.sin_addr);
+#endif
+	return true;
+}	
+
+
 ////////////////////////////////////////////////////////////////
 // CSocket
 
@@ -129,9 +193,9 @@ void	CSocket::Close()
 		::shutdown(m_sock, SD_RECEIVE);
 		if (::closesocket(m_sock) == SOCKET_ERROR) {
 			ATLASSERT( FALSE );
+			throw SocketException("closesocket failed");
 			//LOG_ERROR("closesocket() error");
 		}
-		TRACEIN("CloseSocket [%d]", m_sock);
 		m_sock = 0;
 		m_bConnectionKilledFromPeer = true;
 	}
@@ -209,7 +273,7 @@ bool	CSocket::Write(const char* buffer, int length)
 		if (::WSAGetLastError() == WSAEWOULDBLOCK)
 			return true;
 
-		throw SocketException("CSocket::Write failed");
+		//throw SocketException("CSocket::Write failed");
 		//Close();
 		return false;
 	}

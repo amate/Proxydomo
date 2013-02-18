@@ -18,13 +18,17 @@ public:
 
 	void	Manage();
 
+	bool	IsValid() const { return m_valid; }
+	void	SwitchToInvalid() { m_valid = false; }
+	bool	IsDoInvalidPossible();
+
 private:
 
 	/// ブラウザ ⇒ Proxy(this) ⇒ サイト
 	bool	_ReceiveOut();
 	std::string	m_recvOutBuf;
 	void	_ProcessOut();
-	std::string m_sendOutBuf;
+	std::string m_sendOutBuf;	/// サイトに送るデータ
 	bool	_SendOut();			/// Send outgoing data to website
 
 	void	_ConnectWebsite();

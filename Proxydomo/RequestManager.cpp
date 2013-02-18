@@ -148,7 +148,6 @@ CRequestManager::~CRequestManager(void)
 	m_psockWebsite->Close();
 }
 
-
 void CRequestManager::Manage()
 {
 	clock_t stopTime = 0;
@@ -157,7 +156,7 @@ void CRequestManager::Manage()
 	m_ipFromAddress = m_psockBrowser->GetFromAddress();
 	m_psockWebsite.reset(new CSocket);
 
-	TRACEIN(_T("Manage start : ポート %d"), m_ipFromAddress.GetPort());
+	TRACEIN(_T("Manage start : ポート %d"), m_ipFromAddress.GetPortNumber());
 	try {
 	// Main loop, continues as long as the browser is connected
 	while (m_psockBrowser->IsConnected()) {
@@ -172,22 +171,31 @@ void CRequestManager::Manage()
 			bRest = false;
 
 		if (m_psockWebsite->IsConnected()) {
-			TRACEIN("Manage ポート %d : サイトとつながりました！[%s]", m_ipFromAddress.GetPort(), m_contactHost.c_str());
+			TRACEIN("Manage ポート %d : サイトとつながりました！[%s]", m_ipFromAddress.GetPortNumber(), m_contactHost.c_str());
 			do {
 				// Full processing
 				bool bRest = true;
 				if (_SendOut())		// サイトへデータを送信
 					bRest = false;
-				if (_ReceiveIn() || m_psockWebsite->IsConnectionKilledFromPeer()) {	// サイトからのデータを受信
+
+				if (_ReceiveIn()) {	// サイトからのデータを受信
 					bRest = false;
 					_ProcessIn();	// サイトからのデータを処理
+				} else if (m_psockWebsite->IsConnectionKilledFromPeer()) {
+					_ProcessIn();	// サイトからのデータを処理
 				}
+
 				if (_SendIn())		// ブラウザへサイトからのデータを送信
 					bRest = false;
-				if (_ReceiveOut()) { // ブラウザからのデータを受信(SSL以外では用無しのはず。。。)
+				if (_ReceiveOut()) { // ブラウザからのデータを受信(SSLかパイプライン以外では用無しのはず。。。)
 					bRest = false;
 					_ProcessOut();
+				} else if (m_psockBrowser->IsConnectionKilledFromPeer()) {
+					_ProcessOut();
+					if (m_valid == false) 
+						m_psockBrowser->Close();
 				}
+
 				if (bRest) {
 					if (m_outStep != STEP_START) {
 						if (stopTime) 
@@ -198,18 +206,18 @@ void CRequestManager::Manage()
 						if (m_valid == false || clock() > stopTime)
 							m_psockBrowser->Close();
 					}
-					::Sleep(5);
+					::Sleep(10);
 				}
 
 				// どちらからもデータが受信できなかったら切る
 				if (m_psockWebsite->IsConnectionKilledFromPeer() && m_psockBrowser->IsConnectionKilledFromPeer()) {
-					TRACEIN("Manage ポート %d : outStep[%d] inStep[%d] ブラウザとサイトのデータ受信が終了しました", m_ipFromAddress.GetPort(), m_outStep, m_inStep);
+					TRACEIN("Manage ポート %d : outStep[%d] inStep[%d] ブラウザとサイトのデータ受信が終了しました", m_ipFromAddress.GetPortNumber(), m_outStep, m_inStep);
 					m_psockWebsite->Close();
 					m_psockBrowser->Close();
 				}
 
 			} while (m_psockWebsite->IsConnected() &&  m_psockBrowser->IsConnected());
-			TRACE("Manage ポート %d : outStep[%d] inStep[%d] ", m_ipFromAddress.GetPort(), m_outStep, m_inStep);
+			TRACE("Manage ポート %d : outStep[%d] inStep[%d] ", m_ipFromAddress.GetPortNumber(), m_outStep, m_inStep);
 			if (m_psockWebsite->IsConnected() == false)
 				TRACEIN("サイトとの接続が切れました [%s]", m_contactHost.c_str());
 			else
@@ -253,12 +261,26 @@ void CRequestManager::Manage()
 		}
 
 	}
+	} catch (SocketException& e) {
+		TRACEIN("例外が発生しました！ : ポート %d 例外:%s(%d)", m_ipFromAddress.GetPortNumber(), e.msg, e.err); 
 	} catch (...) {
-		TRACEIN("例外が発生しました！ : ポート %d", m_ipFromAddress.GetPort());
+		TRACEIN("例外が発生しました！ : ポート %d", m_ipFromAddress.GetPortNumber());
 	}
-	TRACEIN(_T("Manage finish : ポート %d"), m_ipFromAddress.GetPort());
+	TRACEIN(_T("Manage finish : ポート %d"), m_ipFromAddress.GetPortNumber());
 }
 
+bool	CRequestManager::IsDoInvalidPossible()
+{
+	if (m_valid == false) {
+		return false;
+	}
+	if (m_psockBrowser->IsConnected() && m_psockBrowser->IsConnectionKilledFromPeer()) {
+		if (m_outStep == STEP_TUNNELING) {
+			return true;
+		}
+	}
+	return false;
+}
 
 bool CRequestManager::_ReceiveOut()
 {
@@ -553,7 +575,8 @@ void CRequestManager::_ProcessOut()
 				m_sendOutBuf += m_recvOutBuf;
 				m_recvOutBuf.clear();
 
-				if (m_psockWebsite->IsConnected() == false) {
+				if ( m_psockWebsite->IsConnected() == false || m_psockWebsite->IsConnectionKilledFromPeer() ) 
+				{
 					m_sendConnectionClose = true;
 					m_outStep = STEP_FINISH;
 					m_inStep = STEP_FINISH;
