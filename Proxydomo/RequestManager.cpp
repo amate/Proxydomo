@@ -946,34 +946,34 @@ void	CRequestManager::_ProcessIn()
 					// Check for filterable MIME types
 					if (_VerifyContentType(contentType) == false && m_bypassBodyForced == false)
 						m_bypassBody = true;
-#if 0
+
 					// Check for GIF to freeze
-					if (CUtil::noCaseContains("image/gif",
-								getHeader(inHeaders, "Content-Type"))) {
-						useGifFilter = CSettings::ref().filterGif;
-					}
-#endif
+					//if (CUtil::noCaseContains("image/gif",
+					//			getHeader(inHeaders, "Content-Type"))) {
+					//	useGifFilter = CSettings::ref().filterGif;
+					//}
 				}
 
 				if (   CUtil::noCaseContains("close", _GetHeader(m_inHeaders, "Connection"))
 					|| CUtil::noCaseBeginsWith("HTTP/1.0", m_responseLine.ver)) {
 					m_recvConnectionClose = true;
 				}
-#if 0
+
+
 				if (CUtil::noCaseContains("gzip", _GetHeader(m_inHeaders, "Content-Encoding"))) {
 					m_recvContentCoding = 1;
-					if (!decompressor) decompressor = new CZlibBuffer();
-					decompressor->reset(false, true);
-				} else if (CUtil::noCaseContains("deflate",
-							getHeader(inHeaders, "Content-Encoding"))) {
-					recvContentCoding = 2;
-					if (!decompressor) decompressor = new CZlibBuffer();
-					decompressor->reset(false, false);
-				} else if (CUtil::noCaseContains("compress",
-							getHeader(inHeaders, "Content-Encoding"))) {
-					bypassBody = true;
+					if (m_decompressor == nullptr) 
+						m_decompressor.reset(new CZlibBuffer());
+					m_decompressor->reset(false, true);
+				} else if (CUtil::noCaseContains("deflate", _GetHeader(m_inHeaders, "Content-Encoding"))) {
+					m_recvContentCoding = 2;
+					if (m_decompressor == nullptr) 
+						m_decompressor.reset(new CZlibBuffer());
+					m_decompressor->reset(false, false);
+				} else if (CUtil::noCaseContains("compress", _GetHeader(m_inHeaders, "Content-Encoding"))) {
+					m_bypassBody = true;
 				}
-#endif
+
 				if (CUtil::noCaseBeginsWith("206", m_responseCode))
 					m_bypassBody = true;
 
@@ -981,33 +981,31 @@ void	CRequestManager::_ProcessIn()
 				// the real headers that $IHDR and $OHDR may access
 				auto inHeadersFiltered = m_inHeaders;
 
-#if 0
 				// Test for redirection (limited to 3, to prevent infinite loop)
-				if (!rdirToHost.empty() && redirectedIn < 3) {
-					// (This function will also take care of incoming variables)
-					connectWebsite();
-					redirectedIn++;
-					continue;
-				}
-#endif
+				//if (!rdirToHost.empty() && redirectedIn < 3) {
+				//	// (This function will also take care of incoming variables)
+				//	connectWebsite();
+				//	redirectedIn++;
+				//	continue;
+				//}
 
 				// Decode new headers to control browser-side beehaviour
 				if (CUtil::noCaseContains("close", _GetHeader(inHeadersFiltered, "Connection")))
 					m_sendConnectionClose = true;
 				
-#if 0
-				if (CUtil::noCaseContains("gzip",
-							getHeader(inHeadersFiltered, "Content-Encoding"))) {
-					sendContentCoding = 1;
-					if (!compressor) compressor = new CZlibBuffer();
-					compressor->reset(true, true);
-				} else if (CUtil::noCaseContains("deflate",
-							getHeader(inHeadersFiltered, "Content-Encoding"))) {
-					sendContentCoding = 2;
-					if (!compressor) compressor = new CZlibBuffer();
-					compressor->reset(true, false);
+
+				if (CUtil::noCaseContains("gzip", _GetHeader(inHeadersFiltered, "Content-Encoding"))) {
+					m_sendContentCoding = 1;
+					if (m_compressor == nullptr) 
+						m_compressor.reset(new CZlibBuffer());
+					m_compressor->reset(true, true);
+				} else if (CUtil::noCaseContains("deflate", _GetHeader(inHeadersFiltered, "Content-Encoding"))) {
+					m_sendContentCoding = 2;
+					if (m_compressor == nullptr) 
+						m_compressor.reset(new CZlibBuffer());
+					m_compressor->reset(true, false);
 				}
-#endif
+
 				if (m_inChunked || m_inSize) {
 					// Our output will always be chunked: filtering can
 					// change body size. So let's force this header.
@@ -1015,50 +1013,49 @@ void	CRequestManager::_ProcessIn()
 					_RemoveHeader(inHeadersFiltered, "Content-Length");	// Content-LengthÇè¡Ç≥Ç»Ç¢Ç∆Ç®Ç©ÇµÇ¢
 				}
 
-#if 0
 				// Now we can put everything in the filtered buffer
 				// (1.1 is necessary to have the browser understand chunked
 				// transfer)
-				if (m_url.getDebug()) {
-					m_sendInBuf += "HTTP/1.1 200 OK" CRLF
-						"Content-Type: text/html" CRLF
-						"Connection: close" CRLF
-						"Transfer-Encoding: chunked" CRLF CRLF;
-					std::string buf =
-						"<?xml version=\"1.0\" encoding=\"iso-8859-1\"?>\n"
-						"<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\""
-						" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n"
-						"<html>\n<head>\n<title>Source of ";
-					CUtil::htmlEscape(buf, url.getProtocol() + "://" +
-										   url.getFromHost());
-					buf += "</title>\n"
-						"<link rel=\"stylesheet\" media=\"all\" "
-						"href=\"http://local.ptron/ViewSource.css\" />\n"
-						"</head>\n\n<body>\n<div id=\"headers\">\n";
-					buf += "<div class=\"res\">";
-					CUtil::htmlEscape(buf, responseLine.ver);
-					buf += " ";
-					CUtil::htmlEscape(buf, responseLine.code);
-					buf += " ";
-					CUtil::htmlEscape(buf, responseLine.msg);
-					buf += "</div>\n";
-					string name;
-					for (vector<SHeader>::iterator it = inHeadersFiltered.begin();
-							it != inHeadersFiltered.end(); it++) {
-						buf += "<div class=\"hdr\">";
-						CUtil::htmlEscape(buf, it->name);
-						buf += ": <span class=\"val\">";
-						CUtil::htmlEscape(buf, it->value);
-						buf += "</span></div>\n";
-					}
-					buf += "</div><div id=\"body\">\n";
-					useChain = true;
-					useGifFilter = false;
-					chain->dataReset();
-					dataReset();
-					dataFeed(buf);
-				} else {
-#endif
+				//if (m_url.getDebug()) {
+				//	m_sendInBuf += "HTTP/1.1 200 OK" CRLF
+				//		"Content-Type: text/html" CRLF
+				//		"Connection: close" CRLF
+				//		"Transfer-Encoding: chunked" CRLF CRLF;
+				//	std::string buf =
+				//		"<?xml version=\"1.0\" encoding=\"iso-8859-1\"?>\n"
+				//		"<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\""
+				//		" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n"
+				//		"<html>\n<head>\n<title>Source of ";
+				//	CUtil::htmlEscape(buf, url.getProtocol() + "://" +
+				//						   url.getFromHost());
+				//	buf += "</title>\n"
+				//		"<link rel=\"stylesheet\" media=\"all\" "
+				//		"href=\"http://local.ptron/ViewSource.css\" />\n"
+				//		"</head>\n\n<body>\n<div id=\"headers\">\n";
+				//	buf += "<div class=\"res\">";
+				//	CUtil::htmlEscape(buf, responseLine.ver);
+				//	buf += " ";
+				//	CUtil::htmlEscape(buf, responseLine.code);
+				//	buf += " ";
+				//	CUtil::htmlEscape(buf, responseLine.msg);
+				//	buf += "</div>\n";
+				//	string name;
+				//	for (vector<SHeader>::iterator it = inHeadersFiltered.begin();
+				//			it != inHeadersFiltered.end(); it++) {
+				//		buf += "<div class=\"hdr\">";
+				//		CUtil::htmlEscape(buf, it->name);
+				//		buf += ": <span class=\"val\">";
+				//		CUtil::htmlEscape(buf, it->value);
+				//		buf += "</span></div>\n";
+				//	}
+				//	buf += "</div><div id=\"body\">\n";
+				//	useChain = true;
+				//	useGifFilter = false;
+				//	chain->dataReset();
+				//	dataReset();
+				//	dataFeed(buf);
+				//} else {
+
 					m_sendInBuf = "HTTP/1.1 " + m_responseLine.code + " " + m_responseLine.msg  + CRLF ;
 					std::string name;
 					for (auto& pair : inHeadersFiltered) {
@@ -1067,12 +1064,12 @@ void	CRequestManager::_ProcessIn()
 					CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_requestNumber, m_sendInBuf);
 
 					m_sendInBuf += CRLF;
-#if 0
+
 					// Tell text filters to see whether they should work on it
-					useChain = (!bypassBody && CSettings::ref().filterText);
-					if (useChain) chain->dataReset(); else dataReset();
-					if (useGifFilter) GIFfilter->dataReset();
-#endif
+					//useChain = (!bypassBody && CSettings::ref().filterText);
+					//if (useChain) chain->dataReset(); else dataReset();
+					//if (useGifFilter) GIFfilter->dataReset();
+
 					_DataReset();
 
 					// File type will be reevaluated using first block of data
@@ -1118,7 +1115,6 @@ void	CRequestManager::_ProcessIn()
 		// The next inSize bytes are left untouched
 		case STEP_RAW:
 			{
-				TRACEIN(_T("ProcessIn #%d : STEP_RAW"), m_requestNumber);
 				int copySize = m_recvInBuf.size();
 				if (copySize > m_inSize)
 					copySize = m_inSize;
@@ -1131,15 +1127,17 @@ void	CRequestManager::_ProcessIn()
 				std::string data = m_recvInBuf.substr(0, copySize);
 				m_recvInBuf.erase(0, copySize);
 				m_inSize -= copySize;
-#if 0
+
+				TRACEIN(_T("ProcessIn #%d : STEP_RAW copySize[%d] inSize(rest)[%d]"), m_requestNumber, copySize, m_inSize);
+
 				// We must decompress compressed data,
 				// unless bypassed body with same coding
-				if (recvContentCoding && (useChain ||
-							recvContentCoding != sendContentCoding)) {
-					decompressor->feed(data);
-					decompressor->read(data);
+				if (m_recvContentCoding /*&& (useChain ||
+							m_recvContentCoding != m_sendContentCoding)*/) {
+					m_decompressor->feed(data);
+					m_decompressor->read(data);
 				}
-#endif
+
 #if 0
 
 				if (useChain) {
@@ -1328,22 +1326,18 @@ void	CRequestManager::_DataFeed(const std::string& data)
 		return;
 
     size_t size = data.size();
-#if 0
-    if (size && sendContentCoding
-        && (useChain || recvContentCoding != sendContentCoding)) {
+    if (size && m_sendContentCoding
+        /*&& (useChain || recvContentCoding != sendContentCoding)*/) {
 
         // Send a chunk of compressed data
         string tmp;
-        compressor->feed(data);
-        compressor->read(tmp);
+        m_compressor->feed(data);
+        m_compressor->read(tmp);
         size = tmp.size();
         if (size)
-            sendInBuf += CUtil::makeHex(size) + CRLF + tmp + CRLF;
+            m_sendInBuf += CUtil::makeHex(size) + CRLF + tmp + CRLF;
 
-    } else 
-#endif
-		if (size) {
-
+    } else if (size) {
         // Send a chunk of uncompressed/unchanged data
         m_sendInBuf += CUtil::makeHex(size) + CRLF + data + CRLF;
     }
@@ -1355,18 +1349,18 @@ void	CRequestManager::_DataDump()
     if (m_dumped) 
 		return;
     m_dumped = true;
-#if 0
-    if (sendContentCoding
-        && (useChain || recvContentCoding != sendContentCoding)) {
+
+    if (m_sendContentCoding
+        /*&& (useChain || recvContentCoding != sendContentCoding)*/) {
 
         string tmp;
-        compressor->dump();
-        compressor->read(tmp);
+        m_compressor->dump();
+        m_compressor->read(tmp);
         size_t size = tmp.size();
         if (size)
-            sendInBuf += CUtil::makeHex(size) + CRLF + tmp + CRLF;
+            m_sendInBuf += CUtil::makeHex(size) + CRLF + tmp + CRLF;
     }
-#endif
+
     if (m_inStep != STEP_FINISH) {
         // Data has been dumped by a filter, not by this request manager.
         // So we must disconnect the website to stop downloading.
@@ -1379,20 +1373,21 @@ void	CRequestManager::_DataDump()
  */
 void	CRequestManager::_EndFeeding() {
 
-#if 0
-    if (recvContentCoding && (useChain ||
-                recvContentCoding != sendContentCoding)) {
+    if (m_recvContentCoding /*&& (useChain ||
+                recvContentCoding != sendContentCoding)*/) {
         string data;
-        decompressor->dump();
-        decompressor->read(data);
-        if (useChain) {
-            chain->dataFeed(data);
-        } else if (useGifFilter) {
-            GIFfilter->dataFeed(data);
-        } else {
-            dataFeed(data);
-        }
+        m_decompressor->dump();
+        m_decompressor->read(data);
+
+        //if (useChain) {
+        //    chain->dataFeed(data);
+        //} else if (useGifFilter) {
+        //    GIFfilter->dataFeed(data);
+        //} else {
+            _DataFeed(data);
+        //}
     }
+#if 0
     if (useChain) {
         if (url.getDebug())
             dataFeed("\n</div>\n</body>\n</html>\n");

@@ -23,7 +23,10 @@
 //------------------------------------------------------------------
 
 #include "zlibbuffer.h"
-#include "const.h"
+//#include "const.h"
+#define ZLIB_BLOCK 4096
+
+#pragma comment(lib, "zlibstat.lib")
 
 using namespace std;
 
@@ -65,9 +68,10 @@ bool CZlibBuffer::reset(bool shrink, bool modeGzip) {
     this->modeGzip = modeGzip;
     buffer.clear();
     output.str("");
-    stream.zalloc = (alloc_func)0;
-    stream.zfree = (free_func)0;
-    stream.opaque = (voidpf)0;
+	SecureZeroMemory(&stream, sizeof(stream));
+    stream.zalloc = Z_NULL;
+    stream.zfree  = Z_NULL;
+    stream.opaque = Z_NULL;
     if (shrink) {
         if (modeGzip) {
             err = deflateInit2(&stream, Z_BEST_SPEED, Z_DEFLATED,
@@ -76,7 +80,11 @@ bool CZlibBuffer::reset(bool shrink, bool modeGzip) {
             err = deflateInit(&stream, Z_BEST_SPEED);
         }
     } else {
-        err = inflateInit(&stream);
+		if (modeGzip) {
+			err = inflateInit2(&stream, 47);
+		} else {
+			err = inflateInit(&stream);
+		}
     }
     if (err != Z_OK) return false;
     freed = false;
