@@ -8,10 +8,13 @@
 #include <string>
 #include <vector>
 #include "Socket.h"
+#include "DataReceptor.h"
+#include "TextBuffer.h"
+#include "FilterOwner.h"
 #include "proximodo\url.h"
 #include "proximodo\zlibbuffer.h"
 
-class CRequestManager
+class CRequestManager : public IDataReceptor
 {
 public:
 	CRequestManager(std::unique_ptr<CSocket>&& psockBrowser);
@@ -45,9 +48,11 @@ private:
 
 	bool	_VerifyContentType(std::string& ctype);
 
-	void	_DataReset() { m_dumped = false; }
-	void	_DataFeed(const std::string& data);
-	void	_DataDump();
+	// IDataReceptor
+	void	DataReset() { m_dumped = false; }
+	void	DataFeed(const std::string& data);
+	void	DataDump();
+
 	void	_EndFeeding();
 
 	void	_FakeResponse(const std::string& code);
@@ -68,6 +73,9 @@ private:
 	};
 
 	// Data members
+
+	// Filter instances
+	CTextBuffer	m_textFilterChain;
 
 	// Sockets
 	std::unique_ptr<CSocket>	m_psockBrowser;
@@ -107,24 +115,7 @@ private:
 		std::string ver, code, msg;
 	} m_responseLine;
 
-	//---------------------------------------------------------------------------------
-	// from CFilterOwner
-	CUrl	m_url;
-	long	m_requestNumber;
-	std::string m_responseCode;            // response code from website
-	std::string m_contactHost;             // can be overridden by $SETPROXY
-	bool	m_bypassIn;                    // tells if we can filter incoming headers
-	bool	m_bypassOut;                   // tells if we can filter outgoing headers
-	bool	m_bypassBody;                  // will tell if we can filter the body or not
-	bool	m_bypassBodyForced;            // set to true if $FILTER changed bypassBody
-	typedef std::vector<std::pair<std::string, std::string>> headpairlist;		// first:name  second:value
-	headpairlist	m_outHeaders;
-	headpairlist	m_inHeaders;
-	std::string	m_fileType;                    // useable by $TYPE
-
-	std::string _GetHeader(const headpairlist& headers, const std::string& name);
-	void		_SetHeader(headpairlist& headers, const std::string& name, const std::string& value);
-	void		_RemoveHeader(headpairlist& headers, const std::string& name);
+	CFilterOwner	m_filterOwner;
 
 };
 

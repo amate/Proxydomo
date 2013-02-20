@@ -27,20 +27,11 @@
 #ifndef __util__
 #define __util__
 
-#include <wx/defs.h>
 #include <string>
 #include <vector>
 #include <map>
-class wxTopLevelWindow;
 
 using namespace std;
-
-/* string -> wxString */
-#define S2W(s)   (wxString::From8BitData((s).c_str()))
-/* stringstream -> wxString */
-#define SS2W(ss) S2W((ss).str())
-/* wxString -> string */
-#define W2S(w)   ((string)(w).To8BitData())
 
 /* This static class contains generic functions
  */
@@ -134,7 +125,7 @@ public:
     static string getFile(string filename);
 
     // Get MIME type of a file
-    static string getMimeType(string filename);
+    //static string getMimeType(string filename);
 
     // Increment a string that will be terminated by (n)
     static string& increment(string& str);
@@ -143,17 +134,17 @@ public:
     static bool isUInt(string s);
 
     // Set content of clipboard
-    static void setClipboard(const string& str);
+    //static void setClipboard(const string& str);
 
     // Get content of clipboard
-    static string getClipboard();
+    //static string getClipboard();
 
     // MIME BASE64 encoder/decoder
     static string encodeBASE64(const string& str);
     static string decodeBASE64(const string& str);
 
     // Launch default browser (for a Proximodo help page)
-    static void openBrowser(const string& path = "");
+    //static void openBrowser(const string& path = "");
 
     // Launch default text editor (for a list file)
     static void openNotepad(const string& path);
@@ -162,10 +153,10 @@ public:
     static string getExeName(const string& cmd);
 
     // Function for sorting a list control
-    static int wxCALLBACK sortFunction(long item1, long item2, long sortData);
+    //static int wxCALLBACK sortFunction(long item1, long item2, long sortData);
 
     // Function to show and raise a top-level window
-    static void show(wxTopLevelWindow* window);
+    //static void show(wxTopLevelWindow* window);
 
     // Converts / to the platform's path separator
     static string makePath(const string& str);

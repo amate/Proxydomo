@@ -24,14 +24,14 @@
 
 
 #include "matcher.h"
-#include "settings.h"
+//#include "settings.h"
 #include "nodes.h"
 #include "const.h"
 #include "util.h"
 #include "url.h"
-#include "log.h"
+//#include "log.h"
 #include "filter.h"
-#include "filterowner.h"
+#include "..\filterowner.h"
 #include <sstream>
 #include <vector>
 #include <map>
@@ -124,16 +124,16 @@ bool CMatcher::testPattern(const string& pattern, string& errmsg) {
     try {
         CMatcher(pattern, filter);
     } catch (parsing_exception e) {
-        stringstream mess;
-        mess << CSettings::ref().getMessage(e.message, e.position) << endl;
-        int index = e.position - 8;
-        if (index < 0) index = 0;
-        mess << pattern.substr(index, e.position - index);
-        mess << CSettings::ref().getMessage("ERROR_MARKER");
-        index = e.position + 8;
-        if (index > (int)pattern.size()) index = pattern.size();
-        mess << pattern.substr(e.position, index - e.position);
-        errmsg = mess.str();
+        //stringstream mess;
+        //mess << CSettings::ref().getMessage(e.message, e.position) << endl;
+        //int index = e.position - 8;
+        //if (index < 0) index = 0;
+        //mess << pattern.substr(index, e.position - index);
+        //mess << CSettings::ref().getMessage("ERROR_MARKER");
+        //index = e.position + 8;
+        //if (index > (int)pattern.size()) index = pattern.size();
+        //mess << pattern.substr(e.position, index - e.position);
+        //errmsg = mess.str();
         return false;
     }
     return true;
@@ -579,7 +579,7 @@ CNode* CMatcher::code(const string& pattern, int& pos, int stop) {
 
         // The pattern will continue after the closing )
         pos = endContent;
-        
+#if 0
         try {
             if (command == "AV") {
 
@@ -934,7 +934,7 @@ CNode* CMatcher::code(const string& pattern, int& pos, int stop) {
             e.position += startContent;
             throw e;
         }
-
+#endif
     // Expression
     } else if (token == '(') {
 

@@ -24,7 +24,9 @@
 
 #include "zlibbuffer.h"
 //#include "const.h"
-#define ZLIB_BLOCK 4096
+
+
+#define ZLIB_BLOCK 8192
 
 #pragma comment(lib, "zlibstat.lib")
 
@@ -32,7 +34,8 @@ using namespace std;
 
 /* Constructor
  */
-CZlibBuffer::CZlibBuffer() {
+CZlibBuffer::CZlibBuffer()
+{
     freed = true;
 }
 
@@ -62,7 +65,7 @@ void CZlibBuffer::free() {
 /* Reset zlib stream and make it a deflating/inflating stream
  */
 bool CZlibBuffer::reset(bool shrink, bool modeGzip) {
-
+	
     free();
     this->shrink = shrink;
     this->modeGzip = modeGzip;
@@ -97,17 +100,20 @@ bool CZlibBuffer::reset(bool shrink, bool modeGzip) {
  */
 void CZlibBuffer::feed(string data) {
 
-    if (err != Z_OK || freed) return;
+    if (err != Z_OK || freed) 
+		return;
+
     buffer += data;
     size_t size = buffer.size();
     size_t remaining = size;
     char buf1[ZLIB_BLOCK], buf2[ZLIB_BLOCK];
-    while (err == Z_OK && remaining > 0) {
+	while ((err == Z_OK || err == Z_BUF_ERROR) && remaining > 0) {
         stream.next_in = (Byte*)buf1;
         stream.avail_in = (remaining > ZLIB_BLOCK ? ZLIB_BLOCK : remaining);
-        for (size_t i=0; i<stream.avail_in; i++) {
-            buf1[i] = buffer[size - remaining + i];
-        }
+		memcpy_s(buf1, ZLIB_BLOCK, &buffer[size - remaining], stream.avail_in);
+        //for (size_t i=0; i<stream.avail_in; i++) {
+        //    buf1[i] = buffer[size - remaining + i];
+        //}
         do {
             stream.next_out = (Byte*)buf2;
             stream.avail_out = (uInt)ZLIB_BLOCK;
@@ -117,8 +123,9 @@ void CZlibBuffer::feed(string data) {
                 err = inflate(&stream, Z_NO_FLUSH);
             }
             output << string(buf2, ZLIB_BLOCK - stream.avail_out);
-        } while (err == Z_OK && stream.avail_out < ZLIB_BLOCK/10);
-        if (stream.next_in == (Byte*)buf1) break;
+        } while (err == Z_OK && stream.avail_out < ZLIB_BLOCK / 10);
+        if (stream.next_in == (Byte*)buf1) 
+			break;
         remaining -= ((char*)stream.next_in - buf1);
     }
     buffer = buffer.substr(size - remaining);

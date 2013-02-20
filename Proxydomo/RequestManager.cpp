@@ -122,15 +122,16 @@ std::string makeHex(unsigned int n) {
 // CRequestManager
 
 CRequestManager::CRequestManager(std::unique_ptr<CSocket>&& psockBrowser) :
+	m_textFilterChain(m_filterOwner, this),
 	m_psockBrowser(std::move(psockBrowser)),
 	m_valid(true),
 	m_dumped(false),
 	m_outSize(0),
 	m_outChunked(false),
 	m_inSize(0),
-	m_inChunked(false),
-	m_requestNumber(0)
+	m_inChunked(false)
 {
+	m_filterOwner.requestNumber = 0;
 }
 
 
@@ -171,7 +172,7 @@ void CRequestManager::Manage()
 			bRest = false;
 
 		if (m_psockWebsite->IsConnected()) {
-			TRACEIN("Manage ポート %d : サイトとつながりました！[%s]", m_ipFromAddress.GetPortNumber(), m_contactHost.c_str());
+			TRACEIN("Manage ポート %d : サイトとつながりました！[%s]", m_ipFromAddress.GetPortNumber(), m_filterOwner.contactHost.c_str());
 			do {
 				// Full processing
 				bool bRest = true;
@@ -219,9 +220,9 @@ void CRequestManager::Manage()
 			} while (m_psockWebsite->IsConnected() &&  m_psockBrowser->IsConnected());
 			TRACE("Manage ポート %d : outStep[%d] inStep[%d] ", m_ipFromAddress.GetPortNumber(), m_outStep, m_inStep);
 			if (m_psockWebsite->IsConnected() == false)
-				TRACEIN("サイトとの接続が切れました [%s]", m_contactHost.c_str());
+				TRACEIN("サイトとの接続が切れました [%s]", m_filterOwner.contactHost.c_str());
 			else
-				TRACEIN("ブラウザとの接続が切れました [%s]", m_contactHost.c_str());
+				TRACEIN("ブラウザとの接続が切れました [%s]", m_filterOwner.contactHost.c_str());
 
 			//if (m_outStep == STEP_TUNNELING && m_psockBrowser->IsConnected()) {
 			//	_ProcessIn();
@@ -334,13 +335,13 @@ void CRequestManager::_ProcessOut()
 				}
 
 				// Reset variables relative to a single request/response
-				m_bypassOut = false;
-				m_bypassIn = false;
-				m_bypassBody = false;
-				m_bypassBodyForced = false;
-				//killed = false;
+				m_filterOwner.bypassOut = false;
+				m_filterOwner.bypassIn = false;
+				m_filterOwner.bypassBody = false;
+				m_filterOwner.bypassBodyForced = false;
+				m_filterOwner.killed = false;
 				//variables.clear();
-				m_requestNumber = CLog::IncrementRequestCount();
+				m_filterOwner.requestNumber = CLog::IncrementRequestCount();
 				//rdirMode = 0;
 				//rdirToHost.clear();
 				//redirectedIn = 0;
@@ -375,10 +376,10 @@ void CRequestManager::_ProcessOut()
 				// we won't expect anything after headers.
 				m_outSize = 0;
 				m_outChunked = false;
-				m_outHeaders.clear();
+				m_filterOwner.outHeaders.clear();
 				// (in case a silly OUT filter wants to read IN headers)
-				m_inHeaders.clear();
-				m_responseCode.clear();
+				m_filterOwner.inHeaders.clear();
+				m_filterOwner.responseCode.clear();
 			}
 			break;
 
@@ -414,7 +415,7 @@ void CRequestManager::_ProcessOut()
 						std::string name = m_recvOutBuf.substr(0, colon);
 						std::string value = m_recvOutBuf.substr(colon + 1, pos - colon - 1);
 						CUtil::trim(value);
-						m_outHeaders.emplace_back(name, value);
+						m_filterOwner.outHeaders.emplace_back(name, value);
 					}
 					m_logRequest += m_recvOutBuf.substr(0, pos + len);
 					m_recvOutBuf.erase(0, pos + len);
@@ -425,28 +426,28 @@ void CRequestManager::_ProcessOut()
 		// Decode and process headers
 		case STEP_DECODE:
 			{
-				CLog::HttpEvent(kLogHttpRecvOut, m_ipFromAddress, m_requestNumber, m_logRequest);
+				CLog::HttpEvent(kLogHttpRecvOut, m_ipFromAddress, m_filterOwner.requestNumber, m_logRequest);
 
 				// Get the URL and the host to contact (unless we use a proxy)
-				m_url.parseUrl(m_requestLine.url);
-			    m_bypassIn   = m_url.getBypassIn();
-				m_bypassOut  = m_url.getBypassOut();
-				m_bypassBody = m_url.getBypassText();
+				m_filterOwner.url.parseUrl(m_requestLine.url);
+			    m_filterOwner.bypassIn   = m_filterOwner.url.getBypassIn();
+				m_filterOwner.bypassOut  = m_filterOwner.url.getBypassOut();
+				m_filterOwner.bypassBody = m_filterOwner.url.getBypassText();
 
-				m_contactHost = m_url.getHostPort();
+				m_filterOwner.contactHost = m_filterOwner.url.getHostPort();
 
 				// We must read the Content-Length and Transfer-Encoding
 				// headers to know if thre is POSTed data
-				if (CUtil::noCaseContains("chunked", _GetHeader(m_outHeaders, "Transfer-Encoding")))
+				if (CUtil::noCaseContains("chunked", m_filterOwner.GetOutHeader("Transfer-Encoding")))
 					m_outChunked = true;
 
-				std::string contentLength = _GetHeader(m_outHeaders, "Content-Length");
+				std::string contentLength = m_filterOwner.GetOutHeader("Content-Length");
 				if (contentLength.size() > 0)
 					m_outSize = boost::lexical_cast<int>(contentLength);
 
 				// We'll work on a copy, since we don't want to alter
 				// the real headers that $IHDR and $OHDR may access
-				auto outHeadersFiltered = m_outHeaders;
+				auto outHeadersFiltered = m_filterOwner.outHeaders;
 
 				// If we haven't connected to ths host yet, we do it now.
 				// This will allow incoming processing to start. If the
@@ -459,18 +460,18 @@ void CRequestManager::_ProcessOut()
 				if (m_inStep == STEP_START) {
 
 					// Update URL within request
-					_SetHeader(outHeadersFiltered, "Host", m_url.getHost());
+					CFilterOwner::SetHeader(outHeadersFiltered, "Host", m_filterOwner.url.getHost());
 
-					if (CUtil::noCaseContains("Keep-Alive", _GetHeader(outHeadersFiltered, "Proxy-Connection"))) {
-						_RemoveHeader(outHeadersFiltered, "Proxy-Connection");
-						_SetHeader(outHeadersFiltered, "Connection", "Keep-Alive");
+					if (CUtil::noCaseContains("Keep-Alive", CFilterOwner::GetHeader(outHeadersFiltered, "Proxy-Connection"))) {
+						CFilterOwner::RemoveHeader(outHeadersFiltered, "Proxy-Connection");
+						CFilterOwner::SetHeader(outHeadersFiltered, "Connection", "Keep-Alive");
 					}
 
 				
-					if (m_contactHost == m_url.getHostPort())
-						m_requestLine.url = m_url.getAfterHost();
+					if (m_filterOwner.contactHost == m_filterOwner.url.getHostPort())
+						m_requestLine.url = m_filterOwner.url.getAfterHost();
 					else
-						m_requestLine.url = m_url.getUrl();
+						m_requestLine.url = m_filterOwner.url.getUrl();
 					if (m_requestLine.url.empty())
 						m_requestLine.url = "/";
 
@@ -480,7 +481,7 @@ void CRequestManager::_ProcessOut()
 						m_sendOutBuf += pair.first + ": " + pair.second + CRLF;
 
 					// Log outgoing headers
-					CLog::HttpEvent(kLogHttpSendOut, m_ipFromAddress, m_requestNumber, m_sendOutBuf);
+					CLog::HttpEvent(kLogHttpSendOut, m_ipFromAddress, m_filterOwner.requestNumber, m_sendOutBuf);
 
 					m_sendOutBuf += CRLF;
 				}
@@ -502,7 +503,7 @@ void CRequestManager::_ProcessOut()
 		// or CRLF zero * CRLF CRLF
 		case STEP_CHUNK:
 			{
-				TRACEIN(_T("ProcessOut #%d : STEP_CHUNK"), m_requestNumber);
+				TRACEIN(_T("ProcessOut #%d : STEP_CHUNK"), m_filterOwner.requestNumber);
 				size_t pos, len;
 				while (CUtil::endOfLine(m_recvOutBuf, 0, pos, len) && pos == 0) {
 					m_sendOutBuf += CRLF;
@@ -522,7 +523,7 @@ void CRequestManager::_ProcessOut()
 					m_sendOutBuf += m_recvOutBuf.substr(0, pos) + CRLF CRLF;
 					m_recvOutBuf.erase(0, pos + len);
 
-					CLog::HttpEvent(kLogHttpPostOut, m_ipFromAddress, m_requestNumber, m_logPostData);
+					CLog::HttpEvent(kLogHttpPostOut, m_ipFromAddress, m_filterOwner.requestNumber, m_logPostData);
 
 					m_outStep = STEP_FINISH;
 
@@ -537,7 +538,7 @@ void CRequestManager::_ProcessOut()
 		// The next outSize bytes are left untouched
 		case STEP_RAW:
 			{
-				TRACEIN(_T("ProcessOut #%d : STEP_RAW"), m_requestNumber);
+				TRACEIN(_T("ProcessOut #%d : STEP_RAW"), m_filterOwner.requestNumber);
 				int copySize = m_recvOutBuf.size();
 				if (copySize > m_outSize)
 					copySize = m_outSize;
@@ -556,7 +557,7 @@ void CRequestManager::_ProcessOut()
 					if (m_outChunked) {
 						m_outStep = STEP_CHUNK;
 					} else {
-						CLog::HttpEvent(kLogHttpPostOut, m_ipFromAddress, m_requestNumber, m_logPostData);
+						CLog::HttpEvent(kLogHttpPostOut, m_ipFromAddress, m_filterOwner.requestNumber, m_logPostData);
 
 						m_outStep = STEP_FINISH;
 					}
@@ -589,7 +590,7 @@ void CRequestManager::_ProcessOut()
 		// We'll wait for response completion
 		case STEP_FINISH:
 			{
-				TRACEIN(_T("ProcessOut #%d : STEP_FINISH inStep[%d]"), m_requestNumber, m_inStep);
+				TRACEIN(_T("ProcessOut #%d : STEP_FINISH inStep[%d]"), m_filterOwner.requestNumber, m_inStep);
 				if (m_inStep != STEP_FINISH)
 					return ;
 
@@ -624,7 +625,7 @@ void CRequestManager::_ConnectWebsite()
 	if (m_inStep == STEP_DECODE) {
 		m_psockWebsite->Close();
 		m_inStep = STEP_START;
-		m_bypassBody = m_bypassBodyForced = false;
+		m_filterOwner.bypassBody = m_filterOwner.bypassBodyForced = false;
 	}
 
     _ReceiveIn();
@@ -705,14 +706,14 @@ void CRequestManager::_ConnectWebsite()
     }
 #endif
     // Unless we are already connected to this host, we try and connect now
-	if (m_previousHost != m_contactHost || m_psockWebsite->IsConnected() == false) {
+	if (m_previousHost != m_filterOwner.contactHost || m_psockWebsite->IsConnected() == false) {
 
         // Disconnect from previous host
         m_psockWebsite->Close();
-        m_previousHost = m_contactHost;
+        m_previousHost = m_filterOwner.contactHost;
 
         // The host string is composed of host and port
-        std::string name = m_contactHost;
+        std::string name = m_filterOwner.contactHost;
 		std::string port;
         size_t colon = name.find(':');
         if (colon != std::string::npos) {    // (this should always happen)
@@ -770,24 +771,24 @@ void CRequestManager::_ConnectWebsite()
             // for CONNECT method, incoming data is encrypted from start
             m_sendInBuf = "HTTP/1.0 200 Connection established" CRLF
 						  "Proxy-agent: " "Proxydomo/0.5"/*APP_NAME " " APP_VERSION*/ CRLF CRLF;
-			CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_requestNumber, m_sendInBuf);
+			CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_filterOwner.requestNumber, m_sendInBuf);
             m_inStep = STEP_TUNNELING;
         }
     }
 
     // Prepare and send a simple request, if we did a transparent redirection
     if (m_outStep != STEP_DECODE && m_inStep == STEP_START) {
-        if (m_contactHost == m_url.getHostPort())
-            m_requestLine.url = m_url.getAfterHost();
+        if (m_filterOwner.contactHost == m_filterOwner.url.getHostPort())
+            m_requestLine.url = m_filterOwner.url.getAfterHost();
         else
-            m_requestLine.url = m_url.getUrl();
+            m_requestLine.url = m_filterOwner.url.getUrl();
         if (m_requestLine.url.empty()) 
 			m_requestLine.url = "/";
         m_sendOutBuf =
             m_requestLine.method + " " + m_requestLine.url + " HTTP/1.1" CRLF
-            "Host: " + m_url.getHost() + CRLF;
+            "Host: " + m_filterOwner.url.getHost() + CRLF;
 
-		CLog::HttpEvent(kLogHttpSendOut, m_ipFromAddress, m_requestNumber, m_sendOutBuf);
+		CLog::HttpEvent(kLogHttpSendOut, m_ipFromAddress, m_filterOwner.requestNumber, m_sendOutBuf);
 
         m_sendOutBuf += m_logPostData + CRLF;
         // Send request
@@ -850,7 +851,7 @@ void	CRequestManager::_ProcessIn()
 				m_responseLine.ver  = m_recvInBuf.substr(0,p1);
 				m_responseLine.code = m_recvInBuf.substr(p1+1, p2-p1-1);
 				m_responseLine.msg  = m_recvInBuf.substr(p2+1, pos-p2-1);
-				m_responseCode = m_recvInBuf.substr(p1+1, pos-p1-1);
+				m_filterOwner.responseCode = m_recvInBuf.substr(p1+1, pos-p1-1);
 
 				// Remove it from receive-in buffer.
 				// we don't place it immediately on send-in buffer,
@@ -865,8 +866,8 @@ void	CRequestManager::_ProcessIn()
 				// we won't expect anything after headers.
 				m_inSize = 0;
 				m_inChunked = false;
-				m_inHeaders.clear();
-				m_responseCode.clear();
+				m_filterOwner.inHeaders.clear();
+				//m_filterOwner.responseCode.clear();	 // だめだろ・・・
 				m_recvConnectionClose = false;
 				m_sendConnectionClose = false;
 				m_recvContentCoding = m_sendContentCoding = 0;
@@ -877,7 +878,7 @@ void	CRequestManager::_ProcessIn()
 		// Read and process headers, as long as there are any
 		case STEP_HEADERS:
 			{
-			   for (;;) {
+				for (;;) {
 					// Look for end of line
 					size_t pos, len;
 					if (CUtil::endOfLine(m_recvInBuf, 0, pos, len) == false)
@@ -894,16 +895,16 @@ void	CRequestManager::_ProcessIn()
 							m_responseLine.ver.clear();
 							m_responseLine.code.clear();
 							m_responseLine.msg.clear();
-							m_responseCode.clear();
+							m_filterOwner.responseCode.clear();
 						}
 						break;
 					}
 
 					// Find the header end
 					while (   pos+len >= m_recvInBuf.size()
-						   || m_recvInBuf[pos+len] == ' '
-						   || m_recvInBuf[pos+len] == '\t' 
-						  )
+						|| m_recvInBuf[pos+len] == ' '
+						|| m_recvInBuf[pos+len] == '\t' 
+						)
 					{
 						if (CUtil::endOfLine(m_recvInBuf, pos+len, pos, len) == false)
 							return ;
@@ -915,7 +916,7 @@ void	CRequestManager::_ProcessIn()
 						std::string name = m_recvInBuf.substr(0, colon);
 						std::string value = m_recvInBuf.substr(colon+1, pos-colon-1);
 						CUtil::trim(value);
-						m_inHeaders.emplace_back(name, value);
+						m_filterOwner.inHeaders.emplace_back(name, value);
 					}
 					m_logResponse += m_recvInBuf.substr(0, pos + len);
 					m_recvInBuf.erase(0, pos+len);
@@ -926,26 +927,26 @@ void	CRequestManager::_ProcessIn()
 		// Decode and process headers
 		case STEP_DECODE:
 			{
-				CLog::HttpEvent(kLogHttpRecvIn, m_ipFromAddress, m_requestNumber, m_logResponse);
+				CLog::HttpEvent(kLogHttpRecvIn, m_ipFromAddress, m_filterOwner.requestNumber, m_logResponse);
 
 				// We must read the Content-Length and Transfer-Encoding
 				// headers to know body length
-				if (CUtil::noCaseContains("chunked", _GetHeader(m_inHeaders, "Transfer-Encoding")))
+				if (CUtil::noCaseContains("chunked", m_filterOwner.GetInHeader("Transfer-Encoding")))
 					m_inChunked = true;
-				
-				std::string contentLength = _GetHeader(m_inHeaders, "Content-Length");
+
+				std::string contentLength = m_filterOwner.GetInHeader("Content-Length");
 				if (contentLength.size() > 0) 
 					m_inSize = boost::lexical_cast<int>(contentLength);
 
-				std::string contentType = _GetHeader(m_inHeaders, "Content-Type");
+				std::string contentType = m_filterOwner.GetInHeader("Content-Type");
 				if (contentType.size() > 0) {
 					// If size is not given, we'll read body until connection closes
 					if (contentLength.empty()) 
 						m_inSize = /*BIG_NUMBER*/ 0x7FFFFFFF;
-					
+
 					// Check for filterable MIME types
-					if (_VerifyContentType(contentType) == false && m_bypassBodyForced == false)
-						m_bypassBody = true;
+					if (_VerifyContentType(contentType) == false && m_filterOwner.bypassBodyForced == false)
+						m_filterOwner.bypassBody = true;
 
 					// Check for GIF to freeze
 					//if (CUtil::noCaseContains("image/gif",
@@ -954,32 +955,33 @@ void	CRequestManager::_ProcessIn()
 					//}
 				}
 
-				if (   CUtil::noCaseContains("close", _GetHeader(m_inHeaders, "Connection"))
-					|| CUtil::noCaseBeginsWith("HTTP/1.0", m_responseLine.ver)) {
-					m_recvConnectionClose = true;
+				if (   CUtil::noCaseContains("close", m_filterOwner.GetInHeader("Connection"))
+					|| (CUtil::noCaseBeginsWith("HTTP/1.0", m_responseLine.ver) && 
+					    CUtil::noCaseContains("Keep-Alive", m_filterOwner.GetInHeader("Connection")) == false) ) {
+						m_recvConnectionClose = true;
 				}
 
 
-				if (CUtil::noCaseContains("gzip", _GetHeader(m_inHeaders, "Content-Encoding"))) {
+				if (CUtil::noCaseContains("gzip", m_filterOwner.GetInHeader("Content-Encoding"))) {
 					m_recvContentCoding = 1;
 					if (m_decompressor == nullptr) 
 						m_decompressor.reset(new CZlibBuffer());
 					m_decompressor->reset(false, true);
-				} else if (CUtil::noCaseContains("deflate", _GetHeader(m_inHeaders, "Content-Encoding"))) {
+				} else if (CUtil::noCaseContains("deflate", m_filterOwner.GetInHeader( "Content-Encoding"))) {
 					m_recvContentCoding = 2;
 					if (m_decompressor == nullptr) 
 						m_decompressor.reset(new CZlibBuffer());
 					m_decompressor->reset(false, false);
-				} else if (CUtil::noCaseContains("compress", _GetHeader(m_inHeaders, "Content-Encoding"))) {
-					m_bypassBody = true;
+				} else if (CUtil::noCaseContains("compress", m_filterOwner.GetInHeader("Content-Encoding"))) {
+					m_filterOwner.bypassBody = true;
 				}
 
-				if (CUtil::noCaseBeginsWith("206", m_responseCode))
-					m_bypassBody = true;
+				if (CUtil::noCaseBeginsWith("206", m_filterOwner.responseCode))
+					m_filterOwner.bypassBody = true;
 
 				// We'll work on a copy, since we don't want to alter
 				// the real headers that $IHDR and $OHDR may access
-				auto inHeadersFiltered = m_inHeaders;
+				auto inHeadersFiltered = m_filterOwner.inHeaders;
 
 				// Test for redirection (limited to 3, to prevent infinite loop)
 				//if (!rdirToHost.empty() && redirectedIn < 3) {
@@ -990,27 +992,29 @@ void	CRequestManager::_ProcessIn()
 				//}
 
 				// Decode new headers to control browser-side beehaviour
-				if (CUtil::noCaseContains("close", _GetHeader(inHeadersFiltered, "Connection")))
+				if (CUtil::noCaseContains("close", CFilterOwner::GetHeader(inHeadersFiltered, "Connection")))
 					m_sendConnectionClose = true;
-				
 
-				if (CUtil::noCaseContains("gzip", _GetHeader(inHeadersFiltered, "Content-Encoding"))) {
-					m_sendContentCoding = 1;
-					if (m_compressor == nullptr) 
-						m_compressor.reset(new CZlibBuffer());
-					m_compressor->reset(true, true);
-				} else if (CUtil::noCaseContains("deflate", _GetHeader(inHeadersFiltered, "Content-Encoding"))) {
-					m_sendContentCoding = 2;
-					if (m_compressor == nullptr) 
-						m_compressor.reset(new CZlibBuffer());
-					m_compressor->reset(true, false);
+
+				if (CUtil::noCaseContains("gzip", CFilterOwner::GetHeader(inHeadersFiltered, "Content-Encoding"))) {
+					CFilterOwner::RemoveHeader(inHeadersFiltered, "Content-Encoding");
+					//m_sendContentCoding = 1;
+					//if (m_compressor == nullptr) 
+					//	m_compressor.reset(new CZlibBuffer());
+					//m_compressor->reset(true, true);
+				} else if (CUtil::noCaseContains("deflate", CFilterOwner::GetHeader(inHeadersFiltered, "Content-Encoding"))) {
+					CFilterOwner::RemoveHeader(inHeadersFiltered, "Content-Encoding");
+					//m_sendContentCoding = 2;
+					//if (m_compressor == nullptr) 
+					//	m_compressor.reset(new CZlibBuffer());
+					//m_compressor->reset(true, false);
 				}
 
 				if (m_inChunked || m_inSize) {
 					// Our output will always be chunked: filtering can
 					// change body size. So let's force this header.
-					_SetHeader(inHeadersFiltered, "Transfer-Encoding", "chunked");
-					_RemoveHeader(inHeadersFiltered, "Content-Length");	// Content-Lengthを消さないとおかしい
+					CFilterOwner::SetHeader(inHeadersFiltered, "Transfer-Encoding", "chunked");
+					CFilterOwner::RemoveHeader(inHeadersFiltered, "Content-Length");	// Content-Lengthを消さないとおかしい
 				}
 
 				// Now we can put everything in the filtered buffer
@@ -1056,24 +1060,24 @@ void	CRequestManager::_ProcessIn()
 				//	dataFeed(buf);
 				//} else {
 
-					m_sendInBuf = "HTTP/1.1 " + m_responseLine.code + " " + m_responseLine.msg  + CRLF ;
-					std::string name;
-					for (auto& pair : inHeadersFiltered) {
-						m_sendInBuf += pair.first + ": " + pair.second + CRLF;
-					}
-					CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_requestNumber, m_sendInBuf);
+				m_sendInBuf = "HTTP/1.1 " + m_responseLine.code + " " + m_responseLine.msg  + CRLF ;
+				std::string name;
+				for (auto& pair : inHeadersFiltered) {
+					m_sendInBuf += pair.first + ": " + pair.second + CRLF;
+				}
+				CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_filterOwner.requestNumber, m_sendInBuf);
 
-					m_sendInBuf += CRLF;
+				m_sendInBuf += CRLF;
 
-					// Tell text filters to see whether they should work on it
-					//useChain = (!bypassBody && CSettings::ref().filterText);
-					//if (useChain) chain->dataReset(); else dataReset();
-					//if (useGifFilter) GIFfilter->dataReset();
+				// Tell text filters to see whether they should work on it
+				//useChain = (!bypassBody && CSettings::ref().filterText);
+				//if (useChain) chain->dataReset(); else dataReset();
+				//if (useGifFilter) GIFfilter->dataReset();
 
-					_DataReset();
+				DataReset();
 
-					// File type will be reevaluated using first block of data
-					m_fileType.clear();
+				// File type will be reevaluated using first block of data
+				m_filterOwner.fileType.clear();
 				//}
 
 				// Decide what to do next
@@ -1082,15 +1086,15 @@ void	CRequestManager::_ProcessIn()
 							m_responseLine.code[0] == '1' ? STEP_FINISH :
 							m_inChunked                   ? STEP_CHUNK  :
 							m_inSize                      ? STEP_RAW    :
-															STEP_FINISH );
+							STEP_FINISH );
 			}
 			break;
 
-        // Read  (CRLF) HexRawLength * CRLF before raw data
-        // or    zero * CRLF CRLF
+		// Read  (CRLF) HexRawLength * CRLF before raw data
+		// or    zero * CRLF CRLF
 		case STEP_CHUNK:
 			{
-				TRACEIN(_T("ProcessIn #%d : STEP_CHUNK"), m_requestNumber);
+				TRACEIN(_T("ProcessIn #%d : STEP_CHUNK"), m_filterOwner.requestNumber);
 				size_t pos, len;
 				while (CUtil::endOfLine(m_recvInBuf, 0, pos, len) && pos == 0)
 					m_recvInBuf.erase(0,len);
@@ -1128,41 +1132,41 @@ void	CRequestManager::_ProcessIn()
 				m_recvInBuf.erase(0, copySize);
 				m_inSize -= copySize;
 
-				TRACEIN(_T("ProcessIn #%d : STEP_RAW copySize[%d] inSize(rest)[%d]"), m_requestNumber, copySize, m_inSize);
+				TRACEIN(_T("ProcessIn #%d : STEP_RAW copySize[%d] inSize(rest)[%d]"), m_filterOwner.requestNumber, copySize, m_inSize);
 
 				// We must decompress compressed data,
 				// unless bypassed body with same coding
 				if (m_recvContentCoding /*&& (useChain ||
-							m_recvContentCoding != m_sendContentCoding)*/) {
+										m_recvContentCoding != m_sendContentCoding)*/) {
 					m_decompressor->feed(data);
 					m_decompressor->read(data);
 				}
 
-#if 0
 
-				if (useChain) {
-					// provide filter chain with raw unfiltered data
-					chain->dataFeed(data);
-				} else if (useGifFilter) {
-					// Freeze GIF
-					GIFfilter->dataFeed(data);
-				} else {
-#endif
+				//if (useChain) {
+				//	// provide filter chain with raw unfiltered data
+				//	chain->dataFeed(data);
+				//} else if (useGifFilter) {
+				//	// Freeze GIF
+				//	GIFfilter->dataFeed(data);
+				//} else {
+
 					// In case we bypass the body, we directly send data to
 					// the end of chain (the request manager itself)
-					_DataFeed(data);
-				//}
+					DataFeed(data);
+					//}
 
-				// If we finished reading as much raw data as was expected,
-				// continue to next step (finish or next chunk)
-				if (m_inSize == 0) {
-					if (m_inChunked) {
-						m_inStep = STEP_CHUNK;
-					} else {
-						m_inStep = STEP_FINISH;
-						_EndFeeding();
+					// If we finished reading as much raw data as was expected,
+					// continue to next step (finish or next chunk)
+					if (m_inSize == 0) {
+						if (m_inChunked) {
+							m_inStep = STEP_CHUNK;
+						} else {
+							m_inStep = STEP_FINISH;
+							_EndFeeding();
+						}
 					}
-				}	
+				//}
 			}
 			break;
 
@@ -1185,10 +1189,11 @@ void	CRequestManager::_ProcessIn()
 			}
 			break;
 
-		// A few things have to be done before we go back to start state...
+			// A few things have to be done before we go back to start state...
 		case STEP_FINISH:
 			{
-				TRACEIN(_T("ProcessIn #%d : STEP_FINISH outStep[%d]"), m_requestNumber, m_outStep);
+
+				TRACEIN(_T("ProcessIn #%d : STEP_FINISH outStep[%d]"), m_filterOwner.requestNumber, m_outStep);
 				if (m_outStep != STEP_FINISH && m_outStep != STEP_START)
 					return ;
 				m_outStep = STEP_START;
@@ -1210,9 +1215,12 @@ void	CRequestManager::_ProcessIn()
 					m_psockWebsite->Close();
 				}	
 			}
+			break;	
+			}
 		}
 	}
-}
+
+
 
 
 /// Send incoming data to browser
@@ -1242,7 +1250,7 @@ bool	CRequestManager::_VerifyContentType(std::string& ctype)
     // Remove top-level type, e.g., text/html -> html
     size_t slash = ctype.find('/');
     if (slash == std::string::npos || slash >= end) {
-      m_fileType = "oth";
+      m_filterOwner.fileType = "oth";
       return false;
     }
     slash++;
@@ -1254,73 +1262,25 @@ bool	CRequestManager::_VerifyContentType(std::string& ctype)
     CUtil::lower(type);
 
     if (type == "html") {
-      m_fileType = "htm";
+      m_filterOwner.fileType = "htm";
       return true;
     } else if (type == "javascript") {
-      m_fileType = "js";
+      m_filterOwner.fileType = "js";
       return true;
     } else if (type == "css") {
-      m_fileType = "css";
+      m_filterOwner.fileType = "css";
       return true;
     } else if (type == "vbscript") {
-      m_fileType = "vbs";
+      m_filterOwner.fileType = "vbs";
       return true;
     }
-    m_fileType = "oth";
+    m_filterOwner.fileType = "oth";
     return false;
 }
 
 
-std::string CRequestManager::_GetHeader(const headpairlist& headers, const std::string& name)
-{
-    for (auto it = headers.cbegin(); it != headers.cend(); it++) {
-		if (CUtil::noCaseEqual(name, it->first)) 
-			return it->second;
-    }
-    return "";
-}
 
-
-void		CRequestManager::_SetHeader(headpairlist& headers, const std::string& name, const std::string& value)
-{
-	auto it = headers.begin();
-    for (; it != headers.end(); it++) {
-        if (CUtil::noCaseEqual(name, it->first)) {
-            it->second = value;
-            break;
-        }
-    }
-    if (it == headers.end()) {
-        headers.emplace_back(name, value);
-    } else {
-        ++it;
-        auto it2 = it;
-        while (it2 != headers.end()) {
-            if (CUtil::noCaseEqual(name, it2->first)) {
-                headers.erase(it2);
-                it2 = it;
-            } else {
-                it2++;
-            }
-        }
-    }
-}
-
-void		CRequestManager::_RemoveHeader(headpairlist& headers, const std::string& name)
-{
-	auto it = headers.begin();
-    while (it != headers.end()) {
-        if (CUtil::noCaseEqual(name, it->first)) {
-            headers.erase(it);
-            it = headers.begin();
-        } else {
-            it++;
-        }
-    }
-}
-
-
-void	CRequestManager::_DataFeed(const std::string& data)
+void	CRequestManager::DataFeed(const std::string& data)
 {
     if (m_dumped) 
 		return;
@@ -1344,7 +1304,7 @@ void	CRequestManager::_DataFeed(const std::string& data)
 }
 
 /// Record that the chain emptied itself, finish compression if needed
-void	CRequestManager::_DataDump()
+void	CRequestManager::DataDump()
 {
     if (m_dumped) 
 		return;
@@ -1384,7 +1344,7 @@ void	CRequestManager::_EndFeeding() {
         //} else if (useGifFilter) {
         //    GIFfilter->dataFeed(data);
         //} else {
-            _DataFeed(data);
+            DataFeed(data);
         //}
     }
 #if 0
@@ -1397,7 +1357,7 @@ void	CRequestManager::_EndFeeding() {
     } else 
 #endif
 	{
-        _DataDump();
+        DataDump();
     }
     // Write last chunk (size 0)
     m_sendInBuf += "0" CRLF CRLF;
@@ -1409,7 +1369,7 @@ void	CRequestManager::_FakeResponse(const std::string& code)
 	m_sendInBuf = 
         "HTTP/1.1 " + code + CRLF
         "Content-Length: " + "0" + CRLF;
-	CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_requestNumber, m_sendInBuf);
+	CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_filterOwner.requestNumber, m_sendInBuf);
 	m_sendInBuf += CRLF;
 	m_sendConnectionClose = true;
 }

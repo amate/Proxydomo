@@ -25,19 +25,13 @@
 
 
 #include "util.h"
-#include "platform.h"
+//#include "platform.h"
 #include "const.h"
-#include "settings.h"
+//#include "settings.h"
 #include <ctype.h>
-#include <wx/file.h>
-#include <wx/filename.h>
-#include <wx/arrstr.h>
-#include <wx/mimetype.h>
-#include <wx/clipbrd.h>
-#include <wx/list.h>
-#include <wx/msgdlg.h>
-#include <wx/dataobj.h>
 #include <sstream>
+#include <fstream>
+#include <Windows.h>
 
 using namespace std;
 
@@ -254,13 +248,13 @@ bool CUtil::keyCheck(const string& keys) {
         if (key == '^' && i+1 < size) {
             key = keys[++i];
             switch (key) {
-            case 'T' : key = WXK_TAB;     break;
-            case 'C' : key = WXK_CONTROL; break;
-            case 'A' : key = WXK_MENU;    break;
-            case 'S' : key = WXK_SHIFT;   break;
+            case 'T' : key = VK_TAB;     break;
+            case 'C' : key = VK_CONTROL; break;
+            case 'A' : key = VK_MENU;    break;
+            case 'S' : key = VK_SHIFT;   break;
             default : // ^num or ^Fnum
                 if (key == 'F') {
-                    key = WXK_F1 - 1;
+                    key = VK_F1 - 1;
                     ++i;
                 } else {
                     key = 0;
@@ -271,7 +265,8 @@ bool CUtil::keyCheck(const string& keys) {
                 --i;
             }
         }
-        if (!CPlatform::isKeyPressed((wxKeyCode)key)) return false;
+		if (!(::GetAsyncKeyState(key) < 0)) 
+			return false;
     }
     return true;
 }
@@ -297,24 +292,25 @@ string CUtil::replaceAll(const string& str, string s1, string s2) {
 
 // Get the content of a binary file
 string CUtil::getFile(string filename) {
-    wxString wfile = S2W(filename);
+
     trim(filename);
     replaceAll(filename, "\\\\", "/");  // for correctly decoding $FILE()
     filename = CUtil::makePath(filename);
-    wxFile file;
-    int size;
-    if (wxFile::Exists(wfile)
-            && file.Open(wfile)
-                && (size = file.Length()) > 0) {
-        char* buf = new char[size];
-        size = file.Read(buf, size);
-        string content(buf, size);
-        delete[] buf;
-        return content;
-    }
-    return "";
+	std::ifstream fs(filename);
+	if (!fs)
+		return "";
+
+	std::string content;
+	while (fs && fs.eof() == false) {
+		enum { kBuffSize = 512 };
+		char buf[kBuffSize + 1];
+		fs.read(buf, kBuffSize);
+		content += std::string(buf, (size_t)fs.gcount());
+	}
+	return content;
 }
 
+#if 0
 // Get MIME type of a file
 string CUtil::getMimeType(string filename) {
     size_t dot = filename.rfind('.');
@@ -337,7 +333,7 @@ string CUtil::getMimeType(string filename) {
         return "image/jpeg";
     return "application/octet-stream";
 }
-
+#endif
 
 // Increment a string
 string& CUtil::increment(string& str) {
@@ -366,7 +362,7 @@ bool CUtil::isUInt(string s) {
     return true;
 }
 
-
+#if 0
 // Set content of clipboard
 void CUtil::setClipboard(const string& str) {
     if (wxTheClipboard->Open()) {
@@ -387,7 +383,7 @@ string CUtil::getClipboard() {
     }
     return W2S(data.GetText());
 }
-
+#endif
 
 // MIME BASE64 encoder/decoder
 string CUtil::encodeBASE64(const string& str) {
@@ -427,7 +423,7 @@ string CUtil::decodeBASE64(const string& str) {
     return out.str();
 }
 
-
+#if 0
 // Launch default browser (for a Proximodo help page)
 // If path is empty or omitted, just opens the browser to its 
 // default home page
@@ -461,7 +457,7 @@ void CUtil::openBrowser(const string& path) {
     // Execute command
     wxExecute(command, wxEXEC_ASYNC);
 }
-
+#endif
 
 // Extract the executable name from a command line
 string CUtil::getExeName(const string& cmd) {
@@ -480,7 +476,7 @@ string CUtil::getExeName(const string& cmd) {
     return name;
 }
 
-
+#if 0
 // Launch default text editor (for a list file)
 void CUtil::openNotepad(const string& path) {
 
@@ -510,17 +506,19 @@ void CUtil::show(wxTopLevelWindow* window) {
         window->Maximize(false);
         window->Raise();
 }
-
+#endif
 
 // Converts / to the platform's path separator
 string CUtil::makePath(const string& str) {
 
     size_t len = str.length();
     if (!len) return str;
+#if 0
     wxString pathSep = wxFileName::GetPathSeparator();
     stringstream sep;
     sep << W2S(pathSep);
-    return replaceAll(str, "/", sep.str());
+#endif
+    return replaceAll(str, "/", "\\");
 }
 
 
@@ -529,10 +527,10 @@ string CUtil::unmakePath(const string& str) {
 
     size_t len = str.length();
     if (!len) return str;
-    wxString pathSep = wxFileName::GetPathSeparator();
-    stringstream sep;
-    sep << W2S(pathSep);
-    return replaceAll(str, sep.str(), "/");
+    //wxString pathSep = wxFileName::GetPathSeparator();
+    //stringstream sep;
+    //sep << W2S(pathSep);
+    return replaceAll(str, "\\", "/");
 }
 
 

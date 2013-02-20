@@ -27,7 +27,7 @@
 #include "url.h"
 #include "expander.h"
 #include "const.h"
-#include "log.h"
+//#include "log.h"
 #include "descriptor.h"
 #include "filterowner.h"
 #include "matcher.h"

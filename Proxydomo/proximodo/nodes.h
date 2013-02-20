@@ -29,11 +29,12 @@
 
 #include "node.h"
 #include "memory.h"
-#include <wx/thread.h>
+//#include <wx/thread.h>
 #include <string>
 #include <vector>
 #include <set>
 #include <deque>
+#include <mutex>
 class CUrl;
 class CMatcher;
 class CFilter;
@@ -407,12 +408,12 @@ private:
         int    flags;       // 0x1: is a tilde pattern,  0x2: is hashable
     } SListItem;
     
-    wxMutex hashedMutex;            // to secure access to 'hashed' and 'lastTab'
+	std::recursive_mutex hashedMutex;            // to secure access to 'hashed' and 'lastTab'
     deque<SListItem> hashed[256];   // sublist of nodes that start with a
                                     // constant char; indexed by first char
                                     // unhashable entries go on every list
 
-    static wxMutex objectsMutex;            // to secure access to 'objects'
+    static std::recursive_mutex objectsMutex;            // to secure access to 'objects'
     static set<CNode_List*> objects;        // all CNode_List instances.
 
     void pushPattern(const string& pattern);// add a pattern to 'hashed'

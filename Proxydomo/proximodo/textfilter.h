@@ -27,7 +27,7 @@
 #define __textfilter__
 
 #include "filter.h"
-#include "receptor.h"
+#include "..\DataReceptor.h"
 #include <string>
 class CFilterDescriptor;
 class CMatcher;

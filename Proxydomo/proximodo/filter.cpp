@@ -24,7 +24,6 @@
 
 
 #include "filter.h"
-#include "log.h"
 
 /* Constructor
  */
@@ -36,7 +35,7 @@ CFilter::CFilter(CFilterOwner& owner) : owner(owner), bypassed(false), locked(fa
  */
 void CFilter::unlock() {
     if (locked) {        // The locking must stop after each matching
-        CLog::ref().filterLock.Unlock();
+        //CLog::ref().filterLock.Unlock();
         locked = false;
     }
 }

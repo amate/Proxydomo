@@ -28,16 +28,16 @@
 #include "memory.h"
 #include "const.h"
 #include "util.h"
-#include "settings.h"
+//#include "settings.h"
 #include "matcher.h"
-#include "log.h"
-#include "logframe.h"
+//#include "log.h"
+//#include "logframe.h"
 #include "filter.h"
-#include "filterowner.h"
-#include <wx/msgdlg.h>
-#include <wx/textdlg.h>
-#include <wx/datetime.h>
-#include <wx/filefn.h>
+#include "..\filterowner.h"
+//#include <wx/msgdlg.h>
+//#include <wx/textdlg.h>
+//#include <wx/datetime.h>
+//#include <wx/filefn.h>
 #include <map>
 #include <vector>
 #include <sstream>
@@ -129,8 +129,8 @@ string CExpander::expand(const string& pattern, CFilter& filter) {
             case 'p': output << filter.owner.url.getPath(); break;
             case 'q': output << filter.owner.url.getQuery(); break;
             case 'a': output << filter.owner.url.getAnchor(); break;
-            case 'd': output << wxT("file:///");
-                      output << CUtil::replaceAll(W2S(wxGetCwd()), "\\", "/");
+            //case 'd': output << wxT("file:///");
+            //          output << CUtil::replaceAll(W2S(wxGetCwd()), "\\", "/");
                       break;
             default :
                 if (CUtil::digit(c)) {
@@ -186,7 +186,7 @@ string CExpander::expand(const string& pattern, CFilter& filter) {
                 // This parse function will have to be modified to take into account
                 // commands with several comma-separated parameters.
                 //   output << f_COMMAND(parse(pos+1, pos));
-                
+#if 0
                 if (command == "GET") {
 
                     CUtil::trim(content);
@@ -233,8 +233,9 @@ string CExpander::expand(const string& pattern, CFilter& filter) {
                     } else if (content == "false") {
                         filter.owner.useSettingsProxy = false;
                     }
-
-                } else if (command == "ALERT") {
+                } 
+#if 0
+				else if (command == "ALERT") {
 
                     wxMessageBox(S2W(expand(content, filter)), wxT(APP_NAME));
 
@@ -244,7 +245,9 @@ string CExpander::expand(const string& pattern, CFilter& filter) {
                                                 wxT(APP_NAME), wxYES_NO);
                     if (answer == wxNO) index = size;
 
-                } else if (command == "ESC") {
+                } 
+#endif
+				else if (command == "ESC") {
 
                     string value = expand(content, filter);
                     output << CUtil::ESC(value);
@@ -289,13 +292,13 @@ string CExpander::expand(const string& pattern, CFilter& filter) {
 
                 } else if (command == "FILE") {
 
-                    output << CUtil::getFile(expand(content, filter));
+                    //output << CUtil::getFile(expand(content, filter));
 
                 } else if (command == "LOG") {
 
                     string log = expand(content, filter);
-                    CLog::ref().logFilterEvent(pmEVT_FILTER_TYPE_LOGCOMMAND,
-                                filter.owner.reqNumber, filter.title, log);
+                    //CLog::ref().logFilterEvent(pmEVT_FILTER_TYPE_LOGCOMMAND,
+                    //            filter.owner.reqNumber, filter.title, log);
 
                 } else if (command == "LOCK") {
 
@@ -472,7 +475,7 @@ string CExpander::expand(const string& pattern, CFilter& filter) {
                     output << ss.str();
 
                 }
-
+#endif
             } else {
                 // not a command, consume the $ as a normal character
                 output << '$';

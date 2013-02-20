@@ -135,6 +135,12 @@
     <ClCompile Include="LogViewWindow.cpp">
       <Filter>Header Files</Filter>
     </ClCompile>
+    <ClCompile Include="TextBuffer.cpp">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FilterOwner.cpp">
+      <Filter>Header Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -276,6 +282,15 @@
       <Filter>Resource Files</Filter>
     </ClInclude>
     <ClInclude Include="Log.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DataReceptor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TextBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FilterOwner.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

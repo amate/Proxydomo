@@ -27,16 +27,16 @@
 #include "nodes.h"
 #include "const.h"
 #include "util.h"
-#include "settings.h"
+//#include "settings.h"
 #include "expander.h"
-#include "log.h"
-#include "logframe.h"
+//#include "log.h"
+//#include "logframe.h"
 #include "url.h"
 #include "matcher.h"
 #include "filter.h"
-#include "filterowner.h"
-#include <wx/msgdlg.h>
-#include <wx/textdlg.h>
+#include "..\filterowner.h"
+//#include <wx/msgdlg.h>
+//#include <wx/textdlg.h>
 #include <algorithm>
 #include <functional>
 
@@ -885,10 +885,10 @@ bool CNode_Url::mayMatch(bool* tab) {
  */
 CNode_List::CNode_List(const char*& reached, const string& name, CMatcher& matcher) :
             CNode(reached, LIST), name(name), matcher(matcher) {
-
+#if 0
     // we don't want the list to change while we read it
-    wxMutexLocker lock1(CSettings::ref().listsMutex);
-    wxMutexLocker lock2(objectsMutex);
+    std::lock_guard<std::recursive_mutex> lock1(CSettings::ref().listsMutex);
+    std::lock_guard<std::recursive_mutex> lock2(objectsMutex);
     // parse all the patterns from the list
     deque<string>& list = CSettings::ref().lists[name];
     for (deque<string>::iterator it = list.begin(); it != list.end(); it++) {
@@ -896,12 +896,13 @@ CNode_List::CNode_List(const char*& reached, const string& name, CMatcher& match
     }
     // register this object for incremental list parsing
     objects.insert(this);
+#endif
 }
 
 CNode_List::~CNode_List() {
 
-    wxMutexLocker lock1(objectsMutex);
-    wxMutexLocker lock2(hashedMutex);
+    std::lock_guard<std::recursive_mutex> lock1(objectsMutex);
+    std::lock_guard<std::recursive_mutex> lock2(hashedMutex);
     // unregister this object
     objects.erase(this);
     // delete built nodes. They are pointed to by the hashed lists.
@@ -916,7 +917,7 @@ CNode_List::~CNode_List() {
     }
 }
 
-wxMutex CNode_List::objectsMutex(wxMUTEX_RECURSIVE);
+std::recursive_mutex CNode_List::objectsMutex;
 
 set<CNode_List*> CNode_List::objects;
 
@@ -928,7 +929,7 @@ bool CNode_List::isHashable(char c) {
 
 void CNode_List::pushPattern(const string& pattern) {
 
-    wxMutexLocker lock(hashedMutex);
+    std::lock_guard<std::recursive_mutex> lock(hashedMutex);
     // we'll record the built node and its flags in a structure
     SListItem item = { NULL, 0 };
     if (pattern[0] == '~') item.flags |= 0x1;
@@ -953,7 +954,7 @@ void CNode_List::pushPattern(const string& pattern) {
 
 void CNode_List::popPattern(const string& pattern) {
 
-    wxMutexLocker lock(hashedMutex);
+    std::lock_guard<std::recursive_mutex> lock(hashedMutex);
     // since the first pattern in the list is also on the front of relevant
     // hashed buckets, we can remove it by popping nodes from the buckets.
     char c = (pattern[0] == '~' ? pattern[1] : pattern[0]);
@@ -970,7 +971,7 @@ void CNode_List::popPattern(const string& pattern) {
 
 void CNode_List::notifyPatternPushBack(const string& listname, const string& pattern) {
 
-    wxMutexLocker lock(objectsMutex);
+    std::lock_guard<std::recursive_mutex> lock(objectsMutex);
     // push pattern on all objects registered on this list
     for (set<CNode_List*>::iterator it = objects.begin(); it != objects.end(); it++) {
         if (listname == (*it)->name) (*it)->pushPattern(pattern);
@@ -979,7 +980,7 @@ void CNode_List::notifyPatternPushBack(const string& listname, const string& pat
 
 void CNode_List::notifyPatternPopFront(const string& listname, const string& pattern) {
 
-    wxMutexLocker lock(objectsMutex);
+    std::lock_guard<std::recursive_mutex> lock(objectsMutex);
     // pop pattern from all objects registered on this list
     for (set<CNode_List*>::iterator it = objects.begin(); it != objects.end(); it++) {
         if (listname == (*it)->name) (*it)->popPattern(pattern);
@@ -990,7 +991,7 @@ const char* CNode_List::match(const char* start, const char* stop) {
 
     if (start < stop) {
         // Check the hashed list corresponding to the first char
-        wxMutexLocker lock(hashedMutex);
+        std::lock_guard<std::recursive_mutex> lock(hashedMutex);
         deque<SListItem>& h = hashed[hashBucket(*start)];
         for (deque<SListItem>::iterator it = h.begin(); it != h.end(); it++) {
             const char* ptr = it->node->match(start, stop);
@@ -1097,14 +1098,14 @@ const char* CNode_Command::match(const char* start, const char* stop) {
         break;
 
     case CMD_IHDR:
-        toMatch = CFilterOwner::getHeader(owner.inHeaders, name);
+        toMatch = CFilterOwner::GetHeader(owner.inHeaders, name);
         tStart = toMatch.c_str();
         tStop = tStart + toMatch.size();
         if (!matcher->match(tStart, tStop, tEnd, tReached)) return NULL;
         break;
 
     case CMD_OHDR:
-        toMatch = CFilterOwner::getHeader(owner.outHeaders, name);
+        toMatch = CFilterOwner::GetHeader(owner.outHeaders, name);
         tStart = toMatch.c_str();
         tStop = tStart + toMatch.size();
         if (!matcher->match(tStart, tStop, tEnd, tReached)) return NULL;
@@ -1140,7 +1141,7 @@ const char* CNode_Command::match(const char* start, const char* stop) {
         break;
 
     case CMD_ADDLST:
-        CSettings::ref().addListLine(name, CExpander::expand(content, filter));
+        //CSettings::ref().addListLine(name, CExpander::expand(content, filter));
         break;
         
     case CMD_ADDLSTBOX:
@@ -1154,22 +1155,22 @@ const char* CNode_Command::match(const char* start, const char* stop) {
             }
             title = CExpander::expand(title, filter);
             value = CExpander::expand(value, filter);
-            string message = CSettings::ref().getMessage(
-                                    "ADDLSTBOX_MESSAGE", name);
-            wxTextEntryDialog dlg(NULL, S2W(message), S2W(title), S2W(value));
-            if (dlg.ShowModal() == wxID_OK)
-                CSettings::ref().addListLine(name, W2S(dlg.GetValue()));
+            //string message = CSettings::ref().getMessage(
+            //                        "ADDLSTBOX_MESSAGE", name);
+            //wxTextEntryDialog dlg(NULL, S2W(message), S2W(title), S2W(value));
+            //if (dlg.ShowModal() == wxID_OK)
+            //    CSettings::ref().addListLine(name, W2S(dlg.GetValue()));
         }
         break;
     
     case CMD_ALERT:
-        wxMessageBox(S2W(CExpander::expand(content, filter)), wxT(APP_NAME));
+        //wxMessageBox(S2W(CExpander::expand(content, filter)), wxT(APP_NAME));
         break;
 
     case CMD_CONFIRM:
-        tmp = wxMessageBox(S2W(CExpander::expand(content, filter)),
-                           wxT(APP_NAME), wxYES_NO);
-        if (tmp != wxYES) return NULL;
+        //tmp = wxMessageBox(S2W(CExpander::expand(content, filter)),
+        //                   wxT(APP_NAME), wxYES_NO);
+        //if (tmp != wxYES) return NULL;
         break;
 
     case CMD_TYPE:
@@ -1185,21 +1186,21 @@ const char* CNode_Command::match(const char* start, const char* stop) {
         break;
 
     case CMD_SETPROXY:
-        for (set<string>::iterator it = CSettings::ref().proxies.begin();
-                    it != CSettings::ref().proxies.end(); it++) {
-            if (CUtil::noCaseBeginsWith(content, *it)) {
-                owner.contactHost = *it;
-                owner.useSettingsProxy = false;
-                break;
-            }
-        }
+        //for (set<string>::iterator it = CSettings::ref().proxies.begin();
+        //            it != CSettings::ref().proxies.end(); it++) {
+        //    if (CUtil::noCaseBeginsWith(content, *it)) {
+        //        owner.contactHost = *it;
+        //        owner.useSettingsProxy = false;
+        //        break;
+        //    }
+        //}
         break;
 
     case CMD_LOG:
         {
-            string log = CExpander::expand(content, filter);
-            CLog::ref().logFilterEvent(pmEVT_FILTER_TYPE_LOGCOMMAND,
-                        owner.reqNumber, filter.title, log);
+            //string log = CExpander::expand(content, filter);
+            //CLog::ref().logFilterEvent(pmEVT_FILTER_TYPE_LOGCOMMAND,
+            //            owner.reqNumber, filter.title, log);
         }
         break;
 
@@ -1222,14 +1223,14 @@ const char* CNode_Command::match(const char* start, const char* stop) {
 
     case CMD_LOCK:
         if (!filter.locked) {
-            CLog::ref().filterLock.Lock();
+            //CLog::ref().filterLock.Lock();
             filter.locked = true;
         }
         break;
 
     case CMD_UNLOCK:
         if (filter.locked) {
-            CLog::ref().filterLock.Unlock();
+            //CLog::ref().filterLock.Unlock();
             filter.locked = false;
         }
         break;
@@ -1419,7 +1420,7 @@ const char* CNode_Ask::match(const char* start, const char* stop) {
     // We lock so that 2 documents doing the same test at the same time
     // won't ask the question twice. No need unlocking afterwards.
     if (!filter.locked) {
-        CLog::ref().filterLock.Lock();
+        //CLog::ref().filterLock.Lock();
         filter.locked = true;
     }
     const char *tStart, *tStop, *tEnd, *tReached;
@@ -1433,6 +1434,7 @@ const char* CNode_Ask::match(const char* start, const char* stop) {
     // (to continue filtering)
     if (!denyMatcher->match(tStart, tStop, tEnd, tReached)) {
         // Now we'll ask the user what they want to do with it
+#if 0
         int tmp = wxMessageBox(S2W(CExpander::expand(question, filter)),
                                wxT(APP_NAME), wxYES_NO);
         // Then add the item to one list.
@@ -1442,6 +1444,7 @@ const char* CNode_Ask::match(const char* start, const char* stop) {
         } else {
             CSettings::ref().addListLine(denyName, CExpander::expand(item, filter));
         }
+#endif
     }
 
     const char* ret = nextNode ? nextNode->match(start, stop) : start;
