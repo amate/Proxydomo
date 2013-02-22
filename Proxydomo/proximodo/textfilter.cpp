@@ -28,8 +28,8 @@
 #include "expander.h"
 #include "const.h"
 //#include "log.h"
-#include "descriptor.h"
-#include "filterowner.h"
+#include "..\FilterDescriptor.h"
+#include "..\FilterOwner.h"
 #include "matcher.h"
 #include <vector>
 #include <map>

@@ -2,11 +2,27 @@
 *	@file	Proxy.cpp
 *	@breif	プロクシクラス
 */
+/**
+	this file is part of Proxydomo
+	Copyright (C) amate 2013-
 
+	This program is free software; you can redistribute it and/or
+	modify it under the terms of the GNU General Public License
+	as published by the Free Software Foundation; either
+	version 2 of the License, or (at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+*/
 #include "stdafx.h"
 #include "Proxy.h"
 #include <deque>
-#include <atlsync.h>
 #include "RequestManager.h"
 #include "Log.h"
 
@@ -20,9 +36,9 @@ CProxy::~CProxy(void)
 }
 
 
-bool CProxy::OpenProxyPort()
+bool CProxy::OpenProxyPort(uint16_t port)
 {
-	m_sockServer.Bind();
+	m_sockServer.Bind(port);
 	m_bServerActive = true;
 	m_threadServer = std::thread(&CProxy::_ServerThread, this);
 	return true;
@@ -33,16 +49,21 @@ void CProxy::CloseProxyPort()
 {
 	if (m_threadServer.joinable()) {
 		m_bServerActive = false;
-
-		for (auto& manager : m_vecpRequestManager)
-			manager->SwitchToInvalid();
+		
+		{
+			CCritSecLock	lock(m_csRequestManager);
+			for (auto& manager : m_vecpRequestManager)
+				manager->SwitchToInvalid();
+		}
 
 		m_threadServer.join();
-#if 0
-		for (auto& thrd : m_vecpRequestManagerThread)
-			thrd->join();
-		m_vecpRequestManagerThread.clear();
-#endif
+
+		enum { kMaxRetryCount = 20 };
+		int Count = 0;
+		while (m_vecpRequestManager.size() != 0 && Count < kMaxRetryCount) {
+			::Sleep(50);
+			++Count;
+		}
 	}
 }
 
@@ -50,21 +71,20 @@ void CProxy::CloseProxyPort()
 void CProxy::_ServerThread()
 {
 	enum { kMaxActiveRequestThread = 30 };
-	CCriticalSection	csRequestManager;
 
-	auto funcCreateRequestManagerThread = [this, &csRequestManager](CRequestManager* manager) {
+	auto funcCreateRequestManagerThread = [this](CRequestManager* manager) {
 		{
-			CCritSecLock	lock(csRequestManager);
+			CCritSecLock	lock(m_csRequestManager);
 			m_vecpRequestManager.emplace_back(std::move(manager));
 		}
-		std::thread([this, manager, &csRequestManager]() {
+		std::thread([this, manager]() {
 			try {
 				manager->Manage();
 			} catch (GeneralException& e) {
 				ATLTRACE(e.msg);
 			}
 
-			CCritSecLock	lock(csRequestManager);
+			CCritSecLock	lock(m_csRequestManager);
 			for (auto it = m_vecpRequestManager.begin(); it != m_vecpRequestManager.end(); ++it) {
 				if (it->get() == manager) {
 					m_vecpRequestManager.erase(it);
@@ -85,7 +105,7 @@ void CProxy::_ServerThread()
 			if (CLog::GetActiveRequestCount() > kMaxActiveRequestThread) {
 				do {
 					{
-						CCritSecLock	lock(csRequestManager);
+						CCritSecLock	lock(m_csRequestManager);
 						for (auto& processingmanager : m_vecpRequestManager) {
 							if (processingmanager->IsValid() == false)	// このマネージャーは終了予定なので待っとく...
 								break;

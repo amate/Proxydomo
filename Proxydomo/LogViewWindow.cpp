@@ -2,7 +2,24 @@
 *	@file	LogViewWindow.cpp
 *	@brief	ログ表示ウィンドウクラス
 */
+/**
+	this file is part of Proxydomo
+	Copyright (C) amate 2013-
 
+	This program is free software; you can redistribute it and/or
+	modify it under the terms of the GNU General Public License
+	as published by the Free Software Foundation; either
+	version 2 of the License, or (at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+*/
 #include "stdafx.h"
 #include "LogViewWindow.h"
 #include <fstream>
@@ -122,8 +139,6 @@ BOOL CLogViewWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 
 	m_editLog.SetBackgroundColor(LOG_COLOR_BACKGROUND);
 
-	CLog::RegisterLogTrace(this);
-
     // ダイアログリサイズ初期化
     DlgResize_Init(true, false, WS_THICKFRAME | WS_MAXIMIZEBOX | WS_CLIPCHILDREN);
 
@@ -131,22 +146,45 @@ BOOL CLogViewWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 	
 	CString settingsPath = Misc::GetExeDirectory() + _T("settings.ini");
 	std::ifstream fs(settingsPath);
-	if (!fs)
-		return 0;
-	ptree pt;
-	read_ini(fs, pt);
-	CRect rcWindow;
-	rcWindow.top	= pt.get("LogWindow.top", 0);
-	rcWindow.left	= pt.get("LogWindow.left", 0);
-	rcWindow.right	= pt.get("LogWindow.right", 0);
-	rcWindow.bottom	= pt.get("LogWindow.bottom", 0);
-	if (rcWindow != CRect()) {
-		MoveWindow(&rcWindow);
+	if (fs) {
+		ptree pt;
+		read_ini(fs, pt);
+		CRect rcWindow;
+		rcWindow.top	= pt.get("LogWindow.top", 0);
+		rcWindow.left	= pt.get("LogWindow.left", 0);
+		rcWindow.right	= pt.get("LogWindow.right", 0);
+		rcWindow.bottom	= pt.get("LogWindow.bottom", 0);
+		if (rcWindow != CRect()) {
+			MoveWindow(&rcWindow);
+		}
+		if (pt.get("LogWindow.ShowWindow", false))
+			ShowWindow();
 	}
 
-	__super::ShowWindow(TRUE);
-
 	return 0;
+}
+
+void CLogViewWindow::OnDestroy()
+{
+	CLog::RemoveLogTrace();
+
+	using namespace boost::property_tree;
+	
+	std::string settingsPath = CT2A(Misc::GetExeDirectory() + _T("settings.ini"));
+	ptree pt;
+	read_ini(settingsPath, pt);
+
+	CRect rcWindow;
+	GetWindowRect(&rcWindow);
+		
+	pt.put("LogWindow.top", rcWindow.top);
+	pt.put("LogWindow.left", rcWindow.left);
+	pt.put("LogWindow.right", rcWindow.right);
+	pt.put("LogWindow.bottom", rcWindow.bottom);
+	bool bVisible = IsWindowVisible() != 0;
+	pt.put("LogWindow.ShowWindow", bVisible);
+
+	write_ini(settingsPath, pt);
 }
 
 void CLogViewWindow::OnCancel(UINT uNotifyCode, int nID, CWindow wndCtl)
@@ -156,22 +194,6 @@ void CLogViewWindow::OnCancel(UINT uNotifyCode, int nID, CWindow wndCtl)
 	{
 		CCritSecLock	lock(m_csActiveRequestLog);
 		m_vecActiveRequestLog.clear();
-	}
-
-	using namespace boost::property_tree;
-	
-	CString settingsPath = Misc::GetExeDirectory() + _T("settings.ini");
-	std::ofstream fs(settingsPath);
-	if (fs) {
-		CRect rcWindow;
-		GetWindowRect(&rcWindow);
-		ptree pt;
-		pt.add("LogWindow.top", rcWindow.top);
-		pt.add("LogWindow.left", rcWindow.left);
-		pt.add("LogWindow.right", rcWindow.right);
-		pt.add("LogWindow.bottom", rcWindow.bottom);
-
-		write_ini(fs, pt);
 	}
 
 	__super::ShowWindow(FALSE);

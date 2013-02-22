@@ -2,7 +2,24 @@
 *	@file	LogViewWindow.h
 *	@brief	ログ表示クラス
 */
+/**
+	this file is part of Proxydomo
+	Copyright (C) amate 2013-
 
+	This program is free software; you can redistribute it and/or
+	modify it under the terms of the GNU General Public License
+	as published by the Free Software Foundation; either
+	version 2 of the License, or (at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+*/
 #pragma once
 
 #include "resource.h"
@@ -41,6 +58,7 @@ public:
 
 	BEGIN_MSG_MAP_EX( CLogViewWindow )
 		MSG_WM_INITDIALOG( OnInitDialog )
+		MSG_WM_DESTROY( OnDestroy )
 		COMMAND_ID_HANDLER_EX( IDCANCEL, OnCancel )
 		COMMAND_ID_HANDLER_EX( IDC_BUTTON_CLEAR, OnClear )
 		COMMAND_ID_HANDLER_EX( IDC_BUTTON_SHOWACTIVEREQUESTLOG, OnShowActiveRequestLog )
@@ -50,6 +68,7 @@ public:
 	// void OnCommandIDHandlerEX(UINT uNotifyCode, int nID, CWindow wndCtl)
 
 	BOOL OnInitDialog(CWindow wndFocus, LPARAM lInitParam);
+	void OnDestroy();
 	void OnCancel(UINT uNotifyCode, int nID, CWindow wndCtl);
 	void OnClear(UINT uNotifyCode, int nID, CWindow wndCtl);
 	void OnShowActiveRequestLog(UINT uNotifyCode, int nID, CWindow wndCtl);

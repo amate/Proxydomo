@@ -27,7 +27,7 @@
 #ifndef __settings__
 #define __settings__
 
-#include "descriptor.h"
+//#include "descriptor.h"
 #include <wx/thread.h>
 #include <set>
 #include <map>

@@ -2,7 +2,24 @@
 *	@file	RequestManager.h
 *	@brief	ブラウザ⇔プロクシ⇔サーバー間の処理を受け持つ
 */
+/**
+	this file is part of Proxydomo
+	Copyright (C) amate 2013-
 
+	This program is free software; you can redistribute it and/or
+	modify it under the terms of the GNU General Public License
+	as published by the Free Software Foundation; either
+	version 2 of the License, or (at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+*/
 #pragma once
 
 #include <string>
@@ -13,6 +30,8 @@
 #include "FilterOwner.h"
 #include "proximodo\url.h"
 #include "proximodo\zlibbuffer.h"
+#include "proximodo\headerfilter.h"
+
 
 class CRequestManager : public IDataReceptor
 {
@@ -55,7 +74,7 @@ private:
 
 	void	_EndFeeding();
 
-	void	_FakeResponse(const std::string& code);
+	void	_FakeResponse(const std::string& code, const std::string& filename = "");
 	
 	// Constants
 	enum { kReadBuffSize = 2048 };
@@ -75,7 +94,10 @@ private:
 	// Data members
 
 	// Filter instances
+	bool		m_useChain;
 	CTextBuffer	m_textFilterChain;
+	std::vector<std::unique_ptr<CHeaderFilter>>	m_vecpInFilter;
+	std::vector<std::unique_ptr<CHeaderFilter>>	m_vecpOutFilter;
 
 	// Sockets
 	std::unique_ptr<CSocket>	m_psockBrowser;
@@ -84,6 +106,8 @@ private:
 
 	bool	m_valid;
 	bool	m_dumped;
+
+	int		m_redirectedIn;    // number of redirections by incoming headers
 
 	IPv4Address	m_ipFromAddress;
 	// for recv events only

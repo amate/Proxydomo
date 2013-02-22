@@ -61,6 +61,7 @@ size_t findParamEnd(const string& str, char c) {
  * a search tree. An exception is returned if the pattern is
  * malformed.
  */
+/// pattern を検索木に変換します。 patternが無効なら例外が飛びます。
 CMatcher::CMatcher(const string& pattern, CFilter& filter) :
                     filter(filter) {
 
@@ -80,6 +81,7 @@ CMatcher::CMatcher(const string& pattern, CFilter& filter) :
 
     // another reason to throw : the pattern was not completely
     // consumed, i.e there was an unpaired )
+	/// パターンが完全に消費されていない。※例: ()がペアになっていない
     if ((size_t)pos != pattern.size()) {
         throw parsing_exception("PARSING_INCOMPLETE", pos);
     }
@@ -387,10 +389,12 @@ CNode* CMatcher::run(const string& pattern, int& pos, int stop) {
 CNode* CMatcher::code(const string& pattern, int& pos, int stop) {
 
     // CR and LF are only for user convenience, they have no meaning whatsoever
+	// CR や LF はユーザーにとって便利なだけで、構文的には何の意味も持たないので飛ばす
     while (pos < stop && (pattern[pos] == '\r' || pattern[pos] == '\n')) pos++;
 
     // This NULL will be interpreted by run() as end of expression
-    if (pos == stop) return NULL;
+    if (pos == stop) 
+		return NULL;
 
     // We look at the first caracter
     char token = pattern[pos];
@@ -399,7 +403,9 @@ CNode* CMatcher::code(const string& pattern, int& pos, int stop) {
     if (token == '\\') {
 
         // it should not be at the end of the pattern
-        if (pos+1 == stop) throw parsing_exception("ESCAPE_AT_END", pos);
+		// '\'でパターンが終わっていればおかしいので例外を飛ばす
+        if (pos+1 == stop) 
+			throw parsing_exception("ESCAPE_AT_END", pos);
 
         token = pattern[pos+1];
         pos += 2;
@@ -552,6 +558,7 @@ CNode* CMatcher::code(const string& pattern, int& pos, int stop) {
                 }
             }
             // Check if the [] is closed
+			// ']'が来る前にパターンが終わったので例外を飛ばす
             if (pos == stop) {
                 delete node;
                 throw parsing_exception("MISSING_CROCHET", pos);
@@ -579,7 +586,7 @@ CNode* CMatcher::code(const string& pattern, int& pos, int stop) {
 
         // The pattern will continue after the closing )
         pos = endContent;
-#if 0
+
         try {
             if (command == "AV") {
 
@@ -934,7 +941,6 @@ CNode* CMatcher::code(const string& pattern, int& pos, int stop) {
             e.position += startContent;
             throw e;
         }
-#endif
     // Expression
     } else if (token == '(') {
 
@@ -951,6 +957,7 @@ CNode* CMatcher::code(const string& pattern, int& pos, int stop) {
         CNode *node = expr(pattern, pos, stop);
         
         // It must be followed by the closing )
+		// ')'がこない、もしくは 次のトークンに')'が来ないと例外を飛ばす
         if (pos == stop || pattern[pos] != ')') {
             delete node;
             throw parsing_exception("MISSING_PARENTHESE", pos);

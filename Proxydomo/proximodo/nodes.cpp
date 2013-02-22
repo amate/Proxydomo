@@ -28,6 +28,7 @@
 #include "const.h"
 #include "util.h"
 //#include "settings.h"
+#include "..\Settings.h"
 #include "expander.h"
 //#include "log.h"
 //#include "logframe.h"
@@ -885,18 +886,18 @@ bool CNode_Url::mayMatch(bool* tab) {
  */
 CNode_List::CNode_List(const char*& reached, const string& name, CMatcher& matcher) :
             CNode(reached, LIST), name(name), matcher(matcher) {
-#if 0
+
     // we don't want the list to change while we read it
-    std::lock_guard<std::recursive_mutex> lock1(CSettings::ref().listsMutex);
+    //std::lock_guard<std::recursive_mutex> lock1(CSettings::ref().listsMutex);
     std::lock_guard<std::recursive_mutex> lock2(objectsMutex);
     // parse all the patterns from the list
-    deque<string>& list = CSettings::ref().lists[name];
+    //deque<string>& list = CSettings::ref().lists[name];
+	deque<string>& list = CSettings::s_mapLists[name];
     for (deque<string>::iterator it = list.begin(); it != list.end(); it++) {
         pushPattern(*it);
     }
     // register this object for incremental list parsing
     objects.insert(this);
-#endif
 }
 
 CNode_List::~CNode_List() {

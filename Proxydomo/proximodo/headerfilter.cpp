@@ -27,9 +27,11 @@
 #include "url.h"
 #include "expander.h"
 #include "util.h"
-#include "log.h"
-#include "descriptor.h"
-#include "filterowner.h"
+//#include "log.h"
+//#include "descriptor.h"
+#include "..\FilterDescriptor.h"
+//#include "filterowner.h"
+#include "..\FilterOwner.h"
 #include "matcher.h"
 #include <vector>
 #include <map>
@@ -102,8 +104,8 @@ bool CHeaderFilter::filter(string& content) {
     }
 
     // Log match event
-    CLog::ref().logFilterEvent(pmEVT_FILTER_TYPE_HEADERMATCH,
-                               owner.reqNumber, title, content);
+    //CLog::ref().logFilterEvent(pmEVT_FILTER_TYPE_HEADERMATCH,
+    //                           owner.reqNumber, title, content);
                                
     // Compute new header content
     content = CExpander::expand(replacePattern, *this);
@@ -122,8 +124,8 @@ bool CHeaderFilter::filter(string& content) {
     }
 
     // Log replace event
-    CLog::ref().logFilterEvent(pmEVT_FILTER_TYPE_HEADERREPLACE,
-                               owner.reqNumber, title, content);
+    //CLog::ref().logFilterEvent(pmEVT_FILTER_TYPE_HEADERREPLACE,
+    //                           owner.reqNumber, title, content);
 
     return true;
 }

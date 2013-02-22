@@ -1,5 +1,23 @@
 // Proxydomo.cpp : main source file for Proxydomo.exe
 //
+/**
+	this file is part of Proxydomo
+	Copyright (C) amate 2013-
+
+	This program is free software; you can redistribute it and/or
+	modify it under the terms of the GNU General Public License
+	as published by the Free Software Foundation; either
+	version 2 of the License, or (at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+*/
 
 #include "stdafx.h"
 #include <locale.h>
@@ -9,15 +27,14 @@
 
 #include "resource.h"
 
-#include "aboutdlg.h"
 #include "MainDlg.h"
 #include "Socket.h"
 #include "Proxy.h"
+#include "Settings.h"
 
 // ÉOÉçÅ[ÉoÉãïœêî
 CAppModule _Module;
 
-#include <vector>
 int Run(LPTSTR /*lpstrCmdLine*/ = NULL, int nCmdShow = SW_SHOWDEFAULT)
 {
 	CMessageLoop theLoop;
@@ -31,7 +48,7 @@ int Run(LPTSTR /*lpstrCmdLine*/ = NULL, int nCmdShow = SW_SHOWDEFAULT)
 		return 0;
 	}
 
-	dlgMain.ShowWindow(nCmdShow);
+	//dlgMain.ShowWindow(nCmdShow);
 
 	int nRet = theLoop.Run();
 
@@ -69,15 +86,18 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR lp
 	hRes = _Module.Init(NULL, hInstance);
 	ATLASSERT(SUCCEEDED(hRes));
 
-	CSocket::Init();
+	CSettings::LoadSettings();
 
+	CSocket::Init();
 	CProxy	proxy;
-	proxy.OpenProxyPort();
+	proxy.OpenProxyPort(CSettings::s_proxyPort);
 
 	int nRet = Run(lpstrCmdLine, nCmdShow);
 
 	proxy.CloseProxyPort();
 	CSocket::Term();
+
+	CSettings::SaveSettings();
 
 	FreeLibrary(hRich);
 

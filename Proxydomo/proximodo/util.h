@@ -125,7 +125,7 @@ public:
     static string getFile(string filename);
 
     // Get MIME type of a file
-    //static string getMimeType(string filename);
+    static string getMimeType(string filename);
 
     // Increment a string that will be terminated by (n)
     static string& increment(string& str);

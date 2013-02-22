@@ -24,9 +24,10 @@
 //------------------------------------------------------------------
 
 
-#include "stdafx.h"
+//#include "stdafx.h"
 //#include "settings.h"
 #include "url.h"
+#include <windows.h>
 
 using namespace std;
 
@@ -49,11 +50,11 @@ void CUrl::parseUrl(const string& str) {
 
     bypassIn = bypassOut = bypassText = debug = source = false;
 #if 0
-    if (CSettings::ref().enableUrlCmd &&
-        str.substr(pos1, CSettings::ref().urlCmdPrefix.length()) ==
-        CSettings::ref().urlCmdPrefix) {
+    //if (CSettings::ref().enableUrlCmd &&
+    //    str.substr(pos1, CSettings::ref().urlCmdPrefix.length()) ==
+    //    CSettings::ref().urlCmdPrefix) {
         bool foundUrlCmd = false;
-        pos1 += CSettings::ref().urlCmdPrefix.length();
+        //pos1 += CSettings::ref().urlCmdPrefix.length();
         while (1) {
             string s5 = str.substr(pos1, 5);
             string s6;
@@ -80,10 +81,11 @@ void CUrl::parseUrl(const string& str) {
             }
             foundUrlCmd = true;
         }
-        if (!foundUrlCmd)
-            pos1 -= CSettings::ref().urlCmdPrefix.length();
-    }
+        //if (!foundUrlCmd)
+        //    pos1 -= CSettings::ref().urlCmdPrefix.length();
+    //}
 #endif
+		debug	= ::GetAsyncKeyState(VK_PAUSE) < 0;
 
     size_t pos2 = str.find_first_of("/?#", pos1);
     if (pos2 == string::npos) pos2 = str.length();

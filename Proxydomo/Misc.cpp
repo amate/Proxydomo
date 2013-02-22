@@ -1,9 +1,27 @@
 /**
  *	@file	Misc.cpp
- *	@biref	undonutÇ…àÀë∂ÇµÇ»Ç¢ÇÌÇËÇ∆îƒópìIÇ»éGëΩÇ»ÉãÅ[É`ÉìåQ
+ *	@biref	ÇÌÇËÇ∆îƒópìIÇ»éGëΩÇ»ÉãÅ[É`ÉìåQ
  *	@note
  *
  */
+/**
+	this file is part of Proxydomo
+	Copyright (C) amate 2013-
+
+	This program is free software; you can redistribute it and/or
+	modify it under the terms of the GNU General Public License
+	as published by the Free Software Foundation; either
+	version 2 of the License, or (at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+*/
 #pragma once
 
 #include "stdafx.h"
@@ -22,6 +40,44 @@ static char THIS_FILE[] = __FILE__;
 
 
 namespace Misc {
+
+	
+//////////////////////////////////////////////////////////////////////////
+CString GetClipboardText(bool bUseOLE /*= false*/)
+{
+	CString strText;
+	if (bUseOLE == false) {
+		if ( ::IsClipboardFormatAvailable(CF_UNICODETEXT) && ::OpenClipboard(NULL) ) {
+			HGLOBAL hText = ::GetClipboardData(CF_UNICODETEXT);
+			if (hText) {
+				strText = reinterpret_cast<LPTSTR>( ::GlobalLock(hText) );		//+++ UNICODEèCê≥
+				::GlobalUnlock(hText);
+			}
+			::CloseClipboard();
+		}
+	} else {
+		CComPtr<IDataObject> spDataObject;
+		HRESULT hr = ::OleGetClipboard(&spDataObject);
+
+		if ( FAILED(hr) )
+			return strText;
+		FORMATETC			 formatetc = { CF_UNICODETEXT, NULL, DVASPECT_CONTENT, -1, TYMED_HGLOBAL };
+		STGMEDIUM			 stgmedium;
+		hr = spDataObject->GetData(&formatetc, &stgmedium);
+
+		if ( SUCCEEDED(hr) ) {
+			if (stgmedium.hGlobal != NULL) {
+				HGLOBAL hText = stgmedium.hGlobal;
+				strText = reinterpret_cast<LPTSTR>( ::GlobalLock(hText) );		//+++ UNICODE èCê≥
+				::GlobalUnlock(hText);
+			}
+			::ReleaseStgMedium(&stgmedium);
+		}
+	}
+
+	return strText;
+}
+
 
 
 // ==========================================================================

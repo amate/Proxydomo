@@ -1,6 +1,6 @@
 /**
-*	@file	Proxy.h
-*	@breif	プロクシクラス
+*	@file	Settings.h
+*	@brief	全フィルターと全リストを持っている
 */
 /**
 	this file is part of Proxydomo
@@ -22,30 +22,32 @@
 */
 #pragma once
 
-#include <thread>
 #include <vector>
+#include <deque>
+#include <map>
+#include <memory>
+#include <string>
 #include <atlsync.h>
-#include "Socket.h"
+#include "FilterDescriptor.h"
 
-class CRequestManager;
-
-class CProxy
+class CSettings
 {
 public:
-	CProxy();
-	~CProxy();
+	static uint16_t		s_proxyPort;
+	static bool			s_filterText;
+	static bool			s_filterIn;
+	static bool			s_filterOut;
 
-	bool	OpenProxyPort(uint16_t port);
-	void	CloseProxyPort();
+	static void	LoadSettings();
+	static void	SaveSettings();
 
-private:
-	void	_ServerThread();
+	// CCritSecLock	lock(CSettings::s_csFilters);
+	static std::vector<std::unique_ptr<CFilterDescriptor>>	s_vecpFilters;
+	static CCriticalSection									s_csFilters;
 
-	// Data members
-	CSocket	m_sockServer;
-	std::thread	m_threadServer;
-	bool	m_bServerActive;
-	CCriticalSection	m_csRequestManager;
-	std::vector<std::unique_ptr<CRequestManager>>	m_vecpRequestManager;
+	static std::map<std::string, std::string>				s_mapListName;	// list name : file path
+	static std::map<std::string, std::deque<std::string>>	s_mapLists;		// list name : contents
+
+	static void	LoadFilter();
+	static void SaveFilter();
 };
-

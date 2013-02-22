@@ -24,9 +24,10 @@
 
 #include "zlibbuffer.h"
 //#include "const.h"
+#include <assert.h>
 
 
-#define ZLIB_BLOCK 8192
+#define ZLIB_BLOCK 4096
 
 #pragma comment(lib, "zlibstat.lib")
 
@@ -124,6 +125,7 @@ void CZlibBuffer::feed(string data) {
             }
             output << string(buf2, ZLIB_BLOCK - stream.avail_out);
         } while (err == Z_OK && stream.avail_out < ZLIB_BLOCK / 10);
+		// 入力が消費されていなかったら終了
         if (stream.next_in == (Byte*)buf1) 
 			break;
         remaining -= ((char*)stream.next_in - buf1);
@@ -152,7 +154,10 @@ void CZlibBuffer::dump() {
         } while (err == Z_OK);
         free();
         delete[] buf1;
-    }
+    } else {
+		// デバッグ時利用
+		//assert( err == Z_OK || err == Z_STREAM_END );
+	}
 }
 
 

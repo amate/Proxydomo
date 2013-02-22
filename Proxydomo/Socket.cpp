@@ -2,7 +2,24 @@
 *	@file	Socket.cpp
 *	@brief	ソケットクラス
 */
+/**
+	this file is part of Proxydomo
+	Copyright (C) amate 2013-
 
+	This program is free software; you can redistribute it and/or
+	modify it under the terms of the GNU General Public License
+	as published by the Free Software Foundation; either
+	version 2 of the License, or (at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+*/
 #include "stdafx.h"
 #include "Socket.h"
 #include <chrono>
@@ -117,7 +134,7 @@ IPv4Address CSocket::GetFromAddress() const
 }
 
 // ポートとソケットを関連付ける
-void	CSocket::Bind()
+void	CSocket::Bind(uint16_t port)
 {
 	m_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (m_sock ==  INVALID_SOCKET)
@@ -125,11 +142,10 @@ void	CSocket::Bind()
 
 	_SetBlocking(false);
 	_SetReuse(true);
-	enum { DEFAULTPECA_PORT = 6060 };
 
 	sockaddr_in localAddr = { 0 };
 	localAddr.sin_family = AF_INET;
-	localAddr.sin_port = htons(DEFAULTPECA_PORT);
+	localAddr.sin_port = htons(port);
 	localAddr.sin_addr.s_addr = INADDR_ANY;
 	if( ::bind(m_sock, (sockaddr *)&localAddr, sizeof(localAddr)) == SOCKET_ERROR)
 		throw SocketException("Can`t bind socket");

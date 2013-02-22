@@ -2,7 +2,24 @@
 *	@file	RequestManager.cpp
 *	@brief	ブラウザ⇔プロクシ⇔サーバー間の処理を受け持つ
 */
+/**
+	this file is part of Proxydomo
+	Copyright (C) amate 2013-
 
+	This program is free software; you can redistribute it and/or
+	modify it under the terms of the GNU General Public License
+	as published by the Free Software Foundation; either
+	version 2 of the License, or (at your option) any later version.
+
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with this program; if not, write to the Free Software
+	Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+*/
 
 #include "stdafx.h"
 #include "RequestManager.h"
@@ -10,111 +27,13 @@
 #include <boost\lexical_cast.hpp>
 #include "DebugWindow.h"
 #include "Log.h"
-
-namespace CUtil {
-
-using namespace std;
+#include "proximodo\util.h"
+#include "Misc.h"
+#include "Settings.h"
 
 #define CR	'\r'
 #define LF	'\n'
 #define CRLF "\r\n"
-
-// Locates the next end-of-line (can be CRLF or LF)
-bool endOfLine(const string& str, size_t start,
-                      size_t& pos, size_t& len, int nbr = 1) {
-
-    while (true) {
-        size_t index = str.find(LF, start);
-        if (index == string::npos) return false;
-        if (start < index && str[index-1] == CR) {
-            len = 2; pos = index - 1;
-        } else {
-            len = 1; pos = index;
-        }
-        if (nbr <= 1) {
-            return true;
-        } else {
-            int remain = nbr-1;
-            string::const_iterator it = str.begin() + (index + 1);
-            while (remain && it != str.end()) {
-                if (*it == LF) {
-                    len++; it++; remain--;
-                } else if (*it == CR) {
-                    len++; it++;
-                } else {
-                    break;
-                }
-            }
-            if (remain) {
-                start = pos+len;
-            } else {
-                return true;
-            }
-        }
-    }
-}
-
-// Case-insensitive compare
-bool noCaseEqual(const string& s1, const string& s2) 
-{
-    if (s1.size() != s2.size()) 
-		return false;
-    return ::_stricmp(s1.c_str(), s2.c_str()) == 0;
-}
-
-// Put string in lowercase
-string& lower(string& s) {
-    for (string::iterator it = s.begin(); it != s.end(); it++) {
-        *it = tolower(*it);
-    }
-    return s;
-}
-
-// Returns true if s2 contains s1
-bool noCaseContains(const string& s1, const string& s2)
-{
-    string nc1 = s1, nc2 = s2;
-    lower(nc1);
-    lower(nc2);
-    return (nc2.find(nc1) != string::npos);
-}
-
-// Returns true if s2 begins with s1
-bool noCaseBeginsWith(const string& s1, const string& s2)
-{
-	return ::_strnicmp(s2.c_str(), s1.c_str(), s1.size()) == 0;
-}
-
-
-// Trim string
-string& trim(string& s, string list = string(" \t\r\n"))
-{
-    size_t p1 = s.find_first_not_of(list);
-    if (p1 == string::npos) 
-		return s = "";
-    size_t p2 = s.find_last_not_of(list);
-    return s = s.substr(p1, p2+1-p1);
-}
-
-// Decode hexadecimal number at string start
-unsigned int readHex(const string& s)
-{
-    unsigned int n = 0, h = 0;
-    string H("0123456789ABCDEF");
-    for (string::const_iterator c = s.begin(); c != s.end()
-            && (h = H.find(toupper(*c))) != string::npos; c++)
-        n = n*16 + h;
-    return n;
-}
-
-// Make a hex representation of a number
-std::string makeHex(unsigned int n) {
-    std::stringstream ss;
-    ss << std::uppercase << hex << n;
-    return ss.str();
-}
-
-}	// namespace CUtil
 
 
 
@@ -122,16 +41,32 @@ std::string makeHex(unsigned int n) {
 // CRequestManager
 
 CRequestManager::CRequestManager(std::unique_ptr<CSocket>&& psockBrowser) :
+	m_useChain(false),
 	m_textFilterChain(m_filterOwner, this),
 	m_psockBrowser(std::move(psockBrowser)),
 	m_valid(true),
 	m_dumped(false),
+	m_redirectedIn(0),
 	m_outSize(0),
 	m_outChunked(false),
 	m_inSize(0),
 	m_inChunked(false)
 {
 	m_filterOwner.requestNumber = 0;
+
+	CCritSecLock	lock(CSettings::s_csFilters);
+	for (auto& filter : CSettings::s_vecpFilters) {
+		if (filter->errorMsg.empty() && filter->Active) {
+			try {
+				if (filter->filterType == filter->kFilterHeadIn)
+					m_vecpInFilter.emplace_back(new CHeaderFilter(*filter, m_filterOwner));
+				else if (filter->filterType == filter->kFilterHeadOut)
+					m_vecpOutFilter.emplace_back(new CHeaderFilter(*filter, m_filterOwner));
+			} catch (...) {
+				// Invalid filters are just ignored
+			}
+		}
+	}
 }
 
 
@@ -342,9 +277,9 @@ void CRequestManager::_ProcessOut()
 				m_filterOwner.killed = false;
 				//variables.clear();
 				m_filterOwner.requestNumber = CLog::IncrementRequestCount();
-				//rdirMode = 0;
-				//rdirToHost.clear();
-				//redirectedIn = 0;
+				m_filterOwner.rdirMode = 0;
+				m_filterOwner.rdirToHost.clear();
+				m_redirectedIn = 0;
 				m_recvConnectionClose = false;
 				m_sendConnectionClose = false;
 				m_recvContentCoding = m_sendContentCoding = 0;
@@ -448,6 +383,60 @@ void CRequestManager::_ProcessOut()
 				// We'll work on a copy, since we don't want to alter
 				// the real headers that $IHDR and $OHDR may access
 				auto outHeadersFiltered = m_filterOwner.outHeaders;
+
+				// Filter outgoing headers
+				if (m_filterOwner.bypassOut == false && CSettings::s_filterOut &&
+					m_filterOwner.url.getHost() != "local.ptron") {
+					// Apply filters one by one
+					for (auto& headerfilter : m_vecpOutFilter) {
+						headerfilter->bypassed = false;
+						string name = headerfilter->headerName;
+
+						if (CUtil::noCaseBeginsWith("url", name) == false) {
+
+							// If header is absent, temporarily create one
+							if (CFilterOwner::GetHeader(outHeadersFiltered, name).empty())
+								CFilterOwner::SetHeader(outHeadersFiltered, name, "");
+							// Test headers one by one
+							for (auto& pair : outHeadersFiltered) {
+								if (CUtil::noCaseEqual(name, pair.first))
+									headerfilter->filter(pair.second);
+							}
+							// Remove null headers
+							CFilterOwner::CleanHeader(outHeadersFiltered);
+
+						} else {
+
+							// filter works on a copy of the URL
+							string test = m_filterOwner.url.getUrl();
+							headerfilter->filter(test);
+							CUtil::trim(test);
+							// if filter changed the url, update variables
+							if (!m_filterOwner.killed && !test.empty() && test != m_filterOwner.url.getUrl()) {
+								// We won't change contactHost if it has been
+								// set to a proxy address by a $SETPROXY command
+								bool changeHost = (m_filterOwner.contactHost == m_filterOwner.url.getHostPort());
+								// update URL
+								m_filterOwner.url.parseUrl(test);
+								if (m_filterOwner.url.getBypassIn())    m_filterOwner.bypassIn   = true;
+								if (m_filterOwner.url.getBypassOut())   m_filterOwner.bypassOut  = true;
+								if (m_filterOwner.url.getBypassText())  m_filterOwner.bypassBody = true;
+								if (changeHost) m_filterOwner.contactHost = m_filterOwner.url.getHostPort();
+							}
+						}
+
+						if (m_filterOwner.killed) {
+							// There has been a \k in a header filter, so we
+							// redirect to an empty file and stop processing headers
+							if (m_filterOwner.url.getPath().find(".gif") != string::npos)
+								m_filterOwner.rdirToHost = "http://file//./html/killed.gif";
+							else
+								m_filterOwner.rdirToHost = "http://file//./html/killed.html";
+							break;
+						}
+					}
+     
+				}
 
 				// If we haven't connected to ths host yet, we do it now.
 				// This will allow incoming processing to start. If the
@@ -631,72 +620,70 @@ void CRequestManager::_ConnectWebsite()
     _ReceiveIn();
     m_recvInBuf.clear();
     m_sendInBuf.clear();
-#if 0
-    // Test for "local.ptron" host
-    if (url.getHost() == "local.ptron") {
-        rdirToHost = url.getUrl();
-    }
-    if (CUtil::noCaseBeginsWith("http://local.ptron", rdirToHost)) {
-        rdirToHost = "http://file//./html" + CUrl(rdirToHost).getPath();
-    }
-#endif
 
-#if 0
+    // Test for "local.ptron" host
+    if (m_filterOwner.url.getHost() == "local.ptron") {
+        m_filterOwner.rdirToHost = m_filterOwner.url.getUrl();
+    }
+    if (CUtil::noCaseBeginsWith("http://local.ptron", m_filterOwner.rdirToHost)) {
+        m_filterOwner.rdirToHost = "http://file//./html" + CUrl(m_filterOwner.rdirToHost).getPath();
+    }
+
+
     // Test for redirection __to file__
     // ($JUMP to file will behave like a transparent redirection,
     // since the browser may not be on the same file system)
-    if (CUtil::noCaseBeginsWith("http://file//", rdirToHost)) {
+    if (CUtil::noCaseBeginsWith("http://file//", m_filterOwner.rdirToHost)) {
 
-        string filename = CUtil::makePath(rdirToHost.substr(13));
-        if (wxFile::Exists(S2W(filename))) {
-            fakeResponse("200 OK", filename);
-        } else {
-            fakeResponse("404 Not Found", "./html/error.html", true,
-                         CSettings::ref().getMessage("404_NOT_FOUND"),
-                         filename);
-        }
-        rdirToHost.clear();
+        string filename = CUtil::makePath(m_filterOwner.rdirToHost.substr(13));
+		filename = CT2A(Misc::GetFullPath_ForExe(filename.c_str()));
+		if (::PathFileExistsA(filename.c_str())) {
+			_FakeResponse("200 OK", filename);
+		} else {
+            //fakeResponse("404 Not Found", "./html/error.html", true,
+            //             CSettings::ref().getMessage("404_NOT_FOUND"),
+            //             filename);
+			_FakeResponse("404 Not Found");
+		}
+
+        m_filterOwner.rdirToHost.clear();
         return;
     }
-#endif
 
-#if 0
     // Test for non-transparent redirection ($JUMP)
-    if (!rdirToHost.empty() && rdirMode == 0) {
+    if (m_filterOwner.rdirToHost.size() > 0 && m_filterOwner.rdirMode == 0) {
         // We'll keep browser's socket, for persistent connections, and
         // continue processing outgoing data (which will not be moved to
         // send buffer).
-        inStep = STEP_FINISH;
-        sendInBuf =
+        m_inStep = STEP_FINISH;
+        m_sendInBuf =
             "HTTP/1.0 302 Found" CRLF
-            "Location: " + rdirToHost + CRLF;
-        CLog::ref().logHttpEvent(pmEVT_HTTP_TYPE_SENDIN, addr,
-                                 reqNumber, sendInBuf);
-        sendInBuf += CRLF;
-        rdirToHost.clear();
-        sendConnectionClose = true;
+            "Location: " + m_filterOwner.rdirToHost + CRLF;
+
+		CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_filterOwner.requestNumber, m_sendInBuf);
+
+        m_sendInBuf += CRLF;
+        m_filterOwner.rdirToHost.clear();
+        m_sendConnectionClose = true;
         return;
     }
-#endif
 
-#if 0
 
     // Test for transparent redirection to URL ($RDIR)
     // Note: new URL will not go through URL* OUT filters
-    if (!rdirToHost.empty() && rdirMode == 1) {
+    if (m_filterOwner.rdirToHost.size() > 0 && m_filterOwner.rdirMode == 1) {
 
         // Change URL
-        url.parseUrl(rdirToHost);
-        if (url.getBypassIn())    bypassIn   = true;
-        if (url.getBypassOut())   bypassOut  = true;
-        if (url.getBypassText())  bypassBody = true;
-        useSettingsProxy = CSettings::ref().useNextProxy;
-        contactHost = url.getHostPort();
-        setHeader(outHeaders, "Host", url.getHost());
+        m_filterOwner.url.parseUrl(m_filterOwner.rdirToHost);
+        if (m_filterOwner.url.getBypassIn())    m_filterOwner.bypassIn   = true;
+        if (m_filterOwner.url.getBypassOut())   m_filterOwner.bypassOut  = true;
+        if (m_filterOwner.url.getBypassText())  m_filterOwner.bypassBody = true;
+        //m_filterOwner.useSettingsProxy = CSettings::ref().useNextProxy;
+        m_filterOwner.contactHost = m_filterOwner.url.getHostPort();
+		m_filterOwner.SetOutHeader("Host", m_filterOwner.url.getHost());
 
-        rdirToHost.clear();
+        m_filterOwner.rdirToHost.clear();
     }
-#endif
 
 #if 0
     // If we must contact the host via the settings' proxy,
@@ -967,11 +954,15 @@ void	CRequestManager::_ProcessIn()
 					if (m_decompressor == nullptr) 
 						m_decompressor.reset(new CZlibBuffer());
 					m_decompressor->reset(false, true);
+					if (CSettings::s_filterText)
+						CFilterOwner::RemoveHeader(m_filterOwner.inHeaders, "Content-Encoding");
 				} else if (CUtil::noCaseContains("deflate", m_filterOwner.GetInHeader( "Content-Encoding"))) {
 					m_recvContentCoding = 2;
 					if (m_decompressor == nullptr) 
 						m_decompressor.reset(new CZlibBuffer());
 					m_decompressor->reset(false, false);
+					if (CSettings::s_filterText)
+						CFilterOwner::RemoveHeader(m_filterOwner.inHeaders, "Content-Encoding");
 				} else if (CUtil::noCaseContains("compress", m_filterOwner.GetInHeader("Content-Encoding"))) {
 					m_filterOwner.bypassBody = true;
 				}
@@ -983,32 +974,52 @@ void	CRequestManager::_ProcessIn()
 				// the real headers that $IHDR and $OHDR may access
 				auto inHeadersFiltered = m_filterOwner.inHeaders;
 
+				if (m_filterOwner.bypassIn == false && CSettings::s_filterIn) {
+					// Apply filters one by one
+					for (auto& headerfilter : m_vecpInFilter) {
+						headerfilter->bypassed = false;
+						string name = headerfilter->headerName;
+
+						// If header is absent, temporarily create one
+						if (CFilterOwner::GetHeader(inHeadersFiltered, name).empty()) {
+							if (CUtil::noCaseBeginsWith("url", name)) {
+								CFilterOwner::SetHeader(inHeadersFiltered, name, m_filterOwner.url.getUrl());
+							} else {
+								CFilterOwner::SetHeader(inHeadersFiltered, name, "");
+							}
+						}
+						// Test headers one by one
+						for (auto& pair : inHeadersFiltered) {
+							if (CUtil::noCaseEqual(name, pair.first))
+								headerfilter->filter(pair.second);
+						}
+						// Remove null headers
+						CFilterOwner::CleanHeader(inHeadersFiltered);
+
+						if (m_filterOwner.killed) {
+							// There has been a \k in a header filter, so we
+							// redirect to an empty file and stop processing headers
+							if (m_filterOwner.url.getPath().find(".gif") != string::npos)
+								m_filterOwner.rdirToHost = "http://file//./html/killed.gif";
+							else
+								m_filterOwner.rdirToHost = "http://file//./html/killed.html";
+							m_filterOwner.rdirMode = 0;   // (to use non-transp code below)
+							break;
+						}
+					}
+				}
+
 				// Test for redirection (limited to 3, to prevent infinite loop)
-				//if (!rdirToHost.empty() && redirectedIn < 3) {
-				//	// (This function will also take care of incoming variables)
-				//	connectWebsite();
-				//	redirectedIn++;
-				//	continue;
-				//}
+				if (m_filterOwner.rdirToHost.size() > 0 && m_redirectedIn < 3) {
+					// (This function will also take care of incoming variables)
+					_ConnectWebsite();
+					++m_redirectedIn;
+					continue;
+				}
 
 				// Decode new headers to control browser-side beehaviour
 				if (CUtil::noCaseContains("close", CFilterOwner::GetHeader(inHeadersFiltered, "Connection")))
 					m_sendConnectionClose = true;
-
-
-				if (CUtil::noCaseContains("gzip", CFilterOwner::GetHeader(inHeadersFiltered, "Content-Encoding"))) {
-					CFilterOwner::RemoveHeader(inHeadersFiltered, "Content-Encoding");
-					//m_sendContentCoding = 1;
-					//if (m_compressor == nullptr) 
-					//	m_compressor.reset(new CZlibBuffer());
-					//m_compressor->reset(true, true);
-				} else if (CUtil::noCaseContains("deflate", CFilterOwner::GetHeader(inHeadersFiltered, "Content-Encoding"))) {
-					CFilterOwner::RemoveHeader(inHeadersFiltered, "Content-Encoding");
-					//m_sendContentCoding = 2;
-					//if (m_compressor == nullptr) 
-					//	m_compressor.reset(new CZlibBuffer());
-					//m_compressor->reset(true, false);
-				}
 
 				if (m_inChunked || m_inSize) {
 					// Our output will always be chunked: filtering can
@@ -1020,65 +1031,67 @@ void	CRequestManager::_ProcessIn()
 				// Now we can put everything in the filtered buffer
 				// (1.1 is necessary to have the browser understand chunked
 				// transfer)
-				//if (m_url.getDebug()) {
-				//	m_sendInBuf += "HTTP/1.1 200 OK" CRLF
-				//		"Content-Type: text/html" CRLF
-				//		"Connection: close" CRLF
-				//		"Transfer-Encoding: chunked" CRLF CRLF;
-				//	std::string buf =
-				//		"<?xml version=\"1.0\" encoding=\"iso-8859-1\"?>\n"
-				//		"<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\""
-				//		" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n"
-				//		"<html>\n<head>\n<title>Source of ";
-				//	CUtil::htmlEscape(buf, url.getProtocol() + "://" +
-				//						   url.getFromHost());
-				//	buf += "</title>\n"
-				//		"<link rel=\"stylesheet\" media=\"all\" "
-				//		"href=\"http://local.ptron/ViewSource.css\" />\n"
-				//		"</head>\n\n<body>\n<div id=\"headers\">\n";
-				//	buf += "<div class=\"res\">";
-				//	CUtil::htmlEscape(buf, responseLine.ver);
-				//	buf += " ";
-				//	CUtil::htmlEscape(buf, responseLine.code);
-				//	buf += " ";
-				//	CUtil::htmlEscape(buf, responseLine.msg);
-				//	buf += "</div>\n";
-				//	string name;
-				//	for (vector<SHeader>::iterator it = inHeadersFiltered.begin();
-				//			it != inHeadersFiltered.end(); it++) {
-				//		buf += "<div class=\"hdr\">";
-				//		CUtil::htmlEscape(buf, it->name);
-				//		buf += ": <span class=\"val\">";
-				//		CUtil::htmlEscape(buf, it->value);
-				//		buf += "</span></div>\n";
-				//	}
-				//	buf += "</div><div id=\"body\">\n";
-				//	useChain = true;
-				//	useGifFilter = false;
-				//	chain->dataReset();
-				//	dataReset();
-				//	dataFeed(buf);
-				//} else {
+				if (m_filterOwner.url.getDebug()) {
+					m_sendInBuf += "HTTP/1.1 200 OK" CRLF
+						"Content-Type: text/html" CRLF
+						"Connection: close" CRLF
+						"Transfer-Encoding: chunked" CRLF CRLF;
+					std::string buf =
+						"<?xml version=\"1.0\" encoding=\"iso-8859-1\"?>\n"
+						"<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\""
+						" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n"
+						"<html>\n<head>\n<title>Source of ";
+					CUtil::htmlEscape(buf, m_filterOwner.url.getProtocol() + "://" +
+										   m_filterOwner.url.getFromHost());
+					buf += "</title>\n"
+						"<link rel=\"stylesheet\" media=\"all\" "
+						"href=\"http://local.ptron/ViewSource.css\" />\n"
+						"</head>\n\n<body>\n<div id=\"headers\">\n";
+					buf += "<div class=\"res\">";
+					CUtil::htmlEscape(buf, m_responseLine.ver);
+					buf += " ";
+					CUtil::htmlEscape(buf, m_responseLine.code);
+					buf += " ";
+					CUtil::htmlEscape(buf, m_responseLine.msg);
+					buf += "</div>\n";
+					string name;
+					for (auto& pair : inHeadersFiltered) {
+						buf += "<div class=\"hdr\">";
+						CUtil::htmlEscape(buf, pair.first);
+						buf += ": <span class=\"val\">";
+						CUtil::htmlEscape(buf, pair.second);
+						buf += "</span></div>\n";
+					}
+					buf += "</div><div id=\"body\">\n";
+					m_useChain = true;
+					//useGifFilter = false;
+					m_textFilterChain.DataReset();
+					DataReset();
+					DataFeed(buf);
+				} else {
 
-				m_sendInBuf = "HTTP/1.1 " + m_responseLine.code + " " + m_responseLine.msg  + CRLF ;
-				std::string name;
-				for (auto& pair : inHeadersFiltered) {
-					m_sendInBuf += pair.first + ": " + pair.second + CRLF;
+					m_sendInBuf = "HTTP/1.1 " + m_responseLine.code + " " + m_responseLine.msg  + CRLF ;
+					std::string name;
+					for (auto& pair : inHeadersFiltered) 
+						m_sendInBuf += pair.first + ": " + pair.second + CRLF;
+					
+					CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_filterOwner.requestNumber, m_sendInBuf);
+
+					m_sendInBuf += CRLF;
+
+					// Tell text filters to see whether they should work on it
+					m_useChain = (m_filterOwner.bypassBody == false && CSettings::s_filterText);
+					if (m_useChain) 
+						m_textFilterChain.DataReset(); 
+					else 
+						DataReset();
+					//if (useGifFilter) GIFfilter->dataReset();
+
+					DataReset();
+
+					// File type will be reevaluated using first block of data
+					m_filterOwner.fileType.clear();
 				}
-				CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_filterOwner.requestNumber, m_sendInBuf);
-
-				m_sendInBuf += CRLF;
-
-				// Tell text filters to see whether they should work on it
-				//useChain = (!bypassBody && CSettings::ref().filterText);
-				//if (useChain) chain->dataReset(); else dataReset();
-				//if (useGifFilter) GIFfilter->dataReset();
-
-				DataReset();
-
-				// File type will be reevaluated using first block of data
-				m_filterOwner.fileType.clear();
-				//}
 
 				// Decide what to do next
 				m_inStep = (m_responseLine.code == "204"  ? STEP_FINISH :
@@ -1136,37 +1149,35 @@ void	CRequestManager::_ProcessIn()
 
 				// We must decompress compressed data,
 				// unless bypassed body with same coding
-				if (m_recvContentCoding /*&& (useChain ||
+				if (m_recvContentCoding && (m_useChain) /*||
 										m_recvContentCoding != m_sendContentCoding)*/) {
 					m_decompressor->feed(data);
 					m_decompressor->read(data);
 				}
 
 
-				//if (useChain) {
-				//	// provide filter chain with raw unfiltered data
-				//	chain->dataFeed(data);
+				if (m_useChain) {
+					// provide filter chain with raw unfiltered data
+					m_textFilterChain.DataFeed(data);
 				//} else if (useGifFilter) {
 				//	// Freeze GIF
 				//	GIFfilter->dataFeed(data);
-				//} else {
-
+				} else {
 					// In case we bypass the body, we directly send data to
 					// the end of chain (the request manager itself)
 					DataFeed(data);
-					//}
+				}
 
-					// If we finished reading as much raw data as was expected,
-					// continue to next step (finish or next chunk)
-					if (m_inSize == 0) {
-						if (m_inChunked) {
-							m_inStep = STEP_CHUNK;
-						} else {
-							m_inStep = STEP_FINISH;
-							_EndFeeding();
-						}
+				// If we finished reading as much raw data as was expected,
+				// continue to next step (finish or next chunk)
+				if (m_inSize == 0) {
+					if (m_inChunked) {
+						m_inStep = STEP_CHUNK;
+					} else {
+						m_inStep = STEP_FINISH;
+						_EndFeeding();
 					}
-				//}
+				}
 			}
 			break;
 
@@ -1339,38 +1350,38 @@ void	CRequestManager::_EndFeeding() {
         m_decompressor->dump();
         m_decompressor->read(data);
 
-        //if (useChain) {
-        //    chain->dataFeed(data);
+        if (m_useChain) {
+            m_textFilterChain.DataFeed(data);
         //} else if (useGifFilter) {
         //    GIFfilter->dataFeed(data);
-        //} else {
+        } else {
             DataFeed(data);
-        //}
+        }
     }
-#if 0
-    if (useChain) {
-        if (url.getDebug())
-            dataFeed("\n</div>\n</body>\n</html>\n");
-        chain->dataDump();
-    } else if (useGifFilter) {
-        GIFfilter->dataDump();
-    } else 
-#endif
-	{
+
+    if (m_useChain) {
+        if (m_filterOwner.url.getDebug())
+            DataFeed("\n</div>\n</body>\n</html>\n");
+        m_textFilterChain.DataDump();
+    //} else if (useGifFilter) {
+    //    GIFfilter->dataDump();
+    } else {
         DataDump();
     }
     // Write last chunk (size 0)
     m_sendInBuf += "0" CRLF CRLF;
 }
 
-void	CRequestManager::_FakeResponse(const std::string& code)
+void	CRequestManager::_FakeResponse(const std::string& code, const std::string& filename /*= ""*/)
 {
+	std::string content = CUtil::getFile(filename);
 	m_inStep = STEP_FINISH;
 	m_sendInBuf = 
         "HTTP/1.1 " + code + CRLF
-        "Content-Length: " + "0" + CRLF;
+		"Content-Type: " + CUtil::getMimeType(filename) + CRLF
+		"Content-Length: " + boost::lexical_cast<std::string>(content.size()) + CRLF;
 	CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_filterOwner.requestNumber, m_sendInBuf);
-	m_sendInBuf += CRLF;
+	m_sendInBuf += CRLF + content;
 	m_sendConnectionClose = true;
 }
 

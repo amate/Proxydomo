@@ -43,7 +43,8 @@ bool CUtil::noCaseEqual(const string& s1, const string& s2) {
 
 // Returns true if s2 begins with s1
 bool CUtil::noCaseBeginsWith(const string& s1, const string& s2) {
-    return equal(s1.begin(), s1.end(), s2.begin(), insensitive_compare());
+	return ::_strnicmp(s1.c_str(), s2.c_str(), s1.size()) == 0;
+    //return equal(s1.begin(), s1.end(), s2.begin(), insensitive_compare());
 }
 
 // Returns true if s2 contains s1
@@ -102,7 +103,7 @@ void CUtil::htmlEscape(string& a, const string& b) {
                     quote = false;
                     a += "</span>";
                 }
-                a += "&gt;";
+                a += "<span class=\"tag\">&gt;</span>";
                 break;
 
             case '&':
@@ -310,18 +311,18 @@ string CUtil::getFile(string filename) {
 	return content;
 }
 
-#if 0
+
 // Get MIME type of a file
 string CUtil::getMimeType(string filename) {
     size_t dot = filename.rfind('.');
     if (dot == string::npos)
         return "application/octet-stream";
     string ext = filename.substr(dot+1);
-    wxString mime;
-    wxFileType* type = wxTheMimeTypesManager->GetFileTypeFromExtension(S2W(ext));
-    if (type != NULL && type->GetMimeType(&mime))
-        return W2S(mime);
-    else if (ext == "css" || ext == "html" || ext == "xml")
+    //wxString mime;
+    //wxFileType* type = wxTheMimeTypesManager->GetFileTypeFromExtension(S2W(ext));
+    //if (type != NULL && type->GetMimeType(&mime))
+    //    return W2S(mime);
+    if (ext == "css" || ext == "html" || ext == "xml")
         return "text/" + ext;
     else if (ext == "js")
         return "text/javascript";
@@ -333,7 +334,7 @@ string CUtil::getMimeType(string filename) {
         return "image/jpeg";
     return "application/octet-stream";
 }
-#endif
+
 
 // Increment a string
 string& CUtil::increment(string& str) {
@@ -520,7 +521,6 @@ string CUtil::makePath(const string& str) {
 #endif
     return replaceAll(str, "/", "\\");
 }
-
 
 // Converts platform's path separators to /
 string CUtil::unmakePath(const string& str) {
