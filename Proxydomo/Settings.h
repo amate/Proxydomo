@@ -38,6 +38,8 @@ public:
 	static bool			s_filterIn;
 	static bool			s_filterOut;
 
+	static bool			s_WebFilterDebug;
+
 	static void	LoadSettings();
 	static void	SaveSettings();
 

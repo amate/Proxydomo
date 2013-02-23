@@ -28,6 +28,7 @@
 //#include "settings.h"
 #include "url.h"
 #include <windows.h>
+#include "..\Settings.h"
 
 using namespace std;
 
@@ -85,7 +86,7 @@ void CUrl::parseUrl(const string& str) {
         //    pos1 -= CSettings::ref().urlCmdPrefix.length();
     //}
 #endif
-		debug	= ::GetAsyncKeyState(VK_PAUSE) < 0;
+		debug	= (::GetAsyncKeyState(VK_PAUSE) < 0) || CSettings::s_WebFilterDebug;
 
     size_t pos2 = str.find_first_of("/?#", pos1);
     if (pos2 == string::npos) pos2 = str.length();

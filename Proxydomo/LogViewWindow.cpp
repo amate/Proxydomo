@@ -27,6 +27,7 @@
 #include <boost\property_tree\ini_parser.hpp>
 #include <boost\property_tree\ptree.hpp>
 #include "Misc.h"
+#include "Settings.h"
 
 #define  LOG_COLOR_BACKGROUND  RGB(255, 255, 255)
 #define  LOG_COLOR_DEFAULT     RGB(140, 140, 140)
@@ -36,7 +37,16 @@
 #define  LOG_COLOR_PROXY       RGB(  0,   0,   0)
 
 
-CLogViewWindow::CLogViewWindow()
+CLogViewWindow::CLogViewWindow() :
+	m_bStopLog(false),
+	m_bBrowserToProxy(false),
+	m_bProxyToWeb(true),
+	m_bProxyFromWeb(false),
+	m_bBrowserFromProxy(true),
+	
+	m_bProxyEvent(true),
+	m_bFilterEvent(true),
+	m_bWebFilterDebug(false)
 {
 }
 
@@ -49,6 +59,7 @@ CLogViewWindow::~CLogViewWindow()
 void	CLogViewWindow::ShowWindow()
 {
 	CLog::RegisterLogTrace(this);
+	_RefreshTitle();
 	__super::ShowWindow(TRUE);
 }
 
@@ -57,6 +68,9 @@ void	CLogViewWindow::ShowWindow()
 
 void CLogViewWindow::ProxyEvent(LogProxyEvent Event, const IPv4Address& addr)
 {
+	if (m_bProxyEvent == false)
+		return ;
+
 	CString msg;
 	msg.Format(_T(">>> ポート %d : "), addr.GetPortNumber());
 	switch (Event) {
@@ -97,20 +111,20 @@ void CLogViewWindow::HttpEvent(LogHttpEvent Event, const IPv4Address& addr, int 
 	CString msg;
 	msg.Format(_T(">>> ポート %d #%d : "), addr.GetPortNumber(), RequestNumber);
 	switch (Event) {
-	case kLogHttpRecvOut:
-		msg += _T("ブラウザ ⇒ Proxy(this)");
+	case kLogHttpRecvOut:	if (!m_bBrowserToProxy)	return ;
+		msg += _T("ブラウザ → Proxy(this)");
 		break;
 
-	case kLogHttpSendOut:
-		msg += _T("Proxy(this) ⇒ サイト");
+	case kLogHttpSendOut:	if (!m_bProxyToWeb)	return ;
+		msg += _T("Proxy(this) → サイト");
 		break;
 
-	case kLogHttpRecvIn:
-		msg += _T("サイト ⇒ Proxy(this)");
+	case kLogHttpRecvIn:	if (!m_bProxyFromWeb)	return ;
+		msg += _T("Proxy(this) ← サイト");
 		break;
 
-	case kLogHttpSendIn:
-		msg += _T("Proxy(this) ⇒ ブラウザ");
+	case kLogHttpSendIn:	if (!m_bBrowserFromProxy)	return ;
+		msg += _T("ブラウザ ← Proxy(this)");
 		break;
 
 	default:
@@ -140,7 +154,7 @@ BOOL CLogViewWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 	m_editLog.SetBackgroundColor(LOG_COLOR_BACKGROUND);
 
     // ダイアログリサイズ初期化
-    DlgResize_Init(true, false, WS_THICKFRAME | WS_MAXIMIZEBOX | WS_CLIPCHILDREN);
+    DlgResize_Init(true, true, WS_THICKFRAME | WS_MAXIMIZEBOX);
 
 	using namespace boost::property_tree;
 	
@@ -159,7 +173,22 @@ BOOL CLogViewWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 		}
 		if (pt.get("LogWindow.ShowWindow", false))
 			ShowWindow();
+
+		if (auto value = pt.get_optional<bool>("LogWindow.BrowserToProxy"))
+			m_bBrowserToProxy	= value.get();
+		if (auto value = pt.get_optional<bool>("LogWindow.ProxyToWeb"))
+			m_bProxyToWeb	= value.get();
+		if (auto value = pt.get_optional<bool>("LogWindow.ProxyFromWeb"))
+			m_bProxyFromWeb	= value.get();
+		if (auto value = pt.get_optional<bool>("LogWindow.BrowserFromProxy"))
+			m_bBrowserFromProxy	= value.get();
+		if (auto value = pt.get_optional<bool>("LogWindow.ProxyEvent"))
+			m_bProxyEvent	= value.get();
+		if (auto value = pt.get_optional<bool>("LogWindow.FilterEvent"))
+			m_bFilterEvent	= value.get();
 	}
+
+	DoDataExchange(DDX_LOAD);
 
 	return 0;
 }
@@ -187,6 +216,13 @@ void CLogViewWindow::OnDestroy()
 	bool bVisible = IsWindowVisible() != 0;
 	pt.put("LogWindow.ShowWindow", bVisible);
 
+	pt.put("LogWindow.BrowserToProxy"	, m_bBrowserToProxy);
+	pt.put("LogWindow.ProxyToWeb"		, m_bProxyToWeb);
+	pt.put("LogWindow.ProxyFromWeb"		, m_bProxyFromWeb);
+	pt.put("LogWindow.BrowserFromProxy"	, m_bBrowserFromProxy);
+	pt.put("LogWindow.ProxyEvent"		, m_bProxyEvent);
+	pt.put("LogWindow.FilterEvent"		, m_bFilterEvent);
+
 	write_ini(settingsPath, pt);
 }
 
@@ -199,6 +235,8 @@ void CLogViewWindow::OnCancel(UINT uNotifyCode, int nID, CWindow wndCtl)
 		m_vecActiveRequestLog.clear();
 	}
 
+	CSettings::s_WebFilterDebug = false;
+
 	__super::ShowWindow(FALSE);
 }
 
@@ -206,6 +244,7 @@ void CLogViewWindow::OnCancel(UINT uNotifyCode, int nID, CWindow wndCtl)
 void CLogViewWindow::OnClear(UINT uNotifyCode, int nID, CWindow wndCtl)
 {
 	m_editLog.SetWindowText(_T(""));
+	_RefreshTitle();
 	m_editLog.Invalidate();
 }
 
@@ -213,15 +252,26 @@ void CLogViewWindow::OnShowActiveRequestLog(UINT uNotifyCode, int nID, CWindow w
 {
 	OnClear(0, 0, NULL);
 
-	CString title;
-	title.Format(_T("ログ - Active[ %d ]"), CLog::GetActiveRequestCount());
-	SetWindowText(title);
+	_RefreshTitle();
 
 	CCritSecLock	lock(m_csActiveRequestLog);
 	for (auto& log : m_vecActiveRequestLog) {
 		_AppendText(log->text, log->textColor);
 	}
 
+}
+
+void CLogViewWindow::OnCheckBoxChanged(UINT uNotifyCode, int nID, CWindow wndCtl)
+{
+	DoDataExchange(DDX_SAVE, nID);
+	if (nID == IDC_CHECKBOX_WEBFILTERDEBUG) {
+		CSettings::s_WebFilterDebug	= m_bWebFilterDebug;
+	} else if (nID == IDC_CHECKBOX_STOPLOG) {
+		if (m_bStopLog)
+			CLog::RemoveLogTrace();
+		else
+			CLog::RegisterLogTrace(this);
+	}
 }
 
 void	CLogViewWindow::_AppendText(const CString& text, COLORREF textColor)
@@ -246,4 +296,9 @@ void	CLogViewWindow::_AppendText(const CString& text, COLORREF textColor)
 	m_editLog.PostMessage(WM_VSCROLL, SB_BOTTOM);
 }
 
-
+void	CLogViewWindow::_RefreshTitle()
+{
+	CString title;
+	title.Format(_T("ログ - Active[ %d ]"), CLog::GetActiveRequestCount());
+	SetWindowText(title);
+}

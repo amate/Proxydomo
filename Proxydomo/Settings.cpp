@@ -72,6 +72,9 @@ bool			CSettings::s_filterText	= true;
 bool			CSettings::s_filterIn	= true;
 bool			CSettings::s_filterOut	= true;
 
+bool			CSettings::s_WebFilterDebug	= false;
+
+
 std::vector<std::unique_ptr<CFilterDescriptor>>	CSettings::s_vecpFilters;
 CCriticalSection								CSettings::s_csFilters;
 std::map<std::string, std::string>				CSettings::s_mapListName;	// list name : file path

@@ -29,11 +29,13 @@
 #include <atlctrls.h>
 #include <atlframe.h>
 #include <atlsync.h>
+#include <atlddx.h>
 #include "Log.h"
 
 class CLogViewWindow : 
 	public CDialogImpl<CLogViewWindow>, 
 	public CDialogResize<CLogViewWindow>,
+	public CWinDataExchange<CLogViewWindow>,
 	public ILogTrace
 {
 public:
@@ -50,11 +52,34 @@ public:
 
 	BEGIN_DLGRESIZE_MAP( CLogViewWindow )
 		DLGRESIZE_CONTROL( IDC_RICHEDIT_LOG, DLSZ_SIZE_X | DLSZ_SIZE_Y )
-		DLGRESIZE_CONTROL( IDC_BUTTON_CLEAR, DLSZ_MOVE_X | DLSZ_MOVE_Y )
-		DLGRESIZE_CONTROL( IDOK, DLSZ_MOVE_X | DLSZ_MOVE_Y )
-		DLGRESIZE_CONTROL( IDCANCEL, DLSZ_MOVE_X | DLSZ_MOVE_Y )
-		DLGRESIZE_CONTROL( IDC_BUTTON_SHOWACTIVEREQUESTLOG, DLSZ_MOVE_X | DLSZ_MOVE_Y )
+		DLGRESIZE_CONTROL( IDC_CHECKBOX_STOPLOG, DLSZ_MOVE_Y )
+		DLGRESIZE_CONTROL( IDC_BUTTON_SHOWACTIVEREQUESTLOG, DLSZ_MOVE_Y )
+		DLGRESIZE_CONTROL( IDC_BUTTON_CLEAR, DLSZ_MOVE_Y )
+
+		DLGRESIZE_CONTROL( IDC_CHECKBOX_BROWSERTOPROXY, DLSZ_MOVE_Y )
+		DLGRESIZE_CONTROL( IDC_CHECKBOX_PROXYTOWEB, DLSZ_MOVE_Y )
+		DLGRESIZE_CONTROL( IDC_CHECKBOX_PROXYFROMWEB, DLSZ_MOVE_Y )
+		DLGRESIZE_CONTROL( IDC_CHECKBOX_BROWSERFROMPROXY, DLSZ_MOVE_Y )
+		DLGRESIZE_CONTROL( IDC_GROUP_HTTPEVENT, DLSZ_MOVE_Y )
+
+		DLGRESIZE_CONTROL( IDC_CHECKBOX_PROXYEVENT, DLSZ_MOVE_Y )
+		DLGRESIZE_CONTROL( IDC_CHECKBOX_FILTEREVENT, DLSZ_MOVE_Y )
+		DLGRESIZE_CONTROL( IDC_CHECKBOX_WEBFILTERDEBUG, DLSZ_MOVE_Y )
 	END_DLGRESIZE_MAP()
+
+	BEGIN_DDX_MAP( CLogViewWindow )
+		DDX_CHECK(IDC_CHECKBOX_STOPLOG		,	m_bStopLog)
+
+		DDX_CHECK(IDC_CHECKBOX_BROWSERTOPROXY	,	m_bBrowserToProxy)
+		DDX_CHECK(IDC_CHECKBOX_PROXYTOWEB		,	m_bProxyToWeb)
+		DDX_CHECK(IDC_CHECKBOX_PROXYFROMWEB		,	m_bProxyFromWeb)
+		DDX_CHECK(IDC_CHECKBOX_BROWSERFROMPROXY	,	m_bBrowserFromProxy)
+
+		DDX_CHECK(IDC_CHECKBOX_PROXYEVENT	,	m_bProxyEvent)
+		DDX_CHECK(IDC_CHECKBOX_FILTEREVENT	,	m_bFilterEvent)
+		DDX_CHECK(IDC_CHECKBOX_WEBFILTERDEBUG,	m_bWebFilterDebug)
+
+	END_DDX_MAP()
 
 	BEGIN_MSG_MAP_EX( CLogViewWindow )
 		MSG_WM_INITDIALOG( OnInitDialog )
@@ -62,6 +87,15 @@ public:
 		COMMAND_ID_HANDLER_EX( IDCANCEL, OnCancel )
 		COMMAND_ID_HANDLER_EX( IDC_BUTTON_CLEAR, OnClear )
 		COMMAND_ID_HANDLER_EX( IDC_BUTTON_SHOWACTIVEREQUESTLOG, OnShowActiveRequestLog )
+
+		COMMAND_ID_HANDLER_EX( IDC_CHECKBOX_STOPLOG			, OnCheckBoxChanged )
+		COMMAND_ID_HANDLER_EX( IDC_CHECKBOX_BROWSERTOPROXY	, OnCheckBoxChanged )
+		COMMAND_ID_HANDLER_EX( IDC_CHECKBOX_PROXYTOWEB		, OnCheckBoxChanged )	
+		COMMAND_ID_HANDLER_EX( IDC_CHECKBOX_PROXYFROMWEB	, OnCheckBoxChanged )	
+		COMMAND_ID_HANDLER_EX( IDC_CHECKBOX_BROWSERFROMPROXY, OnCheckBoxChanged )	
+		COMMAND_ID_HANDLER_EX( IDC_CHECKBOX_PROXYEVENT		, OnCheckBoxChanged )	
+		COMMAND_ID_HANDLER_EX( IDC_CHECKBOX_FILTEREVENT		, OnCheckBoxChanged )	
+		COMMAND_ID_HANDLER_EX( IDC_CHECKBOX_WEBFILTERDEBUG	, OnCheckBoxChanged )	
 		CHAIN_MSG_MAP( CDialogResize<CLogViewWindow> )
 	END_MSG_MAP()
 
@@ -72,9 +106,11 @@ public:
 	void OnCancel(UINT uNotifyCode, int nID, CWindow wndCtl);
 	void OnClear(UINT uNotifyCode, int nID, CWindow wndCtl);
 	void OnShowActiveRequestLog(UINT uNotifyCode, int nID, CWindow wndCtl);
+	void OnCheckBoxChanged(UINT uNotifyCode, int nID, CWindow wndCtl);
 
 private:
 	void	_AppendText(const CString& text, COLORREF textColor);
+	void	_RefreshTitle();
 
 	// Data members
 	CRichEditCtrl	m_editLog;
@@ -88,5 +124,16 @@ private:
 	};
 	std::vector<std::unique_ptr<EventLog>>	m_vecActiveRequestLog;
 	CCriticalSection	m_csActiveRequestLog;
+
+	bool	m_bStopLog;
+
+	bool	m_bBrowserToProxy;
+	bool	m_bProxyToWeb;
+	bool	m_bProxyFromWeb;
+	bool	m_bBrowserFromProxy;
+
+	bool	m_bProxyEvent;
+	bool	m_bFilterEvent;
+	bool	m_bWebFilterDebug;
 };
 
