@@ -59,7 +59,7 @@ CAPTION "About"
 FONT 8, "MS Shell Dlg"
 BEGIN
     DEFPUSHBUTTON   "OK", IDOK, 123, 117, 50, 14
-    LTEXT           "Proxydomo Application v1.0\n\n(c) Antony Boucher 2004\n(c) amate 2013-\n\nOpen-Source project distributed under GUN GPL", IDC_STATIC, 16, 57, 154, 48, SS_LEFT
+    LTEXT           "%APP_NAME% v%APP_VERSION%\n\n(c) Antony Boucher 2004\n(c) amate 2013-\n\nOpen-Source project distributed under GUN GPL", IDC_STATIC_APP, 16, 57, 154, 48, SS_LEFT
     ICON            IDR_MAINFRAME, IDC_STATIC, 55, 26, 21, 23, SS_ICON
     GROUPBOX        "", IDC_STATIC, 7, 7, 168, 106
 END

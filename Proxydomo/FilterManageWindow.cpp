@@ -72,7 +72,10 @@ BOOL CFilterManageWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 	using namespace boost::property_tree;
 	std::string settingsPath = CT2A(Misc::GetExeDirectory() + _T("settings.ini"));
 	ptree pt;
-	read_ini(settingsPath, pt);
+	try {
+		read_ini(settingsPath, pt);
+	} catch (...) {
+	}
 	CRect rcWindow;
 	rcWindow.top	= pt.get("FilterManageWindow.top", 0);
 	rcWindow.left	= pt.get("FilterManageWindow.left", 0);
@@ -90,7 +93,10 @@ void CFilterManageWindow::OnDestroy()
 	using namespace boost::property_tree;	
 	std::string settingsPath = CT2A(Misc::GetExeDirectory() + _T("settings.ini"));
 	ptree pt;
-	read_ini(settingsPath, pt);
+	try {
+		read_ini(settingsPath, pt);
+	} catch (...) {
+	}
 
 	CRect rcWindow;
 	GetWindowRect(&rcWindow);

@@ -21,6 +21,9 @@
 */
 #pragma once
 
+#include "AppConst.h"
+#include "resource.h"
+
 class CAboutDlg : public CDialogImpl<CAboutDlg>
 {
 public:
@@ -40,6 +43,14 @@ public:
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 	{
 		CenterWindow(GetParent());
+
+		CWindow wndDiscription = GetDlgItem(IDC_STATIC_APP);
+		CString text;
+		wndDiscription.GetWindowText(text.GetBuffer(1024 + 1), 1024);
+		text.ReleaseBuffer();
+		text.Replace(_T("%APP_NAME%"), APP_NAME);
+		text.Replace(_T("%APP_VERSION%"), APP_VERSION);
+		wndDiscription.SetWindowText(text);
 		return TRUE;
 	}
 

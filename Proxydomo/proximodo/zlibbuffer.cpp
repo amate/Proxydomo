@@ -26,7 +26,6 @@
 //#include "const.h"
 #include <assert.h>
 
-
 #define ZLIB_BLOCK 4096
 
 #pragma comment(lib, "zlibstat.lib")
@@ -90,7 +89,8 @@ bool CZlibBuffer::reset(bool shrink, bool modeGzip) {
 			err = inflateInit(&stream);
 		}
     }
-    if (err != Z_OK) return false;
+    if (err != Z_OK) 
+		return false;
     freed = false;
     return true;
 }
@@ -99,10 +99,10 @@ bool CZlibBuffer::reset(bool shrink, bool modeGzip) {
 /* Provide data to the container.
  * As much data as possible is immediately processed.
  */
-void CZlibBuffer::feed(string data) {
-
-    if (err != Z_OK || freed) 
-		return;
+void CZlibBuffer::feed(string data) 
+{
+    if (freed)	
+		return;		// resetが呼ばれていなければ帰る
 
     buffer += data;
     size_t size = buffer.size();
@@ -112,9 +112,6 @@ void CZlibBuffer::feed(string data) {
         stream.next_in = (Byte*)buf1;
         stream.avail_in = (remaining > ZLIB_BLOCK ? ZLIB_BLOCK : remaining);
 		memcpy_s(buf1, ZLIB_BLOCK, &buffer[size - remaining], stream.avail_in);
-        //for (size_t i=0; i<stream.avail_in; i++) {
-        //    buf1[i] = buffer[size - remaining + i];
-        //}
         do {
             stream.next_out = (Byte*)buf2;
             stream.avail_out = (uInt)ZLIB_BLOCK;
@@ -123,6 +120,11 @@ void CZlibBuffer::feed(string data) {
             } else {
                 err = inflate(&stream, Z_NO_FLUSH);
             }
+			assert((err != Z_NEED_DICT) &&
+				   (err != Z_STREAM_ERROR) &&
+				   (err != Z_DATA_ERROR) &&
+				   (err != Z_MEM_ERROR));
+
             output << string(buf2, ZLIB_BLOCK - stream.avail_out);
         } while (err == Z_OK && stream.avail_out < ZLIB_BLOCK / 10);
 		// 入力が消費されていなかったら終了
@@ -156,7 +158,19 @@ void CZlibBuffer::dump() {
         delete[] buf1;
     } else {
 		// デバッグ時利用
-		//assert( err == Z_OK || err == Z_STREAM_END );
+		assert( err == Z_OK || err == Z_STREAM_END );
+#if 0
+		if (!(err == Z_OK || err == Z_STREAM_END)) {
+			{
+				std::ofstream	fsRaw(Misc::GetExeDirectory() + _T("Raw.txt"), std::ios::out | std::ios::binary);
+				fsRaw.write(m_debugRaw.c_str(), m_debugRaw.size());
+			}
+			{
+				std::ofstream	fsDecompressed(Misc::GetExeDirectory() + _T("Decompressed.txt"), std::ios::out | std::ios::binary);
+				fsDecompressed.write(m_debugDecompressed.c_str(), m_debugDecompressed.size());
+			}
+		}
+#endif
 	}
 }
 

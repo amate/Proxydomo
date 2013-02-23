@@ -286,7 +286,8 @@ bool	CSocket::Write(const char* buffer, int length)
 	int nLen = ::send(m_sock, buffer, length, 0);
 	if (nLen == SOCKET_ERROR) {
 		m_nLastWriteCount = 0;
-		if (::WSAGetLastError() == WSAEWOULDBLOCK)
+		int wsaError = ::WSAGetLastError();
+		if (wsaError == WSAEWOULDBLOCK)
 			return true;
 
 		//throw SocketException("CSocket::Write failed");

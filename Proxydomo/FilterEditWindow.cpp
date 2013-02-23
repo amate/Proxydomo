@@ -305,7 +305,10 @@ BOOL CFilterEditWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 	using namespace boost::property_tree;
 	std::string settingsPath = CT2A(Misc::GetExeDirectory() + _T("settings.ini"));
 	ptree pt;
-	read_ini(settingsPath, pt);
+	try {
+		read_ini(settingsPath, pt);
+	} catch (...) {
+	}
 	CRect rcWindow;
 	rcWindow.top	= pt.get("FilterEditWindow.top", 0);
 	rcWindow.left	= pt.get("FilterEditWindow.left", 0);
@@ -322,7 +325,10 @@ void CFilterEditWindow::OnDestroy()
 	using namespace boost::property_tree;	
 	std::string settingsPath = CT2A(Misc::GetExeDirectory() + _T("settings.ini"));
 	ptree pt;
-	read_ini(settingsPath, pt);
+	try {
+		read_ini(settingsPath, pt);
+	} catch (...) {
+	}
 
 	CRect rcWindow;
 	GetWindowRect(&rcWindow);

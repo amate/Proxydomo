@@ -52,6 +52,7 @@
 #define IDC_STATIC_LIMIT			1035
 #define IDC_STATIC_BOUNDS			1036
 #define IDC_STATIC_REPLACE			1037
+#define IDC_STATIC_APP				1038
 
 
 // Next default values for new objects

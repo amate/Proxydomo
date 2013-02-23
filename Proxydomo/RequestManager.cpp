@@ -31,6 +31,8 @@
 #include "Misc.h"
 #include "Settings.h"
 
+#include <fstream>
+
 #define CR	'\r'
 #define LF	'\n'
 #define CRLF "\r\n"
@@ -226,7 +228,6 @@ bool CRequestManager::_ReceiveOut()
 		int count = m_psockBrowser->GetLastReadCount();
 		if (count == 0)
 			break;
-		//buf[count] = 0;
 		m_recvOutBuf += std::string(buf, count);
 		bDataReceived = true;
 	}
@@ -792,7 +793,6 @@ bool	CRequestManager::_ReceiveIn()
 		int count = m_psockWebsite->GetLastReadCount();
 		if (count == 0)
 			break;
-		//buf[count] = 0;
 		m_recvInBuf += std::string(buf, count);
 		bDataReceived = true;
 	}
@@ -948,27 +948,33 @@ void	CRequestManager::_ProcessIn()
 						m_recvConnectionClose = true;
 				}
 
-
-				if (CUtil::noCaseContains("gzip", m_filterOwner.GetInHeader("Content-Encoding"))) {
-					m_recvContentCoding = 1;
-					if (m_decompressor == nullptr) 
-						m_decompressor.reset(new CZlibBuffer());
-					m_decompressor->reset(false, true);
-					if (CSettings::s_filterText)
-						CFilterOwner::RemoveHeader(m_filterOwner.inHeaders, "Content-Encoding");
-				} else if (CUtil::noCaseContains("deflate", m_filterOwner.GetInHeader( "Content-Encoding"))) {
-					m_recvContentCoding = 2;
-					if (m_decompressor == nullptr) 
-						m_decompressor.reset(new CZlibBuffer());
-					m_decompressor->reset(false, false);
-					if (CSettings::s_filterText)
-						CFilterOwner::RemoveHeader(m_filterOwner.inHeaders, "Content-Encoding");
-				} else if (CUtil::noCaseContains("compress", m_filterOwner.GetInHeader("Content-Encoding"))) {
-					m_filterOwner.bypassBody = true;
-				}
-
 				if (CUtil::noCaseBeginsWith("206", m_filterOwner.responseCode))
 					m_filterOwner.bypassBody = true;
+
+				// Tell text filters to see whether they should work on it
+				m_useChain = (m_filterOwner.bypassBody == false && CSettings::s_filterText) ||
+							m_filterOwner.url.getDebug();
+
+				if (m_useChain) {
+					std::string contentEncoding = m_filterOwner.GetInHeader("Content-Encoding");
+					if (CUtil::noCaseContains("gzip", contentEncoding)) {
+						m_recvContentCoding = 1;
+						if (m_decompressor == nullptr) 
+							m_decompressor.reset(new CZlibBuffer());
+						m_decompressor->reset(false, true);
+						if (CSettings::s_filterText)
+							CFilterOwner::RemoveHeader(m_filterOwner.inHeaders, "Content-Encoding");
+					} else if (CUtil::noCaseContains("deflate", contentEncoding)) {
+						m_recvContentCoding = 2;
+						if (m_decompressor == nullptr) 
+							m_decompressor.reset(new CZlibBuffer());
+						m_decompressor->reset(false, false);
+						if (CSettings::s_filterText)
+							CFilterOwner::RemoveHeader(m_filterOwner.inHeaders, "Content-Encoding");
+					} else if (CUtil::noCaseContains("compress", contentEncoding)) {
+						m_filterOwner.bypassBody = true;
+					}
+				}
 
 				// We'll work on a copy, since we don't want to alter
 				// the real headers that $IHDR and $OHDR may access
@@ -1021,11 +1027,12 @@ void	CRequestManager::_ProcessIn()
 				if (CUtil::noCaseContains("close", CFilterOwner::GetHeader(inHeadersFiltered, "Connection")))
 					m_sendConnectionClose = true;
 
-				if (m_inChunked || m_inSize) {
+				if (m_useChain && (m_inChunked || m_inSize)) {
 					// Our output will always be chunked: filtering can
 					// change body size. So let's force this header.
 					CFilterOwner::SetHeader(inHeadersFiltered, "Transfer-Encoding", "chunked");
-					CFilterOwner::RemoveHeader(inHeadersFiltered, "Content-Length");	// Content-LengthÇè¡Ç≥Ç»Ç¢Ç∆Ç®Ç©ÇµÇ¢
+					// Content-LengthÇè¡Ç≥Ç»Ç¢Ç∆Ç®Ç©ÇµÇ¢
+					CFilterOwner::RemoveHeader(inHeadersFiltered, "Content-Length");
 				}
 
 				// Now we can put everything in the filtered buffer
@@ -1063,7 +1070,7 @@ void	CRequestManager::_ProcessIn()
 						buf += "</span></div>\n";
 					}
 					buf += "</div><div id=\"body\">\n";
-					m_useChain = true;
+					//m_useChain = true;
 					//useGifFilter = false;
 					m_textFilterChain.DataReset();
 					DataReset();
@@ -1079,15 +1086,11 @@ void	CRequestManager::_ProcessIn()
 
 					m_sendInBuf += CRLF;
 
-					// Tell text filters to see whether they should work on it
-					m_useChain = (m_filterOwner.bypassBody == false && CSettings::s_filterText);
 					if (m_useChain) 
 						m_textFilterChain.DataReset(); 
 					else 
 						DataReset();
 					//if (useGifFilter) GIFfilter->dataReset();
-
-					DataReset();
 
 					// File type will be reevaluated using first block of data
 					m_filterOwner.fileType.clear();
@@ -1108,6 +1111,7 @@ void	CRequestManager::_ProcessIn()
 		case STEP_CHUNK:
 			{
 				TRACEIN(_T("ProcessIn #%d : STEP_CHUNK"), m_filterOwner.requestNumber);
+
 				size_t pos, len;
 				while (CUtil::endOfLine(m_recvInBuf, 0, pos, len) && pos == 0)
 					m_recvInBuf.erase(0,len);
@@ -1136,8 +1140,8 @@ void	CRequestManager::_ProcessIn()
 				if (copySize > m_inSize)
 					copySize = m_inSize;
 
-				if (m_inChunked == false && m_psockWebsite->IsConnectionKilledFromPeer())
-					m_inSize = 0;
+				//if (m_inChunked == false && m_psockWebsite->IsConnectionKilledFromPeer())
+				//	m_inSize = 0;
 				if (copySize == 0 && m_inSize)
 					return ;
 
@@ -1297,20 +1301,21 @@ void	CRequestManager::DataFeed(const std::string& data)
 		return;
 
     size_t size = data.size();
-    if (size && m_sendContentCoding
+	if (size && (m_useChain || m_inChunked)/*m_sendContentCoding*/ 
         /*&& (useChain || recvContentCoding != sendContentCoding)*/) {
 
         // Send a chunk of compressed data
-        string tmp;
-        m_compressor->feed(data);
-        m_compressor->read(tmp);
-        size = tmp.size();
-        if (size)
-            m_sendInBuf += CUtil::makeHex(size) + CRLF + tmp + CRLF;
+        //string tmp;
+        //m_compressor->feed(data);
+        //m_compressor->read(tmp);
+        //size = tmp.size();
+        //if (size)
+            m_sendInBuf += CUtil::makeHex(size) + CRLF + data + CRLF;
 
     } else if (size) {
         // Send a chunk of uncompressed/unchanged data
-        m_sendInBuf += CUtil::makeHex(size) + CRLF + data + CRLF;
+        //m_sendInBuf += CUtil::makeHex(size) + CRLF + data + CRLF;
+		m_sendInBuf += data;
     }
 }
 
@@ -1321,6 +1326,7 @@ void	CRequestManager::DataDump()
 		return;
     m_dumped = true;
 
+#if 0
     if (m_sendContentCoding
         /*&& (useChain || recvContentCoding != sendContentCoding)*/) {
 
@@ -1331,7 +1337,7 @@ void	CRequestManager::DataDump()
         if (size)
             m_sendInBuf += CUtil::makeHex(size) + CRLF + tmp + CRLF;
     }
-
+#endif
     if (m_inStep != STEP_FINISH) {
         // Data has been dumped by a filter, not by this request manager.
         // So we must disconnect the website to stop downloading.
@@ -1344,7 +1350,7 @@ void	CRequestManager::DataDump()
  */
 void	CRequestManager::_EndFeeding() {
 
-    if (m_recvContentCoding /*&& (useChain ||
+    if (m_recvContentCoding && m_useChain/*&& (useChain ||
                 recvContentCoding != sendContentCoding)*/) {
         string data;
         m_decompressor->dump();
@@ -1368,8 +1374,11 @@ void	CRequestManager::_EndFeeding() {
     } else {
         DataDump();
     }
-    // Write last chunk (size 0)
-    m_sendInBuf += "0" CRLF CRLF;
+
+	if (m_useChain || m_inChunked) {
+		// Write last chunk (size 0)
+		m_sendInBuf += "0" CRLF CRLF;
+	}
 }
 
 void	CRequestManager::_FakeResponse(const std::string& code, const std::string& filename /*= ""*/)

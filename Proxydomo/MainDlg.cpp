@@ -99,7 +99,11 @@ LRESULT CMainDlg::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/,
 
 	std::string settingsPath = CT2A(Misc::GetExeDirectory() + _T("settings.ini"));
 	ptree pt;
-	read_ini(settingsPath, pt);
+	try {
+		read_ini(settingsPath, pt);
+	} catch (...) {
+
+	}
 
 	pt.put("MainWindow.ShowWindow", m_bVisibleOnDestroy);
 	if (m_bVisibleOnDestroy) {

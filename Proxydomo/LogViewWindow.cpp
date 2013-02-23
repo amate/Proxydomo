@@ -172,7 +172,10 @@ void CLogViewWindow::OnDestroy()
 	
 	std::string settingsPath = CT2A(Misc::GetExeDirectory() + _T("settings.ini"));
 	ptree pt;
-	read_ini(settingsPath, pt);
+	try {
+		read_ini(settingsPath, pt);
+	} catch (...) {
+	}
 
 	CRect rcWindow;
 	GetWindowRect(&rcWindow);

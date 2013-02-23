@@ -118,7 +118,10 @@ void	CSettings::SaveSettings()
 {
 	std::string settingsPath = CT2A(Misc::GetExeDirectory() + _T("settings.ini"));
 	ptree pt;
-	read_ini(settingsPath, pt);
+	try {
+		read_ini(settingsPath, pt);
+	} catch (...) {
+	}
 
 	pt.put("Setting.ProxyPort", s_proxyPort);
 	pt.put("Setting.filterText"	, s_filterText);
