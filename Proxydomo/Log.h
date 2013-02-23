@@ -41,12 +41,22 @@ enum LogHttpEvent
 
 };
 
+enum LogFilterEvent
+{
+	kLogFilterHeaderMatch,
+	kLogFilterHeaderReplace,
+	kLogFilterTextMatch,
+	kLogFilterTextReplace,
+	kLogFilterLogCommand,
+};
+
 
 class ILogTrace
 {
 public:
 	virtual void ProxyEvent(LogProxyEvent Event, const IPv4Address& addr) = 0;
 	virtual void HttpEvent(LogHttpEvent Event, const IPv4Address& addr, int RequestNumber, const std::string& text) = 0;
+	virtual void FilterEvent(LogFilterEvent Event, int RequestNumber, const std::string& title, const std::string& text) = 0;
 };
 
 
@@ -67,6 +77,11 @@ public:
 	{
 		if (s_pLogTrace)
 			s_pLogTrace->HttpEvent(Event, addr, RequestNumber, text);
+	}
+	static void FilterEvent(LogFilterEvent Event, int RequestNumber, const std::string& title, const std::string& text)
+	{
+		if (s_pLogTrace)
+			s_pLogTrace->FilterEvent(Event, RequestNumber, title, text);
 	}
 
 	static long	IncrementRequestCount() { return ::InterlockedIncrement(&s_RequestCount); }

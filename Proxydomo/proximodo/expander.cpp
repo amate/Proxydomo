@@ -31,6 +31,7 @@
 //#include "settings.h"
 #include "matcher.h"
 //#include "log.h"
+#include "..\Log.h"
 //#include "logframe.h"
 #include "filter.h"
 #include "..\filterowner.h"
@@ -186,7 +187,7 @@ string CExpander::expand(const string& pattern, CFilter& filter) {
                 // This parse function will have to be modified to take into account
                 // commands with several comma-separated parameters.
                 //   output << f_COMMAND(parse(pos+1, pos));
-#if 0
+
                 if (command == "GET") {
 
                     CUtil::trim(content);
@@ -211,7 +212,7 @@ string CExpander::expand(const string& pattern, CFilter& filter) {
                     }
 
                 } else if (command == "SETPROXY") {
-
+#if 0
                     CUtil::trim(content);
                     size_t len = content.length();
                     set<string>& proxies = CSettings::ref().proxies;
@@ -223,9 +224,9 @@ string CExpander::expand(const string& pattern, CFilter& filter) {
                             break;
                         }
                     }
-
+#endif
                 } else if (command == "USEPROXY") {
-
+#if 0
                     CUtil::trim(content);
                     CUtil::lower(content);
                     if (content == "true") {
@@ -233,21 +234,18 @@ string CExpander::expand(const string& pattern, CFilter& filter) {
                     } else if (content == "false") {
                         filter.owner.useSettingsProxy = false;
                     }
-                } 
-#if 0
-				else if (command == "ALERT") {
+#endif
+                } else if (command == "ALERT") {
 
-                    wxMessageBox(S2W(expand(content, filter)), wxT(APP_NAME));
+                    //wxMessageBox(S2W(expand(content, filter)), wxT(APP_NAME));
 
                 } else if (command == "CONFIRM") {
 
-                    int answer = wxMessageBox(S2W(expand(content, filter)),
-                                                wxT(APP_NAME), wxYES_NO);
-                    if (answer == wxNO) index = size;
+                    //int answer = wxMessageBox(S2W(expand(content, filter)),
+                    //                            wxT(APP_NAME), wxYES_NO);
+                    //if (answer == wxNO) index = size;
 
-                } 
-#endif
-				else if (command == "ESC") {
+                } else if (command == "ESC") {
 
                     string value = expand(content, filter);
                     output << CUtil::ESC(value);
@@ -292,25 +290,24 @@ string CExpander::expand(const string& pattern, CFilter& filter) {
 
                 } else if (command == "FILE") {
 
-                    //output << CUtil::getFile(expand(content, filter));
+                    output << CUtil::getFile(expand(content, filter));
 
                 } else if (command == "LOG") {
 
                     string log = expand(content, filter);
-                    //CLog::ref().logFilterEvent(pmEVT_FILTER_TYPE_LOGCOMMAND,
-                    //            filter.owner.reqNumber, filter.title, log);
+					CLog::FilterEvent(kLogFilterLogCommand, filter.owner.requestNumber, filter.title, log);
 
                 } else if (command == "LOCK") {
 
                     if (!filter.locked) {
-                        CLog::ref().filterLock.Lock();
+                        //CLog::ref().filterLock.Lock();
                         filter.locked = true;
                     }
 
                 } else if (command == "UNLOCK") {
 
                     if (filter.locked) {
-                        CLog::ref().filterLock.Unlock();
+                        //CLog::ref().filterLock.Unlock();
                         filter.locked = false;
                     }
 
@@ -325,29 +322,29 @@ string CExpander::expand(const string& pattern, CFilter& filter) {
                         string name = content.substr(0, comma);
                         string value = content.substr(comma + 1);
                         CUtil::trim(name);
-                        CSettings::ref().addListLine(name, expand(value, filter));
+                        //CSettings::ref().addListLine(name, expand(value, filter));
                     }
 
                 } else if (command == "ADDLSTBOX") {
 
-                    size_t comma = content.find(',');
-                    if (comma != string::npos) {
-                        string name = content.substr(0, comma);
-                        CUtil::trim(name);
-                        string title = APP_NAME;
-                        string value = content.substr(comma + 1);
-                        comma = CUtil::findUnescaped(value, ',');
-                        if (comma != string::npos) {
-                            title = value.substr(0, comma);
-                            value = value.substr(comma + 1);
-                        }
-                        title = expand(title, filter);
-                        value = expand(value, filter);
-                        string message = CSettings::ref().getMessage("ADDLSTBOX_MESSAGE", name);
-                        wxTextEntryDialog dlg(NULL, S2W(message), S2W(title), S2W(value));
-                        if (dlg.ShowModal() == wxID_OK)
-                            CSettings::ref().addListLine(name, W2S(dlg.GetValue()));
-                    }
+                    //size_t comma = content.find(',');
+                    //if (comma != string::npos) {
+                    //    string name = content.substr(0, comma);
+                    //    CUtil::trim(name);
+                    //    string title = APP_NAME;
+                    //    string value = content.substr(comma + 1);
+                    //    comma = CUtil::findUnescaped(value, ',');
+                    //    if (comma != string::npos) {
+                    //        title = value.substr(0, comma);
+                    //        value = value.substr(comma + 1);
+                    //    }
+                    //    title = expand(title, filter);
+                    //    value = expand(value, filter);
+                    //    string message = CSettings::ref().getMessage("ADDLSTBOX_MESSAGE", name);
+                    //    wxTextEntryDialog dlg(NULL, S2W(message), S2W(title), S2W(value));
+                    //    if (dlg.ShowModal() == wxID_OK)
+                    //        CSettings::ref().addListLine(name, W2S(dlg.GetValue()));
+                    //}
 
                 } else if (command == "URL") {
 
@@ -419,7 +416,7 @@ string CExpander::expand(const string& pattern, CFilter& filter) {
                     string name = content.substr(0, colon);
                     CUtil::trim(name);
                     CUtil::lower(name);
-                    string value = CFilterOwner::getHeader(filter.owner.inHeaders, name);
+					string value = filter.owner.GetInHeader(name);
                     tStart = value.c_str();
                     tStop = tStart + value.size();
                     if (!CMatcher::match(pattern, filter,
@@ -435,7 +432,7 @@ string CExpander::expand(const string& pattern, CFilter& filter) {
                     string name = content.substr(0, colon);
                     CUtil::trim(name);
                     CUtil::lower(name);
-                    string value = CFilterOwner::getHeader(filter.owner.outHeaders, name);
+					string value = filter.owner.GetOutHeader(name);
                     tStart = value.c_str();
                     tStop = tStart + value.size();
                     if (!CMatcher::match(pattern, filter,
@@ -443,7 +440,7 @@ string CExpander::expand(const string& pattern, CFilter& filter) {
                         index = size;
 
                 } else if (command == "DTM") {
-
+#if 0
                     string day[7] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
                     stringstream ss;
                     wxDateTime now = wxDateTime::UNow();
@@ -473,9 +470,8 @@ string CExpander::expand(const string& pattern, CFilter& filter) {
                         i++;
                     }
                     output << ss.str();
-
-                }
 #endif
+                }
             } else {
                 // not a command, consume the $ as a normal character
                 output << '$';

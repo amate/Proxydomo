@@ -59,7 +59,15 @@ public:
 	enum { kMaxPrefCount = 1000 };
 
 	CFilterTestWindow(CFilterDescriptor* pfd, std::function<void ()> func) : 
-		m_pFilter(pfd), m_funcSaveToTempFilter(func) { }
+		m_pFilter(pfd), m_funcSaveToTempFilter(func), m_bTestURLPattern(false) { }
+
+	void	SetURLPatternMode(bool b)
+	{
+		m_bTestURLPattern = b;
+		CString title = _T("フィルターテスト - ");
+		title += m_bTestURLPattern ? _T("URLパターンテスト") : _T("マッチングパターンテスト");
+		SetWindowText(title);
+	}
 
 	BEGIN_MSG_MAP_EX( CFilterTestWindow )
 		MSG_WM_INITDIALOG( OnInitDialog )
@@ -113,7 +121,7 @@ public:
         owner.cnxNumber = 1;
         CFilter filter(owner);
         bool okayChars[256];
-        CMatcher matcher(m_pFilter->matchPattern, filter);
+		CMatcher matcher(m_bTestURLPattern ? m_pFilter->urlPattern : m_pFilter->matchPattern, filter);
         matcher.mayMatch(okayChars);
         CMatcher* boundsMatcher = NULL;
 		if (m_pFilter->filterType == CFilterDescriptor::kFilterText && !m_pFilter->boundsPattern.empty()) {
@@ -123,21 +131,32 @@ public:
             for (int i = 0; i < 256; i++) 
 				okayChars[i] = okayChars[i] && tab[i];
         }
-
-        // special processing for <start> and <end> filters
-        if (m_pFilter->matchPattern == "<start>" || m_pFilter->matchPattern == "<end>") {
-            std::string str = CExpander::expand(m_pFilter->replacePattern, filter);
-            filter.unlock();
-            if (m_pFilter->matchPattern == "<start>") {
-				str += CT2A(MiscGetWindowText(m_editTest));
-            } else {
-				std::string temp = str;
-                str = CT2A(MiscGetWindowText(m_editTest));
-				str += temp;
-            }
-			m_editResult.SetWindowText(CA2T(str.c_str()));
-            return;
-        }
+		if (m_bTestURLPattern == false) {
+			// special processing for <start> and <end> filters
+			if (m_pFilter->matchPattern == "<start>" || m_pFilter->matchPattern == "<end>") {
+				std::string str = CExpander::expand(m_pFilter->replacePattern, filter);
+				filter.unlock();
+				if (m_pFilter->matchPattern == "<start>") {
+					str += CT2A(MiscGetWindowText(m_editTest));
+				} else {
+					std::string temp = str;
+					str = CT2A(MiscGetWindowText(m_editTest));
+					str += temp;
+				}
+				m_editResult.SetWindowText(CA2T(str.c_str()));
+				return;
+			}
+		} else {
+			std::string text = CT2A(MiscGetWindowText(m_editTest));
+			const char* end = nullptr;
+			const char* reached = nullptr;
+			if (matcher.match(text.c_str(), text.c_str() + text.size(), end, reached)) {
+				m_editResult.SetWindowText(_T("マッチしました！"));
+			} else {
+				m_editResult.SetWindowText(_T("マッチしませんでした..."));
+			}
+			return ;
+		}
 
         std::stringstream result;
         std::string text;
@@ -242,6 +261,7 @@ private:
 	CEdit	m_editTest;
 	CEdit	m_editResult;
 	static CString s_strLastTest;
+	bool	m_bTestURLPattern;
 };
 
 CString CFilterTestWindow::s_strLastTest;
@@ -381,6 +401,7 @@ void CFilterEditWindow::OnTest(UINT uNotifyCode, int nID, CWindow wndCtl)
 	if (m_pTestWindow->IsWindow() == FALSE) {
 		m_pTestWindow->Create(m_hWnd);
 	}
+	m_pTestWindow->SetURLPatternMode(nID == IDC_BUTTON_TEST_URLPATTERN);
 	m_pTestWindow->ShowWindow(TRUE);
 }
 

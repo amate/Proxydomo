@@ -28,6 +28,7 @@
 #include "expander.h"
 #include "util.h"
 //#include "log.h"
+#include "..\Log.h"
 //#include "descriptor.h"
 #include "..\FilterDescriptor.h"
 //#include "filterowner.h"
@@ -104,8 +105,7 @@ bool CHeaderFilter::filter(string& content) {
     }
 
     // Log match event
-    //CLog::ref().logFilterEvent(pmEVT_FILTER_TYPE_HEADERMATCH,
-    //                           owner.reqNumber, title, content);
+	CLog::FilterEvent(kLogFilterHeaderMatch, owner.requestNumber, title, content);
                                
     // Compute new header content
     content = CExpander::expand(replacePattern, *this);
@@ -124,8 +124,7 @@ bool CHeaderFilter::filter(string& content) {
     }
 
     // Log replace event
-    //CLog::ref().logFilterEvent(pmEVT_FILTER_TYPE_HEADERREPLACE,
-    //                           owner.reqNumber, title, content);
+	CLog::FilterEvent(kLogFilterHeaderReplace, owner.requestNumber, title, content);
 
     return true;
 }

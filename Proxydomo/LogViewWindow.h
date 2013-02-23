@@ -49,6 +49,7 @@ public:
 	// ILogTrace
 	virtual void ProxyEvent(LogProxyEvent Event, const IPv4Address& addr) override;
 	virtual void HttpEvent(LogHttpEvent Event, const IPv4Address& addr, int RequestNumber, const std::string& text) override;
+	virtual void FilterEvent(LogFilterEvent Event, int RequestNumber, const std::string& title, const std::string& text) override;
 
 	BEGIN_DLGRESIZE_MAP( CLogViewWindow )
 		DLGRESIZE_CONTROL( IDC_RICHEDIT_LOG, DLSZ_SIZE_X | DLSZ_SIZE_Y )

@@ -62,6 +62,7 @@
 #define IDC_CHECKBOX_FILTEREVENT	1045
 #define IDC_CHECKBOX_WEBFILTERDEBUG	1046
 #define IDC_GROUP_HTTPEVENT			1047
+#define IDC_BUTTON_TEST_URLPATTERN	1048
 
 // Next default values for new objects
 // 

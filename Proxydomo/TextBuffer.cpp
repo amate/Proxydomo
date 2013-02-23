@@ -27,7 +27,7 @@
 #include "Settings.h"
 #include "proximodo\matcher.h"
 #include "proximodo\util.h"
-
+#include "Log.h"
 
 CTextBuffer::CTextBuffer(CFilterOwner& owner, IDataReceptor* output) : m_owner(owner), m_output(output)
 {
@@ -113,12 +113,8 @@ void CTextBuffer::DataFeed(const std::string& data)
 
                 // log match events
                 string occurrence(index, (size_t)((*m_currentFilter)->endOfMatched - index));
-                //CLog::ref().logFilterEvent(pmEVT_FILTER_TYPE_TEXTMATCH,
-                //                           owner.reqNumber,
-                //                           (*currentFilter)->title, occurrence);
-                //CLog::ref().logFilterEvent(pmEVT_FILTER_TYPE_TEXTREPLACE,
-                //                           owner.reqNumber,
-                //                           (*currentFilter)->title, replaceText);
+				CLog::FilterEvent(kLogFilterTextMatch, m_owner.requestNumber, (*m_currentFilter)->title, occurrence);
+				CLog::FilterEvent(kLogFilterTextReplace, m_owner.requestNumber, (*m_currentFilter)->title, replaceText);
 
                 escapeOutput(out, done, (size_t)(index - done));
                 if (m_owner.url.getDebug()) {

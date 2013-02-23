@@ -146,6 +146,44 @@ void CLogViewWindow::HttpEvent(LogHttpEvent Event, const IPv4Address& addr, int 
 	_AppendText(msg, color);
 }
 
+void CLogViewWindow::FilterEvent(LogFilterEvent Event, int RequestNumber, const std::string& title, const std::string& text)
+{
+	if (m_bFilterEvent == false)
+		return ;
+
+	CString msg;
+	msg.Format(_T("#%d : "), RequestNumber);
+	switch (Event) {
+	case kLogFilterHeaderMatch:
+		msg	+= _T("HeaderMatch");
+		break;
+
+	case kLogFilterHeaderReplace:
+		msg += _T("HeaderReplace");
+		break;
+
+	case kLogFilterTextMatch:
+		msg += _T("TextMatch");
+		break;
+
+	case kLogFilterTextReplace:
+		msg += _T("TextReplace");
+		break;
+
+	case kLogFilterLogCommand:
+		msg += _T("LogCommand");
+		break;
+
+	default:
+		ATLASSERT( FALSE );
+		return ;
+	}
+	msg.AppendFormat(_T(", title[ %s ]\n"), CA2T(title.c_str()));
+	
+	_AppendText(msg, LOG_COLOR_FILTER);
+}
+
+
 
 BOOL CLogViewWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 {

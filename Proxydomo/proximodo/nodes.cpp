@@ -31,6 +31,7 @@
 #include "..\Settings.h"
 #include "expander.h"
 //#include "log.h"
+#include "..\Log.h"
 //#include "logframe.h"
 #include "url.h"
 #include "matcher.h"
@@ -1199,9 +1200,8 @@ const char* CNode_Command::match(const char* start, const char* stop) {
 
     case CMD_LOG:
         {
-            //string log = CExpander::expand(content, filter);
-            //CLog::ref().logFilterEvent(pmEVT_FILTER_TYPE_LOGCOMMAND,
-            //            owner.reqNumber, filter.title, log);
+            string log = CExpander::expand(content, filter);
+			CLog::FilterEvent(kLogFilterLogCommand, owner.requestNumber, filter.title, log);
         }
         break;
 
