@@ -716,40 +716,22 @@ void CRequestManager::_ConnectWebsite()
 		if (name.empty() || host.SetService(port) == false || host.SetHostName(name) == false) {
             // The host address is invalid (or unknown by DNS)
             // so we won't try a connection.
-			_FakeResponse("502 Bad Gateway");
+			_FakeResponse("502 Bad Gateway", "./html/error.html");
             //fakeResponse("502 Bad Gateway", "./html/error.html", true,
             //             CSettings::ref().getMessage("502_BAD_GATEWAY"),
             //             name);
             return ;
 		}
-#if 0
-        wxIPV4address host;
-        host.Service(S2W(port));
-        if (name.empty() || !host.Hostname(S2W(name))) {
-            // The host address is invalid (or unknown by DNS)
-            // so we won't try a connection.
-            fakeResponse("502 Bad Gateway", "./html/error.html", true,
-                         CSettings::ref().getMessage("502_BAD_GATEWAY"),
-                         name);
-            return;
-        }
-#endif
 
         // Connect
-		m_psockWebsite->Connect(host);
-#if 0
-        for (int i=0, time=0; website->IsDisconnected() && i<5 && time<1; i++) {
-            if (!website->Connect(host, false)) {
-                while (!website->WaitOnConnect(1,0)) {
-                    if (browser->IsDisconnected()) return;
-                    time++;
-                }
-            }
-        }
-#endif
+		do {
+			if (m_psockWebsite->Connect(host))
+				break;
+		} while (host.SetNextHost());
+
 		if (m_psockWebsite->IsConnected() == false) {
             // Connection failed, warn the browser
-			_FakeResponse("503 Service Unavailable");
+			_FakeResponse("503 Service Unavailable", "./html/error.html");
             //fakeResponse("503 Service Unavailable", "./html/error.html", true,
             //             CSettings::ref().getMessage("503_UNAVAILABLE"),
             //             contactHost);
@@ -758,7 +740,7 @@ void CRequestManager::_ConnectWebsite()
         if (m_requestLine.method == "CONNECT") {
             // for CONNECT method, incoming data is encrypted from start
             m_sendInBuf = "HTTP/1.0 200 Connection established" CRLF
-						  "Proxy-agent: " "Proxydomo/0.5"/*APP_NAME " " APP_VERSION*/ CRLF CRLF;
+						  "Proxy-agent: " "Proxydomo/1.0"/*APP_NAME " " APP_VERSION*/ CRLF CRLF;
 			CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_filterOwner.requestNumber, m_sendInBuf);
             m_inStep = STEP_TUNNELING;
         }
@@ -1383,12 +1365,18 @@ void	CRequestManager::_EndFeeding() {
 
 void	CRequestManager::_FakeResponse(const std::string& code, const std::string& filename /*= ""*/)
 {
-	std::string content = CUtil::getFile(filename);
+	std::string content;
+	if (filename.size() > 0)
+		content = CUtil::getFile(filename);
+	if (content.size() > 0)
+		content = CUtil::replaceAll(content, "%%1%%", code);
+	std::string contentType = filename.empty() ? std::string("text/plain") : CUtil::getMimeType(filename) ;
 	m_inStep = STEP_FINISH;
 	m_sendInBuf = 
         "HTTP/1.1 " + code + CRLF
-		"Content-Type: " + CUtil::getMimeType(filename) + CRLF
-		"Content-Length: " + boost::lexical_cast<std::string>(content.size()) + CRLF;
+		"Content-Type: " + contentType + CRLF
+		"Content-Length: " + boost::lexical_cast<std::string>(content.size()) + CRLF
+		"Connection: close" + CRLF;
 	CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_filterOwner.requestNumber, m_sendInBuf);
 	m_sendInBuf += CRLF + content;
 	m_sendConnectionClose = true;

@@ -39,13 +39,22 @@ SocketException::SocketException(const char* errmsg /*= "socket error"*/, int e 
 ////////////////////////////////////////////////////////////////////
 // IPv4Address
 
-IPv4Address::IPv4Address()
+IPv4Address::IPv4Address() : current_addrinfo(nullptr)
 {
 	::SecureZeroMemory(&addr, sizeof(addr));
 	addr.sin_family	= AF_INET;
 #ifdef _DEBUG
 	port = 0;
 #endif
+}
+
+IPv4Address& IPv4Address::operator = (sockaddr_in sockaddr)
+{
+	addr = sockaddr;
+#ifdef _DEBUG
+	ip = ::inet_ntoa(addr.sin_addr);
+#endif
+	return *this;
 }
 
 void IPv4Address::SetPortNumber(uint16_t port)
@@ -84,21 +93,39 @@ bool IPv4Address::SetHostName(const std::string& IPorHost)
 #endif
 		return true;
 	}
+	std::string service = boost::lexical_cast<std::string>(GetPortNumber());
+	ATLASSERT( !service.empty() );
 	addrinfo* result = nullptr;
 	addrinfo hinsts = {};
 	hinsts.ai_socktype	= SOCK_STREAM;
 	hinsts.ai_family	= AF_INET;
-	if (::getaddrinfo(IPorHost.c_str(), nullptr, &hinsts, &result) != 0)
+	hinsts.ai_protocol	= IPPROTO_TCP;
+	if (::getaddrinfo(IPorHost.c_str(), service.c_str(), &hinsts, &result) != 0)
 		return false;
-	sockaddr_in sockaddr = *(sockaddr_in*)result->ai_addr;
-	addr.sin_addr.S_un.S_addr = sockaddr.sin_addr.S_un.S_addr;
-	::freeaddrinfo(result);
+	addrinfoList.reset(result, [](addrinfo* p) { ::freeaddrinfo(p); });
+	current_addrinfo	= addrinfoList.get();
+
+	sockaddr_in sockaddr = *(sockaddr_in*)addrinfoList->ai_addr;
+	operator =(sockaddr);
+
 #ifdef _DEBUG
 		ip = ::inet_ntoa(addr.sin_addr);
 #endif
 	return true;
 }	
 
+bool IPv4Address::SetNextHost()
+{
+	if (current_addrinfo == nullptr)
+		return false;
+	current_addrinfo = current_addrinfo->ai_next;
+	if (current_addrinfo) {
+		sockaddr_in sockaddr = *(sockaddr_in*)current_addrinfo->ai_addr;
+		operator =(sockaddr);
+		return true;
+	}	
+	return false;
+}
 
 ////////////////////////////////////////////////////////////////
 // CSocket

@@ -55,14 +55,12 @@ struct IPv4Address
 	std::string	ip;
 	uint16_t	port;	
 #endif
+	std::shared_ptr<addrinfo>	addrinfoList;
+	addrinfo*	current_addrinfo;
 
 	IPv4Address();
 
-	IPv4Address& operator = (sockaddr_in sockaddr)
-	{
-		addr = sockaddr;
-		return *this;
-	}
+	IPv4Address& operator = (sockaddr_in sockaddr);
 
 	operator sockaddr*() { return (sockaddr*)&addr; }
 
@@ -72,6 +70,7 @@ struct IPv4Address
 	bool SetService(const std::string& protocol);
 
 	bool SetHostName(const std::string& IPorHost);
+	bool SetNextHost();
 };
 
 

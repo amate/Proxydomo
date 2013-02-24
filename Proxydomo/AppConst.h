@@ -24,10 +24,14 @@
 #pragma once
 
 /// アプリケーションの名前
+#ifndef _DEBUG
 #define	APP_NAME	_T("Proxydomo")
+#else
+#define APP_NAME	_T("Proxydomo_debug")
+#endif
 
 /// アプリケーションのバージョン
-#define APP_VERSION	_T("1.1")
+#define APP_VERSION	_T("1.2")
 
 
 

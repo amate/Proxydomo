@@ -55,7 +55,7 @@ LRESULT CMainDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam
 		nid.hIcon	= hIconSmall;
 		nid.uID		= kTrayIconId;
 		nid.uCallbackMessage	= WM_TRAYICONNOTIFY;
-		::_tcscpy_s(nid.szTip, _T("Proxydomo"));
+		::_tcscpy_s(nid.szTip, APP_NAME);
 		::Shell_NotifyIcon(NIM_ADD, &nid);
 	}
 

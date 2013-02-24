@@ -1209,12 +1209,14 @@ const char* CNode_Command::match(const char* start, const char* stop) {
         owner.rdirToHost = CExpander::expand(content, filter);
         CUtil::trim(owner.rdirToHost);
         owner.rdirMode = 0;
+		CLog::FilterEvent(kLogFilterJump, owner.requestNumber, filter.title, owner.rdirToHost);
         break;
 
     case CMD_RDIR:
         owner.rdirToHost = CExpander::expand(content, filter);
         CUtil::trim(owner.rdirToHost);
         owner.rdirMode = 1;
+		CLog::FilterEvent(kLogFilterRdir, owner.requestNumber, filter.title, owner.rdirToHost);
         break;
 
     case CMD_FILTER:

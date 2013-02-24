@@ -32,6 +32,7 @@
 #include <sstream>
 #include <fstream>
 #include <Windows.h>
+#include "..\Misc.h"
 
 using namespace std;
 
@@ -297,7 +298,8 @@ string CUtil::getFile(string filename) {
     trim(filename);
     replaceAll(filename, "\\\\", "/");  // for correctly decoding $FILE()
     filename = CUtil::makePath(filename);
-	std::ifstream fs(filename);
+	CString filepath = Misc::GetExeDirectory() + CA2T(filename.c_str());
+	std::ifstream fs(filepath);
 	if (!fs)
 		return "";
 
@@ -328,6 +330,8 @@ string CUtil::getMimeType(string filename) {
         return "text/javascript";
     else if (ext == "htm")
         return "text/html";
+	else if (ext == "txt")
+		return "text/plain";
     else if (ext == "png" || ext == "jpeg" || ext == "gif")
         return "image/" + ext;
     else if (ext == "jpg")

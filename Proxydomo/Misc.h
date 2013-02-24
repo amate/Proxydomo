@@ -28,7 +28,9 @@
 #include <stdarg.h>
 #include <io.h>
 #include <vector>
+
 #include <atlstr.h>
+#include <atlapp.h>
 #define _WTL_NO_CSTRING
 #include <atlmisc.h>
 

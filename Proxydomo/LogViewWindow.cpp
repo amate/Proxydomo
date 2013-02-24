@@ -174,11 +174,28 @@ void CLogViewWindow::FilterEvent(LogFilterEvent Event, int RequestNumber, const 
 		msg += _T("LogCommand");
 		break;
 
+	case kLogFilterJump:
+		msg += _T("JumpTo: ");
+		msg += text.c_str();
+		msg += _T("\n");
+		_AppendText(msg, LOG_COLOR_FILTER);
+		break;
+
+	case kLogFilterRdir:
+		msg += _T("RedirectTo: ");
+		msg += text.c_str();
+		msg += _T("\n");
+		_AppendText(msg, LOG_COLOR_FILTER);
+		break;
+
 	default:
 		ATLASSERT( FALSE );
 		return ;
 	}
-	msg.AppendFormat(_T(", title[ %s ]\n"), CA2T(title.c_str()));
+	msg.AppendFormat(_T(", title[ %s ] "), CA2T(title.c_str()));
+	if (Event == kLogFilterHeaderMatch)
+		msg += text.c_str();
+	msg += _T("\n");
 	
 	_AppendText(msg, LOG_COLOR_FILTER);
 }

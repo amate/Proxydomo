@@ -48,6 +48,8 @@ enum LogFilterEvent
 	kLogFilterTextMatch,
 	kLogFilterTextReplace,
 	kLogFilterLogCommand,
+	kLogFilterJump,
+	kLogFilterRdir,
 };
 
 
