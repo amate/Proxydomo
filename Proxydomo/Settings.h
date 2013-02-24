@@ -24,10 +24,12 @@
 
 #include <vector>
 #include <deque>
-#include <map>
+#include <unordered_map>
 #include <memory>
 #include <string>
+#include <mutex>
 #include <atlsync.h>
+#include <atlstr.h>
 #include "FilterDescriptor.h"
 
 class CSettings
@@ -47,9 +49,13 @@ public:
 	static std::vector<std::unique_ptr<CFilterDescriptor>>	s_vecpFilters;
 	static CCriticalSection									s_csFilters;
 
-	static std::map<std::string, std::string>				s_mapListName;	// list name : file path
-	static std::map<std::string, std::deque<std::string>>	s_mapLists;		// list name : contents
+	// std::lock_guard<std::recursive_mutex> lock(CSettings::s_mutexLists);
+	static std::unordered_map<std::string, std::deque<std::string>>	s_mapLists;		// list name : contents
+	static std::recursive_mutex								s_mutexLists;
 
 	static void	LoadFilter();
 	static void SaveFilter();
+
+	static void LoadList(const CString& filePath);
+
 };

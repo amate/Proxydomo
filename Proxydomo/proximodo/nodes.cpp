@@ -893,6 +893,7 @@ CNode_List::CNode_List(const char*& reached, const string& name, CMatcher& match
     std::lock_guard<std::recursive_mutex> lock2(objectsMutex);
     // parse all the patterns from the list
     //deque<string>& list = CSettings::ref().lists[name];
+	std::lock_guard<std::recursive_mutex> lock(CSettings::s_mutexLists);
 	deque<string>& list = CSettings::s_mapLists[name];
     for (deque<string>::iterator it = list.begin(); it != list.end(); it++) {
         pushPattern(*it);

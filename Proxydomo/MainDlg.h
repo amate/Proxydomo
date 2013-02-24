@@ -26,7 +26,7 @@
 #include "LogViewWindow.h"
 #include "FilterManageWindow.h"
 #include "Settings.h"
-
+#include "DirectoryWatcher.h"
 
 class CMainDlg : 
 	public CDialogImpl<CMainDlg>, 
@@ -43,6 +43,8 @@ public:
 		kTrayIconId = 1,
 		WM_TRAYICONNOTIFY	= WM_APP + 1,
 	};
+
+	CMainDlg();
 
 	virtual BOOL PreTranslateMessage(MSG* pMsg)
 	{
@@ -111,4 +113,5 @@ private:
 	CLogViewWindow	m_logView;
 	CFilterManageWindow	m_filterManagerWindow;
 	bool		m_bVisibleOnDestroy;
+	CDirectoryWatcher	m_listChangeWatcher;
 };

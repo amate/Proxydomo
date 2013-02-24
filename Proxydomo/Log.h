@@ -24,6 +24,7 @@
 
 #include <string>
 #include <vector>
+#include <atlsync.h>
 #include "Socket.h"
 
 enum LogProxyEvent
@@ -51,6 +52,7 @@ enum LogFilterEvent
 	kLogFilterLogCommand,
 	kLogFilterJump,
 	kLogFilterRdir,
+	kLogFilterListReload,
 };
 
 
@@ -68,9 +70,14 @@ public:
 class CLog
 {
 public:
-	static void	RegisterLogTrace(ILogTrace* pTrace) { s_vecpLogTrace.push_back(pTrace); }
+	static void	RegisterLogTrace(ILogTrace* pTrace)
+	{
+		CCritSecLock	lock(s_csvecLogTrace);
+		s_vecpLogTrace.push_back(pTrace);
+	}
 	static void	RemoveLogTrace(ILogTrace* pTrace)
 	{
+		CCritSecLock	lock(s_csvecLogTrace);
 		for (auto it = s_vecpLogTrace.begin(); it != s_vecpLogTrace.end(); ++it) {
 			if (*it == pTrace) {
 				s_vecpLogTrace.erase(it);
@@ -81,16 +88,19 @@ public:
 
 	static void ProxyEvent(LogProxyEvent Event, const IPv4Address& addr)
 	{
+		CCritSecLock	lock(s_csvecLogTrace);
 		for (auto& trace : s_vecpLogTrace)
 			trace->ProxyEvent(Event, addr);
 	}
 	static void HttpEvent(LogHttpEvent Event, const IPv4Address& addr, int RequestNumber, const std::string& text)
 	{
+		CCritSecLock	lock(s_csvecLogTrace);
 		for (auto& trace : s_vecpLogTrace)
 			trace->HttpEvent(Event, addr, RequestNumber, text);
 	}
 	static void FilterEvent(LogFilterEvent Event, int RequestNumber, const std::string& title, const std::string& text)
 	{
+		CCritSecLock	lock(s_csvecLogTrace);
 		for (auto& trace : s_vecpLogTrace)
 			trace->FilterEvent(Event, RequestNumber, title, text);
 	}
@@ -103,13 +113,13 @@ public:
 
 
 private:
-	// 
+	static CCriticalSection			s_csvecLogTrace;
 	static std::vector<ILogTrace*>	s_vecpLogTrace;
 	static long			s_RequestCount;			/// Total number of requests received since Proximodo started
 	static long			s_ActiveRequestCount;	/// Number of requests being processed
 };
 
-
+__declspec(selectany) CCriticalSection			CLog::s_csvecLogTrace;
 __declspec(selectany) std::vector<ILogTrace*>	CLog::s_vecpLogTrace;
 __declspec(selectany) long			CLog::s_RequestCount = 0;
 __declspec(selectany) long			CLog::s_ActiveRequestCount = 0;

@@ -30,6 +30,10 @@
 
 using namespace boost::property_tree;
 
+CMainDlg::CMainDlg() : m_listChangeWatcher(FILE_NOTIFY_CHANGE_LAST_WRITE)
+{
+}
+
 // ILogTrace
 void CMainDlg::ProxyEvent(LogProxyEvent Event, const IPv4Address& addr)
 {
@@ -56,6 +60,22 @@ LRESULT CMainDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam
 	UIAddChildWindowContainer(m_hWnd);
 
 	CLog::RegisterLogTrace(this);
+
+	m_listChangeWatcher.SetCallbackFunction([](const CString& filePath) {
+		enum { kMaxRetry = 30, kSleepTime = 100 };
+		for (int i = 0; i < kMaxRetry; ++i) {
+			HANDLE hTestOpen = CreateFile(filePath, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+			if (hTestOpen == INVALID_HANDLE_VALUE) {
+				::Sleep(kSleepTime);
+				continue;
+			}
+			CloseHandle(hTestOpen);
+			break;
+		}
+		CSettings::LoadList(filePath);
+	});
+
+	m_listChangeWatcher.WatchDirectory(Misc::GetExeDirectory() + _T("lists\\"));
 
 	DoDataExchange(DDX_LOAD);
 
@@ -98,6 +118,8 @@ LRESULT CMainDlg::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/,
 	pLoop->RemoveIdleHandler(this);
 
 	CLog::RemoveLogTrace(this);
+
+	m_listChangeWatcher.StopWatchDirectory();
 
 	DoDataExchange(DDX_SAVE);
 

@@ -31,6 +31,7 @@
 #include "Misc.h"
 #include "proximodo\util.h"
 #include "proximodo\matcher.h"
+#include "Log.h"
 
 
 template <class _Function>
@@ -77,8 +78,9 @@ bool			CSettings::s_WebFilterDebug	= false;
 
 std::vector<std::unique_ptr<CFilterDescriptor>>	CSettings::s_vecpFilters;
 CCriticalSection								CSettings::s_csFilters;
-std::map<std::string, std::string>				CSettings::s_mapListName;	// list name : file path
-std::map<std::string, std::deque<std::string>>	CSettings::s_mapLists;		// list name : contents
+
+std::unordered_map<std::string, std::deque<std::string>>	CSettings::s_mapLists;		// list name : contents
+std::recursive_mutex							CSettings::s_mutexLists;
 
 using namespace boost::property_tree;
 
@@ -101,19 +103,7 @@ void	CSettings::LoadSettings()
 	CSettings::LoadFilter();
 
 	ForEachFile(Misc::GetExeDirectory() + _T("lists\\"), [](const CString& filePath) {
-		CString filename = Misc::GetFileBaseNoExt(filePath);
-		std::ifstream fs(filePath);
-		if (!fs)
-			return ;
-
-		std::deque<std::string>& deqLine = CSettings::s_mapLists[std::string(CT2A(filename))];
-
-		std::string strLine;
-		while (std::getline(fs, strLine).good()) {
-			CUtil::trim(strLine);
-			if (strLine.size() > 0 && strLine[0] != '#' && CMatcher::testPattern(strLine))
-				deqLine.emplace_back(strLine);
-		}
+		LoadList(filePath);
 	});
 }
 
@@ -205,6 +195,44 @@ void CSettings::SaveFilter()
 }
 
 
+void CSettings::LoadList(const CString& filePath)
+{
+	// 最終書き込み時刻を取得
+	HANDLE hFile = CreateFile(filePath, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (hFile == INVALID_HANDLE_VALUE) 
+		return ;
 
+	FILETIME lastWriteTime = {};
+	::GetFileTime(hFile, NULL, NULL, &lastWriteTime);
+	uint64_t time = lastWriteTime.dwHighDateTime;
+	time <<= 32;
+	time |= lastWriteTime.dwLowDateTime;
+	::CloseHandle(hFile);
+
+	std::string filename = CT2A(Misc::GetFileBaseNoExt(filePath));
+	static std::unordered_map<std::string, uint64_t> s_mapFileLastWriteTime;
+	uint64_t& prevLastWriteTime = s_mapFileLastWriteTime[filename];
+	if (prevLastWriteTime == time)
+		return ;	// 更新されていなかったら帰る
+	prevLastWriteTime = time;
+
+	std::ifstream fs(filePath);
+	if (!fs)
+		return ;
+
+	{
+		std::lock_guard<std::recursive_mutex> lock(CSettings::s_mutexLists);
+		std::deque<std::string>& deqLine = CSettings::s_mapLists[filename];
+		deqLine.clear();
+
+		std::string strLine;
+		while (std::getline(fs, strLine).good()) {
+			CUtil::trim(strLine);
+			if (strLine.size() > 0 && strLine[0] != '#' && CMatcher::testPattern(strLine))
+				deqLine.emplace_back(strLine);
+		}
+	}
+	CLog::FilterEvent(kLogFilterListReload, -1, filename, "");
+}
 
 

@@ -276,6 +276,7 @@
     <ClInclude Include="AppConst.h" />
     <ClInclude Include="DataReceptor.h" />
     <ClInclude Include="DebugWindow.h" />
+    <ClInclude Include="DirectoryWatcher.h" />
     <ClInclude Include="FilterDescriptor.h" />
     <ClInclude Include="FilterEditWindow.h" />
     <ClInclude Include="FilterManageWindow.h" />

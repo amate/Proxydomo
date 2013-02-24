@@ -179,6 +179,7 @@ void CLogViewWindow::FilterEvent(LogFilterEvent Event, int RequestNumber, const 
 		msg += text.c_str();
 		msg += _T("\n");
 		_AppendText(msg, LOG_COLOR_FILTER);
+		return ;
 		break;
 
 	case kLogFilterRdir:
@@ -186,6 +187,15 @@ void CLogViewWindow::FilterEvent(LogFilterEvent Event, int RequestNumber, const 
 		msg += text.c_str();
 		msg += _T("\n");
 		_AppendText(msg, LOG_COLOR_FILTER);
+		return ;
+		break;
+
+	case kLogFilterListReload:
+		msg = _T("ÉäÉXÉgÇ™çƒì«Ç›çûÇ›Ç≥ÇÍÇ‹ÇµÇΩ: ");
+		msg += title.c_str();
+		msg += _T("\n");
+		_AppendText(msg, LOG_COLOR_FILTER);
+		return ;
 		break;
 
 	default:
