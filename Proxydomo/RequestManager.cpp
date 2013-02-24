@@ -658,8 +658,7 @@ void CRequestManager::_ConnectWebsite()
     if (CUtil::noCaseBeginsWith("http://file//", m_filterOwner.rdirToHost)) {
 
         string filename = CUtil::makePath(m_filterOwner.rdirToHost.substr(13));
-		filename = CT2A(Misc::GetFullPath_ForExe(filename.c_str()));
-		if (::PathFileExistsA(filename.c_str())) {
+		if (::PathFileExists(Misc::GetFullPath_ForExe(filename.c_str()))) {
 			_FakeResponse("200 OK", filename);
 		} else {
             //fakeResponse("404 Not Found", "./html/error.html", true,
