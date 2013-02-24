@@ -33,7 +33,8 @@ class CMainDlg :
 	public CUpdateUI<CMainDlg>,
 	public CMessageFilter, 
 	public CIdleHandler,
-	public CWinDataExchange<CMainDlg>
+	public CWinDataExchange<CMainDlg>,
+	public ILogTrace
 {
 public:
 	enum { IDD = IDD_MAINDLG };
@@ -52,6 +53,11 @@ public:
 	{
 		return FALSE;
 	}
+
+	// ILogTrace
+	virtual void ProxyEvent(LogProxyEvent Event, const IPv4Address& addr) override;
+	virtual void HttpEvent(LogHttpEvent Event, const IPv4Address& addr, int RequestNumber, const std::string& text) override { };
+	virtual void FilterEvent(LogFilterEvent Event, int RequestNumber, const std::string& title, const std::string& text) override { };
 
 	BEGIN_UPDATE_UI_MAP(CMainDlg)
 	END_UPDATE_UI_MAP()

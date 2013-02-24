@@ -30,6 +30,15 @@
 
 using namespace boost::property_tree;
 
+// ILogTrace
+void CMainDlg::ProxyEvent(LogProxyEvent Event, const IPv4Address& addr)
+{
+	CString text;
+	text.Format(_T("アクティブな接続数: %02d"), CLog::GetActiveRequestCount());
+	GetDlgItem(IDC_STATIC_ACTIVEREQUESTCOUNT).SetWindowText(text);
+}
+
+
 LRESULT CMainDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 {
 	// set icons
@@ -45,6 +54,8 @@ LRESULT CMainDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam
 	pLoop->AddIdleHandler(this);
 
 	UIAddChildWindowContainer(m_hWnd);
+
+	CLog::RegisterLogTrace(this);
 
 	DoDataExchange(DDX_LOAD);
 
@@ -85,6 +96,8 @@ LRESULT CMainDlg::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/,
 	ATLASSERT(pLoop != NULL);
 	pLoop->RemoveMessageFilter(this);
 	pLoop->RemoveIdleHandler(this);
+
+	CLog::RemoveLogTrace(this);
 
 	DoDataExchange(DDX_SAVE);
 
@@ -185,6 +198,11 @@ LRESULT CMainDlg::OnFilterButtonCheck(WORD /*wNotifyCode*/, WORD wID, HWND /*hWn
 
 void CMainDlg::CloseDialog(int nVal)
 {
+	if (CLog::GetActiveRequestCount() > 0) {
+		int ret = MessageBox(_T("まだ接続中のリクエストがあります。\r\n終了してもいいですか？"), _T("確認 - ") APP_NAME, MB_ICONWARNING | MB_OKCANCEL | MB_DEFBUTTON2);
+		if (ret == IDCANCEL)
+			return ;
+	}
 	m_bVisibleOnDestroy	= IsWindowVisible() != 0;
 	DestroyWindow();
 	::PostQuitMessage(0);

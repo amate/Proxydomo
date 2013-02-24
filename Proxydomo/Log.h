@@ -23,6 +23,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 #include "Socket.h"
 
 enum LogProxyEvent
@@ -67,23 +68,31 @@ public:
 class CLog
 {
 public:
-	static void	RegisterLogTrace(ILogTrace* pTrace) { s_pLogTrace = pTrace; }
-	static void	RemoveLogTrace() { s_pLogTrace = nullptr; }
+	static void	RegisterLogTrace(ILogTrace* pTrace) { s_vecpLogTrace.push_back(pTrace); }
+	static void	RemoveLogTrace(ILogTrace* pTrace)
+	{
+		for (auto it = s_vecpLogTrace.begin(); it != s_vecpLogTrace.end(); ++it) {
+			if (*it == pTrace) {
+				s_vecpLogTrace.erase(it);
+				break;
+			}
+		}
+	}
 
 	static void ProxyEvent(LogProxyEvent Event, const IPv4Address& addr)
 	{
-		if (s_pLogTrace)
-			s_pLogTrace->ProxyEvent(Event, addr);
+		for (auto& trace : s_vecpLogTrace)
+			trace->ProxyEvent(Event, addr);
 	}
 	static void HttpEvent(LogHttpEvent Event, const IPv4Address& addr, int RequestNumber, const std::string& text)
 	{
-		if (s_pLogTrace)
-			s_pLogTrace->HttpEvent(Event, addr, RequestNumber, text);
+		for (auto& trace : s_vecpLogTrace)
+			trace->HttpEvent(Event, addr, RequestNumber, text);
 	}
 	static void FilterEvent(LogFilterEvent Event, int RequestNumber, const std::string& title, const std::string& text)
 	{
-		if (s_pLogTrace)
-			s_pLogTrace->FilterEvent(Event, RequestNumber, title, text);
+		for (auto& trace : s_vecpLogTrace)
+			trace->FilterEvent(Event, RequestNumber, title, text);
 	}
 
 	static long	IncrementRequestCount() { return ::InterlockedIncrement(&s_RequestCount); }
@@ -95,13 +104,13 @@ public:
 
 private:
 	// 
-	static ILogTrace*	s_pLogTrace;
+	static std::vector<ILogTrace*>	s_vecpLogTrace;
 	static long			s_RequestCount;			/// Total number of requests received since Proximodo started
 	static long			s_ActiveRequestCount;	/// Number of requests being processed
 };
 
 
-__declspec(selectany) ILogTrace*	CLog::s_pLogTrace = nullptr;
+__declspec(selectany) std::vector<ILogTrace*>	CLog::s_vecpLogTrace;
 __declspec(selectany) long			CLog::s_RequestCount = 0;
 __declspec(selectany) long			CLog::s_ActiveRequestCount = 0;
 

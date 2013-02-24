@@ -30,8 +30,8 @@
 #include "proximodo\util.h"
 #include "Misc.h"
 #include "Settings.h"
+#include "proximodo\matcher.h"
 
-#include <fstream>
 
 #define CR	'\r'
 #define LF	'\n'
@@ -45,6 +45,7 @@
 CRequestManager::CRequestManager(std::unique_ptr<CSocket>&& psockBrowser) :
 	m_useChain(false),
 	m_textFilterChain(m_filterOwner, this),
+	m_urlBypassFilter(m_filterOwner),
 	m_psockBrowser(std::move(psockBrowser)),
 	m_valid(true),
 	m_dumped(false),
@@ -55,6 +56,12 @@ CRequestManager::CRequestManager(std::unique_ptr<CSocket>&& psockBrowser) :
 	m_inChunked(false)
 {
 	m_filterOwner.requestNumber = 0;
+
+	try {
+		m_pUrlBypassMatcher.reset(new CMatcher("$LST(Bypass)", m_urlBypassFilter));
+	} catch (parsing_exception&) {
+		// Ignore invalid bypass pattern
+	}
 
 	CCritSecLock	lock(CSettings::s_csFilters);
 	for (auto& filter : CSettings::s_vecpFilters) {
@@ -82,8 +89,12 @@ CRequestManager::~CRequestManager(void)
     }
 
 	// Destroy sockets
-	m_psockBrowser->Close();
-	m_psockWebsite->Close();
+	try {
+		m_psockBrowser->Close();
+		m_psockWebsite->Close();
+	} catch (SocketException& e) {
+		ATLTRACE(e.msg);
+	}
 }
 
 void CRequestManager::Manage()
@@ -371,6 +382,16 @@ void CRequestManager::_ProcessOut()
 				m_filterOwner.bypassBody = m_filterOwner.url.getBypassText();
 
 				m_filterOwner.contactHost = m_filterOwner.url.getHostPort();
+
+				// Test URL with bypass-URL matcher, if matches we'll bypass all
+				{
+					m_urlBypassFilter.clearMemory();
+					const std::string& url = m_filterOwner.url.getFromHost();
+					const char* end = nullptr;
+					const char* reached = nullptr;
+					if (m_pUrlBypassMatcher->match(url.c_str(), url.c_str() + url.size(), end, reached))
+						m_filterOwner.bypassOut = m_filterOwner.bypassIn = m_filterOwner.bypassBody = true;
+				}
 
 				// We must read the Content-Length and Transfer-Encoding
 				// headers to know if thre is POSTed data

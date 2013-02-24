@@ -250,7 +250,7 @@ BOOL CLogViewWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 
 void CLogViewWindow::OnDestroy()
 {
-	CLog::RemoveLogTrace();
+	CLog::RemoveLogTrace(this);
 
 	using namespace boost::property_tree;
 	
@@ -283,7 +283,7 @@ void CLogViewWindow::OnDestroy()
 
 void CLogViewWindow::OnCancel(UINT uNotifyCode, int nID, CWindow wndCtl)
 {
-	CLog::RemoveLogTrace();
+	CLog::RemoveLogTrace(this);
 
 	{
 		CCritSecLock	lock(m_csActiveRequestLog);
@@ -323,7 +323,7 @@ void CLogViewWindow::OnCheckBoxChanged(UINT uNotifyCode, int nID, CWindow wndCtl
 		CSettings::s_WebFilterDebug	= m_bWebFilterDebug;
 	} else if (nID == IDC_CHECKBOX_STOPLOG) {
 		if (m_bStopLog)
-			CLog::RemoveLogTrace();
+			CLog::RemoveLogTrace(this);
 		else
 			CLog::RegisterLogTrace(this);
 	}

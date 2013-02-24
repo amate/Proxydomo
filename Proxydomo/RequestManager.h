@@ -23,6 +23,7 @@
 #pragma once
 
 #include <string>
+#include <memory>
 #include <vector>
 #include "Socket.h"
 #include "DataReceptor.h"
@@ -98,6 +99,8 @@ private:
 	CTextBuffer	m_textFilterChain;
 	std::vector<std::unique_ptr<CHeaderFilter>>	m_vecpInFilter;
 	std::vector<std::unique_ptr<CHeaderFilter>>	m_vecpOutFilter;
+	CFilter		m_urlBypassFilter;
+	std::shared_ptr<CMatcher>	m_pUrlBypassMatcher;
 
 	// Sockets
 	std::unique_ptr<CSocket>	m_psockBrowser;
