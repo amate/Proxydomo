@@ -22,7 +22,7 @@
 */
 #include "stdafx.h"
 #include "FilterDescriptor.h"
-#include "proximodo\matcher.h"
+#include "Matcher.h"
 
 ///////////////////////////////////////////////////////////////
 // CFilterDescriptor
@@ -32,6 +32,22 @@ CFilterDescriptor::CFilterDescriptor()
 	Clear();
 }
 
+
+
+/// 各種 Matcher を作成する
+bool	CFilterDescriptor::CreateMatcher()
+{
+	errorMsg.clear();
+
+	spBoundsMatcher = (boundsPattern.size() > 0) ? 
+		Proxydomo::CMatcher::CreateMatcher(boundsPattern, errorMsg) : nullptr;
+	spURLMatcher	= (urlPattern.size() > 0) ? 
+		Proxydomo::CMatcher::CreateMatcher(urlPattern, errorMsg) : nullptr;
+	spTextMatcher	= (matchPattern.size() > 0) ? 
+		Proxydomo::CMatcher::CreateMatcher(matchPattern, errorMsg) : nullptr;
+
+	return errorMsg.empty();
+}
 
 
 /// Clear all content
@@ -67,16 +83,13 @@ void	CFilterDescriptor::TestValidity()
         } else if (windowWidth <= 0) {
             errorMsg = /*settings.getMessage*/("INVALID_FILTER_WIDTH");
         } else {
-            CMatcher::testPattern(boundsPattern, errorMsg) &&
-            CMatcher::testPattern(urlPattern,    errorMsg) &&
-            CMatcher::testPattern(matchPattern,  errorMsg);
+			CreateMatcher();
         }
     } else {	// 送受信ヘッダ
         if (headerName.empty()) {
             errorMsg = /*settings.getMessage*/("INVALID_FILTER_HEADEREMPTY");
         } else {
-            CMatcher::testPattern(urlPattern,   errorMsg) &&
-            CMatcher::testPattern(matchPattern, errorMsg);
+            CreateMatcher();
         }
     }
 }

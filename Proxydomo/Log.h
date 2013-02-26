@@ -88,20 +88,32 @@ public:
 
 	static void ProxyEvent(LogProxyEvent Event, const IPv4Address& addr)
 	{
-		CCritSecLock	lock(s_csvecLogTrace);
-		for (auto& trace : s_vecpLogTrace)
+		std::vector<ILogTrace*> vec;
+		{
+			CCritSecLock	lock(s_csvecLogTrace);
+			vec =s_vecpLogTrace;
+		}
+		for (auto& trace : vec)
 			trace->ProxyEvent(Event, addr);
 	}
 	static void HttpEvent(LogHttpEvent Event, const IPv4Address& addr, int RequestNumber, const std::string& text)
 	{
-		CCritSecLock	lock(s_csvecLogTrace);
-		for (auto& trace : s_vecpLogTrace)
+		std::vector<ILogTrace*> vec;
+		{
+			CCritSecLock	lock(s_csvecLogTrace);
+			vec =s_vecpLogTrace;
+		}
+		for (auto& trace : vec)
 			trace->HttpEvent(Event, addr, RequestNumber, text);
 	}
 	static void FilterEvent(LogFilterEvent Event, int RequestNumber, const std::string& title, const std::string& text)
 	{
-		CCritSecLock	lock(s_csvecLogTrace);
-		for (auto& trace : s_vecpLogTrace)
+		std::vector<ILogTrace*> vec;
+		{
+			CCritSecLock	lock(s_csvecLogTrace);
+			vec =s_vecpLogTrace;
+		}
+		for (auto& trace : vec)
 			trace->FilterEvent(Event, RequestNumber, title, text);
 	}
 
@@ -112,8 +124,8 @@ public:
 	static long	DecrementActiveRequestCount() { return ::InterlockedDecrement(&s_ActiveRequestCount); }
 
 
-private:
 	static CCriticalSection			s_csvecLogTrace;
+private:
 	static std::vector<ILogTrace*>	s_vecpLogTrace;
 	static long			s_RequestCount;			/// Total number of requests received since Proximodo started
 	static long			s_ActiveRequestCount;	/// Number of requests being processed

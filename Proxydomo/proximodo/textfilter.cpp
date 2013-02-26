@@ -30,7 +30,9 @@
 //#include "log.h"
 #include "..\FilterDescriptor.h"
 #include "..\FilterOwner.h"
-#include "matcher.h"
+//#include "matcher.h"
+#include "..\Node.h"
+#include "..\Matcher.h"
 #include <vector>
 #include <map>
 #include <sstream>
@@ -40,17 +42,15 @@ using namespace std;
 /* Constructor
  */
 CTextFilter::CTextFilter(CFilterOwner& owner, const CFilterDescriptor& desc) :
-                                CFilter(owner), owner(owner) {
-
-    textMatcher = boundsMatcher = urlMatcher = NULL;
-
+                                CFilter(owner), owner(owner)
+{
     title           =  desc.title;
     windowWidth     =  desc.windowWidth;
     multipleMatches =  desc.multipleMatches;
     replacePattern  =  desc.replacePattern;
 
     if (!desc.urlPattern.empty()) {
-        urlMatcher = new CMatcher(desc.urlPattern, *this);
+		urlMatcher = desc.spURLMatcher;
         // (it can throw a parsing_exception)
     }
 
@@ -66,25 +66,14 @@ CTextFilter::CTextFilter(CFilterOwner& owner, const CFilterDescriptor& desc) :
         return;
     }
     
-    try {
-        textMatcher = new CMatcher(desc.matchPattern, *this);
-        textMatcher->mayMatch(okayChars);
-    } catch (parsing_exception e) {
-        if (urlMatcher) delete urlMatcher;
-        throw e;
-    }
+	textMatcher = desc.spTextMatcher;
+    textMatcher->mayMatch(okayChars);
 
     if (!desc.boundsPattern.empty()) {
-        try {
-            boundsMatcher = new CMatcher(desc.boundsPattern, *this);
-            bool tab[256];
-            boundsMatcher->mayMatch(tab);
-            for (int i=0; i<256; i++) okayChars[i] = okayChars[i] && tab[i];
-        } catch (parsing_exception e) {
-            if (urlMatcher) delete urlMatcher;
-            if (textMatcher) delete textMatcher;
-            throw e;
-        }
+		boundsMatcher = desc.spBoundsMatcher;
+        bool tab[256];
+        boundsMatcher->mayMatch(tab);
+        for (int i=0; i<256; i++) okayChars[i] = okayChars[i] && tab[i];
     }
 }
 
@@ -92,10 +81,6 @@ CTextFilter::CTextFilter(CFilterOwner& owner, const CFilterDescriptor& desc) :
 /* Destructor
  */
 CTextFilter::~CTextFilter() {
-
-    if(urlMatcher)    delete urlMatcher;
-    if(textMatcher)   delete textMatcher;
-    if(boundsMatcher) delete boundsMatcher;
 }
 
 
@@ -119,10 +104,11 @@ void CTextFilter::reset() {
 
     if (urlMatcher) {
         // The filter will be inactive if the URL does not match
-        const char *tStart, *tStop, *tEnd, *tReached;
+        const char *tStart, *tStop, *tEnd;
         tStart = owner.url.getFromHost().c_str();
         tStop = tStart + owner.url.getFromHost().size();
-        bypassed = !urlMatcher->match(tStart, tStop, tEnd, tReached);
+		Proxydomo::MatchData matchData(this);
+        bypassed = !urlMatcher->match(tStart, tStop, tEnd, &matchData);
         unlock();
     }
 }
@@ -147,19 +133,23 @@ int CTextFilter::match(const char* index, const char* bufTail) {
     }
     
     // compute up to where we want to match
-    const char *reached, *stop = index + windowWidth;
-    if (stop > bufTail) stop = bufTail;
+    const char* reached = nullptr;
+	const char* stop = index + windowWidth;
+    if (stop > bufTail) 
+		stop = bufTail;
 
     // clear memory
     clearMemory();
 
+	Proxydomo::MatchData matchData(this);
+
     if (boundsMatcher) {
         // let's try and find the bounds first
-        bool matched = boundsMatcher->match(index, stop, endOfMatched, reached);
+        bool matched = boundsMatcher->match(index, stop, endOfMatched, &matchData);
         unlock();
         
         // could have had a different result with more data, we'll wait for it
-        if (reached == bufTail && !isComplete) return -1;
+        if (matchData.reached == bufTail && !isComplete) return -1;
         // bounds not matching
         if (!matched) return 0;
         // bounds matching: we'll limit matching to what was found
@@ -167,10 +157,10 @@ int CTextFilter::match(const char* index, const char* bufTail) {
     }
 
     // try matching
-    bool matched = textMatcher->match(index, stop, endOfMatched, reached);
+    bool matched = textMatcher->match(index, stop, endOfMatched, &matchData);
     unlock();
 
-    if (reached == bufTail && !isComplete) return -1;
+    if (matchData.reached == bufTail && !isComplete) return -1;
     if (!matched || (boundsMatcher && endOfMatched != stop)) return 0;
     return 1;
 }

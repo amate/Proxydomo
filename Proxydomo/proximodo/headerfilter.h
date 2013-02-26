@@ -28,9 +28,11 @@
 
 #include "filter.h"
 #include <string>
+#include <memory>
+
 class CFilterDescriptor;
 class CFilterOwner;
-class CMatcher;
+namespace Proxydomo { class CMatcher; }
 
 using namespace std;
 
@@ -58,10 +60,10 @@ private:
     string content;
 
     // URL matcher
-    CMatcher* urlMatcher;
+    std::shared_ptr<Proxydomo::CMatcher> urlMatcher;
 
     // Text matcher
-    CMatcher* textMatcher;
+    std::shared_ptr<Proxydomo::CMatcher> textMatcher;
 
     // Replace pattern
     string replacePattern;

@@ -23,12 +23,18 @@
 #pragma once
 
 #include <string>
+#include <memory>
+
+namespace Proxydomo { class CMatcher; }
 
 class CFilterDescriptor
 {
 public:
 
 	CFilterDescriptor();
+
+	/// Šeí Matcher ‚ğì¬‚·‚é
+	bool	CreateMatcher();
 
 	/// Clear all content
 	void	Clear();
@@ -58,10 +64,13 @@ public:
     bool   multipleMatches;
     int    windowWidth;
     std::string boundsPattern;
+	std::shared_ptr<Proxydomo::CMatcher>	spBoundsMatcher;
 
     // Data commom to both
     std::string urlPattern;
+	std::shared_ptr<Proxydomo::CMatcher>	spURLMatcher;
     std::string matchPattern;
+	std::shared_ptr<Proxydomo::CMatcher>	spTextMatcher;
     std::string replacePattern;
     //int    priority;
     

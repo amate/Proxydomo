@@ -33,7 +33,7 @@
 #include "..\FilterDescriptor.h"
 //#include "filterowner.h"
 #include "..\FilterOwner.h"
-#include "matcher.h"
+#include "..\Matcher.h"
 #include <vector>
 #include <map>
 
@@ -49,15 +49,10 @@ CHeaderFilter::CHeaderFilter(const CFilterDescriptor& desc, CFilterOwner& owner)
     urlMatcher = textMatcher = NULL;
     replacePattern = desc.replacePattern;
     if (!desc.urlPattern.empty()) {
-        urlMatcher = new CMatcher(desc.urlPattern, *this);
+		urlMatcher = desc.spURLMatcher;
     }
     if (!desc.matchPattern.empty()) {
-        try {
-            textMatcher = new CMatcher(desc.matchPattern, *this);
-        } catch (parsing_exception e) {
-            if (urlMatcher) delete urlMatcher;
-            throw e;
-        }
+		textMatcher	= desc.spTextMatcher;
     }
 }
 
@@ -65,9 +60,6 @@ CHeaderFilter::CHeaderFilter(const CFilterDescriptor& desc, CFilterOwner& owner)
 /* Destructor
  */
 CHeaderFilter::~CHeaderFilter() {
-
-    if (urlMatcher) delete urlMatcher;
-    if (textMatcher) delete textMatcher;
 }
 
 
@@ -85,9 +77,10 @@ bool CHeaderFilter::filter(string& content) {
     if (urlMatcher) {
         const char *start = owner.url.getFromHost().c_str();
         const char *stop  = start + owner.url.getFromHost().size();
-        const char *end, *reached;
+        const char *end;
         bool ret;
-        ret = urlMatcher->match(start, stop, end, reached);
+		Proxydomo::MatchData matchData(this);
+        ret = urlMatcher->match(start, stop, end, &matchData);
         unlock();
         if (!ret) return false;
     }
@@ -96,10 +89,11 @@ bool CHeaderFilter::filter(string& content) {
     if (textMatcher) {
         const char *start = content.c_str();
         const char *stop  = start + content.size();
-        const char *end, *reached;
+        const char *end;
         bool ret;
         this->content = content;
-        ret = textMatcher->match(start, stop, end, reached);
+		Proxydomo::MatchData matchData(this);
+        ret = textMatcher->match(start, stop, end, &matchData);
         unlock();
         if (!ret) return false;
     }

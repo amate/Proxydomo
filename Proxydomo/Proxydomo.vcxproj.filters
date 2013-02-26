@@ -72,9 +72,6 @@
     <ClCompile Include="proximodo\matcher.cpp">
       <Filter>Source Files\proximodo</Filter>
     </ClCompile>
-    <ClCompile Include="proximodo\nodes.cpp">
-      <Filter>Source Files\proximodo</Filter>
-    </ClCompile>
     <ClCompile Include="proximodo\platform.cpp">
       <Filter>Source Files\proximodo</Filter>
     </ClCompile>
@@ -154,6 +151,15 @@
       <Filter>Header Files</Filter>
     </ClCompile>
     <ClCompile Include="Proxy.cpp">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="proximodo\nodes.cpp">
+      <Filter>Source Files\proximodo</Filter>
+    </ClCompile>
+    <ClCompile Include="Matcher_.cpp">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Nodes_.cpp">
       <Filter>Header Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -324,6 +330,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DirectoryWatcher.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Node.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Nodes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Matcher.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

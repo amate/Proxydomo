@@ -28,9 +28,22 @@
 #include <memory>
 #include <string>
 #include <mutex>
+#include <array>
 #include <atlsync.h>
 #include <atlstr.h>
 #include "FilterDescriptor.h"
+
+namespace Proxydomo { class CNode; }
+
+
+struct HashedListCollection {
+	std::recursive_mutex	mutexHashedArray;
+	struct SListItem {
+		std::shared_ptr<Proxydomo::CNode>	node;
+		int	flags;	// 0x1: is a tilde pattern,  0x2: is hashable
+	};
+	std::shared_ptr<std::array<std::deque<SListItem>, 256>>	spHashedArray;
+};
 
 class CSettings
 {
@@ -49,13 +62,16 @@ public:
 	static std::vector<std::unique_ptr<CFilterDescriptor>>	s_vecpFilters;
 	static CCriticalSection									s_csFilters;
 
-	// std::lock_guard<std::recursive_mutex> lock(CSettings::s_mutexLists);
-	static std::unordered_map<std::string, std::deque<std::string>>	s_mapLists;		// list name : contents
-	static std::recursive_mutex								s_mutexLists;
+	// std::lock_guard<std::recursive_mutex> lock(CSettings::s_mutexHashedLists);
+	static std::recursive_mutex								s_mutexHashedLists;
+	static std::unordered_map<std::string, std::unique_ptr<HashedListCollection>>	s_mapHashedLists;
 
 	static void	LoadFilter();
 	static void SaveFilter();
 
 	static void LoadList(const CString& filePath);
+private:
+	static void _CreatePattern(const std::string& pattern, 
+							   std::array<std::deque<HashedListCollection::SListItem>, 256>& hashed);
 
 };

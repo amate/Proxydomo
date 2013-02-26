@@ -29,7 +29,7 @@
 #include "const.h"
 #include "util.h"
 //#include "settings.h"
-#include "matcher.h"
+#include "..\Matcher.h"
 //#include "log.h"
 #include "..\Log.h"
 //#include "logframe.h"
@@ -45,6 +45,7 @@
 #include <set>
 
 using namespace std;
+using namespace Proxydomo;
 
 /* Decode the pattern.
  * In case a conditional command returns false, the decoding is stopped.

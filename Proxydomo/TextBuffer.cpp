@@ -25,7 +25,8 @@
 #include <sstream>
 #include "FilterOwner.h"
 #include "Settings.h"
-#include "proximodo\matcher.h"
+//#include "proximodo\matcher.h"
+#include "Matcher.h"
 #include "proximodo\util.h"
 #include "Log.h"
 
@@ -33,12 +34,9 @@ CTextBuffer::CTextBuffer(CFilterOwner& owner, IDataReceptor* output) : m_owner(o
 {
 	CCritSecLock	lock(CSettings::s_csFilters);
 	for (auto& filter : CSettings::s_vecpFilters) {
-		if (filter->errorMsg.empty() && filter->Active && filter->filterType == filter->kFilterText) {
-			try {
-				m_vecpTextfilters.emplace_back(new CTextFilter(owner, *filter));
-			} catch (parsing_exception) {
-					// Invalid filters are just ignored
-			}
+		if (filter->errorMsg.empty() && filter->Active && filter->filterType == filter->kFilterText) 
+		{
+			m_vecpTextfilters.emplace_back(new CTextFilter(owner, *filter));
 		}
 	}
 

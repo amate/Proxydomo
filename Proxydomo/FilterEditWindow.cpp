@@ -31,10 +31,11 @@
 #include "FilterDescriptor.h"
 #include "FilterOwner.h"
 #include "proximodo\filter.h"
-#include "proximodo\matcher.h"
 #include "proximodo\expander.h"
 #include "Settings.h"
 #include "Misc.h"
+#include "Matcher.h"
+
 
 CString MiscGetWindowText(HWND hWnd)
 {
@@ -68,6 +69,8 @@ public:
 		title += m_bTestURLPattern ? _T("URLパターンテスト") : _T("マッチングパターンテスト");
 		SetWindowText(title);
 	}
+
+	void OnFinalMessage(HWND /*hWnd*/) override { delete this; }
 
 	BEGIN_MSG_MAP_EX( CFilterTestWindow )
 		MSG_WM_INITDIALOG( OnInitDialog )
@@ -120,12 +123,15 @@ public:
         owner.url.parseUrl(url);
         owner.cnxNumber = 1;
         CFilter filter(owner);
+		Proxydomo::MatchData matchData(&filter);
+
         bool okayChars[256];
-		CMatcher matcher(m_bTestURLPattern ? m_pFilter->urlPattern : m_pFilter->matchPattern, filter);
+		Proxydomo::CMatcher& matcher = m_bTestURLPattern ? 
+			*m_pFilter->spURLMatcher : *m_pFilter->spTextMatcher;
         matcher.mayMatch(okayChars);
-        CMatcher* boundsMatcher = NULL;
+        Proxydomo::CMatcher* boundsMatcher = NULL;
 		if (m_pFilter->filterType == CFilterDescriptor::kFilterText && !m_pFilter->boundsPattern.empty()) {
-            boundsMatcher = new CMatcher(m_pFilter->boundsPattern, filter);
+			boundsMatcher = m_pFilter->spBoundsMatcher.get();
             bool tab[256];
             boundsMatcher->mayMatch(tab);
             for (int i = 0; i < 256; i++) 
@@ -149,8 +155,7 @@ public:
 		} else {
 			std::string text = CT2A(MiscGetWindowText(m_editTest));
 			const char* end = nullptr;
-			const char* reached = nullptr;
-			if (matcher.match(text.c_str(), text.c_str() + text.size(), end, reached)) {
+			if (matcher.match(text.c_str(), text.c_str() + text.size(), end, &matchData)) {
 				m_editResult.SetWindowText(_T("マッチしました！"));
 			} else {
 				m_editResult.SetWindowText(_T("マッチしませんでした..."));
@@ -187,12 +192,12 @@ public:
                         continue;
                     }
                     bool matched;
-                    const char *end, *reached;
+                    const char *end = nullptr;
                     const char *stop = index + m_pFilter->windowWidth;
                     if (stop > bufTail) stop = bufTail;
                     filter.clearMemory();
                     if (boundsMatcher) {
-                        matched = boundsMatcher->match(index, stop, end, reached);
+                        matched = boundsMatcher->match(index, stop, end, &matchData);
                         filter.unlock();
                         if (!matched) {
                             ++index;
@@ -200,7 +205,7 @@ public:
                         }
                         stop = end;
                     }
-                    matched = matcher.match(index, stop, end, reached);
+                    matched = matcher.match(index, stop, end, &matchData);
                     filter.unlock();
                     if (!matched || (boundsMatcher && end != stop)) {
                         ++index;
@@ -220,11 +225,11 @@ public:
             // Test of a header filter. Much simpler...
             } else {
 
-                const char *index, *stop, *end, *reached;
+                const char *index, *stop, *end;
                 index = text.c_str();
                 stop  = index + text.size();
                 if ((!text.empty() || m_pFilter->matchPattern.empty())
-                    && matcher.match(index, stop, end, reached)) {
+                    && matcher.match(index, stop, end, &matchData)) {
 
                     result << CExpander::expand(m_pFilter->replacePattern, filter);
                     if (run == 0) numMatch++;
@@ -236,7 +241,6 @@ public:
         // If profiling, repeat this loop 1000 times or 10 seconds,
         // whichever comes first.
 		} while (prof && run++ < kMaxPrefCount && (std::chrono::high_resolution_clock::now() - starttime) < std::chrono::seconds(10));
-        if (boundsMatcher) delete boundsMatcher;
 
         if (prof) {
 			int len = m_editTest.GetWindowTextLength();
@@ -297,7 +301,6 @@ CFilterEditWindow::~CFilterEditWindow()
 
 	if (m_pTestWindow->IsWindow())
 		m_pTestWindow->DestroyWindow();
-	delete m_pTestWindow;
 }
 
 BOOL CFilterEditWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
@@ -375,8 +378,8 @@ void CFilterEditWindow::OnOK(UINT uNotifyCode, int nID, CWindow wndCtl)
 {
 	_SaveToTempFilter();
 
-	m_pTempFilter->TestValidity();
-	if (m_pTempFilter->errorMsg.size() > 0) {
+	//m_pTempFilter->TestValidity();
+	if (m_pTempFilter->CreateMatcher() == false) {
 		MessageBox(CA2T(m_pTempFilter->errorMsg.c_str()), NULL, MB_ICONERROR);
 		return ;
 	}

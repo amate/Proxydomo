@@ -30,7 +30,9 @@
 #include "proximodo\util.h"
 #include "Misc.h"
 #include "Settings.h"
-#include "proximodo\matcher.h"
+#include "Node.h"
+#include "Matcher.h"
+#include "proximodo\filter.h"
 
 
 #define CR	'\r'
@@ -57,11 +59,7 @@ CRequestManager::CRequestManager(std::unique_ptr<CSocket>&& psockBrowser) :
 {
 	m_filterOwner.requestNumber = 0;
 
-	try {
-		m_pUrlBypassMatcher.reset(new CMatcher("$LST(Bypass)", m_urlBypassFilter));
-	} catch (parsing_exception&) {
-		// Ignore invalid bypass pattern
-	}
+	m_pUrlBypassMatcher = Proxydomo::CMatcher::CreateMatcher("$LST(Bypass)");
 
 	CCritSecLock	lock(CSettings::s_csFilters);
 	for (auto& filter : CSettings::s_vecpFilters) {
@@ -386,10 +384,11 @@ void CRequestManager::_ProcessOut()
 				// Test URL with bypass-URL matcher, if matches we'll bypass all
 				{
 					m_urlBypassFilter.clearMemory();
+					CFilter filter(m_filterOwner);
+					Proxydomo::MatchData	matchData(&filter);
 					const std::string& url = m_filterOwner.url.getFromHost();
 					const char* end = nullptr;
-					const char* reached = nullptr;
-					if (m_pUrlBypassMatcher->match(url.c_str(), url.c_str() + url.size(), end, reached))
+					if (m_pUrlBypassMatcher->match(url.c_str(), url.c_str() + url.size(), end, &matchData))
 						m_filterOwner.bypassOut = m_filterOwner.bypassIn = m_filterOwner.bypassBody = true;
 				}
 

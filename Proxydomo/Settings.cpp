@@ -30,8 +30,9 @@
 #pragma comment(lib, "Shlwapi.lib")
 #include "Misc.h"
 #include "proximodo\util.h"
-#include "proximodo\matcher.h"
+//#include "proximodo\matcher.h"
 #include "Log.h"
+#include "Matcher.h"
 
 
 template <class _Function>
@@ -79,8 +80,8 @@ bool			CSettings::s_WebFilterDebug	= false;
 std::vector<std::unique_ptr<CFilterDescriptor>>	CSettings::s_vecpFilters;
 CCriticalSection								CSettings::s_csFilters;
 
-std::unordered_map<std::string, std::deque<std::string>>	CSettings::s_mapLists;		// list name : contents
-std::recursive_mutex							CSettings::s_mutexLists;
+std::recursive_mutex							CSettings::s_mutexHashedLists;
+std::unordered_map<std::string, std::unique_ptr<HashedListCollection>>	CSettings::s_mapHashedLists;
 
 using namespace boost::property_tree;
 
@@ -158,6 +159,8 @@ void CSettings::LoadFilter()
 			pFilter->urlPattern		= ptFilter.get("urlPattern", "");
 			pFilter->matchPattern	= ptFilter.get("matchPattern", "");
 			pFilter->replacePattern	= ptFilter.get("replacePattern", "");
+			
+			pFilter->CreateMatcher();
 
 			s_vecpFilters.push_back(std::move(pFilter));
 		}
@@ -195,6 +198,15 @@ void CSettings::SaveFilter()
 }
 
 
+static bool isHashable(char c) {
+    return (c != '\\' && c != '[' && c != '$'  && c != '('  && c != ')'  &&
+            c != '|'  && c != '&' && c != '?'  && c != ' '  && c != '\t' &&
+            c != '='  && c != '*' && c != '\'' && c != '\"' );
+}
+
+static inline int hashBucket(char c)
+    { return tolower(c) & 0xff; }
+
 void CSettings::LoadList(const CString& filePath)
 {
 	// ç≈èIèëÇ´çûÇ›éûçèÇéÊìæ
@@ -221,18 +233,58 @@ void CSettings::LoadList(const CString& filePath)
 		return ;
 
 	{
-		std::lock_guard<std::recursive_mutex> lock(CSettings::s_mutexLists);
-		std::deque<std::string>& deqLine = CSettings::s_mapLists[filename];
-		deqLine.clear();
+		s_mutexHashedLists.lock();
+		auto& hashedLists = s_mapHashedLists[filename];
+		if (hashedLists == nullptr)
+			hashedLists.reset(new HashedListCollection);
+		s_mutexHashedLists.unlock();
+
+		std::shared_ptr<std::array<std::deque<HashedListCollection::SListItem>, 256>>	
+			spHashedArray(new std::array<std::deque<HashedListCollection::SListItem>, 256>);
 
 		std::string strLine;
 		while (std::getline(fs, strLine).good()) {
 			CUtil::trim(strLine);
-			if (strLine.size() > 0 && strLine[0] != '#' && CMatcher::testPattern(strLine))
-				deqLine.emplace_back(strLine);
+			if (strLine.size() > 0 && strLine[0] != '#'
+				/* && Proxydomo::CMatcher::CreateMatcher(strLine)*/) {
+				_CreatePattern(strLine, *spHashedArray);
+			}
 		}
+		std::lock_guard<std::recursive_mutex> lock(hashedLists->mutexHashedArray);
+		hashedLists->spHashedArray = spHashedArray;
 	}
 	CLog::FilterEvent(kLogFilterListReload, -1, filename, "");
 }
 
 
+void CSettings::_CreatePattern(const std::string& pattern, 
+							   std::array<std::deque<HashedListCollection::SListItem>, 256>& hashed)
+{
+    // we'll record the built node and its flags in a structure
+    HashedListCollection::SListItem item = { NULL, 0 };
+    if (pattern[0] == '~') 
+		item.flags |= 0x1;
+    int start = (item.flags & 0x1) ? 1 : 0;
+    char c = pattern[start];
+    if (isHashable(c)) item.flags |= 0x2;
+    // parse the pattern
+	try {
+		item.node.reset(Proxydomo::CMatcher::expr(pattern, start, pattern.size()));
+	} catch (...) {
+		return ;
+	}
+
+    item.node->setNextNode(NULL);
+    
+    if (item.flags & 0x2) {
+        // hashable pattern goes in a single hashed bucket (lowercase)
+        hashed[hashBucket(c)].push_back(item);
+    } else {
+        // Expressions that start with a special char cannot be hashed
+        // Push them on every hashed list
+        for (size_t i = 0; i < hashed.size(); i++) {
+            if (!isupper((char)i))
+                hashed[i].push_back(item);
+		}
+    }
+}

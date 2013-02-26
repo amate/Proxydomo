@@ -33,6 +33,8 @@
 #include "proximodo\zlibbuffer.h"
 #include "proximodo\headerfilter.h"
 
+namespace Proxydomo { class CMatcher; }
+
 
 class CRequestManager : public IDataReceptor
 {
@@ -100,7 +102,7 @@ private:
 	std::vector<std::unique_ptr<CHeaderFilter>>	m_vecpInFilter;
 	std::vector<std::unique_ptr<CHeaderFilter>>	m_vecpOutFilter;
 	CFilter		m_urlBypassFilter;
-	std::shared_ptr<CMatcher>	m_pUrlBypassMatcher;
+	std::shared_ptr<Proxydomo::CMatcher>	m_pUrlBypassMatcher;
 
 	// Sockets
 	std::unique_ptr<CSocket>	m_psockBrowser;
