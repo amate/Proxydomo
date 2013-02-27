@@ -1044,14 +1044,13 @@ CNode* CMatcher::code(const string& pattern, int& pos, int stop)
                 // Rule: ()\0-9
                 // The code will be embedded in a memory node
                 int num = pattern[pos+1]-'0';
-                //node = new CNode_Memory(node,
-                //                        filter.memoryTable[num]);
+                node = new CNode_Memory(node, num);
+
                 pos += 2;
             } else if (pattern[pos+1] == '#') {
                 // Rule: ()\#
                 // The code will be embedded in a stacked-memory node
-                //node = new CNode_Memory(node,
-                //                        filter.memoryStack);
+                node = new CNode_Memory(node, -1);
                 pos += 2;
             }
         }
@@ -1077,7 +1076,8 @@ CNode* CMatcher::code(const string& pattern, int& pos, int stop)
 CNode* CMatcher::single(const std::string& pattern, int& pos, int stop) {
 
     // No need to test for pos<stop here, the test is done in code()
-    char token = pattern[pos++];
+    char token = pattern[pos];
+	++pos;
 
     if (token == '?') {
 

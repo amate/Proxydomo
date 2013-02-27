@@ -167,7 +167,7 @@ void	CSocket::Bind(uint16_t port)
 	if (m_sock ==  INVALID_SOCKET)
 		throw SocketException("Can`t open socket");
 
-	_SetBlocking(false);
+	SetBlocking(false);
 	_SetReuse(true);
 
 	sockaddr_in localAddr = { 0 };
@@ -293,8 +293,13 @@ bool	 CSocket::Read(char* buffer, int length)
 	ATLASSERT( length > 0 );
 	int nLen = ::recv(m_sock, buffer, length, 0);
 	m_nLastReadCount = nLen;
-	if (nLen == SOCKET_ERROR) {	// ‘Šè‚©‚çÚ‘±‚ªØ’f‚³‚ê‚½
-		throw SocketException("CSocket::Read failed");
+	if (nLen == SOCKET_ERROR) {
+		m_nLastReadCount = 0;
+		int wsaError = ::WSAGetLastError();
+		if (wsaError == WSAEWOULDBLOCK)
+			return true;
+
+		throw SocketException("CSocket::Read failed");		// ‘Šè‚©‚çÚ‘±‚ªØ’f‚³‚ê‚½
 		//Close();
 		return false;
 	}
@@ -328,7 +333,7 @@ bool	CSocket::Write(const char* buffer, int length)
 
 
 // --------------------------------------------------
-void CSocket::_SetBlocking(bool yes)
+void CSocket::SetBlocking(bool yes)
 {
 	unsigned long op = yes ? 0 : 1;
 	if (ioctlsocket(m_sock, FIONBIO, &op) == SOCKET_ERROR)

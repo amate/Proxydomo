@@ -237,7 +237,7 @@ bool CRequestManager::_ReceiveOut()
 		int count = m_psockBrowser->GetLastReadCount();
 		if (count == 0)
 			break;
-		m_recvOutBuf += std::string(buf, count);
+		m_recvOutBuf.append(buf, count);
 		bDataReceived = true;
 	}
 	return bDataReceived;
@@ -250,6 +250,7 @@ bool CRequestManager::_SendOut()
 	// Send everything to website, if connected
 	if (m_sendOutBuf.size() > 0 && m_psockWebsite->IsConnected()) {
 		ret = true;
+		m_psockWebsite->SetBlocking(true);
 		if (m_psockWebsite->Write(m_sendOutBuf.c_str(), m_sendOutBuf.size()) == false)
 			m_psockWebsite->Close();	// Trouble with browser's socket, end of all things
 		else
@@ -794,7 +795,7 @@ bool	CRequestManager::_ReceiveIn()
 		int count = m_psockWebsite->GetLastReadCount();
 		if (count == 0)
 			break;
-		m_recvInBuf += std::string(buf, count);
+		m_recvInBuf.append(buf, count);
 		bDataReceived = true;
 	}
 	return bDataReceived;
@@ -1247,6 +1248,7 @@ bool	CRequestManager::_SendIn()
 	// Send everything to browser, if connected
 	if (m_sendInBuf.size() > 0 && m_psockBrowser->IsConnected()) {
 		ret = true;
+		m_psockBrowser->SetBlocking(true);
 		if (m_psockBrowser->Write(m_sendInBuf.c_str(), m_sendInBuf.size()) == false)
 			m_psockBrowser->Close();	// Trouble with browser's socket, end of all things
 		else

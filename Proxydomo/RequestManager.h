@@ -80,7 +80,7 @@ private:
 	void	_FakeResponse(const std::string& code, const std::string& filename = "");
 	
 	// Constants
-	enum { kReadBuffSize = 2048 };
+	enum { kReadBuffSize = 10240 };
 
     // Processing steps (incoming or outgoing)
     enum STEP { 

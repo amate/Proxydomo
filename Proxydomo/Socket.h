@@ -101,8 +101,10 @@ public:
 	bool	Write(const char* buffer, int length);
 	int		GetLastWriteCount() const { return m_nLastWriteCount; }
 
+	void	SetBlocking(bool yes);
+
 private:
-	void	_SetBlocking(bool yes);
+	
 	void	_SetReuse(bool yes);
 
 	// Data members

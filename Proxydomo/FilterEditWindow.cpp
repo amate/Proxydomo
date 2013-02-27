@@ -240,16 +240,23 @@ public:
             }
         // If profiling, repeat this loop 1000 times or 10 seconds,
         // whichever comes first.
-		} while (prof && run++ < kMaxPrefCount && (std::chrono::high_resolution_clock::now() - starttime) < std::chrono::seconds(10));
+		} while (prof && run++ < kMaxPrefCount &&
+				 ((std::chrono::high_resolution_clock::now() - starttime) < std::chrono::seconds(5)) );
 
         if (prof) {
 			int len = m_editTest.GetWindowTextLength();
-			double time = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - starttime).count();
-			double avarage = (1000.0 * time / run);
-			double busytime = time ? (1000.0 * len * run / (1024.0 * time)) : 0.0;			
+			double totaltime = std::chrono::duration_cast<std::chrono::milliseconds>
+									(std::chrono::high_resolution_clock::now() - starttime).count();
+			double avarage = totaltime / run;
+			double busytime = 0.0;
+			if (totaltime > 0)
+				busytime = (((len * run) / 1000.0)/* byte -> Kbyte */ / (totaltime / 1000.0)/* milisec -> sec */);
 
 			CString text;
-			text.Format(_T("分析結果...\r\n サンプルテキスト: %d バイト\r\n 一致回数: %d\r\n 平均時間: %lf ミリ秒\r\n 処理速度: %lf KB/s"), len, numMatch, avarage, busytime);
+			text.Format(
+				_T("分析結果...\r\n サンプルテキスト: %d バイト\r\n 一致回数: %d\r\n ")
+				_T("平均時間: %d ミリ秒\r\n 処理速度: %lf KB/s"), 
+				len, numMatch, (int)avarage, busytime);
 
 			m_editResult.SetWindowText(text);
         } else {
