@@ -31,6 +31,7 @@
 #include "Log.h"
 #include "CodeConvert.h"
 #include <atlsync.h>
+#include <regex>
 
 using namespace CodeConvert;
 using namespace icu;
@@ -120,6 +121,8 @@ inline int CharCount(const wchar_t* end, const wchar_t* begin)
 
 static std::string GetCharaCode(const std::string& data)
 {
+	
+
 	UErrorCode err = UErrorCode::U_ZERO_ERROR;
 	ucsdet_setText(g_dectator, data.c_str(), data.length(), &err);
 	ATLASSERT( U_SUCCESS( err ) );
@@ -146,8 +149,27 @@ void CTextBuffer::DataFeed(const std::string& data)
 			if (data.size() > 0)
 				return ;	// バッファがたまるまで待つ
 		}
+		std::string charaCode;
 
-		std::string charaCode = GetCharaCode(m_buffer);
+		std::string contentType = m_owner.GetInHeader("Content-Type");
+		if (contentType.size() > 0) {
+			CUtil::lower(contentType);
+			int nPos = contentType.find("charset=");
+			if (nPos != std::string::npos) {
+				charaCode = contentType.substr(nPos + 8);
+				CUtil::upper(charaCode);
+			}
+		}
+		if (charaCode.empty()) {
+			std::regex rx("<meta [^>]*http-equiv=\"?Content-Type\"? [^>]*charset=\"?([^\"' >]+)\"?[^>]*>", std::regex_constants::icase);
+			std::smatch result;
+			if (std::regex_search(m_buffer.cbegin(), m_buffer.cend(), result, rx)) {
+				charaCode = result.str(1);
+				CUtil::upper(charaCode);
+			}
+		}
+		if (charaCode.empty())
+			charaCode = GetCharaCode(m_buffer);
 
 		CCritSecLock lock(g_csMapConverter);
 		auto& pConverter = g_mapConverter[charaCode];
