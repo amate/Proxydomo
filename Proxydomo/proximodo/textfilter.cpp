@@ -55,12 +55,12 @@ CTextFilter::CTextFilter(CFilterOwner& owner, const CFilterDescriptor& desc) :
     }
 
     isForStart = isSpecial = false;
-    if (desc.matchPattern == "<start>") {
+    if (desc.matchPattern == L"<start>") {
         isSpecial = true;
         isForStart = true;
         memset(okayChars, 0xFF, sizeof(okayChars)); // match whatever the first char is
         return;
-    } else if (desc.matchPattern == "<end>") {
+    } else if (desc.matchPattern == L"<end>") {
         isSpecial = true;
         memset(okayChars, 0x00, sizeof(okayChars)); // can't match as long as there is a char
         return;
@@ -86,9 +86,9 @@ CTextFilter::~CTextFilter() {
 
 /* Generates the replacement text for the previous occurrence
  */
-string CTextFilter::getReplaceText() {
+std::wstring CTextFilter::getReplaceText() {
 
-    string text = CExpander::expand(replacePattern, *this);
+    std::wstring text = CExpander::expand(replacePattern, *this);
     unlock();
     return text;
 }
@@ -104,11 +104,7 @@ void CTextFilter::reset() {
 
     if (urlMatcher) {
         // The filter will be inactive if the URL does not match
-        const char *tStart, *tStop, *tEnd;
-        tStart = owner.url.getFromHost().c_str();
-        tStop = tStart + owner.url.getFromHost().size();
-		Proxydomo::MatchData matchData(this);
-        bypassed = !urlMatcher->match(tStart, tStop, tEnd, &matchData);
+        bypassed = !urlMatcher->match(owner.url.getFromHost(), this);
         unlock();
     }
 }
@@ -124,7 +120,7 @@ void CTextFilter::endReached() {
 
 /* Run the filter on string [start,stop)
  */
-int CTextFilter::match(const char* index, const char* bufTail) {
+int CTextFilter::match(const wchar_t* index, const wchar_t* bufTail) {
 
     // for special <start> and <end> filters
     if (isSpecial) {
@@ -133,8 +129,8 @@ int CTextFilter::match(const char* index, const char* bufTail) {
     }
     
     // compute up to where we want to match
-    const char* reached = nullptr;
-	const char* stop = index + windowWidth;
+    const wchar_t* reached = nullptr;
+	const wchar_t* stop = index + windowWidth;
     if (stop > bufTail) 
 		stop = bufTail;
 

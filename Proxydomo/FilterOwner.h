@@ -57,7 +57,7 @@ public:
 
 	bool		killed;					// Has a pattern executed a \k ?
 
-	std::map<std::string, std::string> variables;       // variables for $SET and $GET
+	std::map<std::wstring, std::wstring> variables;       // variables for $SET and $GET
 	
 	HeadPairList	outHeaders;			// Outgoing headers
 	HeadPairList	inHeaders;			// Incoming headers

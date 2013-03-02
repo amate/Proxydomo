@@ -66,7 +66,7 @@ private:
     std::shared_ptr<Proxydomo::CMatcher> textMatcher;
 
     // Replace pattern
-    string replacePattern;
+    std::wstring replacePattern;
 };
 
 #endif

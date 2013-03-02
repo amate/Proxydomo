@@ -31,11 +31,15 @@
 #include "FilterOwner.h"
 #include "Log.h"
 #include "Settings.h"
+#include "CodeConvert.h"
+#include <unicode\uchar.h>
+
+using namespace CodeConvert;
 
 
 namespace Proxydomo {
 
-inline void UpdateReached(const char* p, MatchData* pMatch)
+inline void UpdateReached(const UChar* p, MatchData* pMatch)
 {
 	if (pMatch->reached < p)
 		pMatch->reached = p;
@@ -45,8 +49,8 @@ inline void UpdateReached(const char* p, MatchData* pMatch)
  * Try and match any string. Corresponds to *
  */
 
-const char* CNode_Star::match(const char* start, const char* stop, MatchData* pMatch) {
-
+const UChar* CNode_Star::match(const UChar* start, const UChar* stop, MatchData* pMatch)
+{
     //  if desired, try first by consuming everything
     if (m_maxFirst) {
         UpdateReached(stop, pMatch);
@@ -62,7 +66,7 @@ const char* CNode_Star::match(const char* start, const char* stop, MatchData* pM
         if (m_useTab) {
             while (start < stop && m_tab[(unsigned char)(*start)] == false) ++start;
         }
-        const char* ret = m_nextNode->match(start, stop, pMatch);
+        const UChar* ret = m_nextNode->match(start, stop, pMatch);
         if (ret) {
             m_consumed = start;
             UpdateReached(start, pMatch);
@@ -100,9 +104,9 @@ void CNode_Star::setNextNode(CNode* node)
 /* class CNode_MemStar
  * Try and match any string, and store the match. Corresponds to \0 or \#
  */
-const char* CNode_MemStar::match(const char* start, const char* stop, MatchData* pMatch)
+const UChar* CNode_MemStar::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
-    const char* left = start;
+    const UChar* left = start;
 
     // Backup memory and replace by a new one, or push new one on stack
     if (m_memoryPos != -1) {		
@@ -133,7 +137,7 @@ const char* CNode_MemStar::match(const char* start, const char* stop, MatchData*
         } else {
             pMatch->pFilter->memoryStack.back()(left, start);
         }
-        const char* ret = m_nextNode->match(start, stop, pMatch);
+        const UChar* ret = m_nextNode->match(start, stop, pMatch);
         if (ret) {
             m_consumed = start;
 			UpdateReached(start, pMatch);
@@ -177,12 +181,12 @@ void CNode_MemStar::setNextNode(CNode* node)
  * Matches any spaces.
  */
 
-const char* CNode_Space::match(const char* start, const char* stop, MatchData* pMatch)
+const UChar* CNode_Space::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
     // Rule: space
     while (start < stop && *start <= ' ') ++start;
 
-    const char* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
+    const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
 	UpdateReached(start, pMatch);
     m_consumed = start;
     return ret;
@@ -205,19 +209,19 @@ bool CNode_Space::mayMatch(bool* tab)
  * Matches an Equal sign surrounded by spaces.
  */
 /// '=' 前後のスペースを含めて消費する
-const char* CNode_Equal::match(const char* start, const char* stop, MatchData* pMatch)
+const UChar* CNode_Equal::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
     // Rule: =
-    while (start < stop && *start <= ' ') ++start;
-    if    (start < stop && *start == '=') {
+    while (start < stop && *start <= L' ') ++start;
+    if    (start < stop && *start == L'=') {
         ++start;
     } else {
         UpdateReached(start, pMatch);
         return NULL;
     }
-    while (start < stop && *start <= ' ') ++start;
+    while (start < stop && *start <= L' ') ++start;
 
-    const char* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
+    const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
     UpdateReached(start, pMatch);
     m_consumed = start;
     return ret;
@@ -240,7 +244,7 @@ bool CNode_Equal::mayMatch(bool* tab)
  * Try and match a " or a '.
  */
 
-const char* CNode_Quote::match(const char* start, const char* stop, MatchData* pMatch) {
+const UChar* CNode_Quote::match(const UChar* start, const UChar* stop, MatchData* pMatch) {
 
     if (start >= stop) 
 		return NULL;
@@ -249,16 +253,16 @@ const char* CNode_Quote::match(const char* start, const char* stop, MatchData* p
 	++start;
     // Rule: "
     // Rule: '
-    if (!((   m_matched == '\'' && (   m_quote == '\"'
+    if (!((   m_matched == L'\'' && (   m_quote == L'\"'
                                   || m_openingQuote == nullptr
                                   || m_openingQuote->m_matched == '\'' ))
-          ||  (m_matched == '\"' && (  m_quote == '\"'
+          ||  (m_matched == L'\"' && (  m_quote == L'\"'
                                   || (m_openingQuote
-                                      && m_openingQuote->m_matched == '\"'))) )) {
+                                      && m_openingQuote->m_matched == L'\"'))) )) {
         return nullptr;
     }
 
-    const char* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
+    const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
 	UpdateReached(start, pMatch);
     m_consumed = start;
     return ret;
@@ -278,15 +282,15 @@ bool CNode_Quote::mayMatch(bool* tab) {
  * Try and match a single character
  */
 
-const char* CNode_Char::match(const char* start, const char* stop, MatchData* pMatch)
+const UChar* CNode_Char::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
     // The test is case insensitive
-    if (start>=stop || tolower(*start) != m_byte) 
+    if (start>=stop || towlower(*start) != m_byte) 
 		return nullptr;		// マッチしなかった
 
     start++;
 
-    const char* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
+    const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
     UpdateReached(start, pMatch);
     m_consumed = start;
     return ret;
@@ -296,7 +300,7 @@ bool CNode_Char::mayMatch(bool* tab)
 {
     if (tab) {
         tab[(unsigned char)m_byte] = true;
-        tab[(unsigned char)toupper(m_byte)] = true;
+        tab[(unsigned char)towupper(m_byte)] = true;
     }
     return false;
 }
@@ -307,27 +311,27 @@ bool CNode_Char::mayMatch(bool* tab)
  * Try and match a single character
  */
 
-const char* CNode_Range::match(const char* start, const char* stop, MatchData* pMatch)
+const UChar* CNode_Range::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
     // Check if there is a quote
-    char quote = 0;
-    if (start < stop && (*start == '\'' || *start == '\"')) {
+    UChar quote = 0;
+    if (start < stop && (*start == L'\'' || *start == L'\"')) {
         quote = *start++;
     }
     // Check if there is a minus sign
     int sign = 1;
-    if (start < stop && *start == '-') {
+    if (start < stop && *start == L'-') {
         sign = -1;
         start++;
     }
     // Check if there is a digit
-    if (start >= stop || CUtil::digit(*start) == false) {
+    if (start >= stop || u_isdigit(*start) == false) {
 		UpdateReached(start, pMatch);
         return nullptr;
     }
     // Read the number
     int num = 0;
-    while (start < stop && CUtil::digit(*start)) {
+    while (start < stop && u_isdigit(*start)) {
         num = num*10 + *start++ - '0';
     }
     num *= sign;
@@ -340,7 +344,7 @@ const char* CNode_Range::match(const char* start, const char* stop, MatchData* p
     // Check if the number is in the range. Optional quote must be closed
     if (quote || (m_allow ^ (m_min <= num && num <= m_max))) return nullptr;
 
-    const char* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
+    const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
 	UpdateReached(start, pMatch);
     m_consumed = start;
     return ret;
@@ -358,22 +362,25 @@ bool CNode_Range::mayMatch(bool* tab)
 }
 
 
-
 /* class CNode_String
  * Try and match a string of characters.
  * Note: s and c must be in lowercase.
  */
-const char* CNode_String::match(const char* start, const char* stop, MatchData* pMatch)
+const UChar* CNode_String::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
-    const char* ptr = m_str.c_str();
-    const char* max = (stop < start + m_size) ? stop : start + m_size;
-    while (start < max && *ptr == tolower(*start)) { ptr++; start++; }
+
+    const UChar* ptr = m_str.c_str();
+    const UChar* max = (stop < start + m_size) ? stop : start + m_size;
+
+    while (start < max && *ptr == towlower(*start)) { ptr++; start++; }
+
+	// 全部消費されなかった
     if (ptr < m_str.c_str() + m_size) {
 		UpdateReached(start, pMatch);
         return nullptr;
     }
 
-    const char* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
+    const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
     UpdateReached(start, pMatch);
     m_consumed = start;
     return ret;
@@ -383,7 +390,7 @@ bool CNode_String::mayMatch(bool* tab)
 {
     if (tab) {
         tab[(unsigned char)m_str[0]] = true;
-        tab[(unsigned char)toupper(m_str[0])] = true;
+        tab[(unsigned char)towupper(m_str[0])] = true;
     }
     return false;
 }
@@ -392,24 +399,24 @@ bool CNode_String::mayMatch(bool* tab)
 /* class CNode_Chars
  * Try and match a single character.
  */
-CNode_Chars::CNode_Chars(const std::string& s, bool allow /*= true*/) : CNode(CHARS), m_allow(allow)
+CNode_Chars::CNode_Chars(const std::wstring& s, bool allow /*= true*/) : CNode(CHARS), m_allow(allow)
 {
     // For a fast matching, all allowed (or forbidden) characters are
     // tagged in a table of booleans.
     for (unsigned int i=0; i<256; i++) m_byte[i] = !allow;
-	for (char c : s)
+	for (UChar c : s)
 		m_byte[(unsigned char)c] = allow;
 }
 
 
-const char* CNode_Chars::match(const char* start, const char* stop, MatchData* pMatch)
+const UChar* CNode_Chars::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
     if (start >= stop || m_byte[(unsigned char)(*start)] == false)
 		return nullptr;
 
     start++;
 
-    const char* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
+    const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
     UpdateReached(start, pMatch);
     m_consumed = start;
     return ret;
@@ -428,12 +435,12 @@ bool CNode_Chars::mayMatch(bool* tab)
 /* class CNode_Empty
  * Empty pattern. Always matches (but only once) or never, depending on accept
  */
-const char* CNode_Empty::match(const char* start, const char* stop, MatchData* pMatch)
+const UChar* CNode_Empty::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
     if (m_accept == false) 
 		return nullptr;
 
-    const char* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
+    const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
     UpdateReached(start, pMatch);
     m_consumed = start;
     return ret;
@@ -449,7 +456,7 @@ bool CNode_Empty::mayMatch(bool* tab)
 /* class CNode_Any
  * Matches any character. Corresponds to ?
  */
-const char* CNode_Any::match(const char* start, const char* stop, MatchData* pMatch)
+const UChar* CNode_Any::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
     // Rule: ?
     if (start >= stop) 
@@ -457,7 +464,7 @@ const char* CNode_Any::match(const char* start, const char* stop, MatchData* pMa
 
     start++;
     
-    const char* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
+    const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
     UpdateReached(start, pMatch);
     m_consumed = start;
     return ret;
@@ -481,9 +488,9 @@ CNode_Run::~CNode_Run() {
     delete m_nodes;
 }
 
-const char* CNode_Run::match(const char* start, const char* stop, MatchData* pMatch)
+const UChar* CNode_Run::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
-    const char* ret = m_firstNode->match(start, stop, pMatch);
+    const UChar* ret = m_firstNode->match(start, stop, pMatch);
     m_consumed = m_nodes->back()->m_consumed;
     return ret;
 }
@@ -512,10 +519,10 @@ CNode_Or::~CNode_Or() {
     delete m_nodes;
 }
 
-const char* CNode_Or::match(const char* start, const char* stop, MatchData* pMatch)
+const UChar* CNode_Or::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
 	for (CNode* node : *m_nodes) {
-		const char* ret = node->match(start, stop, pMatch);
+		const UChar* ret = node->match(start, stop, pMatch);
         if (ret) {
             m_consumed = node->m_consumed;
             return ret;
@@ -553,17 +560,17 @@ CNode_And::~CNode_And()
     delete m_nodeR;
 }
 
-const char* CNode_And::match(const char* start, const char* stop, MatchData* pMatch)
+const UChar* CNode_And::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
     // Ask left node for the first match
-    const char* posL = m_nodeL->match(start, stop, pMatch);
+    const UChar* posL = m_nodeL->match(start, stop, pMatch);
     if (posL == nullptr) 
 		return nullptr;
 
     m_consumed = m_nodeL->m_consumed;
 
     // Ask right node for the first match
-    const char* posR = m_nodeR->match(start, (m_force ? m_consumed : stop), pMatch);
+    const UChar* posR = m_nodeR->match(start, (m_force ? m_consumed : stop), pMatch);
     if (posR == nullptr || (m_force && posR != m_consumed)) 
 		return nullptr;
 
@@ -609,20 +616,20 @@ CNode_Repeat::~CNode_Repeat()
     delete m_node;
 }
 
-const char* CNode_Repeat::match(const char* start, const char* stop, MatchData* pMatch)
+const UChar* CNode_Repeat::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
     int rcount = 0;
     bool checked = false;
     while (rcount < m_rmax) {
         if (m_iterate && m_nextNode && rcount >= m_rmin) {
-            const char* ret = m_nextNode->match(start, stop, pMatch);
+            const UChar* ret = m_nextNode->match(start, stop, pMatch);
             if (ret) {
                 m_consumed = start;
                 return ret;
             }
             checked = true;
         }
-        const char* ret = m_node->match(start, stop, pMatch);
+        const UChar* ret = m_node->match(start, stop, pMatch);
         if (ret == nullptr) break;
         checked = false;
         if (ret == start) {
@@ -635,7 +642,7 @@ const char* CNode_Repeat::match(const char* start, const char* stop, MatchData* 
     if (rcount < m_rmin || checked) 
 		return nullptr;
 
-    const char* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
+    const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
     m_consumed = start;
     return ret;
 }
@@ -670,11 +677,11 @@ CNode_Memory::~CNode_Memory()
     if (m_memorizer) delete m_memorizer;
 }
 
-const char* CNode_Memory::match(const char* start, const char* stop, MatchData* pMatch)
+const UChar* CNode_Memory::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
     if (m_memorizer) {
         m_memorizer->m_recordPos = start;
-        const char* ret = m_node->match(start, stop, pMatch);
+        const UChar* ret = m_node->match(start, stop, pMatch);
         m_consumed = m_node->m_consumed;
         return ret;
     } else {
@@ -686,7 +693,7 @@ const char* CNode_Memory::match(const char* start, const char* stop, MatchData* 
 			pMatch->pFilter->memoryStack.push_back(CMemory(m_recordPos, start));
         }
         // Ask next node
-        const char* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
+        const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
         if (ret) {
             m_consumed = start;
             return ret;
@@ -726,13 +733,13 @@ void CNode_Memory::setNextNode(CNode* node)
 /* class CNode_Negate
  * Try and match a pattern. If it does, failure (NULL), else success (start)
  */
-const char* CNode_Negate::match(const char* start, const char* stop, MatchData* pMatch)
+const UChar* CNode_Negate::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
     // The negation node does not consume text
-    const char* test = m_node->match(start, stop, pMatch);
+    const UChar* test = m_node->match(start, stop, pMatch);
     if (test) 
 		return nullptr;
-    const char* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
+    const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
     m_consumed = start;
     return ret;
 }
@@ -754,15 +761,15 @@ void CNode_Negate::setNextNode(CNode* node)
 /* class CNode_AV
  * Try and match an html parameter
  */
-const char* CNode_AV::match(const char* start, const char* stop, MatchData* pMatch)
+const UChar* CNode_AV::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
     // find parameter limits
     bool consumeQuote = false;
-    const char *begin, *end;
+    const UChar *begin, *end;
     begin = end = start;
     if (start<stop) {
-        char token = *start;
-        if (token == '\'' || token == '\"') {
+        UChar token = *start;
+        if (token == L'\'' || token == L'\"') {
             // We'll try and match a quoted parameter. Look for closing quote.
             end++;
             if (m_isAVQ == false) begin++; // AV: the matching will start after the quote
@@ -777,7 +784,7 @@ const char* CNode_AV::match(const char* start, const char* stop, MatchData* pMat
             }
         } else {
             // Parameter without quote (single word), look for its end
-            while (end<stop && *end > ' ' && *end != '>') end++;
+            while (end<stop && *end > L' ' && *end != L'>') end++;
             if (end == begin) return NULL;
         }
     }
@@ -788,7 +795,7 @@ const char* CNode_AV::match(const char* start, const char* stop, MatchData* pMat
 		return nullptr;
     start = consumeQuote ? end+1 : end;
 
-    const char* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
+    const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
 	UpdateReached(start, pMatch);
     m_consumed = start;
     return ret;
@@ -812,29 +819,31 @@ void CNode_AV::setNextNode(CNode* node)
 /* class CNode_Url
  * Try and match a part of URL
  */
-const char* CNode_Url::match(const char* start, const char* stop, MatchData* pMatch)
+const UChar* CNode_Url::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
 	const CUrl& url = pMatch->pFilter->owner.url;
-    const char* ptr = nullptr;
+    const UChar* ptr = nullptr;
+	std::wstring ptrBuffer;
     switch (m_token) {
-        case 'u': ptr = url.getUrl().c_str();     break;
-        case 'h': ptr = url.getHost().c_str();    break;
-        case 'p': ptr = url.getPath().c_str();    break;
-        case 'q': ptr = url.getQuery().c_str();   break;
-        case 'a': ptr = url.getAnchor().c_str();  break;
+        case L'u': ptrBuffer = UTF16fromUTF8(url.getUrl());     break;
+        case L'h': ptrBuffer = UTF16fromUTF8(url.getHost());    break;
+        case L'p': ptrBuffer = UTF16fromUTF8(url.getPath());    break;
+        case L'q': ptrBuffer = UTF16fromUTF8(url.getQuery());   break;
+        case L'a': ptrBuffer = UTF16fromUTF8(url.getAnchor());  break;
     }
-    if (*ptr == '\0') 
+	ptr = ptrBuffer.data();
+    if (*ptr == L'\0') 
 		return nullptr;
-
-    while (start < stop && *ptr != '\0' && tolower(*ptr) == tolower(*start)) {
+	
+    while (start < stop && *ptr != '\0' && towlower(*ptr) == towlower(*start)) {
         ptr++; start++;
     }
-    if (*ptr != '\0') {
+    if (*ptr != L'\0') {
 		UpdateReached(start, pMatch);
         return nullptr;
     }
 
-    const char* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
+    const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
 	UpdateReached(start, pMatch);
     m_consumed = start;
     return ret;
@@ -872,7 +881,7 @@ CNode_List::~CNode_List()
 {
 }
 
-const char* CNode_List::match(const char* start, const char* stop, MatchData* pMatch)
+const UChar* CNode_List::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
 	if (m_phashedCollection == nullptr)
 		return nullptr;
@@ -884,14 +893,14 @@ const char* CNode_List::match(const char* start, const char* stop, MatchData* pM
 		auto spHashedArray = m_phashedCollection->spHashedArray;
 		m_phashedCollection->mutexHashedArray.unlock();
 		if (spHashedArray) {
-			auto& hashed = spHashedArray->at(hashBucket(*start));
+			auto& hashed = spHashedArray->at(hashBucket((char)*start));
 			for (auto& it : hashed) {
-				const char* ptr = it.node->match(start, stop, pMatch);
+				const UChar* ptr = it.node->match(start, stop, pMatch);
 				if (ptr) {
 					if (it.flags & 0x1) 
 						return nullptr;   // the pattern is a ~...
 					start = ptr;
-					const char* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
+					const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
 					m_consumed = start;
 					return ret;
 				}
@@ -916,7 +925,7 @@ bool CNode_List::mayMatch(bool* tab) {
 /* class CNode_Command
  * Executes a command that does not consume anything.
  */
-CNode_Command::CNode_Command(CMD_ID num, const std::string& name, const std::string& content/*, CFilter& filter*/) :
+CNode_Command::CNode_Command(CMD_ID num, const std::wstring& name, const std::wstring& content) :
         CNode(COMMAND), m_num(num), m_name(name), m_content(content), m_matcher(nullptr)
 		//, filter(filter), owner(filter.owner)
 {
@@ -931,9 +940,9 @@ CNode_Command::~CNode_Command()
     if (m_matcher) delete m_matcher;
 }
 
-const char* CNode_Command::match(const char* start, const char* stop, MatchData* pMatch)
+const UChar* CNode_Command::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
-    const char *tStart, *tStop, *tEnd;
+    const UChar *tStart, *tStop, *tEnd;
 
 	CFilter& filter = *pMatch->pFilter;
 	CFilterOwner& owner = filter.owner;
@@ -986,28 +995,28 @@ const char* CNode_Command::match(const char* start, const char* stop, MatchData*
         break;
 
     case CMD_URL:
-        m_toMatch = owner.url.getUrl();
+        m_toMatch = UTF16fromUTF8(owner.url.getUrl());
         tStart = m_toMatch.c_str();
         tStop = tStart + m_toMatch.size();
         if (!m_matcher->match(tStart, tStop, tEnd, pMatch)) return NULL;
         break;
 
     case CMD_IHDR:
-        m_toMatch = CFilterOwner::GetHeader(owner.inHeaders, m_name);
+        m_toMatch = UTF16fromUTF8(CFilterOwner::GetHeader(owner.inHeaders, UTF8fromUTF16(m_name)));
         tStart = m_toMatch.c_str();
         tStop = tStart + m_toMatch.size();
         if (!m_matcher->match(tStart, tStop, tEnd, pMatch)) return NULL;
         break;
 
     case CMD_OHDR:
-        m_toMatch = CFilterOwner::GetHeader(owner.outHeaders, m_name);
+        m_toMatch = UTF16fromUTF8(CFilterOwner::GetHeader(owner.outHeaders, UTF8fromUTF16(m_name)));
         tStart = m_toMatch.c_str();
         tStop = tStart + m_toMatch.size();
         if (!m_matcher->match(tStart, tStop, tEnd, pMatch)) return NULL;
         break;
 
     case CMD_RESP:
-        m_toMatch = owner.responseCode;
+        m_toMatch = UTF16fromUTF8(owner.responseCode);
         tStart = m_toMatch.c_str();
         tStop = tStart + m_toMatch.size();
         if (!m_matcher->match(tStart, tStop, tEnd, pMatch)) return NULL;
@@ -1018,7 +1027,7 @@ const char* CNode_Command::match(const char* start, const char* stop, MatchData*
         break;
 
     case CMD_SETDIGIT:
-        filter.memoryTable[m_name[0]-'0'] = CMemory(m_content);
+        filter.memoryTable[m_name[0] - L'0'] = CMemory(m_content);
         break;
 
     case CMD_SETVAR:
@@ -1069,7 +1078,7 @@ const char* CNode_Command::match(const char* start, const char* stop, MatchData*
         break;
 
     case CMD_TYPE:
-        if (m_content != owner.fileType) return NULL;
+        if (UTF8fromUTF16(m_content) != owner.fileType) return NULL;
         break;
 
     case CMD_STOP:
@@ -1077,7 +1086,7 @@ const char* CNode_Command::match(const char* start, const char* stop, MatchData*
         break;
 
     case CMD_USEPROXY:
-        owner.useSettingsProxy = (m_content[0]=='t');
+        owner.useSettingsProxy = (m_content[0] == L't');
         break;
 
     case CMD_SETPROXY:
@@ -1093,27 +1102,27 @@ const char* CNode_Command::match(const char* start, const char* stop, MatchData*
 
     case CMD_LOG:
         {
-            string log = CExpander::expand(m_content, filter);
-			CLog::FilterEvent(kLogFilterLogCommand, owner.requestNumber, filter.title, log);
+            std::wstring log = CExpander::expand(m_content, filter);
+			CLog::FilterEvent(kLogFilterLogCommand, owner.requestNumber, filter.title, UTF8fromUTF16(log));
         }
         break;
 
     case CMD_JUMP:
-        owner.rdirToHost = CExpander::expand(m_content, filter);
+        owner.rdirToHost = UTF8fromUTF16(CExpander::expand(m_content, filter));
         CUtil::trim(owner.rdirToHost);
         owner.rdirMode = 0;
 		CLog::FilterEvent(kLogFilterJump, owner.requestNumber, filter.title, owner.rdirToHost);
         break;
 
     case CMD_RDIR:
-        owner.rdirToHost = CExpander::expand(m_content, filter);
+        owner.rdirToHost = UTF8fromUTF16(CExpander::expand(m_content, filter));
         CUtil::trim(owner.rdirToHost);
         owner.rdirMode = 1;
 		CLog::FilterEvent(kLogFilterRdir, owner.requestNumber, filter.title, owner.rdirToHost);
         break;
 
     case CMD_FILTER:
-        owner.bypassBody = (m_content[0]!='t');
+        owner.bypassBody = (m_content[0] != L't');
         owner.bypassBodyForced = true;
         break;
 
@@ -1133,7 +1142,7 @@ const char* CNode_Command::match(const char* start, const char* stop, MatchData*
     
     } // end of switch
 
-    const char* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
+    const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
     m_consumed = start;
     return ret;
 }
@@ -1147,12 +1156,12 @@ bool CNode_Command::mayMatch(bool* tab)
 /* class CNode_Cnx
  * Matches depending on connection number.
  */
-const char* CNode_Cnx::match(const char* start, const char* stop, MatchData* pMatch)
+const UChar* CNode_Cnx::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
     if ((((m_num - 1) / m_z) % m_y) != m_x - 1)
 		return nullptr;
 
-    const char* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
+    const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
     m_consumed = start;
     return ret;
 }
@@ -1185,10 +1194,10 @@ CNode_Nest::~CNode_Nest() {
     if (m_right)  delete m_right;
 }
 
-const char* CNode_Nest::match(const char* start, const char* stop, MatchData* pMatch)
+const UChar* CNode_Nest::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
     int level;
-    const char *endL = start, *startR, *pos;
+    const UChar *endL = start, *startR, *pos;
     if (m_inest == false) {
         if (m_tabL[(unsigned char)(*start)] == false)
 			return nullptr;
@@ -1199,7 +1208,7 @@ const char* CNode_Nest::match(const char* start, const char* stop, MatchData* pM
     level = 1;
     while (pos < stop && level > 0) {
         if (m_tabR[(unsigned char)(*pos)]) {
-            const char* end = m_right->match(pos, stop, pMatch);
+            const UChar* end = m_right->match(pos, stop, pMatch);
             if (end > pos) {
                 level--;
                 startR = pos;
@@ -1208,7 +1217,7 @@ const char* CNode_Nest::match(const char* start, const char* stop, MatchData* pM
             }
         }
         if (m_tabL[(unsigned char)(*pos)]) {
-            const char* end = m_left->match(pos, stop, pMatch);
+            const UChar* end = m_left->match(pos, stop, pMatch);
             if (end > pos) {
                 level++;
                 pos = end;
@@ -1219,12 +1228,12 @@ const char* CNode_Nest::match(const char* start, const char* stop, MatchData* pM
     }
     if (level > 0) return NULL;
     if (m_middle) {
-        const char* end = m_middle->match(endL, startR, pMatch);
+        const UChar* end = m_middle->match(endL, startR, pMatch);
         if (end != startR) return NULL;
     }
     start = m_inest ? startR : pos;
     
-    const char* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
+    const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
     m_consumed = start;
     return ret;
 }
@@ -1251,14 +1260,14 @@ void CNode_Nest::setNextNode(CNode* node)
 /* class CNode_Test
  * Try and match a string of characters.
  */
-const char* CNode_Test::match(const char* start, const char* stop, MatchData* pMatch)
+const UChar* CNode_Test::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
 	CFilter& filter = *pMatch->pFilter;
-    string str;     // variable content, that will be compared to text
-    if (m_name == "#") {
+    std::wstring str;     // variable content, that will be compared to text
+    if (m_name == L"#") {
         if (!filter.memoryStack.empty())
             str = filter.memoryStack.back().getValue();
-    } else if (m_name.size() == 1 && CUtil::digit(m_name[0])) {
+    } else if (m_name.size() == 1 && u_isdigit(m_name[0])) {
         str = filter.memoryTable[m_name[0]-'0'].getValue();
     } else if (m_name[0] == '(' && m_name[m_name.size()-1] == ')') {
         str = CExpander::expand(m_name.substr(1, m_name.size()-2), filter);
@@ -1268,15 +1277,15 @@ const char* CNode_Test::match(const char* start, const char* stop, MatchData* pM
     int size = str.size();
     if (!size) return NULL;
 
-    const char* ptr = str.c_str();
-    const char* max = (stop < start+size ? stop : start+size);
-    while (start < max && *ptr == tolower(*start)) { ptr++; start++; }
+    const UChar* ptr = str.c_str();
+    const UChar* max = (stop < start+size ? stop : start+size);
+    while (start < max && *ptr == towlower(*start)) { ptr++; start++; }
     if (ptr < str.c_str() + size) {
 		UpdateReached(start, pMatch);
         return NULL;
     }
 
-    const char* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
+    const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
     UpdateReached(start, pMatch);
     m_consumed = start;
     return ret;
@@ -1299,15 +1308,15 @@ bool CNode_Test::mayMatch(bool* tab)
  * Automates the insertion of an item in a list based on user choice.
  */
 CNode_Ask::CNode_Ask(/*CFilter& filter,*/
-        std::string allowName, std::string denyName, std::string question, std::string item,
-        std::string pattern) : CNode(ASK), //filter(filter),
+        std::wstring allowName, std::wstring denyName, std::wstring question, std::wstring item,
+        std::wstring pattern) : CNode(ASK), //filter(filter),
         allowName(allowName), denyName(denyName), question(question),
         item(item), pattern(pattern)
 {
 
-    m_allowMatcher = new CMatcher("$LST(" + allowName + ")");
+    m_allowMatcher = new CMatcher(L"$LST(" + allowName + L")");
     try {
-        m_denyMatcher = new CMatcher("$LST(" + denyName + ")");
+        m_denyMatcher = new CMatcher(L"$LST(" + denyName + L")");
     } catch (parsing_exception e) {
         delete m_allowMatcher;
         throw e;
@@ -1320,7 +1329,7 @@ CNode_Ask::~CNode_Ask()
     delete m_denyMatcher;
 }
 
-const char* CNode_Ask::match(const char* start, const char* stop, MatchData* pMatch)
+const UChar* CNode_Ask::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
 	CFilter& filter = *pMatch->pFilter;
     // We lock so that 2 documents doing the same test at the same time
@@ -1329,7 +1338,7 @@ const char* CNode_Ask::match(const char* start, const char* stop, MatchData* pMa
         //CLog::ref().filterLock.Lock();
         filter.locked = true;
     }
-    const char *tStart, *tStop, *tEnd;
+    const UChar *tStart, *tStop, *tEnd;
     toMatch = CExpander::expand(pattern, filter);
     tStart = toMatch.c_str();
     tStop = tStart + toMatch.size();
@@ -1353,7 +1362,7 @@ const char* CNode_Ask::match(const char* start, const char* stop, MatchData* pMa
 #endif
     }
 
-    const char* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
+    const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
     m_consumed = start;
     return ret;
 }

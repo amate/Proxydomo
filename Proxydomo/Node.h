@@ -25,6 +25,7 @@
 #pragma once
 
 #include "proximodo\url.h"
+#include <unicode\schriter.h>
 
 class CFilter;
 
@@ -32,7 +33,7 @@ namespace Proxydomo {
 
 struct MatchData
 {
-	const char* reached;
+	const UChar* reached;
 	CFilter*	pFilter;
 	CUrl		url;
 
@@ -90,11 +91,11 @@ public:
     // (wrt. nextNode) up to the last one (the one having nextNode==NULL).
     // The implementation must set 'consumed' to the end position match by
     // the pattern represented by the node itself.
-    virtual const char* match(const char* start, const char* stop, MatchData* pMatch) =0;
+    virtual const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) =0;
 
     // If match() returned a value != NULL, this variable contains the
     // position corresponding to the end of what just the node itself matched.
-    const char* m_consumed;
+    const UChar* m_consumed;
 
     // Enumeration for id()
     enum type { 

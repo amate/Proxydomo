@@ -32,7 +32,9 @@
 #include "Settings.h"
 #include "proximodo\util.h"
 #include "Misc.h"
+#include "CodeConvert.h"
 
+using namespace CodeConvert;
 
 ///////////////////////////////////////////////////////////////
 // CFilterManageWindow
@@ -62,7 +64,7 @@ BOOL CFilterManageWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 	HTREEITEM htRoot = m_treeFilter.InsertItem(_T("Root"), TVI_ROOT, TVI_FIRST);
 
 	for (auto& filter : CSettings::s_vecpFilters) {
-		HTREEITEM htItem = m_treeFilter.InsertItem(CA2T(filter->title.c_str()), htRoot, TVI_LAST);
+		HTREEITEM htItem = m_treeFilter.InsertItem(UTF16fromUTF8(filter->title).c_str(), htRoot, TVI_LAST);
 		m_treeFilter.SetItemData(htItem, (DWORD_PTR)filter.get());
 	}
 	PostMessage(WM_CHECKSTATECHANGED, NULL);
@@ -174,7 +176,7 @@ LRESULT CFilterManageWindow::OnTreeFilterDblClk(LPNMHDR pnmh)
 	if (filterEdit.DoModal(m_hWnd) == IDCANCEL) 
 		return 0;
 
-	m_treeFilter.SetItemText(htHit, CA2T(filter->title.c_str()));
+	m_treeFilter.SetItemText(htHit, UTF16fromUTF8(filter->title).c_str());
 
 	return 0;
 }
@@ -273,7 +275,8 @@ void CFilterManageWindow::OnLButtonUp(UINT nFlags, CPoint point)
 			m_treeFilter.DeleteAllItems();
 			HTREEITEM htRoot = m_treeFilter.InsertItem(_T("Root"), TVI_ROOT, TVI_FIRST);
 			for (auto& filter : CSettings::s_vecpFilters) {
-				HTREEITEM htItem = m_treeFilter.InsertItem(CA2T(filter->title.c_str()), htRoot, TVI_LAST);
+				HTREEITEM htItem = m_treeFilter.InsertItem(
+						UTF16fromUTF8(filter->title).c_str(), htRoot, TVI_LAST);
 				m_treeFilter.SetCheckState(htItem, filter->Active);
 				m_treeFilter.SetItemData(htItem, (DWORD_PTR)filter.get());
 			}
@@ -415,13 +418,13 @@ void CFilterManageWindow::OnImportFromProxomitron(UINT uNotifyCode, int nID, CWi
             else if (label == "LIMIT") {
 				d.windowWidth = ::atoi(value.c_str());
             }
-            else if (label == "URL"     ) d.urlPattern = value;
-            else if (label == "BOUNDS"  ) d.boundsPattern = value;
+            else if (label == "URL"     ) d.urlPattern = CA2W(value.c_str());
+            else if (label == "BOUNDS"  ) d.boundsPattern = CA2W(value.c_str());
             else if (label == "MATCH"   ) {
 				//value = CUtil::replaceAll(value, "\r", "\r\n");
-				d.matchPattern = value;
+				d.matchPattern = CA2W(value.c_str());
 			}
-            else if (label == "REPLACE" ) d.replacePattern = value;
+            else if (label == "REPLACE" ) d.replacePattern = CA2W(value.c_str());
         }
         i = j + 1;
     }
@@ -430,7 +433,8 @@ void CFilterManageWindow::OnImportFromProxomitron(UINT uNotifyCode, int nID, CWi
 
 void CFilterManageWindow::_AddFilterDescriptor(CFilterDescriptor* filter)
 {
-	HTREEITEM htAdd = m_treeFilter.InsertItem(CA2T(filter->title.c_str()), m_treeFilter.GetRootItem(), TVI_LAST);
+	HTREEITEM htAdd = m_treeFilter.InsertItem(
+		UTF16fromUTF8(filter->title).c_str(), m_treeFilter.GetRootItem(), TVI_LAST);
 	m_treeFilter.SetCheckState(htAdd, filter->Active);
 	m_treeFilter.SetItemData(htAdd, (DWORD_PTR)filter);
 

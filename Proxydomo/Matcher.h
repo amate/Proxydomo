@@ -25,12 +25,15 @@
 
 #include <string>
 #include <memory>
+#include <unicode\schriter.h>
 #include "Node.h"
 
 class CFilter;
 class CSettings;
 
 namespace Proxydomo {
+
+using namespace icu;
 
 /* Class parsing_exception
  * This exception is invoked when CMatcher cannot parse an invalid
@@ -51,44 +54,36 @@ class parsing_exception {
 class CMatcher
 {
 public:
-	CMatcher(const std::string& pattern);
+	CMatcher(const std::wstring& pattern);	// for CNode_Command
 	~CMatcher();
 
 	/// pattern Ç©ÇÁ CMatcherÇçÏê¨Ç∑ÇÈ
-	static std::shared_ptr<CMatcher>	CreateMatcher(const std::string& pattern);
-	static std::shared_ptr<CMatcher>	CreateMatcher(const std::string& pattern, std::string& errmsg);
-
-    //static bool testPattern(const std::string& pattern, std::string& errmsg);
-    //static bool testPattern(const std::string& pattern);
+	static std::shared_ptr<CMatcher>	CreateMatcher(const std::wstring& pattern);
+	static std::shared_ptr<CMatcher>	CreateMatcher(const std::wstring& pattern, std::string& errmsg);
 
     void mayMatch(bool* tab);
 
-    bool match(const char* start, const char* stop,
-               const char*& end, MatchData* pMatch);
+	bool match(const UChar* start, const UChar* stop, const UChar*& end, MatchData* pMatch);
+	bool match(const std::string& text, CFilter* filter);
 
     // Static version, that builds a search tree at each call
-    static bool match(const std::string& pattern, CFilter& filter,
-                      const char* start, const char* stop,
-                      const char*& end, const char*& reached);
+    static bool match(const std::wstring& pattern, CFilter& filter,
+					  const UChar* start, const UChar* stop, const UChar*& end, const UChar*& reached);
 
-    // Filter that contains memory stack and table
-    //CFilter& filter;
-    
     // Tells if pattern is * or \0-9
     bool isStar();
 
 private:
+	void	_CreatePattern(const UnicodeString& pattern);
+
     // Root of the Search Tree
     std::shared_ptr<CNode>	m_root;
-    
-    // Farthest position reached during matching
-    //const char* reached;
 
     // Search Tree building functions
-    static CNode* expr  (const std::string& pattern, int& pos, int stop, int level = 0);
-    static CNode* run   (const std::string& pattern, int& pos, int stop);
-    static CNode* code  (const std::string& pattern, int& pos, int stop);
-    static CNode* single(const std::string& pattern, int& pos, int stop);
+    static CNode* expr  (StringCharacterIterator& patternIt, int level = 0);
+    static CNode* run   (StringCharacterIterator& patternIt);
+    static CNode* code  (StringCharacterIterator& patternIt);
+    static CNode* single(StringCharacterIterator& patternIt);
 
     // The following classes need access to tree building functions
     friend class CNode_List;

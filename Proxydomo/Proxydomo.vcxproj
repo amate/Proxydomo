@@ -38,11 +38,13 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <LibraryPath>$(SolutionDir)zlib\zlib125dll\static32;$(VCInstallDir)lib;$(VCInstallDir)atlmfc\lib;$(WindowsSDK_LibraryPath_x86);</LibraryPath>
+    <LibraryPath>$(SolutionDir)icu\lib;$(SolutionDir)zlib\zlib125dll\static32;$(VCInstallDir)lib;$(VCInstallDir)atlmfc\lib;$(WindowsSDK_LibraryPath_x86)</LibraryPath>
+    <IncludePath>$(SolutionDir)icu\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <LibraryPath>$(SolutionDir)zlib\zlib125dll\static32;$(VCInstallDir)lib;$(VCInstallDir)atlmfc\lib;$(WindowsSDK_LibraryPath_x86);</LibraryPath>
+    <LibraryPath>$(SolutionDir)icu\lib;$(SolutionDir)zlib\zlib125dll\static32;$(VCInstallDir)lib;$(VCInstallDir)atlmfc\lib;$(WindowsSDK_LibraryPath_x86);</LibraryPath>
+    <IncludePath>$(SolutionDir)icu\include;C:\Program\Boost_1_50_0;C:\Program\WTL81_12085\Include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -112,6 +114,7 @@
     </Midl>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="CodeConvert.cpp" />
     <ClCompile Include="DebugWindow.cpp" />
     <ClCompile Include="FilterDescriptor.cpp" />
     <ClCompile Include="FilterEditWindow.cpp" />
@@ -278,10 +281,12 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="TextBuffer.cpp" />
+    <ClCompile Include="VersionControl.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AboutDlg.h" />
     <ClInclude Include="AppConst.h" />
+    <ClInclude Include="CodeConvert.h" />
     <ClInclude Include="DataReceptor.h" />
     <ClInclude Include="DebugWindow.h" />
     <ClInclude Include="DirectoryWatcher.h" />
@@ -444,6 +449,7 @@
     <ClInclude Include="Socket.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="TextBuffer.h" />
+    <ClInclude Include="VersionControl.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Proxydomo.rc" />

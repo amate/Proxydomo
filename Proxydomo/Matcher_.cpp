@@ -25,20 +25,24 @@
 #include "Nodes.h"
 #include "proximodo\util.h"
 #include "proximodo\const.h"	// for BIGNUMBER
+#include <unicode\uchar.h>
+#include "CodeConvert.h"
+
+using namespace CodeConvert;
 
 namespace Proxydomo {
 
 /* Searches a comma outside parentheses, within a command
  */
-size_t findParamEnd(const std::string& str, char c) {
+size_t findParamEnd(const std::wstring& str, UChar c) {
     int level = 0;
     size_t size = str.size();
     for (size_t pos = 0; pos < size; pos++) {
         switch (str[pos]) {
-            case '\\': pos++;   break;
-            case  '(': level++; break;
-            case  ')': level--; break;
-            case  ',': if (level<1) return pos; break;
+            case L'\\': pos++;   break;
+            case L'(': level++; break;
+            case L')': level--; break;
+            case L',': if (level<1) return pos; break;
         }
     }
     return string::npos;
@@ -46,22 +50,22 @@ size_t findParamEnd(const std::string& str, char c) {
 
 /* Decodes a number in the pattern
  */
-int readNumber(const std::string& pattern, int& pos, int stop, int &num) {
+int readNumber(StringCharacterIterator& patternIt, int &num) {
 
     int sign = 1;
     // There can be a minus sign
-    if (pos < stop && pattern[pos] == '-') {
+    if (patternIt.current() != patternIt.DONE && patternIt.current() == L'-') {
         sign = -1;
-        ++pos;
+        patternIt.next();
     }
     num = 0;
     // At least one digit is needed
-    if (pos == stop || !CUtil::digit(pattern[pos]))
-        throw parsing_exception("NOT_A_NUMBER", pos);
+	if (patternIt.current() == patternIt.DONE || iswdigit(patternIt.current()) == false )
+		throw parsing_exception("NOT_A_NUMBER", patternIt.getIndex());
 
     // Read all digits available
-    for (; pos < stop && CUtil::digit(pattern[pos]); ++pos) {
-        num = num*10 + pattern[pos] - '0';
+	for (UChar code = patternIt.current(); code != patternIt.DONE && iswdigit(code); code = patternIt.next()) {
+        num = num*10 + code - L'0';
     }
     // Return the corresponding number
     num *= sign;
@@ -72,49 +76,54 @@ int readNumber(const std::string& pattern, int& pos, int stop, int &num) {
 /* Decodes a range, in the form of spaces + (number or *) + spaces
  * possibly followed by the separation symbol + spaces + (number or *) + spaces
  */
-void readMinMax(const std::string& pattern, int& pos, int stop, char sep,
-                            int& min, int& max) {
-
+void readMinMax(StringCharacterIterator& patternIt, UChar sep, int& min, int& max)
+{
     // consume spaces
-    while (pos < stop && (pattern[pos] == ' ' || pattern[pos] == '\t')) ++pos;
+	while (patternIt.current() != patternIt.DONE && 
+		(patternIt.current() == L' ' || patternIt.current() == L'\t')) patternIt.next();
     
     // read lower limit
-    if (pos < stop && pattern[pos] == '*') {
-        ++pos;
+	if (patternIt.current() != patternIt.DONE && patternIt.current() == '*') {
+		patternIt.next();
         min = -BIG_NUMBER;
         max = BIG_NUMBER;   // in case there is no upper limit
-    } else if (pos < stop && pattern[pos] == sep) {
+    } else if (patternIt.current() != patternIt.DONE && patternIt.current() == sep) {
         min = -BIG_NUMBER;
         max = BIG_NUMBER;   // in case there is no upper limit
     } else {
         max = min = 0;
-        readNumber(pattern, pos, stop, min);
+        readNumber(patternIt, min);
         max = min;          // in case there is no upper limit
     }
     
     // consume spaces
-    while (pos < stop && (pattern[pos] == ' ' || pattern[pos] == '\t')) ++pos;
+	while (patternIt.current() != patternIt.DONE && 
+		(patternIt.current() == L' ' || patternIt.current() == L'\t')) patternIt.next();
 
     // check if there is an upper limit
-    if (pos < stop && (pattern[pos] == sep || pattern[pos] == '-')) {
-        ++pos;
+    if (patternIt.current() != patternIt.DONE && 
+		(patternIt.current() == sep || patternIt.current() == L'-')) {
+        patternIt.next();
 
         // consume spaces
-        while (pos < stop && (pattern[pos] == ' ' || pattern[pos] == '\t')) ++pos;
+		while (patternIt.current() != patternIt.DONE && 
+			(patternIt.current() == L' ' || patternIt.current() == L'\t')) patternIt.next();
 
         // read upper limit
-        if (pos < stop && pattern[pos] == '*') {
-            ++pos;
+        if (patternIt.current() != patternIt.DONE && patternIt.current() == L'*') {
+		  patternIt.next();
             max = BIG_NUMBER;
-        } else if (pos < stop && pattern[pos] != '-' && !CUtil::digit(pattern[pos])) {
+		} else if (patternIt.current() != patternIt.DONE && patternIt.current() != L'-' && 
+			iswdigit(patternIt.current()) == false ) {
             max = BIG_NUMBER;
         } else {
-            readNumber(pattern, pos, stop, max);
-            if (max<min) { int i = max; max = min; min = i; }
+            readNumber(patternIt, max);
+            if (max < min) { int i = max; max = min; min = i; }
         }
 
         // consume spaces
-        while (pos < stop && (pattern[pos] == ' ' || pattern[pos] == '\t')) ++pos;
+		while (patternIt.current() != patternIt.DONE && 
+			(patternIt.current() == L' ' || patternIt.current() == L'\t')) patternIt.next();
     }
 }
 
@@ -124,31 +133,37 @@ void readMinMax(const std::string& pattern, int& pos, int stop, char sep,
  * corresponding. Else returns the position after the ).
  * command and content will contain the name and content.
  */
-int decodeCommand(const std::string& pattern, int pos, int stop,
-							std::string& command, std::string& content) {
-    int index = pos;
+/// $command(content)
+int decodeCommand(StringCharacterIterator& patternIt,
+							std::wstring& command, std::wstring& content)
+{
+	int index = patternIt.getIndex();
     // Read command name
-    while (index < stop && pattern[index] >= 'A' && pattern[index] <= 'Z') index++;
+	while (patternIt.current() != patternIt.DONE && iswupper(patternIt.current())) {
+			command += patternIt.nextPostInc();
+	}
     // It should exist and be followed by (
-    if (index == pos || index == stop || pattern[index] != '(') return -1;
-    // Save the name
-    command = pattern.substr(pos, index - pos);
+	if (index == patternIt.getIndex() || patternIt.hasNext() == false || patternIt.current() != L'(')
+		return -1;
+
     // Search for the closing )
-    pos = ++index;
+    UChar prevCode = 0;
     int level = 1;  // Level of parentheses
-    for (; index < stop && level > 0; index++) {
+	for (UChar code = patternIt.next(); code != patternIt.DONE && level > 0; prevCode = code, code = patternIt.next()) {
         // escaped () don't count
-        if (pattern[index] == '(' && pattern[index-1] != '\\') {
+        if (code == L'(' && prevCode != L'\\') {
             level++;
-        } else if (pattern[index] == ')' && pattern[index-1] != '\\') {
+        } else if (code == L')' && prevCode != L'\\') {
             level--;
         }
+		content += code;
     }
     // Did we reach end of string before closing all parentheses?
-    if (level > 0) return -1;
-    // Save content and return position
-    content = pattern.substr(pos, index - pos - 1);
-    return index;
+	// '(' ')'が閉じていない
+    if (level > 0) 
+		return -1;
+	content.erase(content.end() - 1);
+	return patternIt.getIndex();
 }
 
 
@@ -162,28 +177,33 @@ int decodeCommand(const std::string& pattern, int pos, int stop,
  * malformed.
  */
 /// pattern を検索木に変換します。 patternが無効なら例外が飛びます。
-CMatcher::CMatcher(const string& pattern)
+CMatcher::CMatcher(const std::wstring& pattern)
 {
-    // position up to which the pattern is decoded
-    int pos = 0;
+	UnicodeString pat(pattern.c_str(), pattern.length());
+	_CreatePattern(pat);
+}
 
-    if (pattern.size() > 0 && pattern[0] == '^') {
+void	CMatcher::_CreatePattern(const UnicodeString& pattern)
+{
+	StringCharacterIterator patternIt(pattern);
+
+	if (pattern.length() > 0 && patternIt.current() == L'^') {
         // special case: inverted pattern
-		m_root.reset(new CNode_Negate(expr(pattern, ++pos, pattern.size())));
+		patternIt.next();
+		m_root.reset(new CNode_Negate(expr(patternIt)));
     } else {
         // (this call may throw an exception)
-        m_root.reset(expr(pattern, pos, pattern.size())); 
+        m_root.reset(expr(patternIt)); 
     }
     m_root->setNextNode();
 
     // another reason to throw : the pattern was not completely
     // consumed, i.e there was an unpaired )
 	/// パターンが完全に消費されていない。※例: ()がペアになっていない
-    if ((size_t)pos != pattern.size()) {
-        throw parsing_exception("PARSING_INCOMPLETE", pos);
+	if (patternIt.hasNext()) {
+		throw parsing_exception("PARSING_INCOMPLETE", patternIt.getIndex());
     }
 }
-
 
 /* Destructor
  */
@@ -192,7 +212,7 @@ CMatcher::~CMatcher()
 }
 
 
-std::shared_ptr<CMatcher>	CMatcher::CreateMatcher(const std::string& pattern)
+std::shared_ptr<CMatcher>	CMatcher::CreateMatcher(const std::wstring& pattern)
 {
 	try {
 		return std::shared_ptr<CMatcher>(new CMatcher(pattern));
@@ -202,7 +222,7 @@ std::shared_ptr<CMatcher>	CMatcher::CreateMatcher(const std::string& pattern)
 	return nullptr;
 }
 
-std::shared_ptr<CMatcher>	CMatcher::CreateMatcher(const std::string& pattern, std::string& errmsg)
+std::shared_ptr<CMatcher>	CMatcher::CreateMatcher(const std::wstring& pattern, std::string& errmsg)
 {
 	try {
 		return std::shared_ptr<CMatcher>(new CMatcher(pattern));
@@ -231,8 +251,7 @@ std::shared_ptr<CMatcher>	CMatcher::CreateMatcher(const std::string& pattern, st
  * locked. It cannot be done from inside CMatcher (nor CExpander) because
  * of possible recursive calls.
  */
-bool CMatcher::match(const char* start, const char* stop,
-                     const char*& end, MatchData* pMatch)
+bool CMatcher::match(const UChar* start, const UChar* stop, const UChar*& end, MatchData* pMatch)
 {
     if (m_root == nullptr)
 		return false;
@@ -242,6 +261,14 @@ bool CMatcher::match(const char* start, const char* stop,
     return end != nullptr;
 }
 
+/// simple
+bool CMatcher::match(const std::string& text, CFilter* filter)
+{
+	UnicodeString str(text.c_str(), text.length());
+	MatchData	mdata(filter);
+	const UChar* end = nullptr;
+	return match(str.getBuffer(), str.getBuffer() + str.length(), end, &mdata);
+}
 
 
 /* This static version of the matching function builds a search tree
@@ -249,13 +276,14 @@ bool CMatcher::match(const char* start, const char* stop,
  * are not supposed to be called too often (only after a match has
  * been found with an instantiated CMatcher).
  */
-bool CMatcher::match(const string& pattern, CFilter& filter,
-                     const char* start, const char* stop,
-                     const char*& end, const char*& reached) {
+bool CMatcher::match(const std::wstring& pattern, CFilter& filter, 
+					 const UChar* start, const UChar* stop, const UChar*& end, const UChar*& reached) {
     try {
         CMatcher matcher(pattern);
 		MatchData matchData(&filter);
-        return matcher.match(start, stop, end, &matchData);
+		bool match = matcher.match(start, stop, end, &matchData);
+		reached = matchData.reached;
+        return match;
     } catch (parsing_exception e) {
         return false;
     }
@@ -292,14 +320,14 @@ bool CMatcher::isStar()
  * & (level 1) or | (level 2). This allows operator precedence:
  * "|" > "&" > "&&"
  */
-CNode* CMatcher::expr(const std::string& pattern, int& pos, int stop, int level)
+CNode* CMatcher::expr(StringCharacterIterator& patternIt, int level)
 {
 
     if (level == 2) {
 
-        CNode *node = run(pattern, pos, stop);
+        CNode *node = run(patternIt);
 
-        if (pos < stop && pattern[pos] == '|') {
+        if (patternIt.current() != patternIt.DONE && patternIt.current() == L'|') {
             // Rule: |
             // We need an alternative of several runs. We will place them
             // all in a vector, then build a CNode_Or with the vector content.
@@ -307,10 +335,10 @@ CNode* CMatcher::expr(const std::string& pattern, int& pos, int stop, int level)
             vect->push_back(node);
             
             // We continue getting runs as long as there are |
-            while (pos < stop &&  pattern[pos] == '|') {
-                ++pos;
+            while (patternIt.current() != patternIt.DONE && patternIt.current() == L'|') {
+                patternIt.next();
                 try {
-                    node = run(pattern, pos, stop);
+                    node = run(patternIt);
                 } catch (parsing_exception e) {
                     // Clean before throwing exception
                     CUtil::deleteVector<CNode>(*vect);
@@ -326,24 +354,30 @@ CNode* CMatcher::expr(const std::string& pattern, int& pos, int stop, int level)
         return node;
     }
 
-    CNode *node = expr(pattern, pos, stop, level + 1);
+    CNode *node = expr(patternIt, level + 1);
     
-    while (pos < stop && pattern[pos] == '&' &&
-           ((level == 0 && pos+1 < stop && pattern[pos+1] == '&') ||
-            (level == 1 && (pos+1 == stop || pattern[pos+1] != '&')) ) ) {
+    while (patternIt.current() != patternIt.DONE && patternIt.current() == L'&') {
+		UChar code = patternIt.next();
+		if (  (level == 0 && patternIt.getIndex() + 1 < patternIt.endIndex() && code == L'&') ||
+              (level == 1 && (patternIt.getIndex() + 1 == patternIt.endIndex() || code != '&')) ) {
 
-        // Rules: & &&
-        // & is a binary operator, so we read the following run and
-        // make a CNode_And with left and right runs.
-        pos += (level == 0 ? 2 : 1);
-        try {
-            CNode *node2 = expr(pattern, pos, stop, level + 1); // &'s right run
-            // Build the CNode_And with left and right runs.
-            node = new CNode_And(node, node2, (level == 0));
-        } catch (parsing_exception e) {
-            delete node;
-            throw e;
-        }
+			// Rules: & &&
+			// & is a binary operator, so we read the following run and
+			// make a CNode_And with left and right runs.
+			if (level == 0)
+				patternIt.next();
+			try {
+				CNode *node2 = expr(patternIt, level + 1); // &'s right run
+				// Build the CNode_And with left and right runs.
+				node = new CNode_And(node, node2, (level == 0));
+			} catch (parsing_exception e) {
+				delete node;
+				throw e;
+			}
+		} else {
+			patternIt.previous();
+			break;
+		}
     }
     // Node contains the tree for all that we decoded from old pos to new pos
     return node;
@@ -354,9 +388,9 @@ CNode* CMatcher::expr(const std::string& pattern, int& pos, int stop, int level)
  * A 'run' is a list of codes (escaped codes, characters,
  * expressions in (), ...) that should be matched one after another.
  */
-CNode* CMatcher::run(const string& pattern, int& pos, int stop)
+CNode* CMatcher::run(StringCharacterIterator& patternIt)
 {
-    CNode* node = code(pattern, pos, stop);
+    CNode* node = code(patternIt);
     std::vector<CNode*>* v = new std::vector<CNode*>();     // the list of codes
 
     while (node) {
@@ -364,31 +398,31 @@ CNode* CMatcher::run(const string& pattern, int& pos, int stop)
         // If the code is followed by +, we will embed the code in a
         // repetition node (Node_Repeat). But first we check what follows
         // to see if parameters should be provided to the CNode_Repeat.
-        if (pos < stop && pattern[pos] == '+') {
-            ++pos;
+		if (patternIt.current() != patternIt.DONE && patternIt.current() == L'+') {
+            patternIt.next();
             // Rule: ++
             // is it a ++?
             bool iter = false;
             int rmin = 0, rmax = BIG_NUMBER;
-            if (pos < stop && pattern[pos] == '+') {
-                ++pos;
+            if (patternIt.current() != patternIt.DONE && patternIt.current() == L'+') {
+                patternIt.next();
                 iter = true;
             }
             // Rule: {}
             // Is a range provided?
-            if (pos < stop && pattern[pos] == '{') {
-                ++pos;
+            if (patternIt.current() != patternIt.DONE && patternIt.current() == L'{') {
+                patternIt.next();
                 try {
                     // Read the values
-                    readMinMax(pattern, pos, stop, ',', rmin, rmax);
+                    readMinMax(patternIt, L',', rmin, rmax);
                     if (rmin < 0) rmin = 0;
                     if (rmax < rmin) rmax = rmin;
 
                     // check that the curly braces are closed
-                    if (pos < stop && pattern[pos] == '}') {
-                        ++pos;
+                    if (patternIt.current() != patternIt.DONE && patternIt.current() == L'}') {
+                        patternIt.next();
                     } else {
-                        throw parsing_exception("MISSING_CURLY", pos);
+                        throw parsing_exception("MISSING_CURLY", patternIt.getIndex());
                     }
                 } catch (parsing_exception e) {
                     CUtil::deleteVector<CNode>(*v);
@@ -406,14 +440,14 @@ CNode* CMatcher::run(const string& pattern, int& pos, int stop)
         // calls) but as single string.
         if (node->m_id == CNode::CHAR && !v->empty()) {
             CNode_Char *nodeChar = (CNode_Char*)node;
-            char newChar = nodeChar->getChar();
+            UChar newChar = nodeChar->getChar();
 
             CNode *prevNode = v->back();
             if (prevNode->m_id == CNode::CHAR) {
                 CNode_Char *prevNodeChar = (CNode_Char*)prevNode;
 
                 // consecutive CNode_Char's become one CNode_String
-                string str;
+                std::wstring str;
                 str  = prevNodeChar->getChar();
                 str += newChar;
                 delete prevNode;
@@ -434,7 +468,7 @@ CNode* CMatcher::run(const string& pattern, int& pos, int stop)
 
         v->push_back(node);
         try {
-            node = code(pattern, pos, stop);
+            node = code(patternIt);
         } catch (parsing_exception e) {
             CUtil::deleteVector<CNode>(*v);
             delete v;
@@ -490,59 +524,60 @@ CNode* CMatcher::run(const string& pattern, int& pos, int stop)
  * - an expression to memorize ( )\n
  * - a single character x
  */
-CNode* CMatcher::code(const string& pattern, int& pos, int stop)
+CNode* CMatcher::code(StringCharacterIterator& patternIt)
 {
     // CR and LF are only for user convenience, they have no meaning whatsoever
 	// CR や LF はユーザーにとって便利なだけで、構文的には何の意味も持たないので飛ばす
-    while (pos < stop && (pattern[pos] == '\r' || pattern[pos] == '\n')) pos++;
+	while ((patternIt.current() != patternIt.DONE) && 
+		(patternIt.current() == L'\r' || patternIt.current() == L'\n')) patternIt.next();
 
     // This NULL will be interpreted by run() as end of expression
-    if (pos == stop) 
+    if (patternIt.current() == patternIt.DONE) 
 		return nullptr;
 
     // We look at the first caracter
-    char token = pattern[pos];
+    UChar token = patternIt.current();
     
     // Escape code
-    if (token == '\\') {
+    if (token == L'\\') {
 
+		token = patternIt.next();
         // it should not be at the end of the pattern
 		// '\'でパターンが終わっていればおかしいので例外を飛ばす
-        if (pos+1 == stop) 
-			throw parsing_exception("ESCAPE_AT_END", pos);
+		if (token == patternIt.DONE) 
+			throw parsing_exception("ESCAPE_AT_END", patternIt.getIndex());
 
-        token = pattern[pos+1];
-        pos += 2;
+        patternIt.next();
 
         switch (token) {
-            case 't':
+            case L't':
                 // Rule: \t
-                return new CNode_Char('\t');
-            case 'r':
+                return new CNode_Char(L'\t');
+            case L'r':
                 // Rule: \r
-                return new CNode_Char('\r');
-            case 'n':
+                return new CNode_Char(L'\r');
+            case L'n':
                 // Rule: \n
-                return new CNode_Char('\n');
-            case 's':
+                return new CNode_Char(L'\n');
+            case L's':
                 // Rule: \s
-                return new CNode_Repeat(new CNode_Chars(" \t\r\n"), 1, BIG_NUMBER);
-            case 'w':
+                return new CNode_Repeat(new CNode_Chars(L" \t\r\n"), 1, BIG_NUMBER);
+            case L'w':
                 // Rule: \w
-                return new CNode_Repeat(new CNode_Chars(" \t\r\n>", false), 0, BIG_NUMBER);
-            case '#':
+                return new CNode_Repeat(new CNode_Chars(L" \t\r\n>", false), 0, BIG_NUMBER);
+            case L'#':
                 // Rule: \#
                 return new CNode_MemStar();
-            case 'k':
+            case L'k':
                 // Rule: \k
-                return new CNode_Command(CMD_KILL, "", ""/*, filter*/);
+                return new CNode_Command(CMD_KILL, L"", L""/*, filter*/);
             default:
                 // Rule: \0-9
-                if (CUtil::digit(token))
-                    return new CNode_MemStar(token - '0');
+				if (iswdigit(token))
+                    return new CNode_MemStar(token - L'0');
 
                 // Rules: \u \h \p \a \q
-                if (string("uhpaq").find(token, 0) != string::npos)
+                if (std::wstring(L"uhpaq").find(token, 0) != string::npos)
                     return new CNode_Url(token);
 
                 // Rule: backslash
@@ -550,27 +585,27 @@ CNode* CMatcher::code(const string& pattern, int& pos, int stop)
         }
         
     // Range or list of characters
-    } else if (token == '[') {
+    } else if (token == L'[') {
 
-        ++pos;
+        patternIt.next();
         // Rule: [^
         // If the [] is negated by ^, keep that information
         bool allow = true;
-        if (pos < stop && pattern[pos] == '^') {
+		if (patternIt.current() != patternIt.DONE && patternIt.current() == L'^') {
             allow = false;
-            ++pos;
+            patternIt.next();
         }
         
         // Range
-        if (pos < stop && pattern[pos] == '#') {
+        if (patternIt.current() != patternIt.DONE && patternIt.current() == L'#') {
 
-            ++pos;
+            patternIt.next();
             // read the range. pos is updated to the closing ]
             int rmin, rmax;
-            readMinMax(pattern, pos, stop, ':', rmin, rmax);
-            if (pos == stop || pattern[pos] != ']')
-                throw parsing_exception("MISSING_CROCHET", pos);
-            ++pos;
+            readMinMax(patternIt, L':', rmin, rmax);
+			if (patternIt.hasNext() == false || patternIt.current() != L']')
+				throw parsing_exception("MISSING_CROCHET", patternIt.getIndex());
+            patternIt.next();
             // Rule: \n
             return new CNode_Range(rmin, rmax, allow);
 
@@ -580,38 +615,45 @@ CNode* CMatcher::code(const string& pattern, int& pos, int stop)
             // Rule: []
             // We create a clear CNode_Chars then provide it with
             // characters one by one.
-            CNode_Chars *node = new CNode_Chars("", allow);
+            CNode_Chars *node = new CNode_Chars(L"", allow);
             
-            unsigned char prev = 0, code;
+            UChar prev = 0;
             bool prevCase = false, codeCase, inRange = false;
-            for (; pos < stop && (code = pattern[pos]) != ']'; ++pos) {
-
-                if (code == '%' && pos+2 < stop
-                        && CUtil::hexa(pattern[pos+1])
-                        && CUtil::hexa(pattern[pos+2])) {
+			for (UChar code = patternIt.current(); code != patternIt.DONE && code != L']'; code = patternIt.next()) {
+				
+				UChar c1 = patternIt.next();
+				UChar c2 = patternIt.next();
+				patternIt.previous();
+				patternIt.previous();
+				if (code == L'%' && patternIt.getIndex() + 2 < patternIt.endIndex()
+                        && CUtil::hexa(c1)
+                        && CUtil::hexa(c2) ) {
 
                     // %xx notation (case-sensitive)
-                    char c = toupper(pattern[++pos]);
-                    code = (c <= '9' ? c - '0' : c - 'A' + 10) * 16;
-                    c = toupper(pattern[++pos]);
-                    code += (c <= '9' ? c - '0' : c - 'A' + 10);
+					UChar c = towupper(c1);
+                    code = (c <= L'9' ? c - L'0' : c - L'A' + 10) * 16;
+                    c = towupper(c2);
+                    code += (c <= L'9' ? c - L'0' : c - L'A' + 10);
                     codeCase = true;
                     
-                } else if (code == '\\' && pos+1 < stop) {
+                } else if (code == L'\\' && c1 != patternIt.DONE) {
 
                     // escaped characters must be decoded (case-sensitive)
-					++pos;
-                    code = pattern[pos];
+                    code = patternIt.next();
+					c1 = patternIt.next();
+					c2 = patternIt.next();
+					patternIt.previous();
+					patternIt.previous();
+
                     switch (code) {
-                        case 't' : code = '\t'; break;
-                        case 'r' : code = '\r'; break;
-                        case 'n' : code = '\n'; break;
+                        case L't' : code = L'\t'; break;
+                        case L'r' : code = L'\r'; break;
+                        case L'n' : code = L'\n'; break;
                         // Only those three are not to be taken as is
                     }
                     codeCase = true;
 
                 } else {
-
                     // normal character
                     codeCase = false;
                 }
@@ -621,29 +663,29 @@ CNode* CMatcher::code(const string& pattern, int& pos, int stop)
                     // We decoded both ends of a range
                     if (prevCase || codeCase) {
                         // Add characters as is
-                        for (; prev<=code; prev++) {
+                        for (; prev <= code; prev++) {
                             node->add(prev);
                         }
                     } else {
                         // Add both uppercase and lowercase characters
-                        prev = tolower(prev);
-                        unsigned char cmax = tolower(code);
-                        for (; prev<=cmax; prev++) {
+                        prev = towlower(prev);
+                        wint_t cmax = towlower(code);
+                        for (; prev <= cmax; prev++) {
                             node->add(prev);
-                            node->add(toupper(prev));
+                            node->add(towupper(prev));
                         }
                     }
                     inRange = false;
                     
-                } else if (pos+2 < stop
-                        && pattern[pos+1] == '-'
-                        && pattern[pos+2] != ']') {
+                } else if (patternIt.getIndex() + 2 < patternIt.endIndex()
+                        && c1 == L'-'
+                        && c2 != L']') {
 
                     // We just decoded the start of a range, record it but don't add it
                     inRange = true;
                     prev = code;
                     prevCase = codeCase;
-                    pos++;
+					patternIt.next();
                     
                 } else {
 
@@ -651,209 +693,215 @@ CNode* CMatcher::code(const string& pattern, int& pos, int stop)
                     if (codeCase) {
                         node->add(code);
                     } else {
-                        node->add(tolower(code));
-                        node->add(toupper(code));
+                        node->add(towlower(code));
+                        node->add(towupper(code));
                     }
                 }
             }
+
             // Check if the [] is closed
 			// ']'が来る前にパターンが終わったので例外を飛ばす
-            if (pos == stop) {
+			if (patternIt.getIndex() == patternIt.endIndex()) {
                 delete node;
-                throw parsing_exception("MISSING_CROCHET", pos);
+                throw parsing_exception("MISSING_CROCHET", patternIt.getIndex());
             }
-            ++pos;
+			patternIt.next();
             return node;
         }
         
     // Command
-    } else if (token == '$') {
+    } else if (token == L'$') {
 
         // Rule: $COMMAND(,,)
         // Decode command name and content
         // Note: unknown commands are ignored (just as a $DONOTHING(someignoredtext))
-        string command, content;
-        int endContent = decodeCommand(pattern, pos+1, stop, command, content); // after )
+		patternIt.next();
+		std::wstring command, content;
+        int endContent = decodeCommand(patternIt, command, content); // after )
         int contentSize = content.size();
         int startContent = endContent - 1 - contentSize; // for exception info
         
-        if (endContent<0) {
+        if (endContent < 0) {
             // Do as if it was not a command, the token is a normal char
-            ++pos;
-            return new CNode_Char('$');
-        }
+            return new CNode_Char(L'$');
+        } else {
+			//patternIt.previous();
+		}
 
         // The pattern will continue after the closing )
-        pos = endContent;
+        //pos = endContent;
+		UnicodeString	contentPattern(content.c_str(), content.length());
+		StringCharacterIterator	contentIt(contentPattern);
 
         try {
-            if (command == "AV") {
+            if (command == L"AV") {
 
                 // Command "match a tag parameter"
                 // Transform content of () in a tree and embed it in
                 // a fast quote searcher
                 int start = 0;
-                return new CNode_AV(expr(content, start, contentSize), false);
+                return new CNode_AV(expr(contentIt), false);
 
-            } else if (command == "AVQ") {
+            } else if (command == L"AVQ") {
 
                 // Command "match a tag parameter, including optional quotes"
                 // Transform content of () in a tree and embed it in a fast
                 // quote searcher
                 int start = 0;
-                return new CNode_AV(expr(content, start, contentSize), true);
+                return new CNode_AV(expr(contentIt), true);
 
-            } else if (command == "LST") {
+            } else if (command == L"LST") {
 
                 // Command to try a list of patterns.
                 // The patterns are found in CSettings, and nodes are created
                 // at need, and kept until the matcher is destroyed.
-                return new CNode_List(content/*, *this*/);
+                return new CNode_List(UTF8fromUTF16(content));
 
-            } else if (command == "SET") {
+            } else if (command == L"SET") {
 
                 // Command to set a variable
-                size_t eq = content.find('=');
+                size_t eq = content.find(L'=');
                 if (eq == string::npos)
                     throw parsing_exception("MISSING_EQUAL", 0);
-                std::string name = content.substr(0, eq);
-                std::string value = content.substr(eq+1);
+                std::wstring name = content.substr(0, eq);
+                std::wstring value = content.substr(eq + 1);
                 CUtil::trim(name);
                 CUtil::lower(name);
-                if (name[0] == '\\') name.erase(0,1);
-                if (name == "#") {
-                    return new CNode_Command(CMD_SETSHARP, "", value/*, filter*/);
+                if (name[0] == L'\\') name.erase(0,1);
+                if (name == L"#") {
+                    return new CNode_Command(CMD_SETSHARP, L"", value/*, filter*/);
+					bool b = iswdigit(name[0]);
                 } else if (name.length() == 1 && CUtil::digit(name[0])) {
                     return new CNode_Command(CMD_SETDIGIT, name, value/*, filter*/);
                 } else {
                     return new CNode_Command(CMD_SETVAR, name, value/*, filter*/);
                 }
 
-            } else if (command == "TST") {
+            } else if (command == L"TST") {
 
                 // Command to try and match a variable
                 int eq, level;
                 for (eq = 0, level = 0; eq < contentSize; eq++) {
                     // Left parameter can be some text containing ()
-                    if (content[eq] == '(' && (!eq || content[eq-1]!='\\'))
+                    if (content[eq] == L'(' && (!eq || content[eq-1] != L'\\'))
                         level++;
-                    else if (content[eq] == ')' && (!eq || content[eq-1]!='\\'))
+                    else if (content[eq] == L')' && (!eq || content[eq-1] != L'\\'))
                         level--;
-                    else if (content[eq] == '=' && !level)
+                    else if (content[eq] == L'=' && !level)
                         break;
                 }
                 
                 if (eq == contentSize) {
                     CUtil::trim(content);
-                    if (content[0] != '(') CUtil::lower(content);
-                    if (content[0] == '\\') content.erase(0,1);
+                    if (content[0] != L'(') CUtil::lower(content);
+                    if (content[0] == L'\\') content.erase(0,1);
                     return new CNode_Test(content/*, filter*/);
                 }
                 startContent += eq + 1;
-                string name = content.substr(0, eq);
-                string value = content.substr(eq+1);
+                std::wstring name = content.substr(0, eq);
+                std::wstring value = content.substr(eq+1);
                 CUtil::trim(name);
-                if (name[0] != '(') CUtil::lower(name);
-                if (name[0] == '\\') name.erase(0,1);
-                if (name == "#") {
-                    return new CNode_Command(CMD_TSTSHARP, "", value/*, filter*/);
+                if (name[0] != L'(') CUtil::lower(name);
+                if (name[0] == L'\\') name.erase(0,1);
+                if (name == L"#") {
+                    return new CNode_Command(CMD_TSTSHARP, L"", value/*, filter*/);
                 } else if (name.length() == 1 && CUtil::digit(name[0])) {
                     return new CNode_Command(CMD_TSTDIGIT, name, value/*, filter*/);
-                } else if (name[0] == '(' && name[name.size()-1] == ')') {
+                } else if (name[0] == L'(' && name[name.size()-1] == L')') {
                     name = name.substr(1, name.size()-2);
                     return new CNode_Command(CMD_TSTEXPAND, name, value/*, filter*/);
                 } else {
                     return new CNode_Command(CMD_TSTVAR, name, value/*, filter*/);
                 }
 
-            } else if (command == "ADDLST") {
+            } else if (command == L"ADDLST") {
 
                 // Command to add a line to a list
-                size_t comma = content.find(',');
+                size_t comma = content.find(L',');
                 if (comma == string::npos)
                     throw parsing_exception("MISSING_COMMA", 0);
-                string name = content.substr(0, comma);
-                string value = content.substr(comma + 1);
+                std::wstring name = content.substr(0, comma);
+                std::wstring value = content.substr(comma + 1);
                 CUtil::trim(name);
                 return new CNode_Command(CMD_ADDLST, name, value/*, filter*/);
 
-            } else if (command == "ADDLSTBOX") {
+            } else if (command == L"ADDLSTBOX") {
 
                 // Command to add a line to a list after user confirm & edit
-                size_t comma = content.find(',');
+                size_t comma = content.find(L',');
                 if (comma == string::npos)
                     throw parsing_exception("MISSING_COMMA", 0);
-                string value = content.substr(comma + 1);
-                string name = content.substr(0, comma);
+                std::wstring value = content.substr(comma + 1);
+                std::wstring name = content.substr(0, comma);
                 CUtil::trim(name);
                 return new CNode_Command(CMD_ADDLSTBOX, name, value/*, filter*/);
 
-            } else if (command == "URL") {
+            } else if (command == L"URL") {
 
                 // Command to try and match the document URL
-                return new CNode_Command(CMD_URL, "", content/*, filter*/);
+                return new CNode_Command(CMD_URL, L"", content/*, filter*/);
 
-            } else if (command == "TYPE") {
+            } else if (command == L"TYPE") {
 
                 // Command to check the downloaded file type
                 CUtil::trim(content);
                 CUtil::lower(content);
-                return new CNode_Command(CMD_TYPE, "", content/*, filter*/);
+                return new CNode_Command(CMD_TYPE, L"", content/*, filter*/);
 
-            } else if (command == "IHDR") {
+            } else if (command == L"IHDR") {
 
                 // Command to try and match an incoming header
                 size_t colon = content.find(':');
                 if (colon == string::npos)
                     throw parsing_exception("MISSING_COLON", 0);
-                string name = content.substr(0, colon);
-                string value = content.substr(colon+1);
+                std::wstring name = content.substr(0, colon);
+                std::wstring value = content.substr(colon+1);
                 CUtil::trim(name);
                 CUtil::lower(name);
                 return new CNode_Command(CMD_IHDR, name, value/*, filter*/);
 
-            } else if (command == "OHDR") {
+            } else if (command == L"OHDR") {
 
                 // Command to try and match an outgoing header
-                size_t colon = content.find(':');
+                size_t colon = content.find(L':');
                 if (colon == string::npos)
                     throw parsing_exception("MISSING_COLON", 0);
-                string name = content.substr(0, colon);
-                string value = content.substr(colon+1);
+                std::wstring name = content.substr(0, colon);
+                std::wstring value = content.substr(colon+1);
                 CUtil::trim(name);
                 CUtil::lower(name);
                 return new CNode_Command(CMD_OHDR, name, value/*, filter*/);
 
-            } else if (command == "RESP") {
+            } else if (command == L"RESP") {
 
                 // Command to try and match the response line
-                return new CNode_Command(CMD_RESP, "", content/*, filter*/);
+                return new CNode_Command(CMD_RESP, L"", content/*, filter*/);
 
-            } else if (command == "ALERT") {
+            } else if (command == L"ALERT") {
 
                 // Command to display a message box
-                return new CNode_Command(CMD_ALERT, "", content/*, filter*/);
+                return new CNode_Command(CMD_ALERT, L"", content/*, filter*/);
 
-            } else if (command == "CONFIRM") {
+            } else if (command == L"CONFIRM") {
 
                 // Command to ask the user for a choice (Y/N)
-                return new CNode_Command(CMD_CONFIRM, "", content/*, filter*/);
+                return new CNode_Command(CMD_CONFIRM, L"", content/*, filter*/);
 
-            } else if (command == "STOP") {
+            } else if (command == L"STOP") {
 
                 // Command to stop the filter from filtering
-                return new CNode_Command(CMD_STOP, "", ""/*, filter*/);
+                return new CNode_Command(CMD_STOP, L"", L""/*, filter*/);
 
-            } else if (command == "USEPROXY") {
+            } else if (command == L"USEPROXY") {
 
                 // Command to set if the proxy settings will be used
                 CUtil::trim(content);
                 CUtil::lower(content);
-                if (content != "true" && content != "false")
+                if (content != L"true" && content != L"false")
                     throw parsing_exception("NEED_TRUE_FALSE", 0);
-                return new CNode_Command(CMD_USEPROXY, "", content/*, filter*/);
+                return new CNode_Command(CMD_USEPROXY, L"", content/*, filter*/);
 
-            } else if (command == "SETPROXY") {
+            } else if (command == L"SETPROXY") {
 
                 // Command to force the use of a proxy. The command
                 // will have no effect if, when matching, there is no corresponding
@@ -861,9 +909,9 @@ CNode* CMatcher::code(const string& pattern, int& pos, int stop)
                 CUtil::trim(content);
                 if (content.empty())
                     throw parsing_exception("NEED_TEXT", 0);
-                return new CNode_Command(CMD_SETPROXY, "", content/*, filter*/);
+                return new CNode_Command(CMD_SETPROXY, L"", content/*, filter*/);
                 
-            } else if (command == "CON") {
+            } else if (command == L"CON") {
 #if 0
                 // Command to count requests. Matches if (reqNum-1)/z % y = x-1
                 int x, y, z;
@@ -897,60 +945,60 @@ CNode* CMatcher::code(const string& pattern, int& pos, int stop)
                                      filter.owner.cnxNumber);
 #endif
 				
-            } else if (command == "LOG") {
+            } else if (command == L"LOG") {
 
                 // Command to send an log event to the log system
-                return new CNode_Command(CMD_LOG, "", content/*, filter*/);
+                return new CNode_Command(CMD_LOG, L"", content/*, filter*/);
 
-            } else if (command == "JUMP") {
+            } else if (command == L"JUMP") {
 
                 // Command to tell the browser to go to another URL
                 CUtil::trim(content);
-                return new CNode_Command(CMD_JUMP, "", content/*, filter*/);
+                return new CNode_Command(CMD_JUMP, L"", content/*, filter*/);
 
-            } else if (command == "RDIR") {
+            } else if (command == L"RDIR") {
 
                 // Command to transparently redirect to another URL
                 CUtil::trim(content);
-                return new CNode_Command(CMD_RDIR, "", content/*, filter*/);
+                return new CNode_Command(CMD_RDIR, L"", content/*, filter*/);
 
-            } else if (command == "FILTER") {
+            } else if (command == L"FILTER") {
 
                 // Command to force body filtering regardless of its type
                 CUtil::trim(content);
                 CUtil::lower(content);
-                if (content != "true" && content != "false")
+                if (content != L"true" && content != L"false")
                     throw parsing_exception("NEED_TRUE_FALSE", 0);
-                return new CNode_Command(CMD_FILTER, "", content/*, filter*/);
+                return new CNode_Command(CMD_FILTER, L"", content/*, filter*/);
 
-            } else if (command == "LOCK") {
-
-                // Command to lock the filter mutex
-                return new CNode_Command(CMD_LOCK,"", ""/*, filter*/);
-
-            } else if (command == "UNLOCK") {
+            } else if (command == L"LOCK") {
 
                 // Command to lock the filter mutex
-                return new CNode_Command(CMD_UNLOCK,"", ""/*, filter*/);
+                return new CNode_Command(CMD_LOCK,L"", L""/*, filter*/);
 
-            } else if (command == "KEYCHK") {
+            } else if (command == L"UNLOCK") {
+
+                // Command to lock the filter mutex
+                return new CNode_Command(CMD_UNLOCK, L"", L""/*, filter*/);
+
+            } else if (command == L"KEYCHK") {
 
                 // Command to lock the filter mutex
                 CUtil::upper(content);
-                return new CNode_Command(CMD_KEYCHK,"", content/*, filter*/);
+                return new CNode_Command(CMD_KEYCHK, L"", content/*, filter*/);
 
-            } else if (command == "NEST" ||
-                       command == "INEST") {
+            } else if (command == L"NEST" ||
+                       command == L"INEST") {
 
                 // Command to match nested tags (with optional content)
-                size_t colon = findParamEnd(content, ',');
+                size_t colon = findParamEnd(content, L',');
                 if (colon == string::npos)
                     throw parsing_exception("MISSING_COMMA", 0);
                 bool hasMiddle = false;
-                std::string text1 = content.substr(0, colon);
-                std::string text2;
-                std::string text3 = content.substr(colon + 1);
-                colon = findParamEnd(text3, ',');
+                std::wstring text1 = content.substr(0, colon);
+                std::wstring text2;
+                std::wstring text3 = content.substr(colon + 1);
+                colon = findParamEnd(text3, L',');
                 if (colon != string::npos) {
                     text2 = text3.substr(0, colon);
                     text3 = text3.substr(colon + 1);
@@ -958,38 +1006,45 @@ CNode* CMatcher::code(const string& pattern, int& pos, int stop)
                 }
                 CNode *left = NULL, *middle = NULL, *right = NULL;
                 try {
-                    int end;
-                    left = expr(text1, end=0, text1.size());
-                    if (hasMiddle) middle = expr(text2, end=0, text2.size());
-                    right = expr(text3, end=0, text3.size());
+					UnicodeString	patNest1(text1.c_str(), text1.length());
+					StringCharacterIterator	patNestIt1(patNest1);
+                    left = expr(patNestIt1);
+                    if (hasMiddle) {
+						UnicodeString	patNest2(text2.c_str(), text2.length());
+						StringCharacterIterator	patNestIt2(patNest2);
+						middle = expr(patNestIt2);
+					}
+					UnicodeString	patNest3(text3.c_str(), text3.length());
+					StringCharacterIterator	patNestIt3(patNest3);
+                    right = expr(patNestIt3);
                 } catch (parsing_exception e) {
                     if (left)   delete left;
                     if (middle) delete middle;
                     if (right)  delete right;
                     throw e;
                 }
-                return new CNode_Nest(left, middle, right, command == "INEST");
+                return new CNode_Nest(left, middle, right, command == L"INEST");
 
-            } else if (command == "ASK") {
+            } else if (command == L"ASK") {
 
                 // Command to automate the insertion of an item in one of 2 lists
-                size_t colon = content.find(',');
+                size_t colon = content.find(L',');
                 if (colon == string::npos)
                     throw parsing_exception("MISSING_COMMA", 0);
-                string allowName = content.substr(0, colon);
+                std::wstring allowName = content.substr(0, colon);
                 content.erase(0, colon + 1);
-                colon = content.find(',');
+                colon = content.find(L',');
                 if (colon == string::npos)
                     throw parsing_exception("MISSING_COMMA", 0);
-                string denyName = content.substr(0, colon);
+                std::wstring denyName = content.substr(0, colon);
                 content.erase(0, colon + 1);
-                colon = findParamEnd(content, ',');
+                colon = findParamEnd(content, L',');
                 if (colon == string::npos)
                     throw parsing_exception("MISSING_COMMA", 0);
-                string question = content.substr(0, colon);
-                string item = content.substr(colon + 1);
-                string pattern = "\\h\\p\\q\\a";
-                colon = findParamEnd(item, ',');
+                std::wstring question = content.substr(0, colon);
+                std::wstring item = content.substr(colon + 1);
+                std::wstring pattern = L"\\h\\p\\q\\a";
+                colon = findParamEnd(item, L',');
                 if (colon != string::npos) {
                     pattern = item.substr(colon + 1);
                     item = item.substr(0, colon);
@@ -1012,60 +1067,63 @@ CNode* CMatcher::code(const string& pattern, int& pos, int stop)
             throw e;
         }
     // Expression
-    } else if (token == '(') {
+    } else if (token == L'(') {
 
         // Rule: ()
-        ++pos;
+        patternIt.next();
         // Detect a negation symbol
         bool negate = false;
-        if (pos < stop && pattern[pos] == '^') {
-            ++pos;
+		if (patternIt.current() != patternIt.DONE && patternIt.current() == L'^') {
+			patternIt.next();
             negate = true;
         }
             
         // We read the enclosed expression
-        CNode *node = expr(pattern, pos, stop);
+        CNode *node = expr(patternIt);
         
         // It must be followed by the closing )
 		// ')'がこない、もしくは 次のトークンに')'が来ないと例外を飛ばす
-        if (pos == stop || pattern[pos] != ')') {
+		if (patternIt.hasNext() == false || patternIt.current() != L')') {
             delete node;
-            throw parsing_exception("MISSING_PARENTHESE", pos);
+			throw parsing_exception("MISSING_PARENTHESE", patternIt.getIndex());
         }
-        ++pos;
+        patternIt.next();
 
         // Rule: (^ )
         // If the expression must be negated, embed it in a CNode_Negate
         if (negate)
             node = new CNode_Negate(node);
 
-        if (pos+1 < stop && pattern[pos]=='\\') {
-            if (CUtil::digit(pattern[pos+1])) {
+		if (patternIt.hasNext() && patternIt.current() == L'\\') {
+			UChar dig = patternIt.next();
+			if (iswdigit(dig)) {
                 // Rule: ()\0-9
                 // The code will be embedded in a memory node
-                int num = pattern[pos+1]-'0';
+                int num = dig - L'0';
                 node = new CNode_Memory(node, num);
 
-                pos += 2;
-            } else if (pattern[pos+1] == '#') {
+                patternIt.next();
+            } else if (dig == L'#') {
                 // Rule: ()\#
                 // The code will be embedded in a stacked-memory node
                 node = new CNode_Memory(node, -1);
-                pos += 2;
-            }
+                patternIt.next();
+            } else {
+				patternIt.previous();
+			}
         }
 
         return node;
 
     // End of expression
-    } else if (token == ')' || token == '|' || token == '&') {
+    } else if (token == L')' || token == L'|' || token == L'&') {
 
         return NULL;    // This NULL will be interpreted by run()
         
     }
 
     // Single character (which can have a special meaning)
-    return single(pattern, pos, stop);
+    return single(patternIt);
 }
 
 
@@ -1073,41 +1131,41 @@ CNode* CMatcher::code(const string& pattern, int& pos, int stop)
  * a character with a special meaning (space, =, ?, *, ', ") or
  * a ascii character to be matched (case insensitive).
  */
-CNode* CMatcher::single(const std::string& pattern, int& pos, int stop) {
+CNode* CMatcher::single(StringCharacterIterator& patternIt) {
 
     // No need to test for pos<stop here, the test is done in code()
-    char token = pattern[pos];
-	++pos;
+	UChar token = patternIt.current();
+	patternIt.next();
 
-    if (token == '?') {
+    if (token == L'?') {
 
         // Rule: ?
         return new CNode_Any();
         
-    } else if (token == ' ' || token == '\t') {
+    } else if (token == L' ' || token == L'\t') {
 
         // Only one CNode_Space for consecutive spaces
-        while (pos < stop && pattern[pos] <= ' ') ++pos;
+		while (patternIt.current() != patternIt.DONE && patternIt.current() <= L' ') patternIt.next();
         
         // No need creating a CNode_Space for spaces before = in the pattern
-        if (pos < stop && pattern[pos] == '=')
-            return single(pattern, pos, stop);
+        if (patternIt.current() != patternIt.DONE && patternIt.current() == L'=')
+            return single(patternIt);
             
         // Rule: space
         return new CNode_Space();
-
-    } else if (token == '=') {
+		
+    } else if (token == L'=') {
 
         // Rule: =
-        while (pos < stop && pattern[pos] <= ' ') ++pos;
+        while (patternIt.current() != patternIt.DONE && patternIt.current() <= L' ') patternIt.next();
         return new CNode_Equal();
 
-    } else if (token == '*') {
+    } else if (token == L'*') {
 
         // Rule: *
         return new CNode_Star();
 
-    } else if (token == '\'' || token == '\"') {
+    } else if (token == L'\'' || token == L'\"') {
 
         // Rule: "
         // Rule: '
@@ -1116,7 +1174,7 @@ CNode* CMatcher::single(const std::string& pattern, int& pos, int stop) {
     } else {
 
         // ascii character
-        return new CNode_Char(tolower(token));
+		return new CNode_Char(towlower(token));
     }
 }
 

@@ -43,9 +43,12 @@
 #include <vector>
 #include <sstream>
 #include <set>
+#include <wctype.h>
+#include "..\CodeConvert.h"
 
 using namespace std;
 using namespace Proxydomo;
+using namespace CodeConvert;
 
 /* Decode the pattern.
  * In case a conditional command returns false, the decoding is stopped.
@@ -54,11 +57,11 @@ using namespace Proxydomo;
  * locked. It cannot be done from inside CExpander (nor CMatcher) because
  * of possible recursive calls.
  */
-string CExpander::expand(const string& pattern, CFilter& filter) {
+std::wstring CExpander::expand(const std::wstring& pattern, CFilter& filter) {
 
-    ostringstream output;       // stream for the return string
-    string command;             // decoded command name
-    string content;             // decoded command content
+    std::wostringstream output;       // stream for the return string
+    std::wstring command;             // decoded command name
+    std::wstring content;             // decoded command content
 
     // Iterator to stacked memories
     vector<CMemory>::iterator stackedMem = filter.memoryStack.begin();
@@ -66,12 +69,11 @@ string CExpander::expand(const string& pattern, CFilter& filter) {
     size_t size = pattern.size();
     size_t index = 0;
     
-    while (index<size) {
+    while (index < size) {
 
         // We can drop the pattern directly to the
         // output up to a special character
-        size_t pos = pattern.find_first_of( "$\\" , index);
-
+        size_t pos = pattern.find_first_of( L"$\\" , index);
         if (pos == string::npos) {
             // No more special chars, drop the pattern to the end
             output << pattern.substr(index);
@@ -80,24 +82,24 @@ string CExpander::expand(const string& pattern, CFilter& filter) {
         }
             
         // Send previous characters to output
-        output << pattern.substr(index, pos-index);
+        output << pattern.substr(index, pos - index);
         index = pos;
 
-        if (pattern[pos] == '\\') {
+        if (pattern[pos] == L'\\') {
 
             // ensure there is something after the backslash
             if (pos == size-1) {
                 // the pattern is terminated by \ so do as for a normal character
-                output << '\\';
+                output << L'\\';
                 index++;
                 continue;
             }
             
             // this is an escaped code
-            char c = pattern[index+1];
+            char c = pattern[index + 1];
             index += 2;
             switch (c) {
-            case '#':
+            case L'#':
                 // get one more memorized string from the stack
                 if (stackedMem != filter.memoryStack.end()) {
                     if (stackedMem->isByValue()) {
@@ -108,7 +110,7 @@ string CExpander::expand(const string& pattern, CFilter& filter) {
                     stackedMem++;
                 }
                 break;
-            case '@':
+            case L'@':
                 // get all remaining memorized strings from the stack
                 while (stackedMem != filter.memoryStack.end()) {
                     if (stackedMem->isByValue()) {
@@ -119,25 +121,25 @@ string CExpander::expand(const string& pattern, CFilter& filter) {
                     stackedMem++;
                 }
                 break;
-            case 'k':
+            case L'k':
                 filter.owner.killed = true;
                 break;
             // simple escaped codes
-            case 't': output << '\t'; break;
-            case 'r': output << '\r'; break;
-            case 'n': output << '\n'; break;
-            case 'u': output << filter.owner.url.getUrl(); break;
-            case 'h': output << filter.owner.url.getHost(); break;
-            case 'p': output << filter.owner.url.getPath(); break;
-            case 'q': output << filter.owner.url.getQuery(); break;
-            case 'a': output << filter.owner.url.getAnchor(); break;
+            case L't': output << L'\t'; break;
+            case L'r': output << L'\r'; break;
+            case L'n': output << L'\n'; break;
+            case L'u': output << UTF16fromUTF8(filter.owner.url.getUrl()); break;
+            case L'h': output << UTF16fromUTF8(filter.owner.url.getHost()); break;
+            case L'p': output << UTF16fromUTF8(filter.owner.url.getPath()); break;
+            case L'q': output << UTF16fromUTF8(filter.owner.url.getQuery()); break;
+            case L'a': output << UTF16fromUTF8(filter.owner.url.getAnchor()); break;
             //case 'd': output << wxT("file:///");
             //          output << CUtil::replaceAll(W2S(wxGetCwd()), "\\", "/");
                       break;
             default :
                 if (CUtil::digit(c)) {
                     // code \0-9 we get the corresponding memorized string
-                    CMemory& mem = filter.memoryTable[c - '0'];
+                    CMemory& mem = filter.memoryTable[c - L'0'];
                     if (mem.isByValue()) {
                         output << expand(mem.getValue(), filter);
                     } else {
@@ -153,8 +155,7 @@ string CExpander::expand(const string& pattern, CFilter& filter) {
 
             // Decode the command name, i.e all following uppercase letters
             command.clear();
-            for (pos=index+1; pos<size &&
-                        pattern[pos]>='A' && pattern[pos]<='Z'; pos++)
+			for (pos = index + 1; pos < size && iswupper(pattern[pos]); pos++)
                 command += pattern[pos];
                 
             // Does it look like a command?
@@ -166,11 +167,11 @@ string CExpander::expand(const string& pattern, CFilter& filter) {
                 size_t end = pos + 1;
                 while (   end<size
                        && (   level>1
-                           || pattern[end]!=')'
-                           || pattern[end-1]=='\\' ) ) {
-                    if (pattern[end] == '(' && pattern[end-1] != '\\') {
+                           || pattern[end]!=L')'
+                           || pattern[end-1]==L'\\' ) ) {
+                    if (pattern[end] == L'(' && pattern[end-1] != L'\\') {
                         level++;
-                    } else if (pattern[end] == ')' && pattern[end-1] != '\\') {
+                    } else if (pattern[end] == L')' && pattern[end-1] != L'\\') {
                         level--;
                     }
                     end++;
@@ -189,30 +190,30 @@ string CExpander::expand(const string& pattern, CFilter& filter) {
                 // commands with several comma-separated parameters.
                 //   output << f_COMMAND(parse(pos+1, pos));
 
-                if (command == "GET") {
+                if (command == L"GET") {
 
                     CUtil::trim(content);
                     CUtil::lower(content);
                     output << filter.owner.variables[content];
 
-                } else if (command == "SET") {
+                } else if (command == L"SET") {
 
-                    size_t eq = content.find('=');
+                    size_t eq = content.find(L'=');
                     if (eq == string::npos) continue;
-                    string name = content.substr(0, eq);
-                    string value = content.substr(eq+1);
+                    std::wstring name = content.substr(0, eq);
+                    std::wstring value = content.substr(eq+1);
                     CUtil::trim(name);
                     CUtil::lower(name);
-                    if (name[0] == '\\') name.erase(0,1);
-                    if (name == "#") {
+                    if (name[0] == L'\\') name.erase(0,1);
+                    if (name == L"#") {
                         filter.memoryStack.push_back(CMemory(value));
                     } else if (name.size() == 1 && CUtil::digit(name[0])) {
-                        filter.memoryTable[name[0]-'0'] = CMemory(value);
+                        filter.memoryTable[name[0] - L'0'] = CMemory(value);
                     } else {
                         filter.owner.variables[name] = expand(value, filter);
                     }
 
-                } else if (command == "SETPROXY") {
+                } else if (command == L"SETPROXY") {
 #if 0
                     CUtil::trim(content);
                     size_t len = content.length();
@@ -226,7 +227,7 @@ string CExpander::expand(const string& pattern, CFilter& filter) {
                         }
                     }
 #endif
-                } else if (command == "USEPROXY") {
+                } else if (command == L"USEPROXY") {
 #if 0
                     CUtil::trim(content);
                     CUtil::lower(content);
@@ -236,97 +237,97 @@ string CExpander::expand(const string& pattern, CFilter& filter) {
                         filter.owner.useSettingsProxy = false;
                     }
 #endif
-                } else if (command == "ALERT") {
+                } else if (command == L"ALERT") {
 
                     //wxMessageBox(S2W(expand(content, filter)), wxT(APP_NAME));
 
-                } else if (command == "CONFIRM") {
+                } else if (command == L"CONFIRM") {
 
                     //int answer = wxMessageBox(S2W(expand(content, filter)),
                     //                            wxT(APP_NAME), wxYES_NO);
                     //if (answer == wxNO) index = size;
 
-                } else if (command == "ESC") {
+                } else if (command == L"ESC") {
 
-                    string value = expand(content, filter);
+                    std::wstring value = expand(content, filter);
                     output << CUtil::ESC(value);
                     
-                } else if (command == "UESC") {
+                } else if (command == L"UESC") {
 
-                    string value = expand(content, filter);
+                    std::wstring value = expand(content, filter);
                     output << CUtil::UESC(value);
 
-                } else if (command == "WESC") {
+                } else if (command == L"WESC") {
 
-                    string value = expand(content, filter);
+                    std::wstring value = expand(content, filter);
                     output << CUtil::WESC(value);
 
-                } else if (command == "STOP") {
+                } else if (command == L"STOP") {
 
                     filter.bypassed = true;
 
-                } else if (command == "JUMP") {
+                } else if (command == L"JUMP") {
 
-                    filter.owner.rdirToHost = expand(content, filter);
+                    filter.owner.rdirToHost = UTF8fromUTF16(expand(content, filter));
                     CUtil::trim(filter.owner.rdirToHost);
                     filter.owner.rdirMode = 0;
 
-                } else if (command == "RDIR") {
+                } else if (command == L"RDIR") {
 
-                    filter.owner.rdirToHost = expand(content, filter);
+                    filter.owner.rdirToHost = UTF8fromUTF16(expand(content, filter));
                     CUtil::trim(filter.owner.rdirToHost);
                     filter.owner.rdirMode = 1;
 
-                } else if (command == "FILTER") {
+                } else if (command == L"FILTER") {
 
                     CUtil::trim(content);
                     CUtil::lower(content);
-                    if (content == "true") {
+                    if (content == L"true") {
                         filter.owner.bypassBody = false;
                         filter.owner.bypassBodyForced = true;
-                    } else if (content == "false") {
+                    } else if (content == L"false") {
                         filter.owner.bypassBody = true;
                         filter.owner.bypassBodyForced = true;
                     }
 
-                } else if (command == "FILE") {
+                } else if (command == L"FILE") {
 
-                    output << CUtil::getFile(expand(content, filter));
+                    output << UTF16fromUTF8(CUtil::getFile(UTF8fromUTF16(expand(content, filter))));
 
-                } else if (command == "LOG") {
+                } else if (command == L"LOG") {
 
-                    string log = expand(content, filter);
-					CLog::FilterEvent(kLogFilterLogCommand, filter.owner.requestNumber, filter.title, log);
+                    std::wstring log = expand(content, filter);
+					CLog::FilterEvent(kLogFilterLogCommand, filter.owner.requestNumber, filter.title, UTF8fromUTF16(log));
 
-                } else if (command == "LOCK") {
+                } else if (command == L"LOCK") {
 
                     if (!filter.locked) {
                         //CLog::ref().filterLock.Lock();
                         filter.locked = true;
                     }
 
-                } else if (command == "UNLOCK") {
+                } else if (command == L"UNLOCK") {
 
                     if (filter.locked) {
                         //CLog::ref().filterLock.Unlock();
                         filter.locked = false;
                     }
 
-                } else if (command == "KEYCHK") {
+                } else if (command == L"KEYCHK") {
 
                     if (!CUtil::keyCheck(CUtil::upper(content))) index = size;
 
-                } else if (command == "ADDLST") {
+                } else if (command == L"ADDLST") {
 
                     size_t comma = content.find(',');
                     if (comma != string::npos) {
-                        string name = content.substr(0, comma);
-                        string value = content.substr(comma + 1);
+                        std::wstring name = content.substr(0, comma);
+                        std::wstring value = content.substr(comma + 1);
                         CUtil::trim(name);
                         //CSettings::ref().addListLine(name, expand(value, filter));
                     }
 
-                } else if (command == "ADDLSTBOX") {
+                } else if (command == L"ADDLSTBOX") {
 
                     //size_t comma = content.find(',');
                     //if (comma != string::npos) {
@@ -347,10 +348,10 @@ string CExpander::expand(const string& pattern, CFilter& filter) {
                     //        CSettings::ref().addListLine(name, W2S(dlg.GetValue()));
                     //}
 
-                } else if (command == "URL") {
+                } else if (command == L"URL") {
 
-                    const char *tStart, *tStop, *tEnd, *tReached;
-                    const string& url = filter.owner.url.getUrl();
+                    const wchar_t *tStart, *tStop, *tEnd, *tReached;
+                    const std::wstring url = UTF16fromUTF8(filter.owner.url.getUrl());
                     tStart = url.c_str();
                     tStop = tStart + url.size();
                     // Here we use the static matching function
@@ -358,43 +359,43 @@ string CExpander::expand(const string& pattern, CFilter& filter) {
                                                tStart, tStop, tEnd, tReached);
                     if (!ret) index = size;
 
-                } else if (command == "RESP") {
+                } else if (command == L"RESP") {
 
-                    const char *tStart, *tStop, *tEnd, *tReached;
-                    string& resp = filter.owner.responseCode;
+                    const wchar_t *tStart, *tStop, *tEnd, *tReached;
+                    std::wstring& resp = UTF16fromUTF8(filter.owner.responseCode);
                     tStart = resp.c_str();
                     tStop = tStart + resp.size();
                     bool ret = CMatcher::match(content, filter,
                                                tStart, tStop, tEnd, tReached);
                     if (!ret) index = size;
 
-                } else if (command == "TST") {
+                } else if (command == L"TST") {
 
-                    const char *tStart, *tStop, *tEnd, *tReached;
+                    const wchar_t *tStart, *tStop, *tEnd, *tReached;
                     size_t eq, lev;
                     for (eq = 0, lev = 0; eq < size; eq++) {
                         // Left parameter can be some text containing ()
-                        if (content[eq] == '(' && (!eq || content[eq-1]!='\\'))
+                        if (content[eq] == L'(' && (!eq || content[eq-1]!=L'\\'))
                             lev++;
-                        else if (content[eq] == ')' && (!eq || content[eq-1]!='\\'))
+                        else if (content[eq] == L')' && (!eq || content[eq-1]!=L'\\'))
                             lev--;
-                        else if (content[eq] == '=' && !lev)
+                        else if (content[eq] == L'=' && !lev)
                             break;
                     }
 
-                    if (eq == size) { eq = 0; content = '='; }
-                    string value = content.substr(eq + 1);
-                    string name = content.substr(0, eq);
+                    if (eq == size) { eq = 0; content = L'='; }
+                    std::wstring value = content.substr(eq + 1);
+                    std::wstring name = content.substr(0, eq);
                     CUtil::trim(name);
-                    if (name[0] != '(') CUtil::lower(name);
-                    if (name[0] == '\\') name.erase(0,1);
-                    string toMatch;
-                    if (name == "#") {
+                    if (name[0] != L'(') CUtil::lower(name);
+                    if (name[0] == L'\\') name.erase(0,1);
+                    std::wstring toMatch;
+                    if (name == L"#") {
                         if (!filter.memoryStack.empty())
                             toMatch = filter.memoryStack.back().getValue();
                     } else if (name.size() == 1 && CUtil::digit(name[0])) {
-                        toMatch = filter.memoryTable[name[0]-'0'].getValue();
-                    } else if (name[0] == '(' && name[name.size()-1] == ')') {
+                        toMatch = filter.memoryTable[name[0]-L'0'].getValue();
+                    } else if (name[0] == L'(' && name[name.size()-1] == L')') {
                         name = name.substr(1, name.size()-2);
                         toMatch = expand(name, filter);
                     } else {
@@ -408,39 +409,39 @@ string CExpander::expand(const string& pattern, CFilter& filter) {
                                                tStart, tStop, tEnd, tReached);
                     if (!ret || tEnd != tStop) index = size;
 
-                } else if (command == "IHDR") {
+                } else if (command == L"IHDR") {
 
-                    const char *tStart, *tStop, *tEnd, *tReached;
-                    size_t colon = content.find(':');
-                    if (colon == string::npos) { pos=0; content = ":"; }
-                    string pattern = content.substr(colon + 1);
-                    string name = content.substr(0, colon);
+                    const wchar_t *tStart, *tStop, *tEnd, *tReached;
+                    size_t colon = content.find(L':');
+                    if (colon == string::npos) { pos=0; content = L":"; }
+                    std::wstring pattern = content.substr(colon + 1);
+                    std::wstring name = content.substr(0, colon);
                     CUtil::trim(name);
                     CUtil::lower(name);
-					string value = filter.owner.GetInHeader(name);
+					std::wstring value = UTF16fromUTF8(filter.owner.GetInHeader(UTF8fromUTF16(name)));
                     tStart = value.c_str();
                     tStop = tStart + value.size();
                     if (!CMatcher::match(pattern, filter,
                                          tStart, tStop, tEnd, tReached))
                         index = size;
 
-                } else if (command == "OHDR") {
+                } else if (command == L"OHDR") {
 
-                    const char *tStart, *tStop, *tEnd, *tReached;
-                    size_t colon = content.find(':');
-                    if (colon == string::npos) { pos=0; content = ":"; }
-                    string pattern = content.substr(colon + 1);
-                    string name = content.substr(0, colon);
+                    const wchar_t *tStart, *tStop, *tEnd, *tReached;
+                    size_t colon = content.find(L':');
+                    if (colon == string::npos) { pos=0; content = L":"; }
+                    std::wstring pattern = content.substr(colon + 1);
+                    std::wstring name = content.substr(0, colon);
                     CUtil::trim(name);
                     CUtil::lower(name);
-					string value = filter.owner.GetOutHeader(name);
+					std::wstring value = UTF16fromUTF8(filter.owner.GetOutHeader(UTF8fromUTF16(name)));
                     tStart = value.c_str();
                     tStop = tStart + value.size();
                     if (!CMatcher::match(pattern, filter,
                                          tStart, tStop, tEnd, tReached))
                         index = size;
 
-                } else if (command == "DTM") {
+                } else if (command == L"DTM") {
 #if 0
                     string day[7] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
                     stringstream ss;

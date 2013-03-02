@@ -63,15 +63,15 @@ public:
     // Data specific to text filters
     bool   multipleMatches;
     int    windowWidth;
-    std::string boundsPattern;
+    std::wstring boundsPattern;
 	std::shared_ptr<Proxydomo::CMatcher>	spBoundsMatcher;
 
     // Data commom to both
-    std::string urlPattern;
+    std::wstring urlPattern;
 	std::shared_ptr<Proxydomo::CMatcher>	spURLMatcher;
-    std::string matchPattern;
+    std::wstring matchPattern;
 	std::shared_ptr<Proxydomo::CMatcher>	spTextMatcher;
-    std::string replacePattern;
+    std::wstring replacePattern;
     //int    priority;
     
     // Default filter number (set to 0 for new/modified filters)

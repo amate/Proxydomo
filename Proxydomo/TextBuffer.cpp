@@ -29,9 +29,32 @@
 #include "Matcher.h"
 #include "proximodo\util.h"
 #include "Log.h"
+#include "CodeConvert.h"
+#include <atlsync.h>
 
-CTextBuffer::CTextBuffer(CFilterOwner& owner, IDataReceptor* output) : m_owner(owner), m_output(output)
+using namespace CodeConvert;
+using namespace icu;
+
+////////////////////////////////////////////////////////////////////////
+// CTextBuffer
+
+namespace {
+
+UCharsetDetector*	g_dectator;
+CCriticalSection	g_csMapConverter;
+std::map<std::string, UConverter*>	g_mapConverter;
+
+}
+
+CTextBuffer::CTextBuffer(CFilterOwner& owner, IDataReceptor* output) : 
+	m_owner(owner), m_output(output), m_bCharaCodeDectated(false), m_pConverter(nullptr)
 {
+	if (g_dectator == nullptr) {
+		UErrorCode err = UErrorCode::U_ZERO_ERROR;
+		g_dectator = ucsdet_open(&err);
+		ATLASSERT( U_SUCCESS(err) );
+	}
+
 	CCritSecLock	lock(CSettings::s_csFilters);
 	for (auto& filter : CSettings::s_vecpFilters) {
 		if (filter->errorMsg.empty() && filter->Active && filter->filterType == filter->kFilterText) 
@@ -58,20 +81,113 @@ void CTextBuffer::DataReset()
 	for (auto& filter : m_vecpTextfilters)
 		filter->reset();
 
-	m_output->DataReset();
+	m_tailBuffer.clear();
+	m_unicodeBuffer.remove();
+
+	m_bCharaCodeDectated = false;
+	m_pConverter = nullptr;
+	m_output->DataReset();	
+}
+
+/// EUC-JP, Shift-JIS, UTF-8 の末尾を調べる
+static int findEndPoint(const char* start, const char*& end)
+{
+	enum { kMaxDecriment = 512 };
+	--end;
+	for (int decrimentCount = 0; 
+			start < end && decrimentCount < kMaxDecriment; ++decrimentCount, --end)
+	{
+		unsigned char code = *end;
+		if (/*0x20*/0 < code && code <= 0x7E) {	// acii	// Shift-JISだと2byte目の可能性もあるが大丈夫
+			++end;
+			return decrimentCount;
+		}
+	}
+	return -1;
+}
+
+inline int CharCount(const wchar_t* end, const wchar_t* begin)
+{
+	ATLASSERT( end > begin );
+#ifdef _DEBUG
+	int count = (end - begin);
+	return count;
+#else
+	return (end - begin);
+#endif
+}
+
+
+static std::string GetCharaCode(const std::string& data)
+{
+	UErrorCode err = UErrorCode::U_ZERO_ERROR;
+	ucsdet_setText(g_dectator, data.c_str(), data.length(), &err);
+	ATLASSERT( U_SUCCESS( err ) );
+	err = UErrorCode::U_ZERO_ERROR;
+	const UCharsetMatch* charaCodeMatch = ucsdet_detect(g_dectator, &err);
+	ATLASSERT( charaCodeMatch );
+	ATLASSERT( U_SUCCESS( err ) );
+	err = UErrorCode::U_ZERO_ERROR;
+	std::string charaCode = ucsdet_getName(charaCodeMatch, &err);
+	return charaCode;
 }
 
 void CTextBuffer::DataFeed(const std::string& data)
 {
 	if (m_owner.killed)
 		return ;
-	m_buffer += data;
+
+	/// 文字コードを判別する
+	if (m_bCharaCodeDectated == false) {
+		
+		m_buffer += data;
+		enum { kMaxBufferForCharaCodeSearch = 5000 };
+		if (m_buffer.size() < kMaxBufferForCharaCodeSearch) {
+			if (data.size() > 0)
+				return ;	// バッファがたまるまで待つ
+		}
+
+		std::string charaCode = GetCharaCode(m_buffer);
+
+		CCritSecLock lock(g_csMapConverter);
+		auto& pConverter = g_mapConverter[charaCode];
+		if (pConverter == nullptr) {
+			UErrorCode err = UErrorCode::U_ZERO_ERROR;
+			pConverter = ucnv_open(charaCode.c_str(), &err);
+			ATLASSERT( pConverter );			
+		}
+		m_pConverter = pConverter;
+		m_bCharaCodeDectated = true;
+	} else {
+		m_buffer += m_tailBuffer;
+		m_tailBuffer.clear();
+		m_buffer += data;
+	}
 	std::stringstream out;
-  
-    const char* bufStart = m_buffer.data();
-    const char* bufEnd   = bufStart + m_buffer.size();
-    const char* index    = bufStart;
-    const char* done     = bufStart;
+
+	const char* endPoint = m_buffer.c_str() + m_buffer.size();
+	int decrimentCount = findEndPoint(m_buffer.c_str(), endPoint);
+	if (decrimentCount == -1) {
+		if (data.size() > 0)
+			return ;	// 末尾が見つからなかったら危ないので帰る
+		decrimentCount = 0;	// for data dump
+	}
+	// あまりを保存しておく
+	m_tailBuffer.assign(endPoint, decrimentCount);
+
+	int validBufferSize = endPoint - m_buffer.c_str();
+	if (validBufferSize > 0) {
+		std::wstring unibuff = UTF16fromConverter(m_buffer.c_str(), validBufferSize, m_pConverter);
+		m_buffer.clear();
+		m_unicodeBuffer.append(unibuff.c_str(), unibuff.length());
+	}
+	const UChar* bufStart = m_unicodeBuffer.getBuffer();
+	int len = m_unicodeBuffer.length();
+	if (len == 0)
+		return ;
+	const UChar* bufEnd   = bufStart + len;
+    const UChar* index    = bufStart;
+    const UChar* done     = bufStart;
     
     // test every filter at every position
     for (; index <= bufEnd; m_currentFilter = m_vecpTextfilters.begin(), ++index) {
@@ -87,11 +203,11 @@ void CTextBuffer::DataFeed(const std::string& data)
 
             if (ret < 0) {
 
-                if (m_owner.killed) {
+                if (m_owner.killed) {	// '\k'	?
 
                     // filter would like more data, but killed the stream anyway
-                    escapeOutput(out, done, (size_t)(index - done));
-                    m_buffer.clear();
+                    escapeOutput(out, done, CharCount(index, done));
+					m_unicodeBuffer.remove();
                     m_output->DataFeed(out.str());
                     m_output->DataDump();
                     return;         // no more processing
@@ -99,30 +215,32 @@ void CTextBuffer::DataFeed(const std::string& data)
                 } else {
 
                     // filter does not have enough data to provide an accurate result
-                    escapeOutput(out, done, (size_t)(index - done));
-                    m_buffer.erase(0, (size_t)(index - bufStart));
+                    escapeOutput(out, done, CharCount(index, done));
+					m_unicodeBuffer.remove(0, CharCount(index, bufStart));
                     m_output->DataFeed(out.str());
                     return;         // when more data arrives, same filter, same position
                 }
 
             } else if (ret > 0) {
 
-                string replaceText = (*m_currentFilter)->getReplaceText();
+                std::wstring replaceText = (*m_currentFilter)->getReplaceText();
 
                 // log match events
-                string occurrence(index, (size_t)((*m_currentFilter)->endOfMatched - index));
-				CLog::FilterEvent(kLogFilterTextMatch, m_owner.requestNumber, (*m_currentFilter)->title, occurrence);
-				CLog::FilterEvent(kLogFilterTextReplace, m_owner.requestNumber, (*m_currentFilter)->title, replaceText);
+                std::wstring occurrence(index, 
+					CharCount((*m_currentFilter)->endOfMatched, index));
+				// フィルタがマッチした
+				CLog::FilterEvent(kLogFilterTextMatch, m_owner.requestNumber, (*m_currentFilter)->title, ""/*occurrence*/);
+				//CLog::FilterEvent(kLogFilterTextReplace, m_owner.requestNumber, (*m_currentFilter)->title, replaceText);
 
-                escapeOutput(out, done, (size_t)(index - done));
+                escapeOutput(out, done, CharCount(index, done));
                 if (m_owner.url.getDebug()) {
                     string buf = "<div class=\"match\">\n"
                         "<div class=\"filter\">Match: ";
                     CUtil::htmlEscape(buf, (*m_currentFilter)->title);
                     buf += "</div>\n<div class=\"in\">";
-                    CUtil::htmlEscape(buf, occurrence);
+                    CUtil::htmlEscape(buf, ConvertFromUTF16(occurrence, m_pConverter));
                     buf += "</div>\n<div class=\"repl\">";
-                    CUtil::htmlEscape(buf, replaceText);
+                    CUtil::htmlEscape(buf, ConvertFromUTF16(replaceText, m_pConverter));
                     buf += "</div>\n</div>\n";
                     out << buf;
                 }
@@ -130,8 +248,9 @@ void CTextBuffer::DataFeed(const std::string& data)
 
                     // filter matched and killed the stream
                     if (!m_owner.url.getDebug())
-                        out << replaceText;
-                    m_buffer.clear();
+                        out << ConvertFromUTF16(replaceText, m_pConverter);
+
+					m_unicodeBuffer.remove();
                     m_output->DataFeed(out.str());
                     m_output->DataDump();
                     return;         // no more processing
@@ -139,10 +258,14 @@ void CTextBuffer::DataFeed(const std::string& data)
                 } else if ((*m_currentFilter)->multipleMatches) {
 
                     // filter matched, insert replace text in buffer
-                    m_buffer.replace(0, (size_t)((*m_currentFilter)->endOfMatched - bufStart),
-                                   replaceText);
-                    bufStart = m_buffer.data();
-                    bufEnd   = bufStart + m_buffer.size();
+                    //m_buffer.replace(0, (size_t)((*m_currentFilter)->endOfMatched - bufStart),
+                    //               replaceText);
+                    //bufStart = m_buffer.data();
+					m_unicodeBuffer.replace(0, 
+						CharCount((*m_currentFilter)->endOfMatched, bufStart), 
+						replaceText.c_str(), replaceText.length());
+					bufStart = m_unicodeBuffer.getBuffer();
+					bufEnd   = bufStart + m_unicodeBuffer.length();
                     index    = bufStart;
                     done     = bufStart;
                     continue;       // next filter, same position
@@ -150,12 +273,13 @@ void CTextBuffer::DataFeed(const std::string& data)
                 } else {
 
                     // filter matched, output replace text.
-                    if (!m_owner.url.getDebug())
-                        out << replaceText;
+                    if (m_owner.url.getDebug() == false)
+                        out << ConvertFromUTF16(replaceText, m_pConverter);
                     done = (*m_currentFilter)->endOfMatched;
                     // If the occurrence is length 0, we'll try next filters
                     // then move 1 byte, to avoid infinite loop on the filter.
-                    if (done == index) continue;
+                    if (done == index) 
+						continue;
                     index = done - 1;
                     break;          // first filter, after the occurrence
                 }
@@ -163,8 +287,7 @@ void CTextBuffer::DataFeed(const std::string& data)
             } else if (m_owner.killed) {
 
                 // filter did not match but killed the stream
-                escapeOutput(out, done, (size_t)(index - done));
-                m_buffer.clear();
+				escapeOutput(out, done, CharCount(index, done));
                 m_output->DataFeed(out.str());
                 m_output->DataDump();
                 return;             // no more processing
@@ -174,8 +297,8 @@ void CTextBuffer::DataFeed(const std::string& data)
     
     // we processed all the available data.
     // Add unmatching data left and send everything.
-    escapeOutput(out, done, (size_t)(bufEnd - done));
-    m_buffer.clear();
+    escapeOutput(out, done, CharCount(bufEnd, done));
+	m_unicodeBuffer.remove();
     m_output->DataFeed(out.str());
 
 }
@@ -194,13 +317,14 @@ void CTextBuffer::DataDump()
 }
 
 
-void CTextBuffer::escapeOutput(std::stringstream& out, const char *data,
-                               size_t len) {
+void CTextBuffer::escapeOutput(std::stringstream& out, const UChar *data, size_t len)
+{
+	std::string webcode = ConvertFromUTF16(data, len, m_pConverter);
     if (m_owner.url.getDebug()) {
         std::string buf;
-        CUtil::htmlEscape(buf, std::string(data, len));
+        CUtil::htmlEscape(buf, webcode);
         out << buf;
     } else {
-        out << std::string(data, len);
+        out << webcode;
     }
 }

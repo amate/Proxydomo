@@ -36,8 +36,10 @@
 #include "..\Matcher.h"
 #include <vector>
 #include <map>
+#include "..\CodeConvert.h"
 
 using namespace std;
+using namespace CodeConvert;
 
 /* Constructor
  */
@@ -75,25 +77,15 @@ bool CHeaderFilter::filter(string& content) {
 
     // check if URL matches
     if (urlMatcher) {
-        const char *start = owner.url.getFromHost().c_str();
-        const char *stop  = start + owner.url.getFromHost().size();
-        const char *end;
-        bool ret;
-		Proxydomo::MatchData matchData(this);
-        ret = urlMatcher->match(start, stop, end, &matchData);
+        bool ret = urlMatcher->match(owner.url.getFromHost(), this);
         unlock();
         if (!ret) return false;
     }
 
     // Check if content matches
     if (textMatcher) {
-        const char *start = content.c_str();
-        const char *stop  = start + content.size();
-        const char *end;
-        bool ret;
         this->content = content;
-		Proxydomo::MatchData matchData(this);
-        ret = textMatcher->match(start, stop, end, &matchData);
+        bool ret = textMatcher->match(content, this);
         unlock();
         if (!ret) return false;
     }
@@ -102,7 +94,7 @@ bool CHeaderFilter::filter(string& content) {
 	CLog::FilterEvent(kLogFilterHeaderMatch, owner.requestNumber, title, content);
                                
     // Compute new header content
-    content = CExpander::expand(replacePattern, *this);
+    content = UTF8fromUTF16(CExpander::expand(replacePattern, *this));
     unlock();
     CUtil::trim(content);
 

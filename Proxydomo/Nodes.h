@@ -51,7 +51,7 @@ public:
 	// CNode
     bool mayMatch(bool* tab) override;
     void setNextNode(CNode* node) override;
-	const char* match(const char* start, const char* stop, MatchData* pMatch) override;
+	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override;
 	
 private:
     int	 m_pos;
@@ -73,7 +73,7 @@ public:
 	// CNode
     bool mayMatch(bool* tab) override;
     void setNextNode(CNode* node) override;
-	const char* match(const char* start, const char* stop, MatchData* pMatch) override;
+	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override;
 
 private:
     int	m_pos;
@@ -99,7 +99,7 @@ public:
 
 	// CNode
     bool mayMatch(bool* tab) override;
-	const char* match(const char* start, const char* stop, MatchData* pMatch) override;
+	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override;
 };
 
 
@@ -114,7 +114,7 @@ public:
 
 	// CNode
     bool mayMatch(bool* tab) override;
-	const char* match(const char* start, const char* stop, MatchData* pMatch) override;
+	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override;
 };
 
 
@@ -124,18 +124,18 @@ public:
 class CNode_Quote : public CNode
 {
 public:
-	CNode_Quote(char q) : CNode(QUOTE), m_quote(q), m_matched(false), m_openingQuote(nullptr) { }
+	CNode_Quote(UChar q) : CNode(QUOTE), m_quote(q), m_matched(false), m_openingQuote(nullptr) { }
     ~CNode_Quote() { }
 
 	void setOpeningQuote(CNode_Quote* node) { m_openingQuote = node; }
 
 	// CNode
     bool mayMatch(bool* tab) override;
-	const char* match(const char* start, const char* stop, MatchData* pMatch) override;
+	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override;
 
 private:
-    char m_quote;                 // can be ' or "
-    char m_matched;
+    UChar m_quote;                 // can be ' or "
+    UChar m_matched;
     CNode_Quote* m_openingQuote;  // points to next ' in run, if any
 };
 
@@ -146,17 +146,17 @@ private:
 class CNode_Char : public CNode
 {
 public:
-	CNode_Char(char c) : CNode(CHAR), m_byte(c) { }
+	CNode_Char(UChar c) : CNode(CHAR), m_byte(c) { }
     ~CNode_Char() { }
 
-	char getChar() { return m_byte; }
+	UChar getChar() { return m_byte; }
 
 	// CNode
     bool mayMatch(bool* tab) override;
-	const char* match(const char* start, const char* stop, MatchData* pMatch) override;
+	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override;
 
 private:
-    char m_byte;
+    UChar m_byte;
 };
 
 
@@ -173,7 +173,7 @@ public:
 
 	// CNode
     bool mayMatch(bool* tab) override;
-	const char* match(const char* start, const char* stop, MatchData* pMatch) override;
+	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override;
 
 private:
     int m_min;
@@ -188,17 +188,17 @@ private:
 class CNode_String : public CNode
 {
 public:
-	CNode_String(const string& s) : CNode(STRING), m_str(s), m_size(s.length()) { }
+	CNode_String(const std::wstring& s) : CNode(STRING), m_str(s), m_size(s.length()) { }
     ~CNode_String() { }
 
-	void append(char c) { m_str += c; ++m_size; }
+	void append(UChar c) { m_str += c; ++m_size; }
 
 	// CNode
     bool mayMatch(bool* tab) override;
-	const char* match(const char* start, const char* stop, MatchData* pMatch) override;
+	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override;
 
 private:
-    std::string m_str;
+    std::wstring m_str;
     int	m_size;
 };
 
@@ -209,13 +209,13 @@ private:
 class CNode_Chars : public CNode
 {
 public:
-    CNode_Chars(const std::string& c, bool allow = true);
+    CNode_Chars(const std::wstring& c, bool allow = true);
     ~CNode_Chars() { }
 
 	void add(unsigned char c) { m_byte[c] = m_allow; }
 
     bool mayMatch(bool* tab) override;
-	const char* match(const char* start, const char* stop, MatchData* pMatch) override;
+	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override;
 
 private:
     bool m_byte[256];
@@ -234,7 +234,7 @@ public:
 
 	// CNode
     bool mayMatch(bool* tab) override;
-	const char* match(const char* start, const char* stop, MatchData* pMatch) override;
+	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override;
 
 private:
     bool m_accept;
@@ -252,7 +252,7 @@ public:
 
 	// CNode
     bool mayMatch(bool* tab) override;
-	const char* match(const char* start, const char* stop, MatchData* pMatch) override;
+	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override;
 };
 
 
@@ -268,7 +268,7 @@ public:
 	// CNode
     bool mayMatch(bool* tab) override;
     void setNextNode(CNode* node) override;
-	const char* match(const char* start, const char* stop, MatchData* pMatch) override;
+	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override;
 
 private:
     std::vector<CNode*>* m_nodes;
@@ -288,7 +288,7 @@ public:
 	// CNode
     bool mayMatch(bool* tab) override;
     void setNextNode(CNode* node) override;
-	const char* match(const char* start, const char* stop, MatchData* pMatch) override;
+	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override;
 
 private:
     std::vector<CNode*>* m_nodes;
@@ -309,7 +309,7 @@ public:
 	// CNode
     bool mayMatch(bool* tab) override;
     void setNextNode(CNode* node) override;
-	const char* match(const char* start, const char* stop, MatchData* pMatch) override;
+	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override;
 
 private:
     CNode* m_nodeL;
@@ -331,7 +331,7 @@ public:
 	// CNode
     bool mayMatch(bool* tab) override;
     void setNextNode(CNode* node) override;
-	const char* match(const char* start, const char* stop, MatchData* pMatch) override;
+	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override;
 
 private:
     CNode* m_node;
@@ -354,7 +354,7 @@ public:
 	// CNode
     bool mayMatch(bool* tab) override;
     void setNextNode(CNode* node) override;
-	const char* match(const char* start, const char* stop, MatchData* pMatch) override;
+	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override;
 
 private:
     CNode* m_node;
@@ -362,7 +362,7 @@ private:
 
     CMemory	m_backup;
     CNode_Memory* m_memorizer;
-    const char* m_recordPos;
+    const UChar* m_recordPos;
 };
 
 
@@ -378,7 +378,7 @@ public:
 	// CNode
     bool mayMatch(bool* tab) override;
     void setNextNode(CNode* node) override;
-	const char* match(const char* start, const char* stop, MatchData* pMatch) override;
+	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override;
 
 private:
     CNode* m_node;
@@ -397,7 +397,7 @@ public:
 	// CNode
     bool mayMatch(bool* tab) override;
     void setNextNode(CNode* node) override;
-	const char* match(const char* start, const char* stop, MatchData* pMatch) override;
+	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override;
 
 private:
     CNode*	m_node;
@@ -411,15 +411,15 @@ private:
 class CNode_Url : public CNode
 {
 public:
-	CNode_Url(char token) : CNode(URL), m_token(token) { }
+	CNode_Url(UChar token) : CNode(URL), m_token(token) { }
     ~CNode_Url() { }
 
 	// CNode
     bool mayMatch(bool* tab) override;
-	const char* match(const char* start, const char* stop, MatchData* pMatch) override;
+	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override;
 
 private:
-    char	m_token;
+    UChar	m_token;
 };
 
 
@@ -438,7 +438,7 @@ public:
 
 	// CNode
     bool mayMatch(bool* tab) override;
-	const char* match(const char* start, const char* stop, MatchData* pMatch) override;
+	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override;
 
 private:
     int hashBucket(char c) { return tolower(c) & 0xff; }
@@ -471,20 +471,20 @@ enum CMD_ID {
 class CNode_Command : public CNode
 {
 public:
-    CNode_Command(CMD_ID num, const std::string& name, const string& content/*, CFilter& filter*/);
+    CNode_Command(CMD_ID num, const std::wstring& name, const std::wstring& content/*, CFilter& filter*/);
     ~CNode_Command();
 
 	// CNode
     bool mayMatch(bool* tab) override;
-	const char* match(const char* start, const char* stop, MatchData* pMatch) override;
+	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override;
 
 private:
     CMD_ID	m_num;
-    std::string m_name;
-    std::string m_content;
+    std::wstring m_name;
+    std::wstring m_content;
     //CFilter& filter;
     //CFilterOwner& owner;
-    std::string m_toMatch;
+    std::wstring m_toMatch;
     CMatcher* m_matcher;
 };
 
@@ -500,7 +500,7 @@ public:
 
 	// CNode
     bool mayMatch(bool* tab) override;
-	const char* match(const char* start, const char* stop, MatchData* pMatch) override;
+	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override;
 
 private:
     int	m_x;
@@ -522,7 +522,7 @@ public:
 	// CNode
     bool mayMatch(bool* tab) override;
     void setNextNode(CNode* node) override;
-	const char* match(const char* start, const char* stop, MatchData* pMatch) override;
+	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override;
 
 private:
     CNode*	m_left;
@@ -540,15 +540,15 @@ private:
 class CNode_Test : public CNode
 {
 public:
-	CNode_Test(const std::string& name/*, CFilter& filter*/) : CNode(TEST), m_name(name) { }
+	CNode_Test(const std::wstring& name/*, CFilter& filter*/) : CNode(TEST), m_name(name) { }
     ~CNode_Test() { }
 
 	// CNode
     bool mayMatch(bool* tab) override;
-	const char* match(const char* start, const char* stop, MatchData* pMatch) override;
+	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override;
 
 private:
-    std::string m_name;
+    std::wstring m_name;
     //CFilter& filter;
 };
 
@@ -560,20 +560,20 @@ class CNode_Ask : public CNode
 {
 public:
     CNode_Ask(/*CFilter& filter,*/
-                std::string allowName, std::string denyName, std::string question,
-                std::string item, std::string pattern);
+                std::wstring allowName, std::wstring denyName, std::wstring question,
+                std::wstring item, std::wstring pattern);
     ~CNode_Ask();
 
 	// CNode
     bool mayMatch(bool* tab) override;
-	const char* match(const char* start, const char* stop, MatchData* pMatch) override;
+	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override;
 
 private:
     //CFilter& filter;
-    const std::string allowName, denyName, question, item, pattern;
+    const std::wstring allowName, denyName, question, item, pattern;
     CMatcher*	m_allowMatcher;
 	CMatcher*	m_denyMatcher;
-    std::string toMatch; // for matchers
+    std::wstring toMatch; // for matchers
 };
 
 }	// namespace Proxydomo

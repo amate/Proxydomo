@@ -34,8 +34,6 @@
 class CFilterDescriptor;
 namespace Proxydomo { class CMatcher; }
 
-using namespace std;
-
 /* class CTextFilter
  */
 class CTextFilter : public CFilter {
@@ -56,13 +54,13 @@ public:
 
     // Run the filter on string [index,bufTail)
     // Returns 1 (match), 0 (fail) or -1 (needs more data)
-    int match(const char* index, const char* bufTail);
+    int match(const wchar_t* index, const wchar_t* bufTail);
     
     // Generates the replacement text for the previous occurrence
-    string getReplaceText();
+    std::wstring getReplaceText();
 
     // If we match, end position of occurrence
-    const char* endOfMatched;
+    const wchar_t* endOfMatched;
 
     // If we match, shall we replace the matched text in the buffer
     // instead of sending it to the output stream?
@@ -97,7 +95,7 @@ private:
     std::shared_ptr<Proxydomo::CMatcher> textMatcher;
     
     // Replace pattern
-    string replacePattern;
+    std::wstring replacePattern;
 };
 
 #endif

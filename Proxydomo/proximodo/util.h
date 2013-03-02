@@ -44,10 +44,13 @@ public:
     
     // Small function replacing C function isdigit()
     static inline bool digit(char c) { return (c<='9' && c>='0'); }
+    static inline bool digit(wchar_t c) { return (c<=L'9' && c>=L'0'); }
     
     // Returns true if character is an hexadecimal digit
     static inline bool hexa(char c) { return ((c<='9' && c>='0') ||
                                         (toupper(c)<='F' && toupper(c)>='A')); }
+    static inline bool hexa(wchar_t c) { return ((c<=L'9' && c>=L'0') ||
+										(towupper(c)<=L'F' && towupper(c)>=L'A')); }
 
     // Case-insensitive compare
     static bool noCaseEqual(const string& s1, const string& s2);
@@ -60,6 +63,7 @@ public:
 
     // Trim string
     static string& trim(string& s, string list = string(" \t\r\n"));
+	static wstring& trim(wstring& s, wstring list = wstring(L" \t\r\n"));
 
     // Decode hexadecimal number at string start
     static unsigned int readHex(const string& s);
@@ -90,9 +94,11 @@ public:
 
     // Put string in uppercase
     static string& upper(string& s);
+    static wstring& upper(wstring& s);
 
     // Put string in lowercase
     static string& lower(string& s);
+    static wstring& lower(wstring& s);
 
     // Convert a numerical IPV4 address to its dotted representation
     static string toDotted(unsigned long adr);
@@ -102,18 +108,22 @@ public:
 
     // Escape a string
     static string ESC(const string& str);
+    static wstring ESC(const wstring& str);
 
     // Escape special characters in a string
     static string WESC(const string& str);
+    static wstring WESC(const wstring& str);
 
     // Unescape a string
     static string UESC(const string& str);
+    static wstring UESC(const wstring& str);
 
     // Formats a number
     static string pad(int n, int size);
 
     // Check if keys are pressed
     static bool keyCheck(const string& keys);
+    static bool keyCheck(const wstring& keys);
 
     // Finds the first unescaped occurence of a character in a string
     static size_t findUnescaped(const string& str, char c);

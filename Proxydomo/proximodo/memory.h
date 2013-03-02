@@ -28,8 +28,6 @@
 
 #include <string>
 
-using namespace std;
-
 /* class CMemory
  * Represents a matched string, by its position in original string or by value
  * Used to retain \1 or \#
@@ -37,19 +35,19 @@ using namespace std;
 class CMemory {
 
 private:
-    const char* posStart;   // start position in text buffer
-    const char* posEnd;     // end position in text
-    string* content;    // (pointer so that we don't construct string if not used)
+    const wchar_t* posStart;   // start position in text buffer
+    const wchar_t* posEnd;     // end position in text
+    std::wstring* content;    // (pointer so that we don't construct string if not used)
 
 public:
     // Default constructor
     inline CMemory();
     
     // Constructor (by value)
-    inline CMemory(const string& value);
+    inline CMemory(const std::wstring& value);
 
     // Constructor (by markers)
-    inline CMemory(const char* posStart, const char* posEnd);
+    inline CMemory(const wchar_t* posStart, const wchar_t* posEnd);
 
     // Copy constructor
     inline CMemory(const CMemory& mem);
@@ -61,11 +59,11 @@ public:
     inline bool isByValue();
 
     // Get the retained value
-    inline string getValue();
+    inline std::wstring getValue();
 
     // Change operators
-    inline CMemory& operator()(const string& value);
-    inline CMemory& operator()(const char* posStart, const char* posEnd);
+    inline CMemory& operator()(const std::wstring& value);
+    inline CMemory& operator()(const wchar_t* posStart, const wchar_t* posEnd);
 
     // Clear content
     inline void clear();
@@ -83,15 +81,16 @@ CMemory::CMemory() : posStart(NULL), posEnd(NULL), content(NULL) {
 
 /* Constructor (by value)
  */
-CMemory::CMemory(const string& value) {
-    content = new string(value);
+CMemory::CMemory(const std::wstring& value) : content(new std::wstring(value))
+{
 }
 
 
 /* Constructor (by markers)
  */
-CMemory::CMemory(const char* posStart, const char* posEnd) :
-        posStart(posStart), posEnd(posEnd), content(NULL) {
+CMemory::CMemory(const wchar_t* posStart, const wchar_t* posEnd) :
+        posStart(posStart), posEnd(posEnd), content(NULL)
+{
 }
 
 
@@ -99,7 +98,7 @@ CMemory::CMemory(const char* posStart, const char* posEnd) :
  */
 CMemory::CMemory(const CMemory& mem) {
     if (mem.content) {
-        content = new string(*mem.content);
+        content = new std::wstring(*mem.content);
     } else {
         content  = NULL;
         posStart = mem.posStart;
@@ -124,9 +123,9 @@ bool CMemory::isByValue() {
 
 /* Get the retained value
  */
-string CMemory::getValue() {
+std::wstring CMemory::getValue() {
     return (content ? *content : posStart < posEnd ?
-            string(posStart, posEnd - posStart) : string("") );
+            std::wstring(posStart, posEnd - posStart) : std::wstring(L"") );
 }
 
 
@@ -137,7 +136,7 @@ CMemory& CMemory::operator=(const CMemory& mem) {
         if (content) {
             *content = *mem.content;
         } else {
-            content = new string(*mem.content);
+            content = new std::wstring(*mem.content);
         }
     } else {
         if (content) delete content;
@@ -151,16 +150,16 @@ CMemory& CMemory::operator=(const CMemory& mem) {
 
 /* Change operators
  */
-CMemory& CMemory::operator()(const string& value) {
+CMemory& CMemory::operator()(const std::wstring& value) {
     if (content) {
         *content = value;
     } else {
-        content = new string(value);
+        content = new std::wstring(value);
     }
     return *this;
 }
 
-CMemory& CMemory::operator()(const char* posStart, const char* posEnd) {
+CMemory& CMemory::operator()(const wchar_t* posStart, const wchar_t* posEnd) {
     if (content) { delete content; content = NULL; }
     this->posStart = posStart;
     this->posEnd   = posEnd;

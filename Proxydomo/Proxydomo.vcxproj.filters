@@ -162,6 +162,12 @@
     <ClCompile Include="Nodes_.cpp">
       <Filter>Header Files</Filter>
     </ClCompile>
+    <ClCompile Include="CodeConvert.cpp">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VersionControl.cpp">
+      <Filter>Header Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -339,6 +345,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Matcher.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CodeConvert.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VersionControl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

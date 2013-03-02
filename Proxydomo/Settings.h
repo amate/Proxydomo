@@ -71,7 +71,7 @@ public:
 
 	static void LoadList(const CString& filePath);
 private:
-	static void _CreatePattern(const std::string& pattern, 
+	static void _CreatePattern(const std::wstring& pattern, 
 							   std::array<std::deque<HashedListCollection::SListItem>, 256>& hashed);
 
 };

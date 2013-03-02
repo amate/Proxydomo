@@ -226,12 +226,16 @@ void	CSocket::Close()
 		//setReadTimeout(2000);
 		auto starttime = std::chrono::steady_clock::now();
 		char c[1024];
-		while (IsDataAvailable()) {
-			int len = ::recv(m_sock, c, sizeof(c), 0);
-			if (len == 0 || len == SOCKET_ERROR)
-				break;
-			if (std::chrono::steady_clock::now() - starttime > std::chrono::seconds(5))
-				break;
+		try {
+			while (IsDataAvailable()) {
+				int len = ::recv(m_sock, c, sizeof(c), 0);
+				if (len == 0 || len == SOCKET_ERROR)
+					break;
+				if (std::chrono::steady_clock::now() - starttime > std::chrono::seconds(5))
+					break;
+			}
+		} catch (SocketException& e) {
+			ATLTRACE( e.msg );
 		}
 		::shutdown(m_sock, SD_RECEIVE);
 		if (::closesocket(m_sock) == SOCKET_ERROR) {

@@ -23,9 +23,10 @@
 #include "stdafx.h"
 #include "Settings.h"
 #include <fstream>
+#include <codecvt>
 #include <boost\property_tree\ptree.hpp>
-#include <boost\property_tree\json_parser.hpp>
 #include <boost\property_tree\ini_parser.hpp>
+#include <boost\property_tree\xml_parser.hpp>
 #include <Shlwapi.h>
 #pragma comment(lib, "Shlwapi.lib")
 #include "Misc.h"
@@ -33,7 +34,10 @@
 //#include "proximodo\matcher.h"
 #include "Log.h"
 #include "Matcher.h"
+#include "CodeConvert.h"
 
+using namespace CodeConvert;
+using namespace boost::property_tree;
 
 template <class _Function>
 bool ForEachFile(const CString &strDirectoryPath, _Function __f)
@@ -83,7 +87,7 @@ CCriticalSection								CSettings::s_csFilters;
 std::recursive_mutex							CSettings::s_mutexHashedLists;
 std::unordered_map<std::string, std::unique_ptr<HashedListCollection>>	CSettings::s_mapHashedLists;
 
-using namespace boost::property_tree;
+
 
 void	CSettings::LoadSettings()
 {
@@ -127,38 +131,43 @@ void	CSettings::SaveSettings()
 
 void CSettings::LoadFilter()
 {
-	CString filterPath = Misc::GetExeDirectory() + _T("filter.json");
+	CString filterPath = Misc::GetExeDirectory() + _T("filter.xml");
 	if (::PathFileExists(filterPath) == FALSE)
 		return ;
 
-	std::ifstream	fs(filterPath);
+	std::wifstream	fs(filterPath);
 	if (!fs) {
-		MessageBox(NULL, _T("filter.jsonのオープンに失敗"), NULL, MB_ICONERROR);
+		MessageBox(NULL, _T("filter.xmlのオープンに失敗"), NULL, MB_ICONERROR);
 		return ;
 	}
+	fs.imbue(std::locale(std::locale(), new std::codecvt_utf8_utf16<wchar_t>));
 
-	ptree pt;
-	read_json(fs, pt);
-	if (auto& opChild = pt.get_child_optional("ProxydomoFilter")) {
-		ptree& ptChild = opChild.get();
+	wptree pt;
+	try {
+		read_xml(fs, pt);
+	} catch (...) {
+		return ;
+	}
+	if (auto& opChild = pt.get_child_optional(L"ProxydomoFilter")) {
+		wptree& ptChild = opChild.get();
 		for (auto& ptIt : ptChild) {
-			ptree& ptFilter = ptIt.second;
+			wptree& ptFilter = ptIt.second;
 			std::unique_ptr<CFilterDescriptor> pFilter(new CFilterDescriptor);
-			pFilter->Active		= ptFilter.get<bool>("Active", true);
-			pFilter->title		= ptFilter.get("title", "");
-			pFilter->version	= ptFilter.get("version", "");
-			pFilter->author		= ptFilter.get("author", "");
-			pFilter->comment	= ptFilter.get("comment", "");
+			pFilter->Active		= ptFilter.get<bool>(L"Active", true);
+			pFilter->title		= UTF8fromUTF16(ptFilter.get(L"title", L""));
+			pFilter->version	= UTF8fromUTF16(ptFilter.get(L"version", L""));
+			pFilter->author		= UTF8fromUTF16(ptFilter.get(L"author", L""));
+			pFilter->comment	= UTF8fromUTF16(ptFilter.get(L"comment", L""));
 			pFilter->filterType	= 
 				static_cast<CFilterDescriptor::FilterType>(
-					ptFilter.get<int>("filterType", (int)CFilterDescriptor::kFilterText));
-			pFilter->headerName	= ptFilter.get("headerName", "");
-			pFilter->multipleMatches= ptFilter.get<bool>("multipleMatches", false);
-			pFilter->windowWidth	= ptFilter.get<int>("windowWidth", 128);
-			pFilter->boundsPattern	= ptFilter.get("boundsPattern", "");
-			pFilter->urlPattern		= ptFilter.get("urlPattern", "");
-			pFilter->matchPattern	= ptFilter.get("matchPattern", "");
-			pFilter->replacePattern	= ptFilter.get("replacePattern", "");
+					ptFilter.get<int>(L"filterType", (int)CFilterDescriptor::kFilterText));
+			pFilter->headerName	= UTF8fromUTF16(ptFilter.get(L"headerName", L""));
+			pFilter->multipleMatches= ptFilter.get<bool>(L"multipleMatches", false);
+			pFilter->windowWidth	= ptFilter.get<int>(L"windowWidth", 128);
+			pFilter->boundsPattern	= (ptFilter.get(L"boundsPattern", L""));
+			pFilter->urlPattern		= (ptFilter.get(L"urlPattern", L""));
+			pFilter->matchPattern	= (ptFilter.get(L"matchPattern", L""));
+			pFilter->replacePattern	= (ptFilter.get(L"replacePattern", L""));
 			
 			pFilter->CreateMatcher();
 
@@ -167,34 +176,38 @@ void CSettings::LoadFilter()
 	}
 }
 
+
+
 void CSettings::SaveFilter()
 {
-	CString filterPath = Misc::GetExeDirectory() + _T("filter.json");
-	std::ofstream	fs(filterPath);
-	if (!fs) {
-		MessageBox(NULL, _T("filter.jsonのオープンに失敗"), NULL, MB_ICONERROR);
-		return ;
+	wptree pt;
+	for (auto& filter : s_vecpFilters) {
+		wptree ptFilter;
+		ptFilter.put(L"Active", filter->Active);
+		ptFilter.put(L"title", UTF16fromUTF8(filter->title));
+		ptFilter.put(L"version", UTF16fromUTF8(filter->version));
+		ptFilter.put(L"author", UTF16fromUTF8(filter->author));
+		ptFilter.put(L"comment", UTF16fromUTF8(filter->comment));
+		ptFilter.put(L"filterType", (int)filter->filterType);
+		ptFilter.put(L"headerName", UTF16fromUTF8(filter->headerName));
+		ptFilter.put(L"multipleMatches", filter->multipleMatches);
+		ptFilter.put(L"windowWidth", filter->windowWidth);
+		ptFilter.put(L"boundsPattern", (filter->boundsPattern));
+		ptFilter.put(L"urlPattern", (filter->urlPattern));
+		ptFilter.put(L"matchPattern", (filter->matchPattern));
+		ptFilter.put(L"replacePattern", (filter->replacePattern));
+		pt.add_child(L"ProxydomoFilter.filter", ptFilter);
 	}
 
-	ptree pt;
-	for (auto& filter : s_vecpFilters) {
-		ptree ptFilter;
-		ptFilter.put("Active", filter->Active);
-		ptFilter.put("title", filter->title);
-		ptFilter.put("version", filter->version);
-		ptFilter.put("author", filter->author);
-		ptFilter.put("comment", filter->comment);
-		ptFilter.put("filterType", (int)filter->filterType);
-		ptFilter.put("headerName", filter->headerName);
-		ptFilter.put("multipleMatches", filter->multipleMatches);
-		ptFilter.put("windowWidth", filter->windowWidth);
-		ptFilter.put("boundsPattern", filter->boundsPattern);
-		ptFilter.put("urlPattern", filter->urlPattern);
-		ptFilter.put("matchPattern", filter->matchPattern);
-		ptFilter.put("replacePattern", filter->replacePattern);
-		pt.add_child("ProxydomoFilter.filter", ptFilter);
+	CString filterPath = Misc::GetExeDirectory() + _T("filter.xml");
+	std::wofstream	fs(filterPath);
+	if (!fs) {
+		MessageBox(NULL, _T("filter.xmlのオープンに失敗"), NULL, MB_ICONERROR);
+		return ;
 	}
-	write_json(fs, pt);
+	fs.imbue(std::locale(std::locale(), new std::codecvt_utf8_utf16<wchar_t>));
+
+	write_xml(fs, pt, xml_parser::xml_writer_make_settings(L' ', 2, xml_parser::widen<wchar_t>("UTF-8")));
 }
 
 
@@ -228,10 +241,10 @@ void CSettings::LoadList(const CString& filePath)
 		return ;	// 更新されていなかったら帰る
 	prevLastWriteTime = time;
 
-	std::ifstream fs(filePath);
+	std::wifstream fs(filePath);
 	if (!fs)
 		return ;
-
+	fs.imbue(std::locale(std::locale(), new std::codecvt_utf8_utf16<wchar_t>));
 	{
 		s_mutexHashedLists.lock();
 		auto& hashedLists = s_mapHashedLists[filename];
@@ -242,11 +255,10 @@ void CSettings::LoadList(const CString& filePath)
 		std::shared_ptr<std::array<std::deque<HashedListCollection::SListItem>, 256>>	
 			spHashedArray(new std::array<std::deque<HashedListCollection::SListItem>, 256>);
 
-		std::string strLine;
+		std::wstring strLine;
 		while (std::getline(fs, strLine).good()) {
 			CUtil::trim(strLine);
-			if (strLine.size() > 0 && strLine[0] != '#'
-				/* && Proxydomo::CMatcher::CreateMatcher(strLine)*/) {
+			if (strLine.size() > 0 && strLine[0] != L'#') {
 				_CreatePattern(strLine, *spHashedArray);
 			}
 		}
@@ -257,19 +269,21 @@ void CSettings::LoadList(const CString& filePath)
 }
 
 
-void CSettings::_CreatePattern(const std::string& pattern, 
+void CSettings::_CreatePattern(const std::wstring& pattern, 
 							   std::array<std::deque<HashedListCollection::SListItem>, 256>& hashed)
 {
     // we'll record the built node and its flags in a structure
     HashedListCollection::SListItem item = { NULL, 0 };
-    if (pattern[0] == '~') 
+    if (pattern[0] == L'~') 
 		item.flags |= 0x1;
     int start = (item.flags & 0x1) ? 1 : 0;
-    char c = pattern[start];
-    if (isHashable(c)) item.flags |= 0x2;
+    wchar_t c = pattern[start];
+    if (isHashable((char)c)) item.flags |= 0x2;
     // parse the pattern
 	try {
-		item.node.reset(Proxydomo::CMatcher::expr(pattern, start, pattern.size()));
+		UnicodeString pat(pattern.c_str(), pattern.length());
+		StringCharacterIterator patternIt(pat);
+		item.node.reset(Proxydomo::CMatcher::expr(patternIt));
 	} catch (...) {
 		return ;
 	}
@@ -278,7 +292,7 @@ void CSettings::_CreatePattern(const std::string& pattern,
     
     if (item.flags & 0x2) {
         // hashable pattern goes in a single hashed bucket (lowercase)
-        hashed[hashBucket(c)].push_back(item);
+        hashed[hashBucket((char)c)].push_back(item);
     } else {
         // Expressions that start with a special char cannot be hashed
         // Push them on every hashed list

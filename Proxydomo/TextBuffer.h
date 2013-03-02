@@ -24,8 +24,12 @@
 
 #include <vector>
 #include <memory>
+#include <map>
 #include "DataReceptor.h"
 #include "proximodo\textfilter.h"
+#include <unicode\ustring.h>
+#include <unicode\ucnv.h>
+#include <unicode\ucsdet.h>
 
 class CFilterOwner;
 class CTextFilter;
@@ -58,9 +62,14 @@ private:
     std::vector<std::unique_ptr<CTextFilter>>::iterator	m_currentFilter;
 
     // pass string to output, escaping HTML chars as needed
-    void escapeOutput(stringstream& out, const char *data, size_t len);
+    void escapeOutput(stringstream& out, const UChar *data, size_t len);
     
     // the actual buffer
     std::string	m_buffer;
+	std::string m_tailBuffer;
+
+	bool	m_bCharaCodeDectated;
+	icu::UnicodeString	m_unicodeBuffer;
+	UConverter*	m_pConverter;
 };
 

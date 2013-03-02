@@ -59,7 +59,7 @@ CRequestManager::CRequestManager(std::unique_ptr<CSocket>&& psockBrowser) :
 {
 	m_filterOwner.requestNumber = 0;
 
-	m_pUrlBypassMatcher = Proxydomo::CMatcher::CreateMatcher("$LST(Bypass)");
+	m_pUrlBypassMatcher = Proxydomo::CMatcher::CreateMatcher(L"$LST(Bypass)");
 
 	CCritSecLock	lock(CSettings::s_csFilters);
 	for (auto& filter : CSettings::s_vecpFilters) {
@@ -386,10 +386,9 @@ void CRequestManager::_ProcessOut()
 				{
 					m_urlBypassFilter.clearMemory();
 					CFilter filter(m_filterOwner);
-					Proxydomo::MatchData	matchData(&filter);
 					const std::string& url = m_filterOwner.url.getFromHost();
 					const char* end = nullptr;
-					if (m_pUrlBypassMatcher->match(url.c_str(), url.c_str() + url.size(), end, &matchData))
+					if (m_pUrlBypassMatcher->match(url, &filter))
 						m_filterOwner.bypassOut = m_filterOwner.bypassIn = m_filterOwner.bypassBody = true;
 				}
 

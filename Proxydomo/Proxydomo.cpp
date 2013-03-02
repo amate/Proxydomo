@@ -31,9 +31,11 @@
 #include "Socket.h"
 #include "Proxy.h"
 #include "Settings.h"
+#include "VersionControl.h"
 
 // ÉOÉçÅ[ÉoÉãïœêî
 CAppModule _Module;
+
 
 int Run(LPTSTR /*lpstrCmdLine*/ = NULL, int nCmdShow = SW_SHOWDEFAULT)
 {
@@ -85,6 +87,8 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR lp
 
 	hRes = _Module.Init(NULL, hInstance);
 	ATLASSERT(SUCCEEDED(hRes));
+
+	CVersionControl::Run();
 
 	CSettings::LoadSettings();
 

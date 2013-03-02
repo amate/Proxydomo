@@ -29,8 +29,6 @@
 #include <string>
 class CFilter;
 
-using namespace std;
-
 /* The CExpander class decodes a replacing pattern on the fly,
  * and returns the decoded string. It needs references to
  * memorized strings and request url, in order to decode \1 and \u
@@ -39,7 +37,7 @@ class CExpander {
 
 public:
     // Decode the pattern
-    static string expand(const string& pattern, CFilter& filter);
+    static std::wstring expand(const std::wstring& pattern, CFilter& filter);
 };
         
 #endif

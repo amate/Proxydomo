@@ -35,7 +35,9 @@
 #include "Settings.h"
 #include "Misc.h"
 #include "Matcher.h"
+#include "CodeConvert.h"
 
+using namespace CodeConvert;
 
 CString MiscGetWindowText(HWND hWnd)
 {
@@ -139,23 +141,23 @@ public:
         }
 		if (m_bTestURLPattern == false) {
 			// special processing for <start> and <end> filters
-			if (m_pFilter->matchPattern == "<start>" || m_pFilter->matchPattern == "<end>") {
-				std::string str = CExpander::expand(m_pFilter->replacePattern, filter);
+			if (m_pFilter->matchPattern == L"<start>" || m_pFilter->matchPattern == L"<end>") {
+				std::wstring str = CExpander::expand(m_pFilter->replacePattern, filter);
 				filter.unlock();
-				if (m_pFilter->matchPattern == "<start>") {
-					str += CT2A(MiscGetWindowText(m_editTest));
+				if (m_pFilter->matchPattern == L"<start>") {
+					str += (MiscGetWindowText(m_editTest));
 				} else {
-					std::string temp = str;
-					str = CT2A(MiscGetWindowText(m_editTest));
+					std::wstring temp = str;
+					str = (MiscGetWindowText(m_editTest));
 					str += temp;
 				}
-				m_editResult.SetWindowText(CA2T(str.c_str()));
+				m_editResult.SetWindowText((str.c_str()));
 				return;
 			}
 		} else {
 			std::string text = CT2A(MiscGetWindowText(m_editTest));
 			const char* end = nullptr;
-			if (matcher.match(text.c_str(), text.c_str() + text.size(), end, &matchData)) {
+			if (matcher.match(text, &filter)) {
 				m_editResult.SetWindowText(_T("マッチしました！"));
 			} else {
 				m_editResult.SetWindowText(_T("マッチしませんでした..."));
@@ -163,17 +165,17 @@ public:
 			return ;
 		}
 
-        std::stringstream result;
-        std::string text;
+        std::wstringstream result;
+        std::wstring text;
         int size = 0;
         int run = 0;
         int numMatch = 0;
 		auto starttime = std::chrono::high_resolution_clock::now();
             
         do {
-            text = CT2A(MiscGetWindowText(m_editTest));
+            text = MiscGetWindowText(m_editTest);
             size = text.size();
-            result.str("");
+            result.str(L"");
             owner.killed = false;
             filter.bypassed = false;
 
@@ -182,20 +184,23 @@ public:
 			if (m_pFilter->filterType == CFilterDescriptor::kFilterText) {
 
                 bool found = false;
-                const char* bufHead = text.c_str();
-                const char* bufTail = bufHead + size;
-                const char* index   = bufHead;
-                const char* done    = bufHead;
-                while (index<=bufTail && !owner.killed && !filter.bypassed) {
-                    if (index<bufTail && !okayChars[(unsigned char)(*index)]) {
+                const wchar_t* bufHead = text.c_str();
+                const wchar_t* bufTail = bufHead + size;
+                const wchar_t* index   = bufHead;
+                const wchar_t* done    = bufHead;
+                while (index <= bufTail && !owner.killed && !filter.bypassed) {
+                    if (index < bufTail && !okayChars[(unsigned char)(*index)]) {
                         ++index;
                         continue;
                     }
                     bool matched;
-                    const char *end = nullptr;
-                    const char *stop = index + m_pFilter->windowWidth;
-                    if (stop > bufTail) stop = bufTail;
+                    const wchar_t* end = nullptr;
+                    const wchar_t* stop = index + m_pFilter->windowWidth;
+                    if (stop > bufTail) 
+						stop = bufTail;
+
                     filter.clearMemory();
+
                     if (boundsMatcher) {
                         matched = boundsMatcher->match(index, stop, end, &matchData);
                         filter.unlock();
@@ -213,19 +218,19 @@ public:
                     }
                     found = true;
                     if (run == 0) numMatch++;
-                    result << string(done, (size_t)(index-done));
+                    result << std::wstring(done, (size_t)(index-done));
                     result << CExpander::expand(m_pFilter->replacePattern, filter);
                     filter.unlock();
                     done = end;
                     if (end == index) ++index; else index = end;
                 }
-                if (!owner.killed) result << string(done, (size_t)(bufTail-done));
-                if (!found) result.str(/*CSettings::ref().getMessage*/("TEST_NO_MATCH"));
+                if (!owner.killed) result << std::wstring(done, (size_t)(bufTail-done));
+                if (!found) result.str(/*CSettings::ref().getMessage*/(L"TEST_NO_MATCH"));
 
             // Test of a header filter. Much simpler...
             } else {
 
-                const char *index, *stop, *end;
+                const wchar_t *index, *stop, *end;
                 index = text.c_str();
                 stop  = index + text.size();
                 if ((!text.empty() || m_pFilter->matchPattern.empty())
@@ -245,7 +250,7 @@ public:
 
         if (prof) {
 			int len = m_editTest.GetWindowTextLength();
-			double totaltime = std::chrono::duration_cast<std::chrono::milliseconds>
+			double totaltime = (double)std::chrono::duration_cast<std::chrono::milliseconds>
 									(std::chrono::high_resolution_clock::now() - starttime).count();
 			double avarage = totaltime / run;
 			double busytime = 0.0;
@@ -260,9 +265,8 @@ public:
 
 			m_editResult.SetWindowText(text);
         } else {
-			m_editResult.SetWindowText(CA2T(result.str().c_str()));
+			m_editResult.SetWindowText((result.str().c_str()));
         }
-
 	}
 
 private:
@@ -288,18 +292,18 @@ CFilterEditWindow::CFilterEditWindow(CFilterDescriptor* pfd) :
 {
 	ATLASSERT( m_pFilter );
 
-	m_title			= m_pFilter->title.c_str();
-	m_auther		= m_pFilter->author.c_str();
-	m_version		= m_pFilter->version.c_str();
-	m_description	= m_pFilter->comment.c_str();
+	m_title			= UTF16fromUTF8(m_pFilter->title).c_str();
+	m_auther		= UTF16fromUTF8(m_pFilter->author).c_str();
+	m_version		= UTF16fromUTF8(m_pFilter->version).c_str();
+	m_description	= UTF16fromUTF8(m_pFilter->comment).c_str();
 	m_filterType	= m_pFilter->filterType;
-	m_headerName	= m_pFilter->headerName.c_str();
+	m_headerName	= UTF16fromUTF8(m_pFilter->headerName).c_str();
 	m_multipleMatch	= m_pFilter->multipleMatches;
-	m_urlPattern	= m_pFilter->urlPattern.c_str();
-	m_boundesMatch	= m_pFilter->boundsPattern.c_str();
+	m_urlPattern	= (m_pFilter->urlPattern).c_str();
+	m_boundesMatch	= (m_pFilter->boundsPattern).c_str();
 	m_windowWidth	= m_pFilter->windowWidth;
-	m_matchPattern	= m_pFilter->matchPattern.c_str();
-	m_replacePattern= m_pFilter->replacePattern.c_str();
+	m_matchPattern	= (m_pFilter->matchPattern).c_str();
+	m_replacePattern= (m_pFilter->replacePattern).c_str();
 }
 
 CFilterEditWindow::~CFilterEditWindow()
@@ -419,18 +423,18 @@ void	CFilterEditWindow::_SaveToTempFilter()
 {
 	DoDataExchange(DDX_SAVE);
 
-	m_pTempFilter->title		= CT2A(m_title);
-	m_pTempFilter->author		= CT2A(m_auther);
-	m_pTempFilter->version		= CT2A(m_version);
-	m_pTempFilter->comment		= CT2A(m_description);
+	m_pTempFilter->title		= UTF8fromUTF16(m_title.GetBuffer());
+	m_pTempFilter->author		= UTF8fromUTF16(m_auther.GetBuffer());
+	m_pTempFilter->version		= UTF8fromUTF16(m_version.GetBuffer());
+	m_pTempFilter->comment		= UTF8fromUTF16(m_description.GetBuffer());
 	m_pTempFilter->filterType	= static_cast<CFilterDescriptor::FilterType>(m_filterType);
-	m_pTempFilter->headerName	= CT2A(m_headerName);
+	m_pTempFilter->headerName	= UTF8fromUTF16(m_headerName.GetBuffer());
 	m_pTempFilter->multipleMatches	= m_multipleMatch;
-	m_pTempFilter->urlPattern	= CT2A(m_urlPattern);
-	m_pTempFilter->boundsPattern= CT2A(m_boundesMatch);
+	m_pTempFilter->urlPattern	= (m_urlPattern.GetBuffer());
+	m_pTempFilter->boundsPattern= (m_boundesMatch.GetBuffer());
 	m_pTempFilter->windowWidth	= m_windowWidth;
-	m_pTempFilter->matchPattern	= CT2A(m_matchPattern);
-	m_pTempFilter->replacePattern= CT2A(m_replacePattern);
+	m_pTempFilter->matchPattern	= (m_matchPattern.GetBuffer());
+	m_pTempFilter->replacePattern= (m_replacePattern.GetBuffer());
 }
 
 

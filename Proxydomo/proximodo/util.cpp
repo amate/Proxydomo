@@ -57,9 +57,18 @@ bool CUtil::noCaseContains(const string& s1, const string& s2) {
 }
 
 // Trim string
-string& CUtil::trim(string& s, string list) {
+string& CUtil::trim(string& s, string list)
+{
     size_t p1 = s.find_first_not_of(list);
     if (p1 == string::npos) return s = "";
+    size_t p2 = s.find_last_not_of(list);
+    return s = s.substr(p1, p2+1-p1);
+}
+
+wstring& CUtil::trim(wstring& s, wstring list)
+{
+    size_t p1 = s.find_first_not_of(list);
+    if (p1 == string::npos) return s = L"";
     size_t p2 = s.find_last_not_of(list);
     return s = s.substr(p1, p2+1-p1);
 }
@@ -156,10 +165,24 @@ string& CUtil::upper(string& s) {
     return s;
 }
 
+wstring& CUtil::upper(wstring& s) {
+    for (auto it = s.begin(); it != s.end(); it++) {
+        *it = towupper(*it);
+    }
+    return s;
+}
+
 // Put string in lowercase
 string& CUtil::lower(string& s) {
-    for (string::iterator it = s.begin(); it != s.end(); it++) {
+    for (auto it = s.begin(); it != s.end(); it++) {
         *it = tolower(*it);
+    }
+    return s;
+}
+
+wstring& CUtil::lower(wstring& s) {
+    for (auto it = s.begin(); it != s.end(); it++) {
+        *it = towlower(*it);
     }
     return s;
 }
@@ -206,6 +229,23 @@ string CUtil::ESC(const string& str) {
     return out.str();
 }
 
+wstring CUtil::ESC(const wstring& str) {
+    wstringstream out;
+    static const wstring ok = L"@*-_+./";
+    static const wstring hex = L"0123456789ABCDEF";
+    for (auto c = str.begin(); c != str.end(); c++) {
+        if (   (*c >= L'A' && *c <= L'Z')
+            || (*c >= L'a' && *c <= L'z')
+            || (*c >= L'0' && *c <= L'9')
+            || ok.find_first_of(*c) != string::npos ) {
+            out << *c;
+        } else {
+            out << L'%' << hex[*c/16] << hex[*c%16];
+        }
+    }
+    return out.str();
+}
+
 // Escape special characters in a string
 string CUtil::WESC(const string& str) {
     stringstream out;
@@ -218,12 +258,38 @@ string CUtil::WESC(const string& str) {
     return out.str();
 }
 
+wstring CUtil::WESC(const wstring& str) {
+    wstringstream out;
+    static const wstring nok = L"*+[]()\\\"'|&";
+    static const wstring hex = L"0123456789ABCDEF";
+    for (auto c = str.begin(); c != str.end(); c++) {
+        if (nok.find_first_of(*c) != string::npos) out << '\\';
+        out << *c;
+    }
+    return out.str();
+}
+
 // Unescape a string
 string CUtil::UESC(const string& str) {
     stringstream out;
     static const string hex = "0123456789ABCDEF";
     for (string::const_iterator c = str.begin(); c != str.end(); c++) {
         if (*c == '%' && hex.find(*(c+1)) != string::npos
+                      && hex.find(*(c+2)) != string::npos) {
+            out << (char)(hex.find(*(c+1))*16+hex.find(*(c+2)));
+            c += 2;
+        } else {
+            out << *c;
+        }
+    }
+    return out.str();
+}
+
+wstring CUtil::UESC(const wstring& str) {
+    wstringstream out;
+    static const wstring hex = L"0123456789ABCDEF";
+    for (auto c = str.begin(); c != str.end(); c++) {
+        if (*c == L'%' && hex.find(*(c+1)) != string::npos
                       && hex.find(*(c+2)) != string::npos) {
             out << (char)(hex.find(*(c+1))*16+hex.find(*(c+2)));
             c += 2;
@@ -263,6 +329,38 @@ bool CUtil::keyCheck(const string& keys) {
                 }
                 for (; i < size && CUtil::digit(keys[i]); ++i)
                     num = num*10 + keys[i] - '0';
+                key += num;
+                --i;
+            }
+        }
+		if (!(::GetAsyncKeyState(key) < 0)) 
+			return false;
+    }
+    return true;
+}
+
+
+bool CUtil::keyCheck(const wstring& keys) {
+    size_t size = keys.size();
+    for (size_t i = 0; i<size; i++) {
+        int key = (int)keys[i];
+        int num = 0;
+        if (key == '^' && i+1 < size) {
+            key = keys[++i];
+            switch (key) {
+            case L'T' : key = VK_TAB;     break;
+            case L'C' : key = VK_CONTROL; break;
+            case L'A' : key = VK_MENU;    break;
+            case L'S' : key = VK_SHIFT;   break;
+            default : // ^num or ^Fnum
+                if (key == L'F') {
+                    key = VK_F1 - 1;
+                    ++i;
+                } else {
+                    key = 0;
+                }
+                for (; i < size && CUtil::digit(keys[i]); ++i)
+                    num = num*10 + keys[i] - L'0';
                 key += num;
                 --i;
             }
