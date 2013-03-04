@@ -41,4 +41,4 @@ $(SolutionDir)zlib\zlib125dll\static32\zlibstat.lib
 これ以外の場所にzlibを置いているなら適当にzlibbuffer.h/cppを修正してください
 
 ICU は
-$(SolutionDir)icu フォルダに include と lib があればコンパパイル通るようになっています
+$(SolutionDir)icu フォルダに include と lib があればコンパイル通るようになっています

@@ -65,6 +65,7 @@
 #define IDC_BUTTON_TEST_URLPATTERN	1048
 #define IDC_STATIC_ACTIVEREQUESTCOUNT	1049
 
+
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED

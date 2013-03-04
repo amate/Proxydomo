@@ -38,6 +38,7 @@
 #include "CodeConvert.h"
 
 using namespace CodeConvert;
+using namespace boost::property_tree;
 
 CString MiscGetWindowText(HWND hWnd)
 {
@@ -54,7 +55,7 @@ CString MiscGetWindowText(HWND hWnd)
 //////////////////////////////////////////////////////////
 // CFilterTestWindow
 
-class CFilterTestWindow : public CDialogImpl<CFilterTestWindow>
+class CFilterTestWindow : public CDialogImpl<CFilterTestWindow>, public CDialogResize<CFilterTestWindow>
 {
 public:
 	enum { IDD = IDD_FILTERTEST };
@@ -74,12 +75,20 @@ public:
 
 	void OnFinalMessage(HWND /*hWnd*/) override { delete this; }
 
+	BEGIN_DLGRESIZE_MAP( CFilterTestWindow )
+		DLGRESIZE_CONTROL( IDC_EDIT_TESTTEXT, DLSZ_SIZE_X | DLSZ_SIZE_Y )
+		DLGRESIZE_CONTROL( IDC_EDIT_RESULTTEXT, DLSZ_MOVE_Y | DLSZ_SIZE_X )
+
+	END_DLGRESIZE_MAP()
+
 	BEGIN_MSG_MAP_EX( CFilterTestWindow )
 		MSG_WM_INITDIALOG( OnInitDialog )
 		MSG_WM_DESTROY( OnDestroy )
 		COMMAND_ID_HANDLER_EX( IDCANCEL, OnCancel )
 		COMMAND_ID_HANDLER_EX( IDC_BUTTON_TEST, OnTestAnalyze )
 		COMMAND_ID_HANDLER_EX( IDC_BUTTON_ANALYZE, OnTestAnalyze )
+		COMMAND_ID_HANDLER_EX( IDC_BUTTON_CLEAR, OnClear )
+		CHAIN_MSG_MAP( CDialogResize<CFilterTestWindow> )
 	END_MSG_MAP()
 
 	// void OnCommandIDHandlerEX(UINT uNotifyCode, int nID, CWindow wndCtl)
@@ -91,6 +100,23 @@ public:
 
 		m_editTest.SetWindowText(s_strLastTest);
 
+		// ダイアログリサイズ初期化
+		DlgResize_Init(true, true, WS_THICKFRAME | WS_CLIPCHILDREN | WS_MAXIMIZEBOX);
+
+		std::string settingsPath = CT2A(Misc::GetExeDirectory() + _T("settings.ini"));
+		ptree pt;
+		try {
+			read_ini(settingsPath, pt);
+		} catch (...) {
+		}
+		CRect rcWindow;
+		rcWindow.top	= pt.get("FilterTestWindow.top", 0);
+		rcWindow.left	= pt.get("FilterTestWindow.left", 0);
+		rcWindow.right	= pt.get("FilterTestWindow.right", 0);
+		rcWindow.bottom	= pt.get("FilterTestWindow.bottom", 0);
+		if (rcWindow != CRect())
+			MoveWindow(&rcWindow);
+
 		return 0;
 	}
 
@@ -98,6 +124,23 @@ public:
 
 	void OnCancel(UINT uNotifyCode, int nID, CWindow wndCtl)
 	{
+		std::string settingsPath = CT2A(Misc::GetExeDirectory() + _T("settings.ini"));
+		ptree pt;
+		try {
+			read_ini(settingsPath, pt);
+		} catch (...) {
+		}
+
+		CRect rcWindow;
+		GetWindowRect(&rcWindow);
+		
+		pt.put("FilterTestWindow.top", rcWindow.top);
+		pt.put("FilterTestWindow.left", rcWindow.left);
+		pt.put("FilterTestWindow.right", rcWindow.right);
+		pt.put("FilterTestWindow.bottom", rcWindow.bottom);
+
+		write_ini(settingsPath, pt);
+
 		ShowWindow(FALSE);
 	}
 
@@ -156,8 +199,10 @@ public:
 			}
 		} else {
 			std::string text = CT2A(MiscGetWindowText(m_editTest));
+			CUrl	url;
+			url.parseUrl(text);
 			const char* end = nullptr;
-			if (matcher.match(text, &filter)) {
+			if (matcher.match(url.getFromHost(), &filter)) {
 				m_editResult.SetWindowText(_T("マッチしました！"));
 			} else {
 				m_editResult.SetWindowText(_T("マッチしませんでした..."));
@@ -269,6 +314,11 @@ public:
         }
 	}
 
+	void OnClear(UINT uNotifyCode, int nID, CWindow wndCtl)
+	{
+		m_editTest.SetWindowText(_T(""));
+	}
+
 private:
 	// Data members
 	CFilterDescriptor*	m_pFilter;
@@ -336,7 +386,6 @@ BOOL CFilterEditWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
     // ダイアログリサイズ初期化
     DlgResize_Init(true, true, WS_THICKFRAME | WS_MAXIMIZEBOX);
 
-	using namespace boost::property_tree;
 	std::string settingsPath = CT2A(Misc::GetExeDirectory() + _T("settings.ini"));
 	ptree pt;
 	try {
@@ -356,7 +405,6 @@ BOOL CFilterEditWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 
 void CFilterEditWindow::OnDestroy()
 {
-	using namespace boost::property_tree;	
 	std::string settingsPath = CT2A(Misc::GetExeDirectory() + _T("settings.ini"));
 	ptree pt;
 	try {
