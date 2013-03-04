@@ -28,6 +28,9 @@
 #include <boost\property_tree\ptree.hpp>
 #include "Misc.h"
 #include "Settings.h"
+#include "CodeConvert.h"
+
+using namespace CodeConvert;
 
 #define  LOG_COLOR_BACKGROUND  RGB(255, 255, 255)
 #define  LOG_COLOR_DEFAULT     RGB(140, 140, 140)
@@ -159,6 +162,7 @@ void CLogViewWindow::FilterEvent(LogFilterEvent Event, int RequestNumber, const 
 		break;
 
 	case kLogFilterHeaderReplace:
+		return ;
 		msg += _T("HeaderReplace");
 		break;
 
@@ -167,6 +171,7 @@ void CLogViewWindow::FilterEvent(LogFilterEvent Event, int RequestNumber, const 
 		break;
 
 	case kLogFilterTextReplace:
+		return ;
 		msg += _T("TextReplace");
 		break;
 
@@ -202,7 +207,7 @@ void CLogViewWindow::FilterEvent(LogFilterEvent Event, int RequestNumber, const 
 		ATLASSERT( FALSE );
 		return ;
 	}
-	msg.AppendFormat(_T(", title[ %s ] "), CA2T(title.c_str()));
+	msg.AppendFormat(_T(", title[ %s ] "), UTF16fromUTF8(title).c_str());
 	if (Event == kLogFilterHeaderMatch)
 		msg += text.c_str();
 	msg += _T("\n");

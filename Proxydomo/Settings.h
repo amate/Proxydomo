@@ -55,6 +55,8 @@ public:
 
 	static bool			s_WebFilterDebug;
 
+	static char			s_urlCommandPrefix[16];
+
 	static void	LoadSettings();
 	static void	SaveSettings();
 

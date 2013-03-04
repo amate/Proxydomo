@@ -24,6 +24,7 @@
 #include "Settings.h"
 #include <fstream>
 #include <codecvt>
+#include <random>
 #include <boost\property_tree\ptree.hpp>
 #include <boost\property_tree\ini_parser.hpp>
 #include <boost\property_tree\xml_parser.hpp>
@@ -80,6 +81,7 @@ bool			CSettings::s_filterOut	= true;
 
 bool			CSettings::s_WebFilterDebug	= false;
 
+char			CSettings::s_urlCommandPrefix[16] = {};
 
 std::vector<std::unique_ptr<CFilterDescriptor>>	CSettings::s_vecpFilters;
 CCriticalSection								CSettings::s_csFilters;
@@ -104,6 +106,13 @@ void	CSettings::LoadSettings()
 		if (auto value = pt.get_optional<bool>("Setting.filterOut"))
 			s_filterOut	= value.get();
 	}
+
+	// prefixÇê›íË
+	static const char charactorSelection[] = "abcdefghijklmnopqrstuvqxyz0123456789";
+	std::random_device	randEngine;
+	std::uniform_int_distribution<int> dist(0, _countof(charactorSelection) - 1);
+	for (auto& c : s_urlCommandPrefix)
+		c = charactorSelection[dist(randEngine)];
 
 	CSettings::LoadFilter();
 

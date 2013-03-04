@@ -27,6 +27,7 @@
 #include "proximodo\const.h"	// for BIGNUMBER
 #include <unicode\uchar.h>
 #include "CodeConvert.h"
+#include "Settings.h"
 
 using namespace CodeConvert;
 
@@ -570,7 +571,11 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
                 return new CNode_MemStar();
             case L'k':
                 // Rule: \k
-                return new CNode_Command(CMD_KILL, L"", L""/*, filter*/);
+                return new CNode_Command(CMD_KILL, L"", L"");
+			case L'd':
+				// Rule: \d
+				return new CNode_Chars(L"0123456789");
+
             default:
                 // Rule: \0-9
 				if (iswdigit(token))

@@ -45,6 +45,7 @@
 #include <set>
 #include <wctype.h>
 #include "..\CodeConvert.h"
+#include "..\Settings.h"
 
 using namespace std;
 using namespace Proxydomo;
@@ -135,7 +136,12 @@ std::wstring CExpander::expand(const std::wstring& pattern, CFilter& filter) {
             case L'a': output << UTF16fromUTF8(filter.owner.url.getAnchor()); break;
             //case 'd': output << wxT("file:///");
             //          output << CUtil::replaceAll(W2S(wxGetCwd()), "\\", "/");
-                      break;
+                  break;
+
+			case L'x':
+				output << UTF16fromUTF8(CSettings::s_urlCommandPrefix);
+				break;
+
             default :
                 if (CUtil::digit(c)) {
                     // code \0-9 we get the corresponding memorized string

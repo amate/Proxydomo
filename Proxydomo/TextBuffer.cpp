@@ -109,7 +109,6 @@ static int findEndPoint(const char* start, const char*& end)
 
 inline int CharCount(const wchar_t* end, const wchar_t* begin)
 {
-	ATLASSERT( end > begin );
 #ifdef _DEBUG
 	int count = (end - begin);
 	return count;
@@ -121,8 +120,6 @@ inline int CharCount(const wchar_t* end, const wchar_t* begin)
 
 static std::string GetCharaCode(const std::string& data)
 {
-	
-
 	UErrorCode err = UErrorCode::U_ZERO_ERROR;
 	ucsdet_setText(g_dectator, data.c_str(), data.length(), &err);
 	ATLASSERT( U_SUCCESS( err ) );

@@ -29,6 +29,7 @@
 #include "url.h"
 #include <windows.h>
 #include "..\Settings.h"
+#include "util.h"
 
 using namespace std;
 
@@ -45,48 +46,47 @@ CUrl::CUrl(const string& str) {
 void CUrl::parseUrl(const string& str) {
 
     size_t pos1 = str.find("://");
-    if (pos1 == string::npos) pos1 = 0; else pos1 += 3;
+    if (pos1 == string::npos) 
+		pos1 = 0;
+	else
+		pos1 += 3;
     url       = str;
     protocol  = (pos1 ? str.substr(0, pos1-3) : string("http"));
 
     bypassIn = bypassOut = bypassText = debug = source = false;
-#if 0
-    //if (CSettings::ref().enableUrlCmd &&
-    //    str.substr(pos1, CSettings::ref().urlCmdPrefix.length()) ==
-    //    CSettings::ref().urlCmdPrefix) {
+
+	if (str.substr(pos1, _countof(CSettings::s_urlCommandPrefix)) == CSettings::s_urlCommandPrefix) {
         bool foundUrlCmd = false;
-        //pos1 += CSettings::ref().urlCmdPrefix.length();
-        while (1) {
-            string s5 = str.substr(pos1, 5);
-            string s6;
-            if (s5 == "bin..") {
+        pos1 += _countof(CSettings::s_urlCommandPrefix);
+        for (;;) {
+            string begin = str.substr(pos1);
+            if (CUtil::noCaseBeginsWith("bin.", begin)) {
                 bypassIn = true;
-                pos1 += 5;
-            } else if ((s6 = str.substr(pos1, 6)) == "bout..") {
+                pos1 += 4;
+            } else if (CUtil::noCaseBeginsWith("bout.", begin)) {
                 bypassOut = true;
-                pos1 += 6;
-            } else if (s6 == "bweb..") {
-                bypassText = true;
-                pos1 += 6;
-            } else if (str.substr(pos1, 8) == "bypass..") {
-                bypassIn = bypassOut = bypassText = true;
-                pos1 += 8;
-            } else if (s6 == "dbug..") {
-                debug = true;
-                pos1 += 6;
-            } else if (s5 == "src..") {
-                source = true;
                 pos1 += 5;
+            } else if (CUtil::noCaseBeginsWith("bweb.", begin)) {
+                bypassText = true;
+                pos1 += 5;
+            } else if (CUtil::noCaseBeginsWith("bypass.", begin)) {
+                bypassIn = bypassOut = bypassText = true;
+                pos1 += 7;
+            } else if (CUtil::noCaseBeginsWith("dbug.", begin)) {
+                debug = true;
+                pos1 += 5;
+            } else if (CUtil::noCaseBeginsWith("src.", begin)) {
+                source = true;
+                pos1 += 4;
             } else {
                 break;
             }
             foundUrlCmd = true;
         }
-        //if (!foundUrlCmd)
-        //    pos1 -= CSettings::ref().urlCmdPrefix.length();
-    //}
-#endif
-		debug	= (::GetAsyncKeyState(VK_PAUSE) < 0) || CSettings::s_WebFilterDebug;
+        if (foundUrlCmd == false)
+            pos1 -= _countof(CSettings::s_urlCommandPrefix);
+    }
+	//	debug	= (::GetAsyncKeyState(VK_PAUSE) < 0) || CSettings::s_WebFilterDebug;
 
     size_t pos2 = str.find_first_of("/?#", pos1);
     if (pos2 == string::npos) pos2 = str.length();
