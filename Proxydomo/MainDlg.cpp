@@ -123,6 +123,8 @@ LRESULT CMainDlg::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/,
 
 	DoDataExchange(DDX_SAVE);
 
+	if (m_filterManagerWindow.IsWindow())
+		m_filterManagerWindow.DestroyWindow();
 
 	{	// トレイアイコンを削除
 		NOTIFYICONDATA	nid = { sizeof(NOTIFYICONDATA) };

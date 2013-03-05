@@ -38,6 +38,7 @@ namespace Misc {
 
 /// クリップボードにあるテキストを取得する
 CString GetClipboardText(bool bUseOLE = false);
+bool	SetClipboardText(const CString& str);
 
 // ==========================================================================
 

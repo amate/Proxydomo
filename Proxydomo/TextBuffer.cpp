@@ -56,14 +56,10 @@ CTextBuffer::CTextBuffer(CFilterOwner& owner, IDataReceptor* output) :
 		ATLASSERT( U_SUCCESS(err) );
 	}
 
-	CCritSecLock	lock(CSettings::s_csFilters);
-	for (auto& filter : CSettings::s_vecpFilters) {
-		if (filter->errorMsg.empty() && filter->Active && filter->filterType == filter->kFilterText) 
-		{
+	CSettings::EnumActiveFilter([&, this](CFilterDescriptor* filter) {
+		if (filter->filterType == filter->kFilterText)
 			m_vecpTextfilters.emplace_back(new CTextFilter(owner, *filter));
-		}
-	}
-
+	});
 	m_currentFilter = m_vecpTextfilters.begin();
 }
 

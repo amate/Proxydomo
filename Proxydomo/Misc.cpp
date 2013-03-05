@@ -79,6 +79,31 @@ CString GetClipboardText(bool bUseOLE /*= false*/)
 }
 
 
+bool SetClipboardText(const CString& str)
+{
+	if ( str.IsEmpty() )
+		return false;
+
+	int 	nByte = (str.GetLength() + 1) * sizeof(TCHAR);
+	HGLOBAL hText = ::GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, nByte);
+	if (hText == NULL)
+		return false;
+
+	BYTE* pText = (BYTE*)::GlobalLock(hText);
+	if (pText == NULL)
+		return false;
+
+	::memcpy(pText, (LPCTSTR) str, nByte);
+
+	::GlobalUnlock(hText);
+
+	::OpenClipboard(NULL);
+	::EmptyClipboard();
+	::SetClipboardData(CF_UNICODETEXT, hText);
+	::CloseClipboard();
+	return true;
+}
+
 
 // ==========================================================================
 

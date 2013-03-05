@@ -130,6 +130,7 @@ public:
 
     // Replace all occurences of a string by another
     static string replaceAll(const string& str, string s1, string s2);
+    static wstring replaceAll(const wstring& str, wstring s1, wstring s2);
 
     // Get the content of a binary file
     static string getFile(string filename);

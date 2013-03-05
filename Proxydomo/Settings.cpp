@@ -83,10 +83,10 @@ bool			CSettings::s_WebFilterDebug	= false;
 
 char			CSettings::s_urlCommandPrefix[16] = {};
 
-std::vector<std::unique_ptr<CFilterDescriptor>>	CSettings::s_vecpFilters;
-CCriticalSection								CSettings::s_csFilters;
+std::vector<std::unique_ptr<FilterItem>>	CSettings::s_vecpFilters;
+CCriticalSection							CSettings::s_csFilters;
 
-std::recursive_mutex							CSettings::s_mutexHashedLists;
+std::recursive_mutex						CSettings::s_mutexHashedLists;
 std::unordered_map<std::string, std::unique_ptr<HashedListCollection>>	CSettings::s_mapHashedLists;
 
 
@@ -138,6 +138,44 @@ void	CSettings::SaveSettings()
 	write_ini(settingsPath, pt);
 }
 
+void	LoadFilterItem(wptree& ptChild, std::vector<std::unique_ptr<FilterItem>>& vecpFilter)
+{
+	for (auto& ptIt : ptChild) {
+		wptree& ptFilter = ptIt.second;
+		std::unique_ptr<FilterItem>	pFilterItem(new FilterItem);
+		if (ptIt.first == L"filter") {
+			std::unique_ptr<CFilterDescriptor> pFilter(new CFilterDescriptor);
+			pFilter->Active		= ptFilter.get<bool>(L"Active", true);
+			pFilter->title		= ptFilter.get(L"title", L"");
+			pFilter->version	= UTF8fromUTF16(ptFilter.get(L"version", L""));
+			pFilter->author		= UTF8fromUTF16(ptFilter.get(L"author", L""));
+			pFilter->comment	= UTF8fromUTF16(ptFilter.get(L"comment", L""));
+			pFilter->filterType	= 
+				static_cast<CFilterDescriptor::FilterType>(
+					ptFilter.get<int>(L"filterType", (int)CFilterDescriptor::kFilterText));
+			pFilter->headerName	= UTF8fromUTF16(ptFilter.get(L"headerName", L""));
+			pFilter->multipleMatches= ptFilter.get<bool>(L"multipleMatches", false);
+			pFilter->windowWidth	= ptFilter.get<int>(L"windowWidth", 128);
+			pFilter->boundsPattern	= (ptFilter.get(L"boundsPattern", L""));
+			pFilter->urlPattern		= (ptFilter.get(L"urlPattern", L""));
+			pFilter->matchPattern	= (ptFilter.get(L"matchPattern", L""));
+			pFilter->replacePattern	= (ptFilter.get(L"replacePattern", L""));
+			
+			pFilter->CreateMatcher();
+
+			pFilterItem->pFilter = std::move(pFilter);
+			vecpFilter.push_back(std::move(pFilterItem));
+
+		} else if (ptIt.first == L"folder") {
+			pFilterItem->name = ptFilter.get(L"<xmlattr>.name", L"no name").c_str();
+			pFilterItem->active = ptFilter.get<bool>(L"<xmlattr>.active", true);
+			pFilterItem->pvecpChildFolder.reset(new std::vector<std::unique_ptr<FilterItem>>);
+			LoadFilterItem(ptFilter, *pFilterItem->pvecpChildFolder);
+			vecpFilter.push_back(std::move(pFilterItem));
+		}
+	}
+}
+
 void CSettings::LoadFilter()
 {
 	CString filterPath = Misc::GetExeDirectory() + _T("filter.xml");
@@ -159,54 +197,47 @@ void CSettings::LoadFilter()
 	}
 	if (auto& opChild = pt.get_child_optional(L"ProxydomoFilter")) {
 		wptree& ptChild = opChild.get();
-		for (auto& ptIt : ptChild) {
-			wptree& ptFilter = ptIt.second;
-			std::unique_ptr<CFilterDescriptor> pFilter(new CFilterDescriptor);
-			pFilter->Active		= ptFilter.get<bool>(L"Active", true);
-			pFilter->title		= ptFilter.get(L"title", L"");
-			pFilter->version	= UTF8fromUTF16(ptFilter.get(L"version", L""));
-			pFilter->author		= UTF8fromUTF16(ptFilter.get(L"author", L""));
-			pFilter->comment	= UTF8fromUTF16(ptFilter.get(L"comment", L""));
-			pFilter->filterType	= 
-				static_cast<CFilterDescriptor::FilterType>(
-					ptFilter.get<int>(L"filterType", (int)CFilterDescriptor::kFilterText));
-			pFilter->headerName	= UTF8fromUTF16(ptFilter.get(L"headerName", L""));
-			pFilter->multipleMatches= ptFilter.get<bool>(L"multipleMatches", false);
-			pFilter->windowWidth	= ptFilter.get<int>(L"windowWidth", 128);
-			pFilter->boundsPattern	= (ptFilter.get(L"boundsPattern", L""));
-			pFilter->urlPattern		= (ptFilter.get(L"urlPattern", L""));
-			pFilter->matchPattern	= (ptFilter.get(L"matchPattern", L""));
-			pFilter->replacePattern	= (ptFilter.get(L"replacePattern", L""));
-			
-			pFilter->CreateMatcher();
+		LoadFilterItem(ptChild, s_vecpFilters);
+	}
+}
 
-			s_vecpFilters.push_back(std::move(pFilter));
+void	SaveFilterItem(std::vector<std::unique_ptr<FilterItem>>& vecpFilter, wptree& pt)
+{
+	for (auto& pFilterItem : vecpFilter) {
+		if (pFilterItem->pvecpChildFolder) {
+			wptree ptChild;
+			SaveFilterItem(*pFilterItem->pvecpChildFolder, ptChild);
+			wptree& ptFolder = pt.add_child(L"folder", ptChild);
+			ptFolder.put(L"<xmlattr>.name", (LPCWSTR)pFilterItem->name);
+			ptFolder.put(L"<xmlattr>.active", pFilterItem->active);
+
+		} else {
+			wptree ptFilter;
+			CFilterDescriptor* filter = pFilterItem->pFilter.get();
+			ptFilter.put(L"Active", filter->Active);
+			ptFilter.put(L"title", filter->title);
+			ptFilter.put(L"version", UTF16fromUTF8(filter->version));
+			ptFilter.put(L"author", UTF16fromUTF8(filter->author));
+			ptFilter.put(L"comment", UTF16fromUTF8(filter->comment));
+			ptFilter.put(L"filterType", (int)filter->filterType);
+			ptFilter.put(L"headerName", UTF16fromUTF8(filter->headerName));
+			ptFilter.put(L"multipleMatches", filter->multipleMatches);
+			ptFilter.put(L"windowWidth", filter->windowWidth);
+			ptFilter.put(L"boundsPattern", (filter->boundsPattern));
+			ptFilter.put(L"urlPattern", (filter->urlPattern));
+			ptFilter.put(L"matchPattern", (filter->matchPattern));
+			ptFilter.put(L"replacePattern", (filter->replacePattern));
+			pt.add_child(L"filter", ptFilter);
 		}
 	}
 }
 
-
-
 void CSettings::SaveFilter()
 {
+	wptree ptChild;
+	SaveFilterItem(s_vecpFilters, ptChild);
 	wptree pt;
-	for (auto& filter : s_vecpFilters) {
-		wptree ptFilter;
-		ptFilter.put(L"Active", filter->Active);
-		ptFilter.put(L"title", filter->title);
-		ptFilter.put(L"version", UTF16fromUTF8(filter->version));
-		ptFilter.put(L"author", UTF16fromUTF8(filter->author));
-		ptFilter.put(L"comment", UTF16fromUTF8(filter->comment));
-		ptFilter.put(L"filterType", (int)filter->filterType);
-		ptFilter.put(L"headerName", UTF16fromUTF8(filter->headerName));
-		ptFilter.put(L"multipleMatches", filter->multipleMatches);
-		ptFilter.put(L"windowWidth", filter->windowWidth);
-		ptFilter.put(L"boundsPattern", (filter->boundsPattern));
-		ptFilter.put(L"urlPattern", (filter->urlPattern));
-		ptFilter.put(L"matchPattern", (filter->matchPattern));
-		ptFilter.put(L"replacePattern", (filter->replacePattern));
-		pt.add_child(L"ProxydomoFilter.filter", ptFilter);
-	}
+	pt.add_child(L"ProxydomoFilter", ptChild);
 
 	CString filterPath = Misc::GetExeDirectory() + _T("filter.xml");
 	std::wofstream	fs(filterPath);
@@ -217,6 +248,27 @@ void CSettings::SaveFilter()
 	fs.imbue(std::locale(std::locale(), new std::codecvt_utf8_utf16<wchar_t>));
 
 	write_xml(fs, pt, xml_parser::xml_writer_make_settings(L' ', 2, xml_parser::widen<wchar_t>("UTF-8")));
+}
+
+static void ActiveFilterCallFunc(std::vector<std::unique_ptr<FilterItem>>& vecFilters, 
+								 std::function<void (CFilterDescriptor*)>& func)
+{
+	for (auto& filterItem : vecFilters) {
+		if (filterItem->pFilter) {
+			CFilterDescriptor* filter = filterItem->pFilter.get();
+			if (filter->Active && filter->errorMsg.empty())
+				func(filter);
+		} else {
+			if (filterItem->active)
+				ActiveFilterCallFunc(*filterItem->pvecpChildFolder, func);
+		}
+	}
+}
+
+void CSettings::EnumActiveFilter(std::function<void (CFilterDescriptor*)> func)
+{
+	CCritSecLock	lock(CSettings::s_csFilters);
+	ActiveFilterCallFunc(s_vecpFilters, func);
 }
 
 

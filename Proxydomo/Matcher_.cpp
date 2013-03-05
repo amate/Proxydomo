@@ -775,7 +775,7 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
                 if (name[0] == L'\\') name.erase(0,1);
                 if (name == L"#") {
                     return new CNode_Command(CMD_SETSHARP, L"", value/*, filter*/);
-					bool b = iswdigit(name[0]);
+					bool b = iswdigit(name[0]) != 0;
                 } else if (name.length() == 1 && CUtil::digit(name[0])) {
                     return new CNode_Command(CMD_SETDIGIT, name, value/*, filter*/);
                 } else {

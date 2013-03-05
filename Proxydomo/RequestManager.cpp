@@ -61,19 +61,16 @@ CRequestManager::CRequestManager(std::unique_ptr<CSocket>&& psockBrowser) :
 
 	m_pUrlBypassMatcher = Proxydomo::CMatcher::CreateMatcher(L"$LST(Bypass)");
 
-	CCritSecLock	lock(CSettings::s_csFilters);
-	for (auto& filter : CSettings::s_vecpFilters) {
-		if (filter->errorMsg.empty() && filter->Active) {
-			try {
-				if (filter->filterType == filter->kFilterHeadIn)
-					m_vecpInFilter.emplace_back(new CHeaderFilter(*filter, m_filterOwner));
-				else if (filter->filterType == filter->kFilterHeadOut)
-					m_vecpOutFilter.emplace_back(new CHeaderFilter(*filter, m_filterOwner));
-			} catch (...) {
-				// Invalid filters are just ignored
-			}
+	CSettings::EnumActiveFilter([&, this](CFilterDescriptor* filter) {
+		try {
+			if (filter->filterType == filter->kFilterHeadIn)
+				m_vecpInFilter.emplace_back(new CHeaderFilter(*filter, m_filterOwner));
+			else if (filter->filterType == filter->kFilterHeadOut)
+				m_vecpOutFilter.emplace_back(new CHeaderFilter(*filter, m_filterOwner));
+		} catch (...) {
+			// Invalid filters are just ignored
 		}
-	}
+	});
 }
 
 

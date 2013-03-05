@@ -45,6 +45,14 @@ struct HashedListCollection {
 	std::shared_ptr<std::array<std::deque<SListItem>, 256>>	spHashedArray;
 };
 
+struct FilterItem
+{
+	CString	name;
+	bool	active;
+	std::unique_ptr<CFilterDescriptor>	pFilter;
+	std::unique_ptr<std::vector<std::unique_ptr<FilterItem>>>	pvecpChildFolder;
+};
+
 class CSettings
 {
 public:
@@ -61,8 +69,11 @@ public:
 	static void	SaveSettings();
 
 	// CCritSecLock	lock(CSettings::s_csFilters);
-	static std::vector<std::unique_ptr<CFilterDescriptor>>	s_vecpFilters;
+	static std::vector<std::unique_ptr<FilterItem>>	s_vecpFilters;
 	static CCriticalSection									s_csFilters;
+
+	/// アクティブなフィルターを返す (※ lockは必要ない)
+	static void EnumActiveFilter(std::function<void (CFilterDescriptor*)> func);
 
 	// std::lock_guard<std::recursive_mutex> lock(CSettings::s_mutexHashedLists);
 	static std::recursive_mutex								s_mutexHashedLists;

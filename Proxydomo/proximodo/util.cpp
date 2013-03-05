@@ -390,6 +390,16 @@ string CUtil::replaceAll(const string& str, string s1, string s2) {
     return ret;
 }
 
+wstring CUtil::replaceAll(const wstring& str, wstring s1, wstring s2) {
+    wstring ret = str;
+    size_t pos = ret.find(s1);
+    while (pos != wstring::npos) {
+        ret.replace(pos, s1.length(), s2);
+        pos = ret.find(s1, pos + s2.length());
+    }
+    return ret;
+}
+
 // Get the content of a binary file
 string CUtil::getFile(string filename) {
 

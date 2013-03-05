@@ -47,21 +47,24 @@ END
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDR_MAINFRAME           ICON                    "res\\Proxydomo.ico"
+IDI_FOLDER				ICON					"res\\folder.ico"
+IDI_FILTER				ICON					"res\\filter.ico"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
 // Dialog
 //
 
-IDD_ABOUTBOX DIALOG 0, 0, 181, 135
+IDD_ABOUTBOX DIALOG 0, 0, 170, 93
 STYLE DS_MODALFRAME | DS_SETFONT | WS_CAPTION | WS_POPUP | WS_SYSMENU
 CAPTION "About"
-FONT 8, "MS Shell Dlg"
+FONT 9, "MS UI Gothic"
 BEGIN
-    DEFPUSHBUTTON   "OK", IDOK, 123, 117, 50, 14
-    LTEXT           "%APP_NAME% v%APP_VERSION%\n\n(c) Antony Boucher 2004\n(c) amate 2013-\n\nOpen-Source project distributed under GUN GPL", IDC_STATIC_APP, 16, 57, 154, 48, SS_LEFT
-    ICON            IDR_MAINFRAME, IDC_STATIC, 55, 26, 21, 23, SS_ICON
-    GROUPBOX        "", IDC_STATIC, 7, 7, 168, 106
+    DEFPUSHBUTTON   "OK", IDOK, 113, 76, 50, 14
+    LTEXT           "%APP_NAME% v%APP_VERSION%\n\n(c) Antony Boucher 2004\n(c) amate 2013-\n\nOpen-Source project distributed under GUN GPL", IDC_STATIC_APP, 13, 16, 145, 48, SS_LEFT
+    ICON            IDR_MAINFRAME, IDC_STATIC, 129, 11, 27, 32, SS_ICON
+    GROUPBOX        "", IDC_STATIC, 6, 2, 157, 70
 END
 
 IDD_MAINDLG DIALOG 0, 0, 128, 109
@@ -105,16 +108,18 @@ BEGIN
 END
 
 
-IDD_FILTERMANAGE DIALOGEX 0, 0, 181, 127
+IDD_FILTERMANAGE DIALOGEX 0, 0, 159, 153
 STYLE DS_3DLOOK | DS_CENTER | DS_MODALFRAME | DS_SHELLFONT | WS_CAPTION | WS_VISIBLE | WS_POPUP | WS_THICKFRAME | WS_SYSMENU
 CAPTION "フィルター管理"
 FONT 9, "MS UI Gothic", 400, 0, 128
 BEGIN
-    PUSHBUTTON      "更新", IDC_BUTTON_REFRESH, 1, 88, 29, 20
-    CONTROL         "", IDC_TREE_FILTER, WC_TREEVIEW, WS_TABSTOP | WS_BORDER | TVS_HASBUTTONS | TVS_HASLINES | TVS_SHOWSELALWAYS | TVS_CHECKBOXES | TVS_INFOTIP, 33, 3, 147, 106
-    PUSHBUTTON      "追加", IDC_BUTTON_ADDFILTER, 1, 22, 29, 20
-    PUSHBUTTON      "削除", IDC_BUTTON_DELETEFILTER, 1, 47, 29, 20
-    PUSHBUTTON      "クリップボード(オミトロン)から\nインポート", IDC_BUTTON_IMPORTFROMPROXOMITRON, 69, 111, 111, 14
+    PUSHBUTTON      "保存", IDC_BUTTON_REFRESH, 128, 2, 29, 16
+    CONTROL         "", IDC_TREE_FILTER, WC_TREEVIEW, WS_TABSTOP | WS_BORDER | TVS_HASBUTTONS | TVS_HASLINES | TVS_EDITLABELS | TVS_SHOWSELALWAYS | TVS_CHECKBOXES | TVS_INFOTIP, 0, 40, 159, 113
+    PUSHBUTTON      "追加", IDC_BUTTON_ADDFILTER, 2, 2, 29, 16
+    PUSHBUTTON      "削除", IDC_BUTTON_DELETEFILTER, 35, 2, 29, 16
+    PUSHBUTTON      "クリップボードからインポート", IDC_BUTTON_IMPORTFROMPROXOMITRON, 2, 21, 76, 14
+    PUSHBUTTON      "フォルダを作成", IDC_BUTTON_CREATE_FOLDER, 72, 2, 48, 16
+    PUSHBUTTON      "クリップボードへエクスポート", IDC_BUTTON_EXPORTTOPROXOMITRON, 82, 21, 76, 14
 END
 
 
