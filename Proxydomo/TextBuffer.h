@@ -25,6 +25,7 @@
 #include <vector>
 #include <memory>
 #include <map>
+#include <sstream>
 #include "DataReceptor.h"
 #include "proximodo\textfilter.h"
 #include <unicode\ustring.h>
@@ -62,7 +63,7 @@ private:
     std::vector<std::unique_ptr<CTextFilter>>::iterator	m_currentFilter;
 
     // pass string to output, escaping HTML chars as needed
-    void escapeOutput(stringstream& out, const UChar *data, size_t len);
+    void escapeOutput(std::stringstream& out, const UChar *data, size_t len);
     
     // the actual buffer
     std::string	m_buffer;

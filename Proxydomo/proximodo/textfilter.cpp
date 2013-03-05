@@ -156,7 +156,9 @@ int CTextFilter::match(const wchar_t* index, const wchar_t* bufTail) {
     bool matched = textMatcher->match(index, stop, endOfMatched, &matchData);
     unlock();
 
-    if (matchData.reached == bufTail && !isComplete) return -1;
-    if (!matched || (boundsMatcher && endOfMatched != stop)) return 0;
+    if (matchData.reached == bufTail && !isComplete) 
+		return -1;
+    if (!matched || (boundsMatcher && endOfMatched != stop)) 
+		return 0;
     return 1;
 }

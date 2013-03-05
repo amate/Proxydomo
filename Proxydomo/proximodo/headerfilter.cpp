@@ -91,7 +91,7 @@ bool CHeaderFilter::filter(string& content) {
     }
 
     // Log match event
-	CLog::FilterEvent(kLogFilterHeaderMatch, owner.requestNumber, title, content);
+	CLog::FilterEvent(kLogFilterHeaderMatch, owner.requestNumber, UTF8fromUTF16(title), content);
                                
     // Compute new header content
     content = UTF8fromUTF16(CExpander::expand(replacePattern, *this));
@@ -110,7 +110,7 @@ bool CHeaderFilter::filter(string& content) {
     }
 
     // Log replace event
-	CLog::FilterEvent(kLogFilterHeaderReplace, owner.requestNumber, title, content);
+	CLog::FilterEvent(kLogFilterHeaderReplace, owner.requestNumber, UTF8fromUTF16(title), content);
 
     return true;
 }

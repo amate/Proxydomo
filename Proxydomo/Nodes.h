@@ -433,7 +433,7 @@ private:
 class CNode_List : public CNode
 {
 public:
-    CNode_List(const string& name/*, CMatcher& matcher*/);
+    CNode_List(const std::string& name/*, CMatcher& matcher*/);
     ~CNode_List();
 
 	// CNode

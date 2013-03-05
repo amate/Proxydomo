@@ -97,7 +97,7 @@ std::wstring CExpander::expand(const std::wstring& pattern, CFilter& filter) {
             }
             
             // this is an escaped code
-            char c = pattern[index + 1];
+            UChar c = pattern[index + 1];
             index += 2;
             switch (c) {
             case L'#':
@@ -303,7 +303,7 @@ std::wstring CExpander::expand(const std::wstring& pattern, CFilter& filter) {
                 } else if (command == L"LOG") {
 
                     std::wstring log = expand(content, filter);
-					CLog::FilterEvent(kLogFilterLogCommand, filter.owner.requestNumber, filter.title, UTF8fromUTF16(log));
+					CLog::FilterEvent(kLogFilterLogCommand, filter.owner.requestNumber, UTF8fromUTF16(filter.title), UTF8fromUTF16(log));
 
                 } else if (command == L"LOCK") {
 

@@ -108,9 +108,9 @@ void	CSettings::LoadSettings()
 	}
 
 	// prefixÇê›íË
-	static const char charactorSelection[] = "abcdefghijklmnopqrstuvqxyz0123456789";
+	static const char charactorSelection[] = "abcdefghijklmnopqrstuvqxyz0123456789_";
 	std::random_device	randEngine;
-	std::uniform_int_distribution<int> dist(0, _countof(charactorSelection) - 1);
+	std::uniform_int_distribution<int> dist(0, _countof(charactorSelection) - 2);
 	for (auto& c : s_urlCommandPrefix)
 		c = charactorSelection[dist(randEngine)];
 
@@ -163,7 +163,7 @@ void CSettings::LoadFilter()
 			wptree& ptFilter = ptIt.second;
 			std::unique_ptr<CFilterDescriptor> pFilter(new CFilterDescriptor);
 			pFilter->Active		= ptFilter.get<bool>(L"Active", true);
-			pFilter->title		= UTF8fromUTF16(ptFilter.get(L"title", L""));
+			pFilter->title		= ptFilter.get(L"title", L"");
 			pFilter->version	= UTF8fromUTF16(ptFilter.get(L"version", L""));
 			pFilter->author		= UTF8fromUTF16(ptFilter.get(L"author", L""));
 			pFilter->comment	= UTF8fromUTF16(ptFilter.get(L"comment", L""));
@@ -193,7 +193,7 @@ void CSettings::SaveFilter()
 	for (auto& filter : s_vecpFilters) {
 		wptree ptFilter;
 		ptFilter.put(L"Active", filter->Active);
-		ptFilter.put(L"title", UTF16fromUTF8(filter->title));
+		ptFilter.put(L"title", filter->title);
 		ptFilter.put(L"version", UTF16fromUTF8(filter->version));
 		ptFilter.put(L"author", UTF16fromUTF8(filter->author));
 		ptFilter.put(L"comment", UTF16fromUTF8(filter->comment));

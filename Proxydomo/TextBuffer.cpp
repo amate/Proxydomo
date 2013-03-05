@@ -196,9 +196,11 @@ void CTextBuffer::DataFeed(const std::string& data)
 
 	int validBufferSize = endPoint - m_buffer.c_str();
 	if (validBufferSize > 0) {
-		std::wstring unibuff = UTF16fromConverter(m_buffer.c_str(), validBufferSize, m_pConverter);
+		UErrorCode	err = U_ZERO_ERROR;
+		UnicodeString	appendBuff(m_buffer.c_str(), validBufferSize, m_pConverter, err);
+		ATLASSERT( U_SUCCESS(err) );
 		m_buffer.clear();
-		m_unicodeBuffer.append(unibuff.c_str(), unibuff.length());
+		m_unicodeBuffer.append(appendBuff);
 	}
 	const UChar* bufStart = m_unicodeBuffer.getBuffer();
 	int len = m_unicodeBuffer.length();
@@ -244,18 +246,19 @@ void CTextBuffer::DataFeed(const std::string& data)
 
                 std::wstring replaceText = (*m_currentFilter)->getReplaceText();
 
-                // log match events
-                std::wstring occurrence(index, 
-					CharCount((*m_currentFilter)->endOfMatched, index));
+                // log match events                
 				// フィルタがマッチした
-				CLog::FilterEvent(kLogFilterTextMatch, m_owner.requestNumber, (*m_currentFilter)->title, ""/*occurrence*/);
+				CLog::FilterEvent(kLogFilterTextMatch, m_owner.requestNumber, 
+					UTF8fromUTF16((*m_currentFilter)->title), ""/*occurrence*/);
 				//CLog::FilterEvent(kLogFilterTextReplace, m_owner.requestNumber, (*m_currentFilter)->title, replaceText);
 
                 escapeOutput(out, done, CharCount(index, done));
                 if (m_owner.url.getDebug()) {
+					std::wstring occurrence(index, 
+											CharCount((*m_currentFilter)->endOfMatched, index));
                     string buf = "<div class=\"match\">\n"
                         "<div class=\"filter\">Match: ";
-                    CUtil::htmlEscape(buf, (*m_currentFilter)->title);
+                    CUtil::htmlEscape(buf, ConvertFromUTF16((*m_currentFilter)->title, m_pConverter));
                     buf += "</div>\n<div class=\"in\">";
                     CUtil::htmlEscape(buf, ConvertFromUTF16(occurrence, m_pConverter));
                     buf += "</div>\n<div class=\"repl\">";

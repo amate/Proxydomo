@@ -47,7 +47,7 @@ public:
 
     // The following data is used for organizing/editing filters
     //int id;             // Unique ID of the filter
-    std::string title;       // Title of the filter
+    std::wstring title;       // Title of the filter
     std::string version;     // Version number
     std::string author;      // Name of author
     std::string comment;     // Comment (such as description of what the filter does)

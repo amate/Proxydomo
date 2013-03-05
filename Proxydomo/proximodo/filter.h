@@ -29,9 +29,8 @@
 #include "memory.h"
 #include <vector>
 #include <string>
-class CFilterOwner;
 
-using namespace std;
+class CFilterOwner;
 
 /* class CFilter
  * This class only contains and implements what is common to
@@ -51,11 +50,11 @@ public:
     bool bypassed;
     
     // Filter title (mainly for log events)
-    string title;
+    std::wstring title;
 
     // CMemory for \0-9 and \#
     CMemory memoryTable[10];
-    vector<CMemory> memoryStack;
+    std::vector<CMemory> memoryStack;
     void clearMemory();
     
     // Indicates that the filter mutex has been locked, and should

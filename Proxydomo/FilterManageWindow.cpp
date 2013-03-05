@@ -64,7 +64,7 @@ BOOL CFilterManageWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 	HTREEITEM htRoot = m_treeFilter.InsertItem(_T("Root"), TVI_ROOT, TVI_FIRST);
 
 	for (auto& filter : CSettings::s_vecpFilters) {
-		HTREEITEM htItem = m_treeFilter.InsertItem(UTF16fromUTF8(filter->title).c_str(), htRoot, TVI_LAST);
+		HTREEITEM htItem = m_treeFilter.InsertItem(filter->title.c_str(), htRoot, TVI_LAST);
 		m_treeFilter.SetItemData(htItem, (DWORD_PTR)filter.get());
 	}
 	PostMessage(WM_CHECKSTATECHANGED, NULL);
@@ -176,7 +176,7 @@ LRESULT CFilterManageWindow::OnTreeFilterDblClk(LPNMHDR pnmh)
 	if (filterEdit.DoModal(m_hWnd) == IDCANCEL) 
 		return 0;
 
-	m_treeFilter.SetItemText(htHit, UTF16fromUTF8(filter->title).c_str());
+	m_treeFilter.SetItemText(htHit, filter->title.c_str());
 
 	return 0;
 }
@@ -276,7 +276,7 @@ void CFilterManageWindow::OnLButtonUp(UINT nFlags, CPoint point)
 			HTREEITEM htRoot = m_treeFilter.InsertItem(_T("Root"), TVI_ROOT, TVI_FIRST);
 			for (auto& filter : CSettings::s_vecpFilters) {
 				HTREEITEM htItem = m_treeFilter.InsertItem(
-						UTF16fromUTF8(filter->title).c_str(), htRoot, TVI_LAST);
+						filter->title.c_str(), htRoot, TVI_LAST);
 				m_treeFilter.SetCheckState(htItem, filter->Active);
 				m_treeFilter.SetItemData(htItem, (DWORD_PTR)filter.get());
 			}
@@ -298,7 +298,7 @@ LRESULT CFilterManageWindow::OnDragDropFinish(UINT uMsg, WPARAM wParam, LPARAM l
 void CFilterManageWindow::OnAddFilter(UINT uNotifyCode, int nID, CWindow wndCtl)
 {
 	std::unique_ptr<CFilterDescriptor>	filter(new CFilterDescriptor());
-	filter->title		=  "new filter";
+	filter->title		=  L"new filter";
 
 	CFilterEditWindow filterEdit(filter.get());
 	if (filterEdit.DoModal(m_hWnd) == IDCANCEL) {
@@ -396,7 +396,7 @@ void CFilterManageWindow::OnImportFromProxomitron(UINT uNotifyCode, int nID, CWi
                 size_t colon = value.find(':');
                 if (colon != string::npos) {
                     d.headerName = value.substr(0, colon);
-                    d.title = value.substr(colon + 1);
+                    d.title = UTF16fromUTF8(value.substr(colon + 1));
                     CUtil::trim(d.headerName);
                     CUtil::trim(d.title);
 					if (d.filterType == CFilterDescriptor::kFilterText) {
@@ -409,7 +409,7 @@ void CFilterManageWindow::OnImportFromProxomitron(UINT uNotifyCode, int nID, CWi
                 }
             }
             else if (label == "NAME") {
-                d.title = CUtil::trim(value);
+                d.title = UTF16fromUTF8(CUtil::trim(value));
                 d.filterType = CFilterDescriptor::kFilterText;
             }
             else if (label == "MULTI") {
@@ -434,7 +434,7 @@ void CFilterManageWindow::OnImportFromProxomitron(UINT uNotifyCode, int nID, CWi
 void CFilterManageWindow::_AddFilterDescriptor(CFilterDescriptor* filter)
 {
 	HTREEITEM htAdd = m_treeFilter.InsertItem(
-		UTF16fromUTF8(filter->title).c_str(), m_treeFilter.GetRootItem(), TVI_LAST);
+		filter->title.c_str(), m_treeFilter.GetRootItem(), TVI_LAST);
 	m_treeFilter.SetCheckState(htAdd, filter->Active);
 	m_treeFilter.SetItemData(htAdd, (DWORD_PTR)filter);
 

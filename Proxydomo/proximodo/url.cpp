@@ -56,9 +56,9 @@ void CUrl::parseUrl(const string& str) {
     bypassIn = bypassOut = bypassText = debug = source = false;
 
 	if (str.substr(pos1, _countof(CSettings::s_urlCommandPrefix)) == CSettings::s_urlCommandPrefix) {
-        bool foundUrlCmd = false;
-        pos1 += _countof(CSettings::s_urlCommandPrefix);
+        bool foundUrlCmd = false;        
         for (;;) {
+			pos1 += _countof(CSettings::s_urlCommandPrefix);
             string begin = str.substr(pos1);
             if (CUtil::noCaseBeginsWith("bin.", begin)) {
                 bypassIn = true;
@@ -79,6 +79,8 @@ void CUrl::parseUrl(const string& str) {
                 source = true;
                 pos1 += 4;
             } else {
+				if (foundUrlCmd)
+					pos1 -= _countof(CSettings::s_urlCommandPrefix);
                 break;
             }
             foundUrlCmd = true;

@@ -630,7 +630,9 @@ const UChar* CNode_Repeat::match(const UChar* start, const UChar* stop, MatchDat
             checked = true;
         }
         const UChar* ret = m_node->match(start, stop, pMatch);
-        if (ret == nullptr) break;
+        if (ret == nullptr) 
+			break;
+
         checked = false;
         if (ret == start) {
 			rcount = m_rmax;
@@ -1103,7 +1105,7 @@ const UChar* CNode_Command::match(const UChar* start, const UChar* stop, MatchDa
     case CMD_LOG:
         {
             std::wstring log = CExpander::expand(m_content, filter);
-			CLog::FilterEvent(kLogFilterLogCommand, owner.requestNumber, filter.title, UTF8fromUTF16(log));
+			CLog::FilterEvent(kLogFilterLogCommand, owner.requestNumber, UTF8fromUTF16(filter.title), UTF8fromUTF16(log));
         }
         break;
 
@@ -1111,14 +1113,14 @@ const UChar* CNode_Command::match(const UChar* start, const UChar* stop, MatchDa
         owner.rdirToHost = UTF8fromUTF16(CExpander::expand(m_content, filter));
         CUtil::trim(owner.rdirToHost);
         owner.rdirMode = 0;
-		CLog::FilterEvent(kLogFilterJump, owner.requestNumber, filter.title, owner.rdirToHost);
+		CLog::FilterEvent(kLogFilterJump, owner.requestNumber, UTF8fromUTF16(filter.title), owner.rdirToHost);
         break;
 
     case CMD_RDIR:
         owner.rdirToHost = UTF8fromUTF16(CExpander::expand(m_content, filter));
         CUtil::trim(owner.rdirToHost);
         owner.rdirMode = 1;
-		CLog::FilterEvent(kLogFilterRdir, owner.requestNumber, filter.title, owner.rdirToHost);
+		CLog::FilterEvent(kLogFilterRdir, owner.requestNumber, UTF8fromUTF16(filter.title), owner.rdirToHost);
         break;
 
     case CMD_FILTER:
@@ -1226,7 +1228,12 @@ const UChar* CNode_Nest::match(const UChar* start, const UChar* stop, MatchData*
         }
         pos++;
     }
-    if (level > 0) return NULL;
+    if (level > 0) {
+		UpdateReached(pos, pMatch);	// 消費したので更新しとかないとまずい？
+		m_consumed = pos;
+		return NULL;	// Nestが収束しないのでマッチしない
+	}
+
     if (m_middle) {
         const UChar* end = m_middle->match(endL, startR, pMatch);
         if (end != startR) return NULL;

@@ -342,7 +342,7 @@ CFilterEditWindow::CFilterEditWindow(CFilterDescriptor* pfd) :
 {
 	ATLASSERT( m_pFilter );
 
-	m_title			= UTF16fromUTF8(m_pFilter->title).c_str();
+	m_title			= m_pFilter->title.c_str();
 	m_auther		= UTF16fromUTF8(m_pFilter->author).c_str();
 	m_version		= UTF16fromUTF8(m_pFilter->version).c_str();
 	m_description	= UTF16fromUTF8(m_pFilter->comment).c_str();
@@ -471,7 +471,7 @@ void	CFilterEditWindow::_SaveToTempFilter()
 {
 	DoDataExchange(DDX_SAVE);
 
-	m_pTempFilter->title		= UTF8fromUTF16(m_title.GetBuffer());
+	m_pTempFilter->title		= m_title.GetBuffer();
 	m_pTempFilter->author		= UTF8fromUTF16(m_auther.GetBuffer());
 	m_pTempFilter->version		= UTF8fromUTF16(m_version.GetBuffer());
 	m_pTempFilter->comment		= UTF8fromUTF16(m_description.GetBuffer());
