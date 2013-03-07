@@ -94,7 +94,7 @@ void	CDebugUtility::Impl::WriteIn(LPCSTR strFormat, va_list argList)
 {
 	CStringA str;
 	str.FormatV(strFormat, argList);
-	str += _T("\n");
+	str += "\r\n";
 	_WriteConsole(CStringW(str));
 }
 
@@ -103,7 +103,7 @@ void	CDebugUtility::Impl::WriteIn(LPCWSTR strFormat, va_list argList)
 {
 	CStringW str;
 	str.FormatV(strFormat, argList);
-	str += _T("\n");
+	str += L"\r\n";
 	_WriteConsole(str);
 }
 

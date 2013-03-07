@@ -44,6 +44,47 @@
 /////////////////////////////////////////////////////////////////////////////////////////////////////
 // CRequestManager
 
+namespace {
+
+bool	GetHeaders(std::string& buf, HeadPairList& headers, std::string& log)
+{
+	for (;;) {
+		// Look for end of line
+		size_t pos, len;
+		if (CUtil::endOfLine(buf, 0, pos, len) == false)
+			return false;	// 改行がないので帰る
+
+		// Check if we reached the empty line
+		if (pos == 0) {
+			buf.erase(0, len);
+			return true;	// 終了
+		}
+
+		// Find the header end
+		while (	  pos + len >= buf.size()
+				|| buf[pos + len] == ' '
+				|| buf[pos + len] == '\t'
+				)
+		{
+			if (CUtil::endOfLine(buf, pos + len, pos, len) == false)
+				return false;
+		}
+
+		// Record header
+		size_t colon = buf.find(':');
+		if (colon != std::string::npos) {
+			std::string name = buf.substr(0, colon);
+			std::string value = buf.substr(colon + 1, pos - colon - 1);
+			CUtil::trim(value);
+			headers.emplace_back(name, value);
+		}
+		log += buf.substr(0, pos + len);
+		buf.erase(0, pos + len);
+	}
+}
+
+}	// namespace
+
 CRequestManager::CRequestManager(std::unique_ptr<CSocket>&& psockBrowser) :
 	m_useChain(false),
 	m_textFilterChain(m_filterOwner, this),
@@ -94,7 +135,10 @@ CRequestManager::~CRequestManager(void)
 
 void CRequestManager::Manage()
 {
-	clock_t stopTime = 0;
+	using std::chrono::steady_clock;
+	typedef steady_clock::time_point time_point;
+	time_point	stopDataTimeFromBrowser;
+
 	m_outStep = STEP_START;
 	m_inStep = STEP_START;
 	m_ipFromAddress = m_psockBrowser->GetFromAddress();
@@ -115,7 +159,8 @@ void CRequestManager::Manage()
 			bRest = false;
 
 		if (m_psockWebsite->IsConnected()) {
-			TRACEIN("Manage ポート %d : サイトとつながりました！[%s]", m_ipFromAddress.GetPortNumber(), m_filterOwner.contactHost.c_str());
+			TRACEIN("Manage ポート %d : サイトとつながりました！[%s]", 
+					m_ipFromAddress.GetPortNumber(), m_filterOwner.contactHost.c_str());
 			do {
 				// Full processing
 				bool bRest = true;
@@ -125,43 +170,57 @@ void CRequestManager::Manage()
 				if (_ReceiveIn()) {	// サイトからのデータを受信
 					bRest = false;
 					_ProcessIn();	// サイトからのデータを処理
-				} else if (m_psockWebsite->IsConnectionKilledFromPeer()) {
-					_ProcessIn();	// サイトからのデータを処理
+				} else {
+					if ((m_inStep == STEP_TUNNELING || m_inStep == STEP_RAW) && 
+						m_psockWebsite->IsConnectionKilledFromPeer() ) 
+						_ProcessIn();	// サイトからのデータを処理
 				}
 
 				if (_SendIn())		// ブラウザへサイトからのデータを送信
 					bRest = false;
-				if (_ReceiveOut()) { // ブラウザからのデータを受信(SSLかパイプライン以外では用無しのはず。。。)
+				if (_ReceiveOut()) { // ブラウザからのデータを受信
 					bRest = false;
 					_ProcessOut();
-				} else if (m_psockBrowser->IsConnectionKilledFromPeer()) {
-					_ProcessOut();
+				} else {
+					if (m_outStep == STEP_TUNNELING &&
+						m_psockBrowser->IsConnectionKilledFromPeer() ) 
+						_ProcessOut();
+
 					if (m_valid == false) 
 						m_psockBrowser->Close();
 				}
 
 				if (bRest) {
+					// 規定秒(10秒)ブラウザからデータが来なかったら切断する
 					if (m_outStep != STEP_START) {
-						if (stopTime) 
-							stopTime = 0;
+						if (stopDataTimeFromBrowser != time_point())		
+							stopDataTimeFromBrowser = time_point();		// 処理が行われてるのでリセットする
 					} else {
-						if (stopTime == 0) 
-							stopTime = clock() + 10 * CLOCKS_PER_SEC;
-						if (m_valid == false || clock() > stopTime)
+						if (stopDataTimeFromBrowser == time_point()) 
+							stopDataTimeFromBrowser = steady_clock::now();
+						if (m_valid == false || 
+							steady_clock::now() - stopDataTimeFromBrowser > std::chrono::seconds(10))
 							m_psockBrowser->Close();
 					}
 					::Sleep(10);
 				}
 
 				// どちらからもデータが受信できなかったら切る
-				if (m_psockWebsite->IsConnectionKilledFromPeer() && m_psockBrowser->IsConnectionKilledFromPeer()) {
-					TRACEIN("Manage ポート %d : outStep[%d] inStep[%d] ブラウザとサイトのデータ受信が終了しました", m_ipFromAddress.GetPortNumber(), m_outStep, m_inStep);
+				if (m_psockWebsite->IsConnectionKilledFromPeer() && 
+					m_psockBrowser->IsConnectionKilledFromPeer() ) 
+				{
+					TRACEIN(L"Manage ポート %d : outStep[%s] inStep[%s] "
+							L"ブラウザとサイトのデータ受信が終了しました", 
+							m_ipFromAddress.GetPortNumber(), 
+							STEPtoString(m_outStep), STEPtoString(m_inStep));
 					m_psockWebsite->Close();
-					m_psockBrowser->Close();
+					//m_psockBrowser->Close();
 				}
 
-			} while (m_psockWebsite->IsConnected() &&  m_psockBrowser->IsConnected());
-			TRACE("Manage ポート %d : outStep[%d] inStep[%d] ", m_ipFromAddress.GetPortNumber(), m_outStep, m_inStep);
+			} while (m_psockWebsite->IsConnected() && m_psockBrowser->IsConnected());
+
+			TRACE(L"Manage ポート %d : outStep[%s] inStep[%s] ", 
+					m_ipFromAddress.GetPortNumber(), STEPtoString(m_outStep), STEPtoString(m_inStep));
 			if (m_psockWebsite->IsConnected() == false)
 				TRACEIN("サイトとの接続が切れました [%s]", m_filterOwner.contactHost.c_str());
 			else
@@ -191,20 +250,23 @@ void CRequestManager::Manage()
 			}
 
 		}
+
 		if (bRest) {
+			// 規定秒(10秒)ブラウザからデータが来なかったら切断する
 			if (m_outStep != STEP_START) {
-				if (stopTime)
-					stopTime = 0;
+				if (stopDataTimeFromBrowser != time_point())		
+					stopDataTimeFromBrowser = time_point();		// 処理が行われてるのでリセットする
 			} else {
-				if (stopTime == 0)
-					stopTime = clock() + /*SOCKET_EXPIRATION*/10 * CLOCKS_PER_SEC;
-				if (m_valid == false || clock() > stopTime)
+				if (stopDataTimeFromBrowser == time_point()) 
+					stopDataTimeFromBrowser = steady_clock::now();
+				if (m_valid == false || 
+					steady_clock::now() - stopDataTimeFromBrowser > std::chrono::seconds(10))
 					m_psockBrowser->Close();
 			}
-			::Sleep(50);
+			::Sleep(10);
 		}
 
-	}
+	}	// while
 	} catch (SocketException& e) {
 		TRACEIN("例外が発生しました！ : ポート %d 例外:%s(%d)", m_ipFromAddress.GetPortNumber(), e.msg, e.err); 
 	} catch (...) {
@@ -329,40 +391,10 @@ void CRequestManager::_ProcessOut()
 		// Read and process headers, as long as there are any
 		case STEP_HEADERS:
 			{
-				for (;;) {
-					// Look for end of line
-					size_t pos, len;
-					if (CUtil::endOfLine(m_recvOutBuf, 0, pos, len) == false)
-						return ;	// 改行がないので帰る
-
-					// Check if we reached the empty line
-					if (pos == 0) {
-						m_recvOutBuf.erase(0, len);
-						m_outStep = STEP_DECODE;
-						break;
-					}
-
-					// Find the header end
-					while (	  pos + len >= m_recvOutBuf.size()
-						   || m_recvOutBuf[pos + len] == ' '
-						   || m_recvOutBuf[pos + len] == '\t'
-						  )
-					{
-						if (CUtil::endOfLine(m_recvOutBuf, pos + len, pos, len) == false)
-							return ;
-					}
-
-					// Record header
-					size_t colon = m_recvOutBuf.find(':');
-					if (colon != std::string::npos) {
-						std::string name = m_recvOutBuf.substr(0, colon);
-						std::string value = m_recvOutBuf.substr(colon + 1, pos - colon - 1);
-						CUtil::trim(value);
-						m_filterOwner.outHeaders.emplace_back(name, value);
-					}
-					m_logRequest += m_recvOutBuf.substr(0, pos + len);
-					m_recvOutBuf.erase(0, pos + len);
-				}
+				if (GetHeaders(m_recvOutBuf, m_filterOwner.outHeaders, m_logRequest) == false)
+					return ;
+				
+				m_outStep = STEP_DECODE;
 			}
 			break;
 
@@ -583,12 +615,16 @@ void CRequestManager::_ProcessOut()
 				m_sendOutBuf += m_recvOutBuf;
 				m_recvOutBuf.clear();
 
-				if ( m_psockWebsite->IsConnected() == false || m_psockWebsite->IsConnectionKilledFromPeer() ) 
+				// ブラウザからのデータ送信が止まったらサイトにもデータがないことを知らせる
+				if ( m_sendOutBuf.empty() && 
+					m_psockWebsite->IsConnected() && 
+					m_psockBrowser->IsConnectionKilledFromPeer() )
 				{
-					m_sendConnectionClose = true;
-					m_outStep = STEP_FINISH;
-					m_inStep = STEP_FINISH;
-					break;
+					m_psockWebsite->SendStop();
+					//m_sendConnectionClose = true;
+					//m_outStep = STEP_FINISH;
+					//m_inStep = STEP_FINISH;
+					//break;
 				}
 				return ;
 			}
@@ -597,7 +633,8 @@ void CRequestManager::_ProcessOut()
 		// We'll wait for response completion
 		case STEP_FINISH:
 			{
-				TRACEIN(_T("ProcessOut #%d : STEP_FINISH inStep[%d]"), m_filterOwner.requestNumber, m_inStep);
+				TRACEIN(L"ProcessOut #%d : STEP_FINISH inStep[%s]", 
+					m_filterOwner.requestNumber, STEPtoString(m_inStep));
 				if (m_inStep != STEP_FINISH)
 					return ;
 
@@ -783,6 +820,7 @@ void CRequestManager::_ConnectWebsite()
 }
 
 
+/// サイト ⇒ Proxy(this)
 bool	CRequestManager::_ReceiveIn()
 {
 	char buf[kReadBuffSize + 1];
@@ -856,55 +894,24 @@ void	CRequestManager::_ProcessIn()
 				m_recvConnectionClose = false;
 				m_sendConnectionClose = false;
 				m_recvContentCoding = m_sendContentCoding = 0;
-				//useGifFilter = false;
 			}
 			break;
 
 		// Read and process headers, as long as there are any
 		case STEP_HEADERS:
 			{
-				for (;;) {
-					// Look for end of line
-					size_t pos, len;
-					if (CUtil::endOfLine(m_recvInBuf, 0, pos, len) == false)
-						return ;
+				if (GetHeaders(m_recvInBuf, m_filterOwner.inHeaders, m_logResponse) == false)
+					return ;
 
-					// Check if we reached the empty line
-					if (pos == 0) {
-						m_recvInBuf.erase(0, len);
-						m_inStep = STEP_DECODE;
-						// In case of 'HTTP 100 Continue,' expect another set of
-						// response headers before the data
-						if (m_responseLine.code == "100") {
-							m_inStep = STEP_FIRSTLINE;
-							m_responseLine.ver.clear();
-							m_responseLine.code.clear();
-							m_responseLine.msg.clear();
-							m_filterOwner.responseCode.clear();
-						}
-						break;
-					}
-
-					// Find the header end
-					while (   pos+len >= m_recvInBuf.size()
-						|| m_recvInBuf[pos+len] == ' '
-						|| m_recvInBuf[pos+len] == '\t' 
-						)
-					{
-						if (CUtil::endOfLine(m_recvInBuf, pos+len, pos, len) == false)
-							return ;
-					}
-
-					// Record header
-					size_t colon = m_recvInBuf.find(':');
-					if (colon != std::string::npos) {
-						std::string name = m_recvInBuf.substr(0, colon);
-						std::string value = m_recvInBuf.substr(colon+1, pos-colon-1);
-						CUtil::trim(value);
-						m_filterOwner.inHeaders.emplace_back(name, value);
-					}
-					m_logResponse += m_recvInBuf.substr(0, pos + len);
-					m_recvInBuf.erase(0, pos+len);
+				m_inStep = STEP_DECODE;
+				// In case of 'HTTP 100 Continue,' expect another set of
+				// response headers before the data
+				if (m_responseLine.code == "100") {
+					m_inStep = STEP_FIRSTLINE;
+					m_responseLine.ver.clear();
+					m_responseLine.code.clear();
+					m_responseLine.msg.clear();
+					m_filterOwner.responseCode.clear();
 				}
 			}
 			break;
@@ -932,12 +939,6 @@ void	CRequestManager::_ProcessIn()
 					// Check for filterable MIME types
 					if (_VerifyContentType(contentType) == false && m_filterOwner.bypassBodyForced == false)
 						m_filterOwner.bypassBody = true;
-
-					// Check for GIF to freeze
-					//if (CUtil::noCaseContains("image/gif",
-					//			getHeader(inHeaders, "Content-Type"))) {
-					//	useGifFilter = CSettings::ref().filterGif;
-					//}
 				}
 
 				if (   CUtil::noCaseContains("close", m_filterOwner.GetInHeader("Connection"))
@@ -1069,7 +1070,6 @@ void	CRequestManager::_ProcessIn()
 					}
 					buf += "</div><div id=\"body\">\n";
 					//m_useChain = true;
-					//useGifFilter = false;
 					m_textFilterChain.DataReset();
 					DataReset();
 					DataFeed(buf);
@@ -1084,11 +1084,11 @@ void	CRequestManager::_ProcessIn()
 
 					m_sendInBuf += CRLF;
 
-					if (m_useChain) 
+					if (m_useChain) {
 						m_textFilterChain.DataReset(); 
-					else 
+					} else {
 						DataReset();
-					//if (useGifFilter) GIFfilter->dataReset();
+					}
 
 					// File type will be reevaluated using first block of data
 					m_filterOwner.fileType.clear();
@@ -1108,8 +1108,6 @@ void	CRequestManager::_ProcessIn()
 		// or    zero * CRLF CRLF
 		case STEP_CHUNK:
 			{
-				TRACEIN(_T("ProcessIn #%d : STEP_CHUNK"), m_filterOwner.requestNumber);
-
 				size_t pos, len;
 				while (CUtil::endOfLine(m_recvInBuf, 0, pos, len) && pos == 0)
 					m_recvInBuf.erase(0,len);
@@ -1138,16 +1136,15 @@ void	CRequestManager::_ProcessIn()
 				if (copySize > m_inSize)
 					copySize = m_inSize;
 
-				//if (m_inChunked == false && m_psockWebsite->IsConnectionKilledFromPeer())
-				//	m_inSize = 0;
-				if (copySize == 0 && m_inSize)
-					return ;
+				if (copySize == 0 && m_psockWebsite->IsConnectionKilledFromPeer())
+					m_inSize = 0;	// 接続が切れたのデータの受信は終了
+
+				if (copySize == 0 && m_inSize) 
+					return ;	// 処理するデータがなくなったので
 
 				std::string data = m_recvInBuf.substr(0, copySize);
 				m_recvInBuf.erase(0, copySize);
 				m_inSize -= copySize;
-
-				TRACEIN(_T("ProcessIn #%d : STEP_RAW copySize[%d] inSize(rest)[%d]"), m_filterOwner.requestNumber, copySize, m_inSize);
 
 				// We must decompress compressed data,
 				// unless bypassed body with same coding
@@ -1157,13 +1154,10 @@ void	CRequestManager::_ProcessIn()
 					m_decompressor->read(data);
 				}
 
-
+				/// フィルターに食わせる
 				if (m_useChain) {
 					// provide filter chain with raw unfiltered data
 					m_textFilterChain.DataFeed(data);
-				//} else if (useGifFilter) {
-				//	// Freeze GIF
-				//	GIFfilter->dataFeed(data);
 				} else {
 					// In case we bypass the body, we directly send data to
 					// the end of chain (the request manager itself)
@@ -1189,14 +1183,13 @@ void	CRequestManager::_ProcessIn()
 				m_sendInBuf += m_recvInBuf;
 				m_recvInBuf.clear();
 
-				// サイトからの接続が切れたらブラウザへ残りのデータを送信してブラウザとの接続を切る
-				if (m_psockWebsite->IsConnected() == false || m_psockWebsite->IsConnectionKilledFromPeer()) {
+				// サイトからの接続が切れたらブラウザとの接続を切る
+				if (m_sendInBuf.empty() &&  m_psockWebsite->IsConnectionKilledFromPeer()) {
+					bool bNoReadFromBrowser = m_psockBrowser->IsConnectionKilledFromPeer();
 					m_inStep = STEP_FINISH;
-					m_outStep = STEP_FINISH;	// サイトとの接続は切れてるのでこっちでやっても問題ないはず。。。
+					m_outStep = STEP_FINISH;// サイトとの接続は切れてるのでこっちでやっても問題ないはず。。。
 					m_sendConnectionClose = true;
 					break;
-					//_SendIn();
-					//m_psockBrowser->Close();
 				}
 				return ;
 			}
@@ -1205,8 +1198,8 @@ void	CRequestManager::_ProcessIn()
 			// A few things have to be done before we go back to start state...
 		case STEP_FINISH:
 			{
-
-				TRACEIN(_T("ProcessIn #%d : STEP_FINISH outStep[%d]"), m_filterOwner.requestNumber, m_outStep);
+				TRACEIN(L"ProcessIn #%d : STEP_FINISH outStep[%s]", 
+					m_filterOwner.requestNumber, STEPtoString(m_outStep));
 				if (m_outStep != STEP_FINISH && m_outStep != STEP_START)
 					return ;
 				m_outStep = STEP_START;
@@ -1300,16 +1293,8 @@ void	CRequestManager::DataFeed(const std::string& data)
 		return;
 
     size_t size = data.size();
-	if (size && (m_useChain || m_inChunked)/*m_sendContentCoding*/ 
-        /*&& (useChain || recvContentCoding != sendContentCoding)*/) {
-
-        // Send a chunk of compressed data
-        //string tmp;
-        //m_compressor->feed(data);
-        //m_compressor->read(tmp);
-        //size = tmp.size();
-        //if (size)
-            m_sendInBuf += CUtil::makeHex(size) + CRLF + data + CRLF;
+	if (size && (m_useChain || m_inChunked)) {
+		m_sendInBuf += CUtil::makeHex(size) + CRLF + data + CRLF;
 
     } else if (size) {
         // Send a chunk of uncompressed/unchanged data
@@ -1325,18 +1310,6 @@ void	CRequestManager::DataDump()
 		return;
     m_dumped = true;
 
-#if 0
-    if (m_sendContentCoding
-        /*&& (useChain || recvContentCoding != sendContentCoding)*/) {
-
-        string tmp;
-        m_compressor->dump();
-        m_compressor->read(tmp);
-        size_t size = tmp.size();
-        if (size)
-            m_sendInBuf += CUtil::makeHex(size) + CRLF + tmp + CRLF;
-    }
-#endif
     if (m_inStep != STEP_FINISH) {
         // Data has been dumped by a filter, not by this request manager.
         // So we must disconnect the website to stop downloading.
@@ -1357,8 +1330,6 @@ void	CRequestManager::_EndFeeding() {
 
         if (m_useChain) {
             m_textFilterChain.DataFeed(data);
-        //} else if (useGifFilter) {
-        //    GIFfilter->dataFeed(data);
         } else {
             DataFeed(data);
         }
@@ -1368,8 +1339,6 @@ void	CRequestManager::_EndFeeding() {
         if (m_filterOwner.url.getDebug())
             DataFeed("\n</div>\n</body>\n</html>\n");
         m_textFilterChain.DataDump();
-    //} else if (useGifFilter) {
-    //    GIFfilter->dataDump();
     } else {
         DataDump();
     }

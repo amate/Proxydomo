@@ -59,10 +59,11 @@ private:
 
 	void	_ConnectWebsite();
 
-	/// サイト ⇒ Proxy(this) ⇒ ブラウザ
+	/// サイトからのデータを受信
 	bool	_ReceiveIn();
 	std::string m_recvInBuf;
 
+	/// サイト ⇒ Proxy(this) ⇒ ブラウザ
 	void	_ProcessIn();
 	bool	_SendIn();
 	std::string m_sendInBuf;
@@ -78,7 +79,7 @@ private:
 	void	_EndFeeding();
 
 	void	_FakeResponse(const std::string& code, const std::string& filename = "");
-	
+
 	// Constants
 	enum { kReadBuffSize = 10240 };
 
@@ -93,6 +94,7 @@ private:
         STEP_TUNNELING, // read data until disconnection
         STEP_FINISH,	// marks the end of a request/response
 	};
+	inline const wchar_t* STEPtoString(STEP step);
 
 	// Data members
 
@@ -148,3 +150,17 @@ private:
 
 };
 
+
+const wchar_t* CRequestManager::STEPtoString(CRequestManager::STEP step)
+{
+	switch (step) {
+	case STEP_START:	return L"STEP_START";
+	case STEP_FIRSTLINE:return L"STEP_FIRSTLINE";
+	case STEP_HEADERS:	return L"STEP_HEADERS";
+	case STEP_DECODE:	return L"STEP_DECODE";
+	case STEP_CHUNK:	return L"STEP_CHUNK";
+	case STEP_RAW:		return L"STEP_RAW";
+	case STEP_FINISH:	return L"STEP_FINISH";
+	default:	return L"err";
+	}
+}

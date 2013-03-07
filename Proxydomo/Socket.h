@@ -93,6 +93,9 @@ public:
 
 	void	Close();
 
+	/// ‘—M‚ğ~‚ß‚é (Write‚ª‚Å‚«‚È‚­‚È‚è‚Ü‚·)
+	void	SendStop();
+
 	bool	IsDataAvailable();
 	bool	IsConnectionKilledFromPeer() const { return m_bConnectionKilledFromPeer; }
 	bool	Read(char* buffer, int length);

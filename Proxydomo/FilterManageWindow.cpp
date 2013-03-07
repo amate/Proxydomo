@@ -562,6 +562,7 @@ void CFilterManageWindow::OnImportFromProxomitron(UINT uNotifyCode, int nID, CWi
     std::wstring str = text + L"\n\n";
     str = CUtil::replaceAll(str, L"\r\n", L"\n");
     str = CUtil::replaceAll(str, L"\r",   L"\n");
+	str = CUtil::replaceAll(str, L"\"\n\"", L"\r");
     str = CUtil::replaceAll(str, L"\"\n        \"",  L"\r");
     str = CUtil::replaceAll(str, L"\"\n          \"",  L"\r");
 

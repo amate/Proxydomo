@@ -21,9 +21,6 @@
     <ClCompile Include="stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Proxydomo.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="proximodo\configscreen.cpp">
       <Filter>Source Files\proximodo</Filter>
     </ClCompile>
@@ -166,6 +163,9 @@
       <Filter>Header Files</Filter>
     </ClCompile>
     <ClCompile Include="VersionControl.cpp">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Proxydomo.cpp">
       <Filter>Header Files</Filter>
     </ClCompile>
   </ItemGroup>

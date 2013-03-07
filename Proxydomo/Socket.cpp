@@ -53,6 +53,7 @@ IPv4Address& IPv4Address::operator = (sockaddr_in sockaddr)
 	addr = sockaddr;
 #ifdef _DEBUG
 	ip = ::inet_ntoa(addr.sin_addr);
+	port = ::ntohs(sockaddr.sin_port);
 #endif
 	return *this;
 }
@@ -194,7 +195,7 @@ std::unique_ptr<CSocket>	CSocket::Accept()
     CSocket*	pSocket = new CSocket;
 	pSocket->m_sock = conSock;
 	pSocket->m_addrFrom = from;
-
+	pSocket->m_bConnectionKilledFromPeer = false;
 	//pSocket->_setBlocking(false);
 	//pSocket->_setBufSize(65535);
 
@@ -246,6 +247,12 @@ void	CSocket::Close()
 		m_sock = 0;
 		m_bConnectionKilledFromPeer = true;
 	}
+}
+
+void	CSocket::SendStop()
+{
+	if (m_sock)
+		::shutdown(m_sock, SD_SEND);
 }
 
 bool	CSocket::IsDataAvailable()
