@@ -24,6 +24,7 @@
 
 #include <string>
 #include <vector>
+#include <deque>
 #include <atlsync.h>
 #include "Socket.h"
 
@@ -62,6 +63,7 @@ public:
 	virtual void ProxyEvent(LogProxyEvent Event, const IPv4Address& addr) = 0;
 	virtual void HttpEvent(LogHttpEvent Event, const IPv4Address& addr, int RequestNumber, const std::string& text) = 0;
 	virtual void FilterEvent(LogFilterEvent Event, int RequestNumber, const std::string& title, const std::string& text) = 0;
+	virtual void AddNewRequest(long requestNumber) { };
 };
 
 
@@ -123,20 +125,65 @@ public:
 	static long	IncrementActiveRequestCount() { return ::InterlockedIncrement(&s_ActiveRequestCount); }
 	static long	DecrementActiveRequestCount() { return ::InterlockedDecrement(&s_ActiveRequestCount); }
 
+	enum { kMaxRecentURLCount = 200 };
+
+	static void AddNewRequest(	long requestNumber, 
+								const std::string& responseCode, 
+								const std::string& contentType, 
+								const std::string& contentLength, 
+								const std::string& url)
+	{
+		CCritSecLock	lock(s_csdeqRecentURLs);
+		if (s_deqRecentURLs.size() >= kMaxRecentURLCount)
+			s_deqRecentURLs.pop_back();
+
+		std::string contentType2 = contentType;
+		int colon = contentType.find(';');
+		if (colon != std::string::npos)
+			contentType2 = contentType.substr(0, colon);
+		s_deqRecentURLs.emplace_front(requestNumber, responseCode, contentType2, contentLength, url);
+
+		std::vector<ILogTrace*> vec;
+		{
+			CCritSecLock	lock(s_csvecLogTrace);
+			vec =s_vecpLogTrace;
+		}
+		for (auto& trace : vec)
+			trace->AddNewRequest(requestNumber);
+	}
 
 	static CCriticalSection			s_csvecLogTrace;
+	static CCriticalSection			s_csdeqRecentURLs;
+
+	struct RecentURLData {
+		long	requestNumber;
+		std::string responseCode;
+		std::string contentType;
+		std::string contentLength;
+		std::string url;
+
+		RecentURLData(	long requestNumber, 
+						const std::string& responseCode, 
+						const std::string& contentType, 
+						const std::string& contentLength, 
+						const std::string& url) : requestNumber(requestNumber), responseCode(responseCode), contentType(contentType), contentLength(contentLength), url(url)
+		{ }
+	};
+	static std::deque<RecentURLData>	s_deqRecentURLs;
+
 private:
 	static std::vector<ILogTrace*>	s_vecpLogTrace;
 	static long			s_RequestCount;			/// Total number of requests received since Proximodo started
 	static long			s_ActiveRequestCount;	/// Number of requests being processed
+
 };
 
 __declspec(selectany) CCriticalSection			CLog::s_csvecLogTrace;
 __declspec(selectany) std::vector<ILogTrace*>	CLog::s_vecpLogTrace;
 __declspec(selectany) long			CLog::s_RequestCount = 0;
 __declspec(selectany) long			CLog::s_ActiveRequestCount = 0;
-
-
+__declspec(selectany) CCriticalSection			CLog::s_csdeqRecentURLs;
+__declspec(selectany) std::deque<CLog::RecentURLData>	CLog::s_deqRecentURLs;
 
 
 

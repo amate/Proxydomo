@@ -30,6 +30,7 @@
 #include <atlframe.h>
 #include <atlsync.h>
 #include <atlddx.h>
+#include <atlctrlx.h>
 #include "Log.h"
 
 class CLogViewWindow : 
@@ -50,10 +51,13 @@ public:
 	virtual void ProxyEvent(LogProxyEvent Event, const IPv4Address& addr) override;
 	virtual void HttpEvent(LogHttpEvent Event, const IPv4Address& addr, int RequestNumber, const std::string& text) override;
 	virtual void FilterEvent(LogFilterEvent Event, int RequestNumber, const std::string& title, const std::string& text) override;
+	virtual void AddNewRequest(long requestNumber) override;
 
 	BEGIN_DLGRESIZE_MAP( CLogViewWindow )
 		DLGRESIZE_CONTROL( IDC_RICHEDIT_LOG, DLSZ_SIZE_X | DLSZ_SIZE_Y )
+		DLGRESIZE_CONTROL( IDC_LIST_RECENTURLS, DLSZ_SIZE_X | DLSZ_SIZE_Y )
 		DLGRESIZE_CONTROL( IDC_CHECKBOX_STOPLOG, DLSZ_MOVE_Y )
+		DLGRESIZE_CONTROL( IDC_CHECKBOX_RECENTURLS, DLSZ_MOVE_Y )
 		DLGRESIZE_CONTROL( IDC_BUTTON_SHOWACTIVEREQUESTLOG, DLSZ_MOVE_Y )
 		DLGRESIZE_CONTROL( IDC_BUTTON_CLEAR, DLSZ_MOVE_Y )
 
@@ -69,7 +73,8 @@ public:
 	END_DLGRESIZE_MAP()
 
 	BEGIN_DDX_MAP( CLogViewWindow )
-		DDX_CHECK(IDC_CHECKBOX_STOPLOG		,	m_bStopLog)
+		DDX_CHECK(IDC_CHECKBOX_STOPLOG		, m_bStopLog	)
+		DDX_CHECK(IDC_CHECKBOX_RECENTURLS	, m_bRecentURLs	)
 
 		DDX_CHECK(IDC_CHECKBOX_BROWSERTOPROXY	,	m_bBrowserToProxy)
 		DDX_CHECK(IDC_CHECKBOX_PROXYTOWEB		,	m_bProxyToWeb)
@@ -89,7 +94,11 @@ public:
 		COMMAND_ID_HANDLER_EX( IDC_BUTTON_CLEAR, OnClear )
 		COMMAND_ID_HANDLER_EX( IDC_BUTTON_SHOWACTIVEREQUESTLOG, OnShowActiveRequestLog )
 
+		NOTIFY_HANDLER_EX( IDC_LIST_RECENTURLS, NM_RCLICK , OnRecentURLListRClick )
+		NOTIFY_HANDLER_EX( IDC_LIST_RECENTURLS, NM_DBLCLK , OnRecentURLListDblClick )
+
 		COMMAND_ID_HANDLER_EX( IDC_CHECKBOX_STOPLOG			, OnCheckBoxChanged )
+		COMMAND_ID_HANDLER_EX( IDC_CHECKBOX_RECENTURLS		, OnCheckBoxChanged )	
 		COMMAND_ID_HANDLER_EX( IDC_CHECKBOX_BROWSERTOPROXY	, OnCheckBoxChanged )
 		COMMAND_ID_HANDLER_EX( IDC_CHECKBOX_PROXYTOWEB		, OnCheckBoxChanged )	
 		COMMAND_ID_HANDLER_EX( IDC_CHECKBOX_PROXYFROMWEB	, OnCheckBoxChanged )	
@@ -107,14 +116,20 @@ public:
 	void OnCancel(UINT uNotifyCode, int nID, CWindow wndCtl);
 	void OnClear(UINT uNotifyCode, int nID, CWindow wndCtl);
 	void OnShowActiveRequestLog(UINT uNotifyCode, int nID, CWindow wndCtl);
+
+	LRESULT OnRecentURLListRClick(LPNMHDR pnmh);
+	LRESULT OnRecentURLListDblClick(LPNMHDR pnmh);
+
 	void OnCheckBoxChanged(UINT uNotifyCode, int nID, CWindow wndCtl);
 
 private:
 	void	_AppendText(const CString& text, COLORREF textColor);
 	void	_RefreshTitle();
+	void	_AddNewRequest(CLog::RecentURLData* it);
 
 	// Data members
 	CRichEditCtrl	m_editLog;
+	CSortListViewCtrl	m_listRequest;
 	CCriticalSection	m_csLog;
 	struct EventLog {
 		uint16_t	port;
@@ -127,6 +142,7 @@ private:
 	CCriticalSection	m_csActiveRequestLog;
 
 	bool	m_bStopLog;
+	bool	m_bRecentURLs;
 
 	bool	m_bBrowserToProxy;
 	bool	m_bProxyToWeb;

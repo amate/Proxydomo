@@ -1022,6 +1022,8 @@ void	CRequestManager::_ProcessIn()
 					continue;
 				}
 
+				CLog::AddNewRequest(m_filterOwner.requestNumber, m_responseLine.code, contentType, m_inChunked ? std::string("-1") : contentLength, m_filterOwner.url.getUrl());
+
 				// Decode new headers to control browser-side beehaviour
 				if (CUtil::noCaseContains("close", CFilterOwner::GetHeader(inHeadersFiltered, "Connection")))
 					m_sendConnectionClose = true;

@@ -42,6 +42,7 @@ using namespace CodeConvert;
 
 CLogViewWindow::CLogViewWindow() :
 	m_bStopLog(false),
+	m_bRecentURLs(false),
 	m_bBrowserToProxy(false),
 	m_bProxyToWeb(true),
 	m_bProxyFromWeb(false),
@@ -215,13 +216,59 @@ void CLogViewWindow::FilterEvent(LogFilterEvent Event, int RequestNumber, const 
 	_AppendText(msg, LOG_COLOR_FILTER);
 }
 
+void	CLogViewWindow::_AddNewRequest(CLog::RecentURLData* it)
+{
+	m_listRequest.InsertItem(0, std::to_wstring(it->requestNumber).c_str());
+	CString temp = it->responseCode.c_str();
+	LVITEM lvi = { 0 };
+	lvi.mask	= LVIF_TEXT;
+	lvi.iSubItem	= 1;
+	lvi.pszText		= temp.GetBuffer();
+	m_listRequest.SetItem(&lvi);
+
+	temp = it->contentType.c_str();
+	lvi.iSubItem	= 2;
+	lvi.pszText		= temp.GetBuffer();
+	m_listRequest.SetItem(&lvi);
+
+	temp = it->contentLength.c_str();
+	lvi.iSubItem	= 3;
+	lvi.pszText		= temp.GetBuffer();
+	m_listRequest.SetItem(&lvi);
+
+	temp = it->url.c_str();
+	lvi.iSubItem	= 4;
+	lvi.pszText		= temp.GetBuffer();
+	m_listRequest.SetItem(&lvi);
+}
+
+void CLogViewWindow::AddNewRequest(long requestNumber)
+{
+	_AddNewRequest(&CLog::s_deqRecentURLs.front());
+			
+	while (m_listRequest.GetItemCount() > CLog::kMaxRecentURLCount)
+		m_listRequest.DeleteItem(m_listRequest.GetItemCount() - 1);
+}
 
 
 BOOL CLogViewWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 {
 	m_editLog = GetDlgItem(IDC_RICHEDIT_LOG);
-
 	m_editLog.SetBackgroundColor(LOG_COLOR_BACKGROUND);
+
+	m_listRequest.SubclassWindow(GetDlgItem(IDC_LIST_RECENTURLS));
+	m_listRequest.SetExtendedListViewStyle(LVS_EX_FULLROWSELECT, LVS_EX_FULLROWSELECT);
+	m_listRequest.AddColumn(_T("Con"), 0, 
+							-1, LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM, LVCFMT_RIGHT);
+	m_listRequest.SetColumnSortType(0, LVCOLSORT_LONG);
+	m_listRequest.AddColumn(_T("Code"), 1);
+	m_listRequest.SetColumnSortType(1, LVCOLSORT_LONG);
+	m_listRequest.AddColumn(_T("Content-Type"), 2);
+	m_listRequest.AddColumn(_T("Length"), 3, 
+							-1, LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM, LVCFMT_RIGHT);
+	m_listRequest.SetColumnSortType(3, LVCOLSORT_LONG);
+	m_listRequest.AddColumn(_T("URL"), 4);
+	m_listRequest.SetColumnWidth(4, 400);
 
     // ダイアログリサイズ初期化
     DlgResize_Init(true, true, WS_THICKFRAME | WS_MAXIMIZEBOX);
@@ -313,14 +360,26 @@ void CLogViewWindow::OnCancel(UINT uNotifyCode, int nID, CWindow wndCtl)
 
 void CLogViewWindow::OnClear(UINT uNotifyCode, int nID, CWindow wndCtl)
 {
-	m_editLog.SetWindowText(_T(""));
-	_RefreshTitle();
-	m_editLog.Invalidate();
+	if (m_bRecentURLs) {
+		{
+			CCritSecLock	lock(CLog::s_csdeqRecentURLs);
+			CLog::s_deqRecentURLs.clear();
+		}
+		m_listRequest.DeleteAllItems();
+
+	} else {
+		m_editLog.SetWindowText(_T(""));
+		_RefreshTitle();
+		m_editLog.Invalidate();
+	}
 }
 
 void CLogViewWindow::OnShowActiveRequestLog(UINT uNotifyCode, int nID, CWindow wndCtl)
 {
+	bool bPrev = m_bRecentURLs;
+	m_bRecentURLs = false;
 	OnClear(0, 0, NULL);
+	m_bRecentURLs = bPrev;
 
 	_RefreshTitle();
 
@@ -330,6 +389,28 @@ void CLogViewWindow::OnShowActiveRequestLog(UINT uNotifyCode, int nID, CWindow w
 	}
 
 }
+
+/// URLをクリップボードにコピー
+LRESULT CLogViewWindow::OnRecentURLListRClick(LPNMHDR pnmh)
+{
+	auto lpnmitem = (LPNMITEMACTIVATE) pnmh;
+	CString url;
+	m_listRequest.GetItemText(lpnmitem->iItem, 4, url);
+	Misc::SetClipboardText(url);
+
+	return 0;
+}
+
+/// URLを開く
+LRESULT CLogViewWindow::OnRecentURLListDblClick(LPNMHDR pnmh)
+{
+	auto lpnmitem = (LPNMITEMACTIVATE) pnmh;
+	CString url;
+	m_listRequest.GetItemText(lpnmitem->iItem, 4, url);
+	::ShellExecute(NULL, NULL, url, NULL, NULL, SW_NORMAL);
+	return 0;
+}
+
 
 void CLogViewWindow::OnCheckBoxChanged(UINT uNotifyCode, int nID, CWindow wndCtl)
 {
@@ -341,11 +422,24 @@ void CLogViewWindow::OnCheckBoxChanged(UINT uNotifyCode, int nID, CWindow wndCtl
 			CLog::RemoveLogTrace(this);
 		else
 			CLog::RegisterLogTrace(this);
+	} else if (nID == IDC_CHECKBOX_RECENTURLS) {
+		GetDlgItem(IDC_LIST_RECENTURLS).ShowWindow(m_bRecentURLs);
+		GetDlgItem(IDC_RICHEDIT_LOG).ShowWindow(!m_bRecentURLs);
+		if (m_bRecentURLs) {
+			m_listRequest.DeleteAllItems();
+			CCritSecLock	lock(CLog::s_csdeqRecentURLs);
+			for (auto it = CLog::s_deqRecentURLs.rbegin(); it != CLog::s_deqRecentURLs.rend(); ++it) {
+				_AddNewRequest(&(*it));
+			}
+		}
 	}
 }
 
 void	CLogViewWindow::_AppendText(const CString& text, COLORREF textColor)
 {
+	if (m_bRecentURLs)
+		return ;
+
 	CCritSecLock lock(m_csLog);
 
 	CHARFORMAT cfmt = { sizeof(CHARFORMAT) };
