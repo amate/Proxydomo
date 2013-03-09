@@ -565,7 +565,7 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
                 return new CNode_Repeat(new CNode_Chars(L" \t\r\n"), 1, BIG_NUMBER);
             case L'w':
                 // Rule: \w
-                return new CNode_Repeat(new CNode_Chars(L" \t\r\n>", false), 0, BIG_NUMBER);
+                return new CNode_Repeat(new CNode_Chars(L" \t\r\n>", false), 0, BIG_NUMBER, true);
             case L'#':
                 // Rule: \#
                 return new CNode_MemStar();
@@ -574,7 +574,7 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
                 return new CNode_Command(CMD_KILL, L"", L"");
 			case L'd':
 				// Rule: \d
-				return new CNode_Chars(L"0123456789");
+				return new CNode_Repeat(new CNode_Chars(L"0123456789"), 1, BIG_NUMBER);
 
             default:
                 // Rule: \0-9

@@ -167,6 +167,7 @@ public:
         std::string url = "http://www.host.org/path/page.html?query=true#anchor";
         owner.url.parseUrl(url);
         owner.cnxNumber = 1;
+		owner.fileType	= "htm";
         CFilter filter(owner);
 		Proxydomo::MatchData matchData(&filter);
 
@@ -233,8 +234,8 @@ public:
                 const wchar_t* bufTail = bufHead + size;
                 const wchar_t* index   = bufHead;
                 const wchar_t* done    = bufHead;
-                while (index <= bufTail && !owner.killed && !filter.bypassed) {
-                    if (index < bufTail && !okayChars[(unsigned char)(*index)]) {
+                while (index < bufTail && !owner.killed && !filter.bypassed) {
+                    if (okayChars[(unsigned char)(*index)] == false) {
                         ++index;
                         continue;
                     }
