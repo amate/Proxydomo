@@ -48,7 +48,8 @@ std::map<std::string, UConverter*>	g_mapConverter;
 }
 
 CTextBuffer::CTextBuffer(CFilterOwner& owner, IDataReceptor* output) : 
-	m_owner(owner), m_output(output), m_bCharaCodeDectated(false), m_pConverter(nullptr)
+	m_owner(owner), m_output(output), 
+	m_bCharaCodeDectated(false), m_pConverter(nullptr), m_bDataDump(false)
 {
 	if (g_dectator == nullptr) {
 		UErrorCode err = UErrorCode::U_ZERO_ERROR;
@@ -84,6 +85,7 @@ void CTextBuffer::DataReset()
 	m_bCharaCodeDectated = false;
 	m_pConverter = nullptr;
 	m_output->DataReset();	
+	m_bDataDump = false;
 }
 
 /// EUC-JP, Shift-JIS, UTF-8 の末尾を調べる
@@ -139,7 +141,7 @@ void CTextBuffer::DataFeed(const std::string& data)
 		m_buffer += data;
 		enum { kMaxBufferForCharaCodeSearch = 5000 };
 		if (m_buffer.size() < kMaxBufferForCharaCodeSearch) {
-			if (data.size() > 0)
+			if (m_bDataDump == false)
 				return ;	// バッファがたまるまで待つ
 		}
 		std::string charaCode;
@@ -154,9 +156,12 @@ void CTextBuffer::DataFeed(const std::string& data)
 			}
 		}
 		if (charaCode.empty()) {
-			std::regex rx("<meta [^>]*http-equiv=\"?Content-Type\"? [^>]*charset=\"?([^\"' >]+)\"?[^>]*>", std::regex_constants::icase);
+			std::regex rx1("<meta [^>]*http-equiv=\"?Content-Type\"? [^>]*charset=\"?([^\"' >]+)\"?[^>]*>", std::regex_constants::icase);
+			std::regex rx2("<meta [^>]*charset=\"?([^\"' >]+)\"? [^>]*http-equiv=\"?Content-Type\"?[^>]*>", std::regex_constants::icase);
 			std::smatch result;
-			if (std::regex_search(m_buffer.cbegin(), m_buffer.cend(), result, rx)) {
+			if (std::regex_search(m_buffer.cbegin(), m_buffer.cend(), result, rx1) ||
+				std::regex_search(m_buffer.cbegin(), m_buffer.cend(), result, rx2) )
+			{
 				charaCode = result.str(1);
 				CUtil::upper(charaCode);
 			}
@@ -328,6 +333,8 @@ void CTextBuffer::DataDump()
 
 	for (auto& filter : m_vecpTextfilters)
 		filter->endReached();
+
+	m_bDataDump = true;
 
 	DataFeed("");
 	m_output->DataDump();

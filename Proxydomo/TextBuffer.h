@@ -72,5 +72,6 @@ private:
 	bool	m_bCharaCodeDectated;
 	icu::UnicodeString	m_unicodeBuffer;
 	UConverter*	m_pConverter;
+	bool	m_bDataDump;
 };
 
