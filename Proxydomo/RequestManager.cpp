@@ -219,13 +219,9 @@ void CRequestManager::Manage()
 
 			} while (m_psockWebsite->IsConnected() && m_psockBrowser->IsConnected());
 
-			TRACE(L"Manage ポート %d : outStep[%s] inStep[%s] ", 
-					m_ipFromAddress.GetPortNumber(), STEPtoString(m_outStep), STEPtoString(m_inStep));
-			if (m_psockWebsite->IsConnected() == false)
-				TRACEIN("サイトとの接続が切れました [%s]", m_filterOwner.contactHost.c_str());
-			else
-				TRACEIN("ブラウザとの接続が切れました [%s]", m_filterOwner.contactHost.c_str());
-
+			TRACEIN(L"Manage ポート %d : outStep[%s] inStep[%s] whileEnd、SiteConnected(%d) BrowserConnected(%d)", 
+					m_ipFromAddress.GetPortNumber(), STEPtoString(m_outStep), STEPtoString(m_inStep), m_psockWebsite->IsConnected(), m_psockBrowser->IsConnected());
+	
 			//if (m_outStep == STEP_TUNNELING && m_psockBrowser->IsConnected()) {
 			//	_ProcessIn();
 			//}
@@ -864,6 +860,15 @@ void	CRequestManager::_ProcessIn()
 		case STEP_FIRSTLINE:
 			{
 				// Do we have the full first line yet?
+				if (m_recvInBuf.size() < 4)
+					return ;
+				// ゴミデータが詰まってるので終わる
+				if (::strncmp(m_recvInBuf.c_str(), "HTTP", 4) != 0) {
+					m_recvInBuf.clear();
+					m_inStep = STEP_FINISH;
+					break;
+				}
+
 				size_t pos, len;
 				if (CUtil::endOfLine(m_recvInBuf, 0, pos, len) == false)
 					return ;		// まだ改行まで読み込んでないので帰る
@@ -927,13 +932,13 @@ void	CRequestManager::_ProcessIn()
 					m_inChunked = true;
 
 				std::string contentLength = m_filterOwner.GetInHeader("Content-Length");
-				if (contentLength.size() > 0) 
+				if (contentLength.size() > 0 && m_requestLine.method != "HEAD") 
 					m_inSize = boost::lexical_cast<int>(contentLength);
 
 				std::string contentType = m_filterOwner.GetInHeader("Content-Type");
 				if (contentType.size() > 0) {
 					// If size is not given, we'll read body until connection closes
-					if (contentLength.empty()) 
+					if (contentLength.empty() && m_requestLine.method != "HEAD") 
 						m_inSize = /*BIG_NUMBER*/ 0x7FFFFFFF;
 
 					// Check for filterable MIME types

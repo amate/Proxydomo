@@ -30,7 +30,7 @@
 
 using namespace boost::property_tree;
 
-CMainDlg::CMainDlg() : m_listChangeWatcher(FILE_NOTIFY_CHANGE_LAST_WRITE)
+CMainDlg::CMainDlg() : m_listChangeWatcher(FILE_NOTIFY_CHANGE_LAST_WRITE), m_bVisibleOnDestroy(true)
 {
 }
 
@@ -133,7 +133,13 @@ LRESULT CMainDlg::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/,
 		::Shell_NotifyIcon(NIM_DELETE, &nid);
 	}
 
+	_SaveMainDlgWindowPos();
 
+	return 0;
+}
+
+void	CMainDlg::_SaveMainDlgWindowPos()
+{
 	std::string settingsPath = CT2A(Misc::GetExeDirectory() + _T("settings.ini"));
 	ptree pt;
 	try {
@@ -151,8 +157,14 @@ LRESULT CMainDlg::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/,
 	}
 
 	write_ini(settingsPath, pt);
+}
 
-	return 0;
+void	CMainDlg::OnEndSession(BOOL bEnding, UINT uLogOff)
+{
+	if (bEnding) {
+		m_bVisibleOnDestroy	= IsWindowVisible() != 0;
+		_SaveMainDlgWindowPos();
+	}
 }
 
 LRESULT CMainDlg::OnAppAbout(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)

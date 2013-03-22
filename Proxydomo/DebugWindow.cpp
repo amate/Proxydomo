@@ -111,7 +111,7 @@ void	CDebugUtility::Impl::WriteIn(LPCWSTR strFormat, va_list argList)
 void	CDebugUtility::Impl::_WriteConsole(LPCTSTR str)
 {
 	static CString strFilePath = Misc::GetExeDirectory() + _T("log.txt");
-	std::wfstream	filestream(strFilePath, std::ios::app);
+	std::wfstream	filestream(strFilePath, std::ios::app | std::ios::binary);
 	if (filestream) {
 		filestream.imbue(std::locale(std::locale(), new std::codecvt_utf8_utf16<wchar_t>));
 		time_t time = std::time(nullptr);
