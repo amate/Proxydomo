@@ -107,10 +107,10 @@ void CNode_Star::setNextNode(CNode* node)
 const UChar* CNode_MemStar::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
     const UChar* left = start;
-
+	CMemory backup;
     // Backup memory and replace by a new one, or push new one on stack
     if (m_memoryPos != -1) {		
-        m_backup = pMatch->pFilter->memoryTable[m_memoryPos];
+        backup = pMatch->pFilter->memoryTable[m_memoryPos];
         pMatch->pFilter->memoryTable[m_memoryPos](left, stop);
     } else {
 		pMatch->pFilter->memoryStack.push_back(CMemory(left, stop));
@@ -148,7 +148,7 @@ const UChar* CNode_MemStar::match(const UChar* start, const UChar* stop, MatchDa
 
     // Undo backup.
     if (m_memoryPos != -1) {
-        pMatch->pFilter->memoryTable[m_memoryPos] = m_backup;
+        pMatch->pFilter->memoryTable[m_memoryPos] = backup;
     } else {
 		pMatch->pFilter->memoryStack.pop_back();
     }
@@ -368,14 +368,13 @@ bool CNode_Range::mayMatch(bool* tab)
  */
 const UChar* CNode_String::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
-
     const UChar* ptr = m_str.c_str();
-    const UChar* max = (stop < start + m_size) ? stop : start + m_size;
+    const UChar* max = (stop < start + m_str.length()) ? stop : start + m_str.length();
 
     while (start < max && *ptr == towlower(*start)) { ptr++; start++; }
 
 	// ‘S•”Á”ï‚³‚ê‚È‚©‚Á‚½
-    if (ptr < m_str.c_str() + m_size) {
+    if (ptr < m_str.c_str() + m_str.length()) {
 		UpdateReached(start, pMatch);
         return nullptr;
     }
@@ -687,9 +686,10 @@ const UChar* CNode_Memory::match(const UChar* start, const UChar* stop, MatchDat
         m_consumed = m_node->m_consumed;
         return ret;
     } else {
+		CMemory backup;
         // Backup memory and replace by a new one, or push new one on stack
         if (m_memoryPos != -1) {
-			m_backup = pMatch->pFilter->memoryTable[m_memoryPos];
+			backup = pMatch->pFilter->memoryTable[m_memoryPos];
             pMatch->pFilter->memoryTable[m_memoryPos](m_recordPos, start);
         } else {
 			pMatch->pFilter->memoryStack.push_back(CMemory(m_recordPos, start));
@@ -702,7 +702,7 @@ const UChar* CNode_Memory::match(const UChar* start, const UChar* stop, MatchDat
         }
         // Undo backup.
         if (m_memoryPos != -1) {
-            pMatch->pFilter->memoryTable[m_memoryPos] = m_backup;
+            pMatch->pFilter->memoryTable[m_memoryPos] = backup;
         } else {
             pMatch->pFilter->memoryStack.pop_back();
         }
@@ -769,24 +769,25 @@ const UChar* CNode_AV::match(const UChar* start, const UChar* stop, MatchData* p
     bool consumeQuote = false;
     const UChar *begin, *end;
     begin = end = start;
-    if (start<stop) {
+    if (start < stop) {
         UChar token = *start;
         if (token == L'\'' || token == L'\"') {
             // We'll try and match a quoted parameter. Look for closing quote.
             end++;
             if (m_isAVQ == false) begin++; // AV: the matching will start after the quote
-            while (end<stop && *end!=token) end++;
-            if (end<stop) {
-                if (m_isAVQ)
+            while (end < stop && *end != token) end++;
+            if (end < stop) {
+                if (m_isAVQ) {
                     end++; // AVQ: the matching will include the closing quote
-                else
+				} else {
                     // AV: if we match the interior, we will
                     // consume the closing quote
                     consumeQuote = true;
+				}
             }
         } else {
             // Parameter without quote (single word), look for its end
-            while (end<stop && *end > L' ' && *end != L'>') end++;
+            while (end < stop && *end > L' ' && *end != L'>') end++;
             if (end == begin) return NULL;
         }
     }
@@ -795,7 +796,7 @@ const UChar* CNode_AV::match(const UChar* start, const UChar* stop, MatchData* p
     begin = m_node->match(begin, end, pMatch);
     if (begin != end) 
 		return nullptr;
-    start = consumeQuote ? end+1 : end;
+    start = consumeQuote ? end + 1 : end;
 
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
 	UpdateReached(start, pMatch);
@@ -840,6 +841,7 @@ const UChar* CNode_Url::match(const UChar* start, const UChar* stop, MatchData* 
     while (start < stop && *ptr != '\0' && towlower(*ptr) == towlower(*start)) {
         ptr++; start++;
     }
+	// ‘S•”Á”ï‚µ‚È‚©‚Á‚½
     if (*ptr != L'\0') {
 		UpdateReached(start, pMatch);
         return nullptr;
@@ -944,7 +946,10 @@ CNode_Command::~CNode_Command()
 
 const UChar* CNode_Command::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
-    const UChar *tStart, *tStop, *tEnd;
+    const UChar *tStart = nullptr;
+	const UChar *tStop = nullptr;
+	const UChar *tEnd = nullptr;
+	std::wstring toMatch;
 
 	CFilter& filter = *pMatch->pFilter;
 	CFilterOwner& owner = filter.owner;
@@ -953,10 +958,10 @@ const UChar* CNode_Command::match(const UChar* start, const UChar* stop, MatchDa
 
     case CMD_TSTSHARP:
         if (filter.memoryStack.empty()) return NULL;
-        m_toMatch = filter.memoryStack.back().getValue();
-        tStart = m_toMatch.c_str();
-        tStop = tStart + m_toMatch.size();
-        if (m_toMatch.empty()
+        toMatch = filter.memoryStack.back().getValue();
+        tStart = toMatch.c_str();
+        tStop = tStart + toMatch.size();
+        if (toMatch.empty()
                || !m_matcher->match(tStart, tStop, tEnd, pMatch)
                || tEnd != tStop ) {
             return NULL;
@@ -964,10 +969,10 @@ const UChar* CNode_Command::match(const UChar* start, const UChar* stop, MatchDa
         break;
 
     case CMD_TSTEXPAND:
-        m_toMatch = CExpander::expand(m_name, filter);
-        tStart = m_toMatch.c_str();
-        tStop = tStart + m_toMatch.size();
-        if (m_toMatch.empty()
+        toMatch = CExpander::expand(m_name, filter);
+        tStart = toMatch.c_str();
+        tStop = tStart + toMatch.size();
+        if (toMatch.empty()
                || !m_matcher->match(tStart, tStop, tEnd, pMatch)
                || tEnd != tStop ) {
             return NULL;
@@ -975,10 +980,10 @@ const UChar* CNode_Command::match(const UChar* start, const UChar* stop, MatchDa
         break;
 
     case CMD_TSTDIGIT:
-        m_toMatch = filter.memoryTable[m_name[0]-'0'].getValue();
-        tStart = m_toMatch.c_str();
-        tStop = tStart + m_toMatch.size();
-        if (m_toMatch.empty()
+        toMatch = filter.memoryTable[m_name[0] - L'0'].getValue();
+        tStart = toMatch.c_str();
+        tStop = tStart + toMatch.size();
+        if (toMatch.empty()
                || !m_matcher->match(tStart, tStop, tEnd, pMatch)
                || tEnd != tStop ) {
             return NULL;
@@ -986,10 +991,10 @@ const UChar* CNode_Command::match(const UChar* start, const UChar* stop, MatchDa
         break;
 
     case CMD_TSTVAR:
-        m_toMatch = owner.variables[m_name];
-        tStart = m_toMatch.c_str();
-        tStop = tStart + m_toMatch.size();
-        if (m_toMatch.empty()
+        toMatch = owner.variables[m_name];
+        tStart = toMatch.c_str();
+        tStop = tStart + toMatch.size();
+        if (toMatch.empty()
                || !m_matcher->match(tStart, tStop, tEnd, pMatch)
                || tEnd != tStop ) {
             return NULL;
@@ -997,30 +1002,30 @@ const UChar* CNode_Command::match(const UChar* start, const UChar* stop, MatchDa
         break;
 
     case CMD_URL:
-        m_toMatch = UTF16fromUTF8(owner.url.getUrl());
-        tStart = m_toMatch.c_str();
-        tStop = tStart + m_toMatch.size();
+        toMatch = UTF16fromUTF8(owner.url.getUrl());
+        tStart = toMatch.c_str();
+        tStop = tStart + toMatch.size();
         if (!m_matcher->match(tStart, tStop, tEnd, pMatch)) return NULL;
         break;
 
     case CMD_IHDR:
-        m_toMatch = UTF16fromUTF8(CFilterOwner::GetHeader(owner.inHeaders, UTF8fromUTF16(m_name)));
-        tStart = m_toMatch.c_str();
-        tStop = tStart + m_toMatch.size();
+        toMatch = UTF16fromUTF8(CFilterOwner::GetHeader(owner.inHeaders, UTF8fromUTF16(m_name)));
+        tStart = toMatch.c_str();
+        tStop = tStart + toMatch.size();
         if (!m_matcher->match(tStart, tStop, tEnd, pMatch)) return NULL;
         break;
 
     case CMD_OHDR:
-        m_toMatch = UTF16fromUTF8(CFilterOwner::GetHeader(owner.outHeaders, UTF8fromUTF16(m_name)));
-        tStart = m_toMatch.c_str();
-        tStop = tStart + m_toMatch.size();
+        toMatch = UTF16fromUTF8(CFilterOwner::GetHeader(owner.outHeaders, UTF8fromUTF16(m_name)));
+        tStart = toMatch.c_str();
+        tStop = tStart + toMatch.size();
         if (!m_matcher->match(tStart, tStop, tEnd, pMatch)) return NULL;
         break;
 
     case CMD_RESP:
-        m_toMatch = UTF16fromUTF8(owner.responseCode);
-        tStart = m_toMatch.c_str();
-        tStop = tStart + m_toMatch.size();
+        toMatch = UTF16fromUTF8(owner.responseCode);
+        tStart = toMatch.c_str();
+        tStop = tStart + toMatch.size();
         if (!m_matcher->match(tStart, tStop, tEnd, pMatch)) return NULL;
         break;
 
@@ -1274,9 +1279,9 @@ const UChar* CNode_Test::match(const UChar* start, const UChar* stop, MatchData*
     if (m_name == L"#") {
         if (!filter.memoryStack.empty())
             str = filter.memoryStack.back().getValue();
-    } else if (m_name.size() == 1 && u_isdigit(m_name[0])) {
-        str = filter.memoryTable[m_name[0]-'0'].getValue();
-    } else if (m_name[0] == '(' && m_name[m_name.size()-1] == ')') {
+	} else if (m_name.size() == 1 && iswdigit(m_name[0])) {
+        str = filter.memoryTable[m_name[0] - L'0'].getValue();
+    } else if (m_name[0] == L'(' && m_name[m_name.size()-1] == L')') {
         str = CExpander::expand(m_name.substr(1, m_name.size()-2), filter);
     } else {
         str = filter.owner.variables[m_name];
@@ -1321,19 +1326,16 @@ CNode_Ask::CNode_Ask(/*CFilter& filter,*/
         item(item), pattern(pattern)
 {
 
-    m_allowMatcher = new CMatcher(L"$LST(" + allowName + L")");
+    m_allowMatcher.reset(new CMatcher(L"$LST(" + allowName + L")"));
     try {
-        m_denyMatcher = new CMatcher(L"$LST(" + denyName + L")");
+        m_denyMatcher.reset(new CMatcher(L"$LST(" + denyName + L")"));
     } catch (parsing_exception e) {
-        delete m_allowMatcher;
         throw e;
     }
 }
 
 CNode_Ask::~CNode_Ask()
 {
-    delete m_allowMatcher;
-    delete m_denyMatcher;
 }
 
 const UChar* CNode_Ask::match(const UChar* start, const UChar* stop, MatchData* pMatch)
@@ -1346,7 +1348,7 @@ const UChar* CNode_Ask::match(const UChar* start, const UChar* stop, MatchData* 
         filter.locked = true;
     }
     const UChar *tStart, *tStop, *tEnd;
-    toMatch = CExpander::expand(pattern, filter);
+    std::wstring toMatch = CExpander::expand(pattern, filter);
     tStart = toMatch.c_str();
     tStop = tStart + toMatch.size();
     // If the pattern is found in Allow list, we return a non-match

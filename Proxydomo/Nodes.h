@@ -76,14 +76,11 @@ public:
 	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override;
 
 private:
-    int	m_pos;
     bool m_maxFirst;
     bool m_tab[256];
     bool m_useTab;
 
 	int	m_memoryPos;	// '0'-'9' or '-1'(stack)
-
-    CMemory m_backup;
 };
 
 
@@ -188,10 +185,10 @@ private:
 class CNode_String : public CNode
 {
 public:
-	CNode_String(const std::wstring& s) : CNode(STRING), m_str(s), m_size(s.length()) { }
+	CNode_String(const std::wstring& s) : CNode(STRING), m_str(s) { }
     ~CNode_String() { }
 
-	void append(UChar c) { m_str += c; ++m_size; }
+	void append(UChar c) { m_str += c; }
 
 	// CNode
     bool mayMatch(bool* tab) override;
@@ -199,7 +196,6 @@ public:
 
 private:
     std::wstring m_str;
-    int	m_size;
 };
 
 
@@ -360,7 +356,6 @@ private:
     CNode* m_node;
 	int	m_memoryPos;	// 	'0'-'9' or '-1'(stack)
 
-    CMemory	m_backup;
     CNode_Memory* m_memorizer;
     const UChar* m_recordPos;
 };
@@ -411,7 +406,7 @@ private:
 class CNode_Url : public CNode
 {
 public:
-	CNode_Url(UChar token) : CNode(URL), m_token(token) { }
+	CNode_Url(const UChar token) : CNode(URL), m_token(token) { }
     ~CNode_Url() { }
 
 	// CNode
@@ -419,7 +414,7 @@ public:
 	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override;
 
 private:
-    UChar	m_token;
+    const UChar	m_token;
 };
 
 
@@ -444,7 +439,7 @@ private:
     int hashBucket(char c) { return tolower(c) & 0xff; }
 
 	// Data members
-    std::string	m_name;            // name of the list
+    const std::string		m_name;            // name of the list
 	HashedListCollection*	m_phashedCollection;
 };
 
@@ -484,7 +479,6 @@ private:
     std::wstring m_content;
     //CFilter& filter;
     //CFilterOwner& owner;
-    std::wstring m_toMatch;
     CMatcher* m_matcher;
 };
 
@@ -571,9 +565,8 @@ public:
 private:
     //CFilter& filter;
     const std::wstring allowName, denyName, question, item, pattern;
-    CMatcher*	m_allowMatcher;
-	CMatcher*	m_denyMatcher;
-    std::wstring toMatch; // for matchers
+    std::unique_ptr<CMatcher>	m_allowMatcher;
+	std::unique_ptr<CMatcher>	m_denyMatcher;
 };
 
 }	// namespace Proxydomo
