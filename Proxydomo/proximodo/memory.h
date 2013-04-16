@@ -27,18 +27,14 @@
 #define __memory__
 
 #include <string>
+#include <memory>
 
 /* class CMemory
  * Represents a matched string, by its position in original string or by value
  * Used to retain \1 or \#
  */
-class CMemory {
-
-private:
-    const wchar_t* posStart;   // start position in text buffer
-    const wchar_t* posEnd;     // end position in text
-    std::wstring* content;    // (pointer so that we don't construct string if not used)
-
+class CMemory
+{
 public:
     // Default constructor
     inline CMemory();
@@ -70,26 +66,32 @@ public:
 
     // Assignment operator
     inline CMemory& operator=(const CMemory& mem);
+
+private:
+	// Data members
+	std::unique_ptr<std::wstring> m_pText;
+    std::unique_ptr<std::wstring> m_pContent;  // (pointer so that we don't construct string if not used)
 };
 
 
 /* Default constructor
  */
-CMemory::CMemory() : posStart(NULL), posEnd(NULL), content(NULL) {
+CMemory::CMemory() {
 }
 
 
 /* Constructor (by value)
  */
-CMemory::CMemory(const std::wstring& value) : content(new std::wstring(value))
+CMemory::CMemory(const std::wstring& value) : 
+	m_pContent(new std::wstring(value))
 {
 }
 
 
 /* Constructor (by markers)
  */
-CMemory::CMemory(const wchar_t* posStart, const wchar_t* posEnd) :
-        posStart(posStart), posEnd(posEnd), content(NULL)
+CMemory::CMemory(const wchar_t* posStart, const wchar_t* posEnd) : 
+	m_pText(new std::wstring(posStart, posEnd))
 {
 }
 
@@ -97,12 +99,10 @@ CMemory::CMemory(const wchar_t* posStart, const wchar_t* posEnd) :
 /* Copy constructor
  */
 CMemory::CMemory(const CMemory& mem) {
-    if (mem.content) {
-        content = new std::wstring(*mem.content);
-    } else {
-        content  = NULL;
-        posStart = mem.posStart;
-        posEnd   = mem.posEnd;
+    if (mem.m_pContent) {
+        m_pContent.reset(new std::wstring(*mem.m_pContent));
+	} else if (mem.m_pText) {
+		m_pText.reset(new std::wstring(*mem.m_pText));
     }
 }
 
@@ -110,39 +110,46 @@ CMemory::CMemory(const CMemory& mem) {
 /* Destructor
  */
 CMemory::~CMemory() {
-    if (content) delete content;
 }
 
 
 /* created with a value? (then it must be expanded)
  */
 bool CMemory::isByValue() {
-    return (content != NULL);
+    return (m_pContent != nullptr);
 }
 
 
 /* Get the retained value
  */
 std::wstring CMemory::getValue() {
-    return (content ? *content : posStart < posEnd ?
-            std::wstring(posStart, posEnd - posStart) : std::wstring(L"") );
+	if (m_pContent)
+		return *m_pContent;
+	else if (m_pText)
+		return *m_pText;
+	else
+		return L"";
 }
 
 
 /* Assignment operator
  */
 CMemory& CMemory::operator=(const CMemory& mem) {
-    if (mem.content) {
-        if (content) {
-            *content = *mem.content;
+    if (mem.m_pContent) {
+        if (m_pContent) {
+            *m_pContent = *mem.m_pContent;
         } else {
-            content = new std::wstring(*mem.content);
+            m_pContent.reset(new std::wstring(*mem.m_pContent));
         }
     } else {
-        if (content) delete content;
-        content  = NULL;
-        posStart = mem.posStart;
-        posEnd   = mem.posEnd;
+        if (m_pContent) 
+			m_pContent.reset();
+
+		if (m_pText) {
+			*m_pText = *mem.m_pText;
+		} else {
+			m_pText.reset(new std::wstring(*mem.m_pText));
+		}
     }
     return *this;
 }
@@ -151,18 +158,23 @@ CMemory& CMemory::operator=(const CMemory& mem) {
 /* Change operators
  */
 CMemory& CMemory::operator()(const std::wstring& value) {
-    if (content) {
-        *content = value;
+    if (m_pContent) {
+        *m_pContent = value;
     } else {
-        content = new std::wstring(value);
+        m_pContent.reset(new std::wstring(value));
     }
     return *this;
 }
 
 CMemory& CMemory::operator()(const wchar_t* posStart, const wchar_t* posEnd) {
-    if (content) { delete content; content = NULL; }
-    this->posStart = posStart;
-    this->posEnd   = posEnd;
+    if (m_pContent) 
+		m_pContent.reset();
+
+	if (m_pText) {
+		m_pText->assign(posStart, posEnd);
+	} else {
+		m_pText.reset(new std::wstring(posStart, posEnd));
+	}
     return *this;
 }
 
@@ -170,8 +182,8 @@ CMemory& CMemory::operator()(const wchar_t* posStart, const wchar_t* posEnd) {
 /* Clear content
  */
 void CMemory::clear() {
-    if (content) { delete content; content = NULL; }
-    posStart = posEnd = NULL;
+	m_pContent.reset();
+	m_pText.reset();
 }
 
 #endif

@@ -28,6 +28,7 @@
 #include <vector>
 #include <deque>
 #include <mutex>
+#include <memory>
 #include "Node.h"
 #include "proximodo\memory.h"
 #include "proximodo\url.h"
@@ -357,7 +358,7 @@ private:
 	int	m_memoryPos;	// 	'0'-'9' or '-1'(stack)
 
     CNode_Memory* m_memorizer;
-    const UChar* m_recordPos;
+    //const UChar* m_recordPos;
 };
 
 

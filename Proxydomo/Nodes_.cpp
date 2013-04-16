@@ -55,8 +55,8 @@ const UChar* CNode_Star::match(const UChar* start, const UChar* stop, MatchData*
     if (m_maxFirst) {
         UpdateReached(stop, pMatch);
         if (m_nextNode == nullptr || m_nextNode->match(stop, stop, pMatch)) {
-			m_consumed = stop;
-            return m_consumed;
+			pMatch->consumed = stop;
+            return pMatch->consumed;
         }
         --stop;
     }
@@ -68,7 +68,7 @@ const UChar* CNode_Star::match(const UChar* start, const UChar* stop, MatchData*
         }
         const UChar* ret = m_nextNode->match(start, stop, pMatch);
         if (ret) {
-            m_consumed = start;
+            pMatch->consumed = start;
             UpdateReached(start, pMatch);
             return ret;
         }
@@ -120,8 +120,8 @@ const UChar* CNode_MemStar::match(const UChar* start, const UChar* stop, MatchDa
     if (m_maxFirst) {
 		UpdateReached(stop, pMatch);
         if (m_nextNode == nullptr || m_nextNode->match(stop, stop, pMatch)) {
-			m_consumed = stop;
-            return m_consumed;
+			pMatch->consumed = stop;
+            return pMatch->consumed;
         }
         --stop;
     }
@@ -139,7 +139,7 @@ const UChar* CNode_MemStar::match(const UChar* start, const UChar* stop, MatchDa
         }
         const UChar* ret = m_nextNode->match(start, stop, pMatch);
         if (ret) {
-            m_consumed = start;
+            pMatch->consumed = start;
 			UpdateReached(start, pMatch);
             return ret;
         }
@@ -188,7 +188,7 @@ const UChar* CNode_Space::match(const UChar* start, const UChar* stop, MatchData
 
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
 	UpdateReached(start, pMatch);
-    m_consumed = start;
+    pMatch->consumed = start;
     return ret;
 }
 
@@ -223,7 +223,7 @@ const UChar* CNode_Equal::match(const UChar* start, const UChar* stop, MatchData
 
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
     UpdateReached(start, pMatch);
-    m_consumed = start;
+    pMatch->consumed = start;
     return ret;
 }
 
@@ -264,7 +264,7 @@ const UChar* CNode_Quote::match(const UChar* start, const UChar* stop, MatchData
 
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
 	UpdateReached(start, pMatch);
-    m_consumed = start;
+    pMatch->consumed = start;
     return ret;
 }
 
@@ -292,7 +292,7 @@ const UChar* CNode_Char::match(const UChar* start, const UChar* stop, MatchData*
 
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
     UpdateReached(start, pMatch);
-    m_consumed = start;
+    pMatch->consumed = start;
     return ret;
 }
 
@@ -346,7 +346,7 @@ const UChar* CNode_Range::match(const UChar* start, const UChar* stop, MatchData
 
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
 	UpdateReached(start, pMatch);
-    m_consumed = start;
+    pMatch->consumed = start;
     return ret;
 }
 
@@ -381,7 +381,7 @@ const UChar* CNode_String::match(const UChar* start, const UChar* stop, MatchDat
 
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
     UpdateReached(start, pMatch);
-    m_consumed = start;
+    pMatch->consumed = start;
     return ret;
 }
 
@@ -417,7 +417,7 @@ const UChar* CNode_Chars::match(const UChar* start, const UChar* stop, MatchData
 
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
     UpdateReached(start, pMatch);
-    m_consumed = start;
+    pMatch->consumed = start;
     return ret;
 }
 
@@ -441,7 +441,7 @@ const UChar* CNode_Empty::match(const UChar* start, const UChar* stop, MatchData
 
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
     UpdateReached(start, pMatch);
-    m_consumed = start;
+    pMatch->consumed = start;
     return ret;
 }
 
@@ -465,7 +465,7 @@ const UChar* CNode_Any::match(const UChar* start, const UChar* stop, MatchData* 
     
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
     UpdateReached(start, pMatch);
-    m_consumed = start;
+    pMatch->consumed = start;
     return ret;
 }
 
@@ -490,7 +490,7 @@ CNode_Run::~CNode_Run() {
 const UChar* CNode_Run::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
     const UChar* ret = m_firstNode->match(start, stop, pMatch);
-    m_consumed = m_nodes->back()->m_consumed;
+    //m_consumed = m_nodes->back()->m_consumed;
     return ret;
 }
 
@@ -523,7 +523,7 @@ const UChar* CNode_Or::match(const UChar* start, const UChar* stop, MatchData* p
 	for (CNode* node : *m_nodes) {
 		const UChar* ret = node->match(start, stop, pMatch);
         if (ret) {
-            m_consumed = node->m_consumed;
+            //m_consumed = node->m_consumed;
             return ret;
         }
 	}
@@ -566,15 +566,17 @@ const UChar* CNode_And::match(const UChar* start, const UChar* stop, MatchData* 
     if (posL == nullptr) 
 		return nullptr;
 
-    m_consumed = m_nodeL->m_consumed;
+	const UChar* consumedL = pMatch->consumed;
+    //m_consumed = m_nodeL->m_consumed;
 
     // Ask right node for the first match
-    const UChar* posR = m_nodeR->match(start, (m_force ? m_consumed : stop), pMatch);
-    if (posR == nullptr || (m_force && posR != m_consumed)) 
+    const UChar* posR = m_nodeR->match(start, (m_force ? consumedL : stop), pMatch);
+    if (posR == nullptr || (m_force && posR != consumedL)) 
 		return nullptr;
 
-    if (m_consumed < m_nodeR->m_consumed) 
-		m_consumed = m_nodeR->m_consumed;
+	const UChar* consumedR = pMatch->consumed;
+    if (consumedL < consumedR) 
+		pMatch->consumed = consumedR;
     return (posL > posR ? posL : posR);
 }
 
@@ -623,7 +625,7 @@ const UChar* CNode_Repeat::match(const UChar* start, const UChar* stop, MatchDat
         if (m_iterate && m_nextNode && rcount >= m_rmin) {
             const UChar* ret = m_nextNode->match(start, stop, pMatch);
             if (ret) {
-                m_consumed = start;
+                pMatch->consumed = start;
                 return ret;
             }
             checked = true;
@@ -644,7 +646,7 @@ const UChar* CNode_Repeat::match(const UChar* start, const UChar* stop, MatchDat
 		return nullptr;
 
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
-    m_consumed = start;
+    pMatch->consumed = start;
     return ret;
 }
 
@@ -681,23 +683,27 @@ CNode_Memory::~CNode_Memory()
 const UChar* CNode_Memory::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
     if (m_memorizer) {
-        m_memorizer->m_recordPos = start;
+        //m_memorizer->m_recordPos = start;
+		pMatch->vecRecordPos.push_back(start);
         const UChar* ret = m_node->match(start, stop, pMatch);
-        m_consumed = m_node->m_consumed;
+		pMatch->vecRecordPos.pop_back();
+        //m_consumed = m_node->m_consumed;
         return ret;
     } else {
+		ATLASSERT( pMatch->vecRecordPos.size() > 0 );
+
 		CMemory backup;
         // Backup memory and replace by a new one, or push new one on stack
         if (m_memoryPos != -1) {
 			backup = pMatch->pFilter->memoryTable[m_memoryPos];
-            pMatch->pFilter->memoryTable[m_memoryPos](m_recordPos, start);
+			pMatch->pFilter->memoryTable[m_memoryPos](pMatch->vecRecordPos.back(), start);
         } else {
-			pMatch->pFilter->memoryStack.push_back(CMemory(m_recordPos, start));
+			pMatch->pFilter->memoryStack.push_back(CMemory(pMatch->vecRecordPos.back(), start));
         }
         // Ask next node
         const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
         if (ret) {
-            m_consumed = start;
+            pMatch->consumed = start;
             return ret;
         }
         // Undo backup.
@@ -742,7 +748,7 @@ const UChar* CNode_Negate::match(const UChar* start, const UChar* stop, MatchDat
     if (test) 
 		return nullptr;
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
-    m_consumed = start;
+    pMatch->consumed = start;
     return ret;
 }
 
@@ -800,7 +806,7 @@ const UChar* CNode_AV::match(const UChar* start, const UChar* stop, MatchData* p
 
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
 	UpdateReached(start, pMatch);
-    m_consumed = start;
+    pMatch->consumed = start;
     return ret;
 }
 
@@ -849,7 +855,7 @@ const UChar* CNode_Url::match(const UChar* start, const UChar* stop, MatchData* 
 
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
 	UpdateReached(start, pMatch);
-    m_consumed = start;
+    pMatch->consumed = start;
     return ret;
 }
 
@@ -905,7 +911,7 @@ const UChar* CNode_List::match(const UChar* start, const UChar* stop, MatchData*
 						return nullptr;   // the pattern is a ~...
 					start = ptr;
 					const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
-					m_consumed = start;
+					pMatch->consumed = start;
 					return ret;
 				}
 			}
@@ -1150,7 +1156,7 @@ const UChar* CNode_Command::match(const UChar* start, const UChar* stop, MatchDa
     } // end of switch
 
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
-    m_consumed = start;
+    pMatch->consumed = start;
     return ret;
 }
 
@@ -1169,7 +1175,7 @@ const UChar* CNode_Cnx::match(const UChar* start, const UChar* stop, MatchData* 
 		return nullptr;
 
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
-    m_consumed = start;
+    pMatch->consumed = start;
     return ret;
 }
 
@@ -1235,7 +1241,7 @@ const UChar* CNode_Nest::match(const UChar* start, const UChar* stop, MatchData*
     }
     if (level > 0) {
 		UpdateReached(pos, pMatch);	// 消費したので更新しとかないとまずい？
-		m_consumed = pos;
+		pMatch->consumed = pos;
 		return NULL;	// Nestが収束しないのでマッチしない
 	}
 
@@ -1246,7 +1252,7 @@ const UChar* CNode_Nest::match(const UChar* start, const UChar* stop, MatchData*
     start = m_inest ? startR : pos;
     
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
-    m_consumed = start;
+    pMatch->consumed = start;
     return ret;
 }
 
@@ -1299,7 +1305,7 @@ const UChar* CNode_Test::match(const UChar* start, const UChar* stop, MatchData*
 
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
     UpdateReached(start, pMatch);
-    m_consumed = start;
+    pMatch->consumed = start;
     return ret;
 }
 
@@ -1372,7 +1378,7 @@ const UChar* CNode_Ask::match(const UChar* start, const UChar* stop, MatchData* 
     }
 
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
-    m_consumed = start;
+    pMatch->consumed = start;
     return ret;
 }
 
