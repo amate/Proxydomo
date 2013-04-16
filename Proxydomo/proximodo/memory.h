@@ -145,10 +145,12 @@ CMemory& CMemory::operator=(const CMemory& mem) {
         if (m_pContent) 
 			m_pContent.reset();
 
-		if (m_pText) {
-			*m_pText = *mem.m_pText;
-		} else {
-			m_pText.reset(new std::wstring(*mem.m_pText));
+		if (mem.m_pText) {
+			if (m_pText) {
+				*m_pText = *mem.m_pText;
+			} else {
+				m_pText.reset(new std::wstring(*mem.m_pText));
+			}
 		}
     }
     return *this;
