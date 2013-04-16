@@ -172,8 +172,15 @@ void CRequestManager::Manage()
 					_ProcessIn();	// サイトからのデータを処理
 				} else {
 					if ((m_inStep == STEP_TUNNELING || m_inStep == STEP_RAW) && 
-						m_psockWebsite->IsConnectionKilledFromPeer() ) 
+						m_psockWebsite->IsConnectionKilledFromPeer() )  {
 						_ProcessIn();	// サイトからのデータを処理
+
+					// サイトからのデータ受信が途切れたので終わらせる
+					} else if ((m_inStep == STEP_START && m_outStep == STEP_FINISH/* いる？ */) && 
+							   m_psockWebsite->IsConnectionKilledFromPeer() ) {
+						m_psockWebsite->Close();
+						bRest = false;
+					}
 				}
 
 				if (_SendIn())		// ブラウザへサイトからのデータを送信
@@ -631,7 +638,7 @@ void CRequestManager::_ProcessOut()
 			{
 				TRACEIN(L"ProcessOut #%d : STEP_FINISH inStep[%s]", 
 					m_filterOwner.requestNumber, STEPtoString(m_inStep));
-				if (m_inStep != STEP_FINISH)
+				if (m_inStep != STEP_FINISH /*&& m_inStep != STEP_START*/)
 					return ;
 
 				m_outStep = STEP_START;
