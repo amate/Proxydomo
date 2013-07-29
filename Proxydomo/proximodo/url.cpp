@@ -58,6 +58,8 @@ void CUrl::parseUrl(const string& str) {
 	if (str.substr(pos1, _countof(CSettings::s_urlCommandPrefix)) == CSettings::s_urlCommandPrefix) {
         bool foundUrlCmd = false;        
         for (;;) {
+			if (str.length() <= pos1 + _countof(CSettings::s_urlCommandPrefix))
+				break;
 			pos1 += _countof(CSettings::s_urlCommandPrefix);
             string begin = str.substr(pos1);
             if (CUtil::noCaseBeginsWith("bin.", begin)) {

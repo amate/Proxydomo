@@ -96,7 +96,8 @@ CRequestManager::CRequestManager(std::unique_ptr<CSocket>&& psockBrowser) :
 	m_outSize(0),
 	m_outChunked(false),
 	m_inSize(0),
-	m_inChunked(false)
+	m_inChunked(false),
+	m_RequestCountFromBrowser(0)
 {
 	m_filterOwner.requestNumber = 0;
 
@@ -357,6 +358,8 @@ void CRequestManager::_ProcessOut()
 				m_sendConnectionClose = false;
 				m_recvContentCoding = m_sendContentCoding = 0;
 				m_logPostData.clear();
+
+				++m_RequestCountFromBrowser;
 			}
 			break;
 
@@ -750,7 +753,9 @@ void CRequestManager::_ConnectWebsite()
     }
 #endif
     // Unless we are already connected to this host, we try and connect now
-	if (m_previousHost != m_filterOwner.contactHost || m_psockWebsite->IsConnected() == false) {
+	if (m_previousHost != m_filterOwner.contactHost || 
+		m_psockWebsite->IsConnected() == false ||
+		m_psockWebsite->IsConnectionKilledFromPeer() ) {
 
         // Disconnect from previous host
         m_psockWebsite->Close();

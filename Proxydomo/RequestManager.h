@@ -148,6 +148,8 @@ private:
 
 	CFilterOwner	m_filterOwner;
 
+	// for Debug
+	int		m_RequestCountFromBrowser;	// ブラウザからのリクエスト数(GET,HEADなどの要求数)
 };
 
 
