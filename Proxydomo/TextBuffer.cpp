@@ -153,6 +153,8 @@ void CTextBuffer::DataFeed(const std::string& data)
 			if (nPos != std::string::npos) {
 				charaCode = contentType.substr(nPos + 8);
 				CUtil::upper(charaCode);
+				if (charaCode == "NONE")
+					charaCode.clear();
 			}
 		}
 		if (charaCode.empty()) {
@@ -164,6 +166,8 @@ void CTextBuffer::DataFeed(const std::string& data)
 			{
 				charaCode = result.str(1);
 				CUtil::upper(charaCode);
+				if (charaCode == "NONE")
+					charaCode.clear();
 			}
 		}
 		if (charaCode.empty())
