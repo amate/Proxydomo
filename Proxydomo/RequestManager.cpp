@@ -907,6 +907,7 @@ void	CRequestManager::_ProcessIn()
 				m_inSize = 0;
 				m_inChunked = false;
 				m_filterOwner.inHeaders.clear();
+				m_filterOwner.fileType.clear();
 				//m_filterOwner.responseCode.clear();	 // だめだろ・・・
 				m_recvConnectionClose = false;
 				m_sendConnectionClose = false;
@@ -956,6 +957,9 @@ void	CRequestManager::_ProcessIn()
 					// Check for filterable MIME types
 					if (_VerifyContentType(contentType) == false && m_filterOwner.bypassBodyForced == false)
 						m_filterOwner.bypassBody = true;
+				} else {
+					// Content-Typeがなければバイパスする
+					m_filterOwner.bypassBody = true;
 				}
 
 				if (   CUtil::noCaseContains("close", m_filterOwner.GetInHeader("Connection"))
@@ -1110,7 +1114,7 @@ void	CRequestManager::_ProcessIn()
 					}
 
 					// File type will be reevaluated using first block of data
-					m_filterOwner.fileType.clear();
+					//m_filterOwner.fileType.clear();	// ここでは消さない
 				}
 
 				// Decide what to do next

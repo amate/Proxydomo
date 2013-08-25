@@ -121,12 +121,18 @@ static std::string GetCharaCode(const std::string& data)
 	UErrorCode err = UErrorCode::U_ZERO_ERROR;
 	ucsdet_setText(g_dectator, data.c_str(), data.length(), &err);
 	ATLASSERT( U_SUCCESS( err ) );
+	if (err != UErrorCode::U_ZERO_ERROR)
+		return "";
 	err = UErrorCode::U_ZERO_ERROR;
 	const UCharsetMatch* charaCodeMatch = ucsdet_detect(g_dectator, &err);
 	ATLASSERT( charaCodeMatch );
 	ATLASSERT( U_SUCCESS( err ) );
+	if (err != UErrorCode::U_ZERO_ERROR)
+		return "";
 	err = UErrorCode::U_ZERO_ERROR;
 	std::string charaCode = ucsdet_getName(charaCodeMatch, &err);
+	if (err != UErrorCode::U_ZERO_ERROR)
+		return "";
 	return charaCode;
 }
 
@@ -137,7 +143,6 @@ void CTextBuffer::DataFeed(const std::string& data)
 
 	/// 文字コードを判別する
 	if (m_bCharaCodeDectated == false) {
-		
 		m_buffer += data;
 		enum { kMaxBufferForCharaCodeSearch = 5000 };
 		if (m_buffer.size() < kMaxBufferForCharaCodeSearch) {
@@ -157,22 +162,28 @@ void CTextBuffer::DataFeed(const std::string& data)
 					charaCode.clear();
 			}
 		}
+
 		if (charaCode.empty()) {
-			std::regex rx1("<meta [^>]*http-equiv=\"?Content-Type\"? [^>]*charset=\"?([^\"' >]+)\"?[^>]*>", std::regex_constants::icase);
-			std::regex rx2("<meta [^>]*charset=\"?([^\"' >]+)\"? [^>]*http-equiv=\"?Content-Type\"?[^>]*>", std::regex_constants::icase);
-			std::smatch result;
-			if (std::regex_search(m_buffer.cbegin(), m_buffer.cend(), result, rx1) ||
-				std::regex_search(m_buffer.cbegin(), m_buffer.cend(), result, rx2) )
-			{
-				charaCode = result.str(1);
-				CUtil::upper(charaCode);
-				if (charaCode == "NONE")
-					charaCode.clear();
+			if (m_owner.fileType == "htm") {
+				std::regex rx1("<meta [^>]*http-equiv=\"?Content-Type\"? [^>]*charset=\"?([^\"' >]+)\"?[^>]*>", std::regex_constants::icase);
+				std::regex rx2("<meta [^>]*charset=\"?([^\"' >]+)\"? [^>]*http-equiv=\"?Content-Type\"?[^>]*>", std::regex_constants::icase);
+				std::smatch result;
+				if (std::regex_search(m_buffer.cbegin(), m_buffer.cend(), result, rx1) ||
+					std::regex_search(m_buffer.cbegin(), m_buffer.cend(), result, rx2) )
+				{
+					charaCode = result.str(1);
+					CUtil::upper(charaCode);
+					if (charaCode == "NONE")
+						charaCode.clear();
+				}
 			}
 		}
-		if (charaCode.empty())
-			charaCode = GetCharaCode(m_buffer);
 
+		if (charaCode.empty()) 
+			charaCode = GetCharaCode(m_buffer);
+		if (charaCode.empty())
+			charaCode = "UTF-8";	// ここまで何もなかったらUTF-8として解釈する
+		
 		CCritSecLock lock(g_csMapConverter);
 		auto& pConverter = g_mapConverter[charaCode];
 		if (pConverter == nullptr) {
@@ -188,21 +199,27 @@ void CTextBuffer::DataFeed(const std::string& data)
 		m_buffer += data;
 	}
 	std::stringstream out;
-
-	const char* endPoint = m_buffer.c_str() + m_buffer.size();
-	int decrimentCount = findEndPoint(m_buffer.c_str(), endPoint);
-	if (decrimentCount == -1) {
-		if (data.size() > 0)
-			return ;	// 末尾が見つからなかったら危ないので帰る
-		decrimentCount = 0;	// for data dump
-	}
-	// あまりを保存しておく
-	m_tailBuffer.assign(endPoint, decrimentCount);
-
-	int validBufferSize = endPoint - m_buffer.c_str();
-	if (validBufferSize > 0) {
+	if (m_bDataDump == false) {		// 通常時
+		const char* endPoint = m_buffer.c_str() + m_buffer.size();
+		int decrimentCount = findEndPoint(m_buffer.c_str(), endPoint);
+		if (decrimentCount == -1) {
+			if (data.size() > 0)
+				return ;	// 末尾が見つからなかったら危ないので帰る
+			decrimentCount = 0;
+		}
+		// あまりを保存しておく
+		m_tailBuffer.assign(endPoint, decrimentCount);
+		int validBufferSize = endPoint - m_buffer.c_str();
+		if (validBufferSize > 0) {
+			UErrorCode	err = U_ZERO_ERROR;
+			UnicodeString	appendBuff(m_buffer.c_str(), validBufferSize, m_pConverter, err);
+			ATLASSERT( U_SUCCESS(err) );
+			m_buffer.clear();	 // あまりは保存したのでclearして大丈夫
+			m_unicodeBuffer.append(appendBuff);
+		}
+	} else {	// DataDump時
 		UErrorCode	err = U_ZERO_ERROR;
-		UnicodeString	appendBuff(m_buffer.c_str(), validBufferSize, m_pConverter, err);
+		UnicodeString	appendBuff(m_buffer.c_str(), m_buffer.length(), m_pConverter, err);
 		ATLASSERT( U_SUCCESS(err) );
 		m_buffer.clear();
 		m_unicodeBuffer.append(appendBuff);
