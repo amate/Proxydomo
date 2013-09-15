@@ -41,7 +41,6 @@ using namespace icu;
 
 namespace {
 
-UCharsetDetector*	g_dectator;
 CCriticalSection	g_csMapConverter;
 std::map<std::string, UConverter*>	g_mapConverter;
 
@@ -51,12 +50,6 @@ CTextBuffer::CTextBuffer(CFilterOwner& owner, IDataReceptor* output) :
 	m_owner(owner), m_output(output), 
 	m_bCharaCodeDectated(false), m_pConverter(nullptr), m_bDataDump(false)
 {
-	if (g_dectator == nullptr) {
-		UErrorCode err = UErrorCode::U_ZERO_ERROR;
-		g_dectator = ucsdet_open(&err);
-		ATLASSERT( U_SUCCESS(err) );
-	}
-
 	CSettings::EnumActiveFilter([&, this](CFilterDescriptor* filter) {
 		if (filter->filterType == filter->kFilterText)
 			m_vecpTextfilters.emplace_back(new CTextFilter(owner, *filter));
@@ -118,22 +111,38 @@ inline int CharCount(const wchar_t* end, const wchar_t* begin)
 
 static std::string GetCharaCode(const std::string& data)
 {
-	UErrorCode err = UErrorCode::U_ZERO_ERROR;
-	ucsdet_setText(g_dectator, data.c_str(), data.length(), &err);
-	ATLASSERT( U_SUCCESS( err ) );
-	if (err != UErrorCode::U_ZERO_ERROR)
+	UCharsetDetector* pDectator = nullptr;
+	try {
+		UErrorCode err = UErrorCode::U_ZERO_ERROR;
+		pDectator = ucsdet_open(&err);
+		ATLASSERT( U_SUCCESS(err) );
+		if (err != UErrorCode::U_ZERO_ERROR)
+			throw err;
+
+		ucsdet_setText(pDectator, data.c_str(), data.length(), &err);
+		ATLASSERT( U_SUCCESS( err ) );
+		if (err != UErrorCode::U_ZERO_ERROR)
+			throw err;
+		err = UErrorCode::U_ZERO_ERROR;
+		const UCharsetMatch* charaCodeMatch = ucsdet_detect(pDectator, &err);
+		ATLASSERT( charaCodeMatch );
+		ATLASSERT( U_SUCCESS( err ) );
+		if (err != UErrorCode::U_ZERO_ERROR)
+			throw err;
+		err = UErrorCode::U_ZERO_ERROR;
+		std::string charaCode = ucsdet_getName(charaCodeMatch, &err);
+		if (err != UErrorCode::U_ZERO_ERROR)
+			throw err;
+
+		ucsdet_close(pDectator);
+		return charaCode;
+
+	} catch (UErrorCode err) {
+		ATLASSERT( FALSE );
+		if (pDectator)
+			ucsdet_close(pDectator);
 		return "";
-	err = UErrorCode::U_ZERO_ERROR;
-	const UCharsetMatch* charaCodeMatch = ucsdet_detect(g_dectator, &err);
-	ATLASSERT( charaCodeMatch );
-	ATLASSERT( U_SUCCESS( err ) );
-	if (err != UErrorCode::U_ZERO_ERROR)
-		return "";
-	err = UErrorCode::U_ZERO_ERROR;
-	std::string charaCode = ucsdet_getName(charaCodeMatch, &err);
-	if (err != UErrorCode::U_ZERO_ERROR)
-		return "";
-	return charaCode;
+	}
 }
 
 void CTextBuffer::DataFeed(const std::string& data)
