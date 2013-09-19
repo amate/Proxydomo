@@ -470,7 +470,11 @@ void CFilterManageWindow::OnLButtonUp(UINT nFlags, CPoint point)
 			pvecFilter->insert(pvecFilter->begin() + nInsertPos, std::unique_ptr<FilterItem>(std::move(dragFilterItem)));
 			
 			// Drag元から消す
-			for (auto it = m_pvecBeginDragParent->begin(); it != m_pvecBeginDragParent->end(); ++it) {
+			int i = 0;
+			for (auto it = m_pvecBeginDragParent->begin(); it != m_pvecBeginDragParent->end(); ++it, ++i) {
+				if (pvecFilter == m_pvecBeginDragParent && i == nInsertPos)
+					continue;	// フォルダ内移動で移動先が先にヒットしないようにする
+
 				if (it->get() == dragFilterItem) {
 					it->release();
 					m_pvecBeginDragParent->erase(it);

@@ -633,11 +633,7 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
 					patternIt.previous();
 				}
 
-				if (code == L'[') {
-					delete node;
-					throw parsing_exception("[] 中に [ は使えません。エスケープしてください。", patternIt.getIndex());
-
-				} else if (code == L'%' && patternIt.getIndex() + 2 < patternIt.endIndex()
+				if (code == L'%' && patternIt.getIndex() + 2 < patternIt.endIndex()
                         && CUtil::hexa(c1)
                         && CUtil::hexa(c2) ) {
 
@@ -715,7 +711,7 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
 			// ']'が来る前にパターンが終わったので例外を飛ばす
 			if (patternIt.getIndex() == patternIt.endIndex()) {
                 delete node;
-                throw parsing_exception("MISSING_CROCHET", patternIt.getIndex());
+                throw parsing_exception("[]が閉じていません。", patternIt.getIndex());
             }
 			patternIt.next();
             return node;

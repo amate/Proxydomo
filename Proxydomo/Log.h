@@ -138,7 +138,7 @@ public:
 			s_deqRecentURLs.pop_back();
 
 		std::string contentType2 = contentType;
-		int colon = contentType.find(';');
+		size_t colon = contentType.find(';');
 		if (colon != std::string::npos)
 			contentType2 = contentType.substr(0, colon);
 		s_deqRecentURLs.emplace_front(requestNumber, responseCode, contentType2, contentLength, url);

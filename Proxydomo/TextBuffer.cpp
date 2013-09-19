@@ -98,10 +98,10 @@ static int findEndPoint(const char* start, const char*& end)
 	return -1;
 }
 
-inline int CharCount(const wchar_t* end, const wchar_t* begin)
+inline size_t CharCount(const wchar_t* end, const wchar_t* begin)
 {
 #ifdef _DEBUG
-	int count = (end - begin);
+	size_t count = (end - begin);
 	return count;
 #else
 	return (end - begin);
