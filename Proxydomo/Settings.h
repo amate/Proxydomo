@@ -29,6 +29,7 @@
 #include <string>
 #include <mutex>
 #include <array>
+#include <thread>
 #include <atlsync.h>
 #include <atlstr.h>
 #include "FilterDescriptor.h"
@@ -51,6 +52,14 @@ struct FilterItem
 	bool	active;
 	std::unique_ptr<CFilterDescriptor>	pFilter;
 	std::unique_ptr<std::vector<std::unique_ptr<FilterItem>>>	pvecpChildFolder;
+
+	FilterItem() : active(false) { }
+
+	FilterItem(const FilterItem& item) : name(item.name), active(item.active)
+	{
+		if (item.pFilter)
+			pFilter.reset(new CFilterDescriptor(*item.pFilter));
+	}
 };
 
 class CSettings
@@ -65,6 +74,8 @@ public:
 
 	static char			s_urlCommandPrefix[16];
 
+	static std::thread	s_threadSaveFilter;
+	
 	static void	LoadSettings();
 	static void	SaveSettings();
 

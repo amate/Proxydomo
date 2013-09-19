@@ -628,9 +628,16 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
 				
 				UChar c1 = patternIt.next();
 				UChar c2 = patternIt.next();
-				patternIt.previous();
-				patternIt.previous();
-				if (code == L'%' && patternIt.getIndex() + 2 < patternIt.endIndex()
+				if (c1 != patternIt.DONE) {
+					patternIt.previous();
+					patternIt.previous();
+				}
+
+				if (code == L'[') {
+					delete node;
+					throw parsing_exception("[] 中に [ は使えません。エスケープしてください。", patternIt.getIndex());
+
+				} else if (code == L'%' && patternIt.getIndex() + 2 < patternIt.endIndex()
                         && CUtil::hexa(c1)
                         && CUtil::hexa(c2) ) {
 

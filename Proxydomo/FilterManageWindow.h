@@ -44,9 +44,13 @@ public:
 
 	CFilterManageWindow();
 
+	// overrides
+	void DlgResize_UpdateLayout(int cxWidth, int cyHeight);
+
 
 	BEGIN_DLGRESIZE_MAP( CFilterManageWindow )
 		DLGRESIZE_CONTROL( IDC_TREE_FILTER, DLSZ_SIZE_X | DLSZ_SIZE_Y )
+		DLGRESIZE_CONTROL( IDC_FILTERMANAGERTOOLBAR, DLSZ_SIZE_X | DLSZ_SIZE_Y)
 	END_DLGRESIZE_MAP()
 
 	BEGIN_MSG_MAP_EX( CFilterManageWindow )
@@ -65,7 +69,6 @@ public:
 
 		COMMAND_ID_HANDLER_EX( IDC_BUTTON_ADDFILTER, OnAddFilter )
 		COMMAND_ID_HANDLER_EX( IDC_BUTTON_DELETEFILTER, OnDeleteFilter )
-		COMMAND_ID_HANDLER_EX( IDC_BUTTON_REFRESH, OnRefresh )
 		COMMAND_ID_HANDLER_EX( IDC_BUTTON_CREATE_FOLDER, OnCreateFolder )
 		COMMAND_ID_HANDLER_EX( IDC_BUTTON_IMPORTFROMPROXOMITRON, OnImportFromProxomitron )
 		COMMAND_ID_HANDLER_EX( IDC_BUTTON_EXPORTTOPROXOMITRON , OnExportToProxomitron )
@@ -92,7 +95,6 @@ public:
 
 	void OnAddFilter(UINT uNotifyCode, int nID, CWindow wndCtl);
 	void OnDeleteFilter(UINT uNotifyCode, int nID, CWindow wndCtl);
-	void OnRefresh(UINT uNotifyCode, int nID, CWindow wndCtl);
 	void OnCreateFolder(UINT uNotifyCode, int nID, CWindow wndCtl);
 
 	void OnImportFromProxomitron(UINT uNotifyCode, int nID, CWindow wndCtl);
@@ -105,6 +107,7 @@ private:
 	bool	_IsChildItem(HTREEITEM htParent, HTREEITEM htItem);
 
 	// Data members
+	CToolBarCtrl	m_toolBar;
 	CTreeViewCtrl	m_treeFilter;
 
 	HTREEITEM		m_htBeginDrag;

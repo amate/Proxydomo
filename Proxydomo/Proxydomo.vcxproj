@@ -38,13 +38,13 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <LibraryPath>$(SolutionDir)icu\lib;$(SolutionDir)zlib\zlib125dll\static32;$(VCInstallDir)lib;$(VCInstallDir)atlmfc\lib;$(WindowsSDK_LibraryPath_x86)</LibraryPath>
-    <IncludePath>$(SolutionDir)icu\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)icu\Win32\lib;$(SolutionDir)zlib\zlib125dll\static32;$(VCInstallDir)lib;$(VCInstallDir)atlmfc\lib;$(WindowsSDK_LibraryPath_x86)</LibraryPath>
+    <IncludePath>$(SolutionDir)icu\Win32\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <LibraryPath>$(SolutionDir)icu\lib;$(SolutionDir)zlib\zlib125dll\static32;$(VCInstallDir)lib;$(VCInstallDir)atlmfc\lib;$(WindowsSDK_LibraryPath_x86);</LibraryPath>
-    <IncludePath>$(SolutionDir)icu\include;C:\Program\Boost_1_50_0;C:\Program\WTL81_12085\Include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)icu\Win32\lib;$(SolutionDir)zlib\zlib125dll\static32;$(VCInstallDir)lib;$(VCInstallDir)atlmfc\lib;$(WindowsSDK_LibraryPath_x86);</LibraryPath>
+    <IncludePath>$(SolutionDir)icu\Win32\include;C:\Program\WTL81_12085\Include;C:\Program\boost_1_54_0;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -455,6 +455,9 @@
     <ResourceCompile Include="Proxydomo.rc" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="res\filter.ico" />
+    <Image Include="res\FilterManagerToolBar.bmp" />
+    <Image Include="res\folder.ico" />
     <Image Include="res\Proxydomo.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -25,6 +25,7 @@
 #include <fstream>
 #include <codecvt>
 #include <random>
+#include <atomic>
 #include <boost\property_tree\ptree.hpp>
 #include <boost\property_tree\ini_parser.hpp>
 #include <boost\property_tree\xml_parser.hpp>
@@ -82,6 +83,8 @@ bool			CSettings::s_filterOut	= true;
 bool			CSettings::s_WebFilterDebug	= false;
 
 char			CSettings::s_urlCommandPrefix[16] = {};
+
+std::thread		CSettings::s_threadSaveFilter;
 
 std::vector<std::unique_ptr<FilterItem>>	CSettings::s_vecpFilters;
 CCriticalSection							CSettings::s_csFilters;
@@ -201,12 +204,15 @@ void CSettings::LoadFilter()
 	}
 }
 
-void	SaveFilterItem(std::vector<std::unique_ptr<FilterItem>>& vecpFilter, wptree& pt)
+void	SaveFilterItem(std::vector<std::unique_ptr<FilterItem>>& vecpFilter, wptree& pt, std::atomic<bool>& bCansel)
 {
 	for (auto& pFilterItem : vecpFilter) {
+		if (bCansel.load())
+			return;
+
 		if (pFilterItem->pvecpChildFolder) {
 			wptree ptChild;
-			SaveFilterItem(*pFilterItem->pvecpChildFolder, ptChild);
+			SaveFilterItem(*pFilterItem->pvecpChildFolder, ptChild, bCansel);
 			wptree& ptFolder = pt.add_child(L"folder", ptChild);
 			ptFolder.put(L"<xmlattr>.name", (LPCWSTR)pFilterItem->name);
 			ptFolder.put(L"<xmlattr>.active", pFilterItem->active);
@@ -234,20 +240,82 @@ void	SaveFilterItem(std::vector<std::unique_ptr<FilterItem>>& vecpFilter, wptree
 
 void CSettings::SaveFilter()
 {
-	wptree ptChild;
-	SaveFilterItem(s_vecpFilters, ptChild);
-	wptree pt;
-	pt.add_child(L"ProxydomoFilter", ptChild);
+	typedef std::vector<std::unique_ptr<FilterItem>>*	FilterFolder;
+	auto pFilter = new std::vector<std::unique_ptr<FilterItem>>;
+	//s_BookmarkList
+	std::function <void (FilterFolder, FilterFolder)> funcCopy;
+	funcCopy = [&](FilterFolder pFolder, FilterFolder pFolderTo) {
+		for (auto it = pFolder->begin(); it != pFolder->end(); ++it) {
+			FilterItem& item = *(*it);
+			unique_ptr<FilterItem> pItem(new FilterItem(item));
+			if (item.pvecpChildFolder) {
+				pItem->pvecpChildFolder.reset(new std::vector<std::unique_ptr<FilterItem>>);
+				funcCopy(item.pvecpChildFolder.get(), pItem->pvecpChildFolder.get());
+			}
+			pFolderTo->push_back(std::move(pItem));
+		}
+	};
+	funcCopy(&s_vecpFilters, pFilter);
 
-	CString filterPath = Misc::GetExeDirectory() + _T("filter.xml");
-	std::wofstream	fs(filterPath);
-	if (!fs) {
-		MessageBox(NULL, _T("filter.xmlのオープンに失敗"), NULL, MB_ICONERROR);
-		return ;
-	}
-	fs.imbue(std::locale(std::locale(), new std::codecvt_utf8_utf16<wchar_t>));
+	static CCriticalSection	 s_cs;
+	static std::atomic<bool> s_bCancel(false);
 
-	write_xml(fs, pt, xml_parser::xml_writer_make_settings(L' ', 2, xml_parser::widen<wchar_t>("UTF-8")));
+	std::thread tdSave([&, pFilter]() {
+		for (;;) {
+			if (s_cs.TryEnter()) {
+				try {
+					wptree ptChild;
+					SaveFilterItem(*pFilter, ptChild, s_bCancel);
+					if (s_bCancel.load()) {
+						s_cs.Leave();
+						s_bCancel.store(false);
+						delete pFilter;
+						return;
+					}
+					wptree pt;
+					pt.add_child(L"ProxydomoFilter", ptChild);
+
+					CString tempPath = Misc::GetExeDirectory() + _T("filter.temp.xml");
+					CString filterPath = Misc::GetExeDirectory() + _T("filter.xml");
+
+					std::wofstream	fs(tempPath);
+					if (!fs) {
+						//MessageBox(NULL, _T("filter.temp.xmlのオープンに失敗"), NULL, MB_ICONERROR);
+						s_cs.Leave();
+						s_bCancel.store(false);
+						delete pFilter;
+						return;
+					}
+					fs.imbue(std::locale(std::locale(), new std::codecvt_utf8_utf16<wchar_t>));
+
+					write_xml(fs, pt, xml_parser::xml_writer_make_settings(L' ', 2, xml_parser::widen<wchar_t>("UTF-8")));
+
+					fs.close();
+					::MoveFileEx(tempPath, filterPath, MOVEFILE_REPLACE_EXISTING);
+
+				}
+				catch (const boost::property_tree::ptree_error& error) {
+					CString strError = _T("filter.xmlへの書き込みに失敗\n");
+					strError += error.what();
+					MessageBox(NULL, strError, NULL, MB_ICONERROR);
+				}
+				s_cs.Leave();
+				s_bCancel.store(false);
+				delete pFilter;
+				break;
+
+			} else {
+				// 他のスレッドが保存処理を実行中...
+				ATLTRACE(_T("SaveFilter : TryEnter failed\n"));
+				s_bCancel.store(true);
+				::Sleep(100);
+				continue;
+			}
+		}
+	});
+	s_threadSaveFilter.swap(tdSave);
+	if (tdSave.joinable())
+		tdSave.detach();
 }
 
 static void ActiveFilterCallFunc(std::vector<std::unique_ptr<FilterItem>>& vecFilters, 

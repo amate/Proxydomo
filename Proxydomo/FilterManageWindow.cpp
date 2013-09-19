@@ -64,19 +64,55 @@ void CFilterManageWindow::_AddTreeItem(HTREEITEM htRoot, std::vector<std::unique
 	}
 }
 
+void CFilterManageWindow::DlgResize_UpdateLayout(int cxWidth, int cyHeight)
+{
+	__super::DlgResize_UpdateLayout(cxWidth, cyHeight);
+	CRect rcItem;
+	m_toolBar.GetItemRect(m_toolBar.GetButtonCount() - 1, &rcItem);
+
+	CRect rcTree;
+	rcTree.top = rcItem.bottom + 2;
+	rcTree.right = cxWidth;
+	rcTree.bottom = cyHeight;
+	m_treeFilter.MoveWindow(&rcTree);
+}
+
 BOOL CFilterManageWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 {
-	m_treeFilter	= GetDlgItem(IDC_TREE_FILTER);
+	m_treeFilter = GetDlgItem(IDC_TREE_FILTER);
 	// これがないと初回時のチェックが入らない…
-	m_treeFilter.ModifyStyle( TVS_CHECKBOXES, 0 );
-	m_treeFilter.ModifyStyle( 0, TVS_CHECKBOXES );
+	m_treeFilter.ModifyStyle(TVS_CHECKBOXES, 0);
+	m_treeFilter.ModifyStyle(0, TVS_CHECKBOXES);
+
+	m_toolBar.Create(m_hWnd, CRect(0, 0, 400, 20), _T("ToolBar"),
+		WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TBSTYLE_LIST | TBSTYLE_FLAT | TBSTYLE_WRAPABLE | CCS_NODIVIDER, 0, IDC_FILTERMANAGERTOOLBAR);
+	m_toolBar.SetButtonStructSize();
+
+	CImageList toolBarImageList;
+	toolBarImageList.Create(20, 20, ILC_COLOR24 | ILC_MASK, 10, 2);
+	CBitmap	toolBarBitmap;
+	toolBarBitmap.LoadBitmap(IDB_FILTERMANAGERTOOLBAR);
+	toolBarImageList.Add(toolBarBitmap, RGB(255, 0, 255));
+	m_toolBar.SetImageList(toolBarImageList);
+	TBBUTTON	tbns[] = {
+		{ 0, IDC_BUTTON_ADDFILTER, TBSTATE_ENABLED, TBSTYLE_BUTTON | BTNS_SHOWTEXT | TBSTYLE_AUTOSIZE, {}, 0, (INT_PTR)L"フィルターを追加" },
+		{ 1, IDC_BUTTON_DELETEFILTER, TBSTATE_ENABLED, TBSTYLE_BUTTON | BTNS_SHOWTEXT | TBSTYLE_AUTOSIZE, {}, 0, (INT_PTR)L"フィルターを削除" },
+		{ 0, 0, TBSTATE_ENABLED, TBSTYLE_SEP },
+		{ 2, IDC_BUTTON_CREATE_FOLDER, TBSTATE_ENABLED, TBSTYLE_BUTTON | BTNS_SHOWTEXT | TBSTYLE_AUTOSIZE, {}, 0, (INT_PTR)L"フォルダを作成" },
+		{ 0, 0, TBSTATE_ENABLED, TBSTYLE_SEP },
+		{ 3, IDC_BUTTON_IMPORTFROMPROXOMITRON, TBSTATE_ENABLED, TBSTYLE_BUTTON | BTNS_SHOWTEXT | TBSTYLE_AUTOSIZE, {}, 0, (INT_PTR)L"クリップボードからインポート" },
+		{ 4, IDC_BUTTON_EXPORTTOPROXOMITRON, TBSTATE_ENABLED, TBSTYLE_BUTTON | BTNS_SHOWTEXT | TBSTYLE_AUTOSIZE, {}, 0, (INT_PTR)L"クリップボードへエクスポート" },
+
+
+	};
+	m_toolBar.AddButtons(_countof(tbns), tbns);
 
 	//CImageList imagelist;
 	//imagelist.Create(16, 16, ILC_COLOR32 | ILC_MASK, 2, 1);
 	//m_treeFilter.SetImageList(imagelist);
 
-    // ダイアログリサイズ初期化
-    DlgResize_Init(true, true, WS_THICKFRAME | WS_MAXIMIZEBOX | WS_CLIPCHILDREN);
+	// ダイアログリサイズ初期化
+	DlgResize_Init(true, true, WS_THICKFRAME | WS_MAXIMIZEBOX | WS_CLIPCHILDREN);
 
 	// フォントを設定
 	CLogFont	lf;
@@ -107,15 +143,19 @@ BOOL CFilterManageWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 	ptree pt;
 	try {
 		read_ini(settingsPath, pt);
-	} catch (...) {
+	}
+	catch (...) {
 	}
 	CRect rcWindow;
-	rcWindow.top	= pt.get("FilterManageWindow.top", 0);
-	rcWindow.left	= pt.get("FilterManageWindow.left", 0);
-	rcWindow.right	= pt.get("FilterManageWindow.right", 0);
-	rcWindow.bottom	= pt.get("FilterManageWindow.bottom", 0);
-	if (rcWindow != CRect())
+	rcWindow.top = pt.get("FilterManageWindow.top", 0);
+	rcWindow.left = pt.get("FilterManageWindow.left", 0);
+	rcWindow.right = pt.get("FilterManageWindow.right", 0);
+	rcWindow.bottom = pt.get("FilterManageWindow.bottom", 0);
+	if (rcWindow != CRect()) {
 		MoveWindow(&rcWindow);
+	}
+	GetClientRect(&rcWindow);
+	DlgResize_UpdateLayout(rcWindow.Width(), rcWindow.Height());
 
 	return 0;
 }
@@ -139,12 +179,13 @@ void CFilterManageWindow::OnDestroy()
 	pt.put("FilterManageWindow.bottom", rcWindow.bottom);
 
 	write_ini(settingsPath, pt);
+
+	if (CSettings::s_threadSaveFilter.joinable())
+		CSettings::s_threadSaveFilter.join();
 }
 
 void CFilterManageWindow::OnCancel(UINT uNotifyCode, int nID, CWindow wndCtl)
 {
-	OnRefresh(0, 0, NULL);
-
 	ShowWindow(FALSE);
 }
 
@@ -169,6 +210,7 @@ LRESULT CFilterManageWindow::OnTreeFilterEndLabelEdit(LPNMHDR pnmh)
 	} else {
 		pFitlerItem->name = ptvdi->item.pszText;
 	}
+	CSettings::SaveFilter();
 	return 0;
 }
 
@@ -198,6 +240,7 @@ LRESULT CFilterManageWindow::OnCheckStateChanged(UINT uMsg, WPARAM wParam, LPARA
 		filterItem->pFilter->Active = bActive;
 	else
 		filterItem->active = bActive;
+	CSettings::SaveFilter();
 	return 0;
 }
 
@@ -227,6 +270,7 @@ LRESULT CFilterManageWindow::OnTreeFilterDblClk(LPNMHDR pnmh)
 			return 0;
 
 		m_treeFilter.SetItemText(htHit, filterItem->pFilter->title.c_str());
+		CSettings::SaveFilter();
 	} else {
 
 	}
@@ -445,6 +489,7 @@ void CFilterManageWindow::OnLButtonUp(UINT nFlags, CPoint point)
 
 			m_treeFilter.SelectItem(htInsert);
 		}
+		CSettings::SaveFilter();
 	}
 
 }
@@ -475,6 +520,7 @@ void CFilterManageWindow::OnAddFilter(UINT uNotifyCode, int nID, CWindow wndCtl)
 		return ;
 	}
 	_AddFilterDescriptor(filter.release());
+	CSettings::SaveFilter();
 }
 
 /// 選択されたフィルターを削除する
@@ -508,11 +554,6 @@ void CFilterManageWindow::OnDeleteFilter(UINT uNotifyCode, int nID, CWindow wndC
 		}
 	};
 	funcSearchAndDestroy(&CSettings::s_vecpFilters);
-}
-
-/// フィルターを保存する
-void CFilterManageWindow::OnRefresh(UINT uNotifyCode, int nID, CWindow wndCtl)
-{
 	CSettings::SaveFilter();
 }
 
@@ -548,6 +589,7 @@ void CFilterManageWindow::OnCreateFolder(UINT uNotifyCode, int nID, CWindow wndC
 	CCritSecLock	lock(CSettings::s_csFilters);
 	pvecpFilter->push_back(std::move(pfolder));
 	m_treeFilter.SelectItem(htNew);
+	CSettings::SaveFilter();
 }
 
 /// クリップボードからフィルターをインポート
@@ -661,6 +703,8 @@ void CFilterManageWindow::OnImportFromProxomitron(UINT uNotifyCode, int nID, CWi
         }
         i = j + 1;
     }
+	if (count > 0)
+		CSettings::SaveFilter();
 }
 
 /// クリップボードへフィルターをエクスポート

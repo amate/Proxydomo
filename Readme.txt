@@ -32,7 +32,7 @@ Copyright (C) 2013 amate
  画像の一部に「VS2010ImageLibrary」の一部を使用しています。
  
 ■ビルドについて
-ビルドには boost(1.50~)と zlib と WTL と ICU が必要なのでそれぞれ用意してください。
+ビルドには boost(1.54~)と zlib と WTL と ICU が必要なのでそれぞれ用意してください。
 zlibのソースの場所
 $(SolutionDir)zlib\zlib-1.2.5
 zlibのライブラリの場所
@@ -41,4 +41,4 @@ $(SolutionDir)zlib\zlib125dll\static32\zlibstat.lib
 これ以外の場所にzlibを置いているなら適当にzlibbuffer.h/cppを修正してください
 
 ICU は
-$(SolutionDir)icu フォルダに include と lib があればコンパイル通るようになっています
+$(SolutionDir)icu\Win32 or Win64 フォルダに include と lib があればコンパイル通るようになっています
