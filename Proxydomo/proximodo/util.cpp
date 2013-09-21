@@ -407,7 +407,7 @@ string CUtil::getFile(string filename) {
     replaceAll(filename, "\\\\", "/");  // for correctly decoding $FILE()
     filename = CUtil::makePath(filename);
 	CString filepath = Misc::GetExeDirectory() + CA2T(filename.c_str());
-	std::ifstream fs(filepath);
+	std::ifstream fs(filepath, ios::in | ios::binary);
 	if (!fs)
 		return "";
 
@@ -416,7 +416,7 @@ string CUtil::getFile(string filename) {
 		enum { kBuffSize = 512 };
 		char buf[kBuffSize + 1];
 		fs.read(buf, kBuffSize);
-		content += std::string(buf, (size_t)fs.gcount());
+		content.append(buf, (size_t)fs.gcount());
 	}
 	return content;
 }

@@ -1374,12 +1374,12 @@ void	CRequestManager::_EndFeeding() {
 
 void	CRequestManager::_FakeResponse(const std::string& code, const std::string& filename /*= ""*/)
 {
+	std::string contentType = filename.empty() ? std::string("text/plain") : CUtil::getMimeType(filename) ;
 	std::string content;
 	if (filename.size() > 0)
 		content = CUtil::getFile(filename);
-	if (content.size() > 0)
+	if (contentType == "text/html" && content.size() > 0)
 		content = CUtil::replaceAll(content, "%%1%%", code);
-	std::string contentType = filename.empty() ? std::string("text/plain") : CUtil::getMimeType(filename) ;
 	m_inStep = STEP_FINISH;
 	m_sendInBuf = 
         "HTTP/1.1 " + code + CRLF
