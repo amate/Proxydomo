@@ -388,7 +388,6 @@ void CSettings::LoadList(const CString& filePath)
 		std::wstring strLine;
 		while (std::getline(fs, strLine).good()) {
 			CUtil::trim(strLine);
-			CUtil::lower(strLine);
 			if (strLine.size() > 0 && strLine[0] != L'#') {
 				_CreatePattern(strLine, *hashedLists);
 			}
@@ -403,7 +402,7 @@ static inline bool isNonWildWord(wchar_t c) {
 }
 
 
-void CSettings::_CreatePattern(const std::wstring& pattern, HashedListCollection& listCollection)
+void CSettings::_CreatePattern(std::wstring& pattern, HashedListCollection& listCollection)
 {
 	// 固定プレフィックス
 	enum { kMaxPreHashWordLength = 7 };
@@ -425,12 +424,13 @@ void CSettings::_CreatePattern(const std::wstring& pattern, HashedListCollection
 		UnicodeString pat(pattern.c_str(), pattern.length());
 		StringCharacterIterator patternIt(pat);
 		for (; patternIt.current() != patternIt.DONE && patternIt.getIndex() < kMaxPreHashWordLength; patternIt.next()) {
-			auto& pmapChildHashWord = (*pmapPreHashWord)[patternIt.current()];
+			auto& pmapChildHashWord = (*pmapPreHashWord)[towlower(patternIt.current())];
 			if (pmapChildHashWord == nullptr) {
 				pmapChildHashWord.reset(new HashedListCollection::PreHashWord);
 			}
 
 			if (patternIt.hasNext() == false || ((patternIt.getIndex() + 1) == kMaxPreHashWordLength)) {
+				patternIt.next();
 				try {
 					pmapChildHashWord->vecNode.emplace_back(Proxydomo::CMatcher::expr(patternIt));
 				}
@@ -471,13 +471,13 @@ void CSettings::_CreatePattern(const std::wstring& pattern, HashedListCollection
 						domain.clear();
 
 					} else if (std::next(it) == urlHost.cend()) {
-						domain.push_back(*it);
+						domain.push_back(towlower(*it));
 						deqDomain.push_back(domain);
 						domain.clear();
 						break;
 
 					} else {
-						domain.push_back(*it);
+						domain.push_back(towlower(*it));
 					}
 				}
 				ATLASSERT(domain.empty());

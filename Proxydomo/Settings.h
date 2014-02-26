@@ -108,6 +108,6 @@ public:
 
 	static void LoadList(const CString& filePath);
 private:
-	static void _CreatePattern(const std::wstring& pattern, HashedListCollection& listCollection);
+	static void _CreatePattern(std::wstring& pattern, HashedListCollection& listCollection);
 
 };
