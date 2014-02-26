@@ -897,23 +897,39 @@ const UChar* CNode_List::match(const UChar* start, const UChar* stop, MatchData*
 		return nullptr;
 
     if (start < stop) {
+		const UChar* startOrigin = start;
         // Check the hashed list corresponding to the first char
-        //std::lock_guard<std::recursive_mutex> lock(hashedMutex);
-		m_phashedCollection->mutexHashedArray.lock();
-		auto spHashedArray = m_phashedCollection->spHashedArray;
-		m_phashedCollection->mutexHashedArray.unlock();
-		if (spHashedArray) {
-			auto& hashed = spHashedArray->at(hashBucket((char)*start));
-			for (auto& it : hashed) {
-				const UChar* ptr = it.node->match(start, stop, pMatch);
+		boost::shared_lock<boost::shared_mutex>	lock(m_phashedCollection->mutex);
+		// 固定プレフィックス
+		auto& preHashWordList = m_phashedCollection->hashWordList;
+		std::unordered_map<wchar_t, std::unique_ptr<HashedListCollection::PreHashWord>>* pmapPreHashWord = &preHashWordList.mapChildPreHashWord;
+		while (start < stop) {
+			auto itfound = pmapPreHashWord->find(towlower(*start));
+			if (itfound == pmapPreHashWord->end())
+				break;
+
+			++start;
+			for (auto& node : itfound->second->vecNode) {
+				const UChar* ptr = node->match(start, stop, pMatch);
 				if (ptr) {
-					if (it.flags & 0x1) 
-						return nullptr;   // the pattern is a ~...
 					start = ptr;
 					const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
 					pMatch->consumed = start;
 					return ret;
 				}
+			}
+			pmapPreHashWord = &itfound->second->mapChildPreHashWord;
+		}
+
+		start = startOrigin;
+		// NormalList
+		for (auto& node : m_phashedCollection->deqNormalNode) {
+			const UChar* ptr = node->match(start, stop, pMatch);
+			if (ptr) {
+				start = ptr;
+				const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
+				pMatch->consumed = start;
+				return ret;
 			}
 		}
     }

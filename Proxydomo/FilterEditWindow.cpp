@@ -95,8 +95,11 @@ public:
 
 	BOOL OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 	{
+		enum { kMaxEditLimitSize = 3 * 1024 * 1024 };
 		m_editTest	= GetDlgItem(IDC_EDIT_TESTTEXT);
 		m_editResult= GetDlgItem(IDC_EDIT_RESULTTEXT);
+		m_editTest.LimitText(kMaxEditLimitSize);
+		m_editResult.LimitText(kMaxEditLimitSize);
 
 		m_editTest.SetWindowText(s_strLastTest);
 
@@ -306,7 +309,7 @@ public:
 			CString text;
 			text.Format(
 				_T("分析結果...\r\n サンプルテキスト: %d バイト\r\n 一致回数: %d\r\n ")
-				_T("平均時間: %d ミリ秒\r\n 処理速度: %lf KB/s"), 
+				_T("平均時間: %d ミリ秒\r\n 処理速度: %.2lf KB/s"), 
 				len, numMatch, (int)avarage, busytime);
 
 			m_editResult.SetWindowText(text);

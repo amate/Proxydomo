@@ -32,18 +32,25 @@
 #include <thread>
 #include <atlsync.h>
 #include <atlstr.h>
+#include <boost\thread.hpp>	// for shared_mutex
 #include "FilterDescriptor.h"
 
 namespace Proxydomo { class CNode; }
 
-
+/// １つのリストにあるすべてのパータンを持っている
 struct HashedListCollection {
-	std::recursive_mutex	mutexHashedArray;
-	struct SListItem {
-		std::shared_ptr<Proxydomo::CNode>	node;
-		int	flags;	// 0x1: is a tilde pattern,  0x2: is hashable
+	boost::shared_mutex	mutex;
+
+	// 固定プレフィックスリスト
+	struct PreHashWord {
+		std::unordered_map<wchar_t, std::unique_ptr<PreHashWord>>	mapChildPreHashWord;
+
+		std::vector<std::shared_ptr<Proxydomo::CNode>>	vecNode;
 	};
-	std::shared_ptr<std::array<std::deque<SListItem>, 256>>	spHashedArray;
+	PreHashWord	hashWordList;
+
+	// Normalリスト
+	std::deque<std::shared_ptr<Proxydomo::CNode>>	deqNormalNode;
 };
 
 struct FilterItem
@@ -95,7 +102,6 @@ public:
 
 	static void LoadList(const CString& filePath);
 private:
-	static void _CreatePattern(const std::wstring& pattern, 
-							   std::array<std::deque<HashedListCollection::SListItem>, 256>& hashed);
+	static void _CreatePattern(const std::wstring& pattern, HashedListCollection& listCollection);
 
 };

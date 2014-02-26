@@ -377,57 +377,87 @@ void CSettings::LoadList(const CString& filePath)
 	{
 		s_mutexHashedLists.lock();
 		auto& hashedLists = s_mapHashedLists[filename];
-		if (hashedLists == nullptr)
+		if (hashedLists == nullptr) {
 			hashedLists.reset(new HashedListCollection);
-		s_mutexHashedLists.unlock();
-
-		std::shared_ptr<std::array<std::deque<HashedListCollection::SListItem>, 256>>	
-			spHashedArray(new std::array<std::deque<HashedListCollection::SListItem>, 256>);
+		}
+		boost::unique_lock<boost::shared_mutex>	lock(hashedLists->mutex);
+		hashedLists->hashWordList.mapChildPreHashWord.clear();
+		hashedLists->hashWordList.vecNode.clear();
+		hashedLists->deqNormalNode.clear();
 
 		std::wstring strLine;
 		while (std::getline(fs, strLine).good()) {
 			CUtil::trim(strLine);
+			CUtil::lower(strLine);
 			if (strLine.size() > 0 && strLine[0] != L'#') {
-				_CreatePattern(strLine, *spHashedArray);
+				_CreatePattern(strLine, *hashedLists);
 			}
 		}
-		std::lock_guard<std::recursive_mutex> lock(hashedLists->mutexHashedArray);
-		hashedLists->spHashedArray = spHashedArray;
+		s_mutexHashedLists.unlock();
 	}
 	CLog::FilterEvent(kLogFilterListReload, -1, filename, "");
 }
 
+static inline bool isNonWildWord(wchar_t c) {
+	return (c != L'*' && c != L'[' && c != L'$' && c != L'(' && c != L')' && c != L'|' && c != L'&' && c != L'?' && c != L'~');
+}
 
-void CSettings::_CreatePattern(const std::wstring& pattern, 
-							   std::array<std::deque<HashedListCollection::SListItem>, 256>& hashed)
+
+void CSettings::_CreatePattern(const std::wstring& pattern, HashedListCollection& listCollection)
 {
-    // we'll record the built node and its flags in a structure
-    HashedListCollection::SListItem item = { NULL, 0 };
-    if (pattern[0] == L'~') 
-		item.flags |= 0x1;
-    int start = (item.flags & 0x1) ? 1 : 0;
-    wchar_t c = pattern[start];
-    if (isHashable((char)c)) item.flags |= 0x2;
+	// 固定プレフィックス
+	enum { kMaxPreHashWordLength = 7 };
+	bool	bPreHash = true;
+	std::size_t length = pattern.length();
+	for (std::size_t i = 0; i < length && i < kMaxPreHashWordLength; ++i) {
+		if (isNonWildWord(pattern[i]) == false) {
+			bPreHash = false;
+			break;
+		}
+	}
+	if (bPreHash) {
+		std::unordered_map<wchar_t, std::unique_ptr<HashedListCollection::PreHashWord>>* pmapPreHashWord = &listCollection.hashWordList.mapChildPreHashWord;
+		UnicodeString pat(pattern.c_str(), pattern.length());
+		StringCharacterIterator patternIt(pat);
+
+		// 最初にパターンが正常かテスト
+		try {
+			delete Proxydomo::CMatcher::expr(patternIt);
+		}
+		catch (...) {
+			return;
+		}
+
+		patternIt.setToStart();
+		for (; patternIt.current() != patternIt.DONE && patternIt.getIndex() < kMaxPreHashWordLength; patternIt.next()) {
+			auto& pmapChildHashWord = (*pmapPreHashWord)[patternIt.current()];
+			if (pmapChildHashWord == nullptr) {
+				pmapChildHashWord.reset(new HashedListCollection::PreHashWord);
+			}
+
+			if (patternIt.hasNext() == false || ((patternIt.getIndex() + 1) == kMaxPreHashWordLength)) {
+				try {
+					pmapChildHashWord->vecNode.emplace_back(Proxydomo::CMatcher::expr(patternIt));
+				}
+				catch (...) {
+					return;
+				}
+				pmapChildHashWord->vecNode.back()->setNextNode(nullptr);
+				return;
+			}
+			pmapPreHashWord = &pmapChildHashWord->mapChildPreHashWord;
+		}
+
+	}
+
     // parse the pattern
 	try {
 		UnicodeString pat(pattern.c_str(), pattern.length());
 		StringCharacterIterator patternIt(pat);
-		item.node.reset(Proxydomo::CMatcher::expr(patternIt));
+		listCollection.deqNormalNode.emplace_back(Proxydomo::CMatcher::expr(patternIt));
 	} catch (...) {
 		return ;
 	}
 
-    item.node->setNextNode(NULL);
-    
-    if (item.flags & 0x2) {
-        // hashable pattern goes in a single hashed bucket (lowercase)
-        hashed[hashBucket((char)c)].push_back(item);
-    } else {
-        // Expressions that start with a special char cannot be hashed
-        // Push them on every hashed list
-        for (size_t i = 0; i < hashed.size(); i++) {
-            if (!isupper((char)i))
-                hashed[i].push_back(item);
-		}
-    }
+	listCollection.deqNormalNode.back()->setNextNode(NULL);
 }
