@@ -381,8 +381,8 @@ void CSettings::LoadList(const CString& filePath)
 			hashedLists.reset(new HashedListCollection);
 		}
 		boost::unique_lock<boost::shared_mutex>	lock(hashedLists->mutex);
-		hashedLists->hashWordList.mapChildPreHashWord.clear();
-		hashedLists->hashWordList.vecNode.clear();
+		hashedLists->PreHashWordList.clear();
+		hashedLists->URLHashList.clear();
 		hashedLists->deqNormalNode.clear();
 
 		std::wstring strLine;
@@ -399,7 +399,7 @@ void CSettings::LoadList(const CString& filePath)
 }
 
 static inline bool isNonWildWord(wchar_t c) {
-	return (c != L'*' && c != L'[' && c != L'$' && c != L'(' && c != L')' && c != L'|' && c != L'&' && c != L'?' && c != L'~');
+	return (c != L'*' && c != +'\\' && c != L'[' && c != L'$' && c != L'(' && c != L')' && c != L'|' && c != L'&' && c != L'?' && c != L'~');
 }
 
 
@@ -416,19 +416,14 @@ void CSettings::_CreatePattern(const std::wstring& pattern, HashedListCollection
 		}
 	}
 	if (bPreHash) {
-		std::unordered_map<wchar_t, std::unique_ptr<HashedListCollection::PreHashWord>>* pmapPreHashWord = &listCollection.hashWordList.mapChildPreHashWord;
-		UnicodeString pat(pattern.c_str(), pattern.length());
-		StringCharacterIterator patternIt(pat);
+		std::unordered_map<wchar_t, std::unique_ptr<HashedListCollection::PreHashWord>>* pmapPreHashWord = &listCollection.PreHashWordList;
 
 		// 最初にパターンが正常かテスト
-		try {
-			delete Proxydomo::CMatcher::expr(patternIt);
-		}
-		catch (...) {
+		if (Proxydomo::CMatcher::CreateMatcher(pattern) == nullptr)
 			return;
-		}
 
-		patternIt.setToStart();
+		UnicodeString pat(pattern.c_str(), pattern.length());
+		StringCharacterIterator patternIt(pat);
 		for (; patternIt.current() != patternIt.DONE && patternIt.getIndex() < kMaxPreHashWordLength; patternIt.next()) {
 			auto& pmapChildHashWord = (*pmapPreHashWord)[patternIt.current()];
 			if (pmapChildHashWord == nullptr) {
@@ -450,6 +445,139 @@ void CSettings::_CreatePattern(const std::wstring& pattern, HashedListCollection
 
 	}
 
+	// URLハッシュ
+	std::size_t slashPos = pattern.find(L'/');
+	if (slashPos != std::wstring::npos && slashPos != 0) {
+		std::wstring urlHost = pattern.substr(0, slashPos);
+		if (urlHost.length() >= 5) {
+			auto funcSplitDomain = [&urlHost](std::wstring::const_iterator it) -> std::deque<std::wstring> {
+				auto itbegin = it;
+				std::deque<std::wstring>	deqDomain;
+				std::wstring domain;
+				for (; it != urlHost.cend(); ++it) {
+					if (isNonWildWord(*it) == false) {
+						deqDomain.clear();	// fail
+						break;
+					}
+					if (*it == L'.') {
+						if (std::next(urlHost.cbegin()) == it)	// *.の場合無視する
+							continue;
+						if (it != itbegin && domain.empty()) {	// ..が続く場合
+							ATLASSERT(FALSE);
+							deqDomain.clear();	// fail
+							break;
+						}
+						deqDomain.push_back(domain);
+						domain.clear();
+
+					} else if (std::next(it) == urlHost.cend()) {
+						domain.push_back(*it);
+						deqDomain.push_back(domain);
+						domain.clear();
+						break;
+
+					} else {
+						domain.push_back(*it);
+					}
+				}
+				ATLASSERT(domain.empty());
+				return deqDomain;
+			};
+			wchar_t first = urlHost.front();
+			std::wstring firstWildcard;
+			std::deque<std::wstring>	deqDomain;
+			switch (first) {
+				case L'*':
+				{
+					firstWildcard = first;
+					deqDomain = funcSplitDomain(std::next(urlHost.cbegin()));
+				}
+				break;
+
+				case L'(':
+				{
+					int nkakko = 1;
+					for (auto it = std::next(urlHost.cbegin()); it != urlHost.cend(); ++it) {
+						if (*it == L'(') {
+							++nkakko;
+						} else if (*it == L')') {
+							nkakko--;
+							if (nkakko == 0) {
+								firstWildcard.assign(urlHost.cbegin(), it);
+								deqDomain = funcSplitDomain(std::next(it));
+								break;
+							}
+						}
+					}
+				}
+				break;
+
+				case L'[':
+				{
+					for (auto it = std::next(urlHost.cbegin()); it != urlHost.cend(); ++it) {
+						if (*it == L']') {
+							if (*std::prev(it) == L'\\')	// \]は無視
+								continue;
+							auto next1 = std::next(it);
+							if (next1 != urlHost.cend() && *next1 == L'+') {	// ]+
+								auto next2 = std::next(next1);
+								if (next2 != urlHost.cend() && *next2 == L'+') {	// ]++
+									firstWildcard.assign(urlHost.cbegin(), std::next(next2));
+									deqDomain = funcSplitDomain(std::next(next2));
+									break;
+								} else {
+									firstWildcard.assign(urlHost.cbegin(), std::next(next1));
+									deqDomain = funcSplitDomain(std::next(next1));
+									break;
+								}
+							}
+							firstWildcard.assign(urlHost.cbegin(), it);	// ]
+							deqDomain = funcSplitDomain(std::next(it));
+							break;
+						}
+					}
+				}
+				break;
+
+				case L'\\':
+				{
+					if (*std::next(urlHost.cbegin()) == L'w') {
+						firstWildcard = L"\\w";
+						deqDomain = funcSplitDomain(std::next(urlHost.cbegin(), 2));
+					}
+				}
+				break;
+			}
+			if (firstWildcard.length() > 0 && deqDomain.size() > 0) {
+				// 最初にパターンが正常かテスト
+				if (Proxydomo::CMatcher::CreateMatcher(pattern) == nullptr)
+					return;
+
+				std::wstring lastWildcard = pattern.substr(slashPos + 1);
+				std::unordered_map<std::wstring, std::unique_ptr<HashedListCollection::URLHash>>*	pmapChildURLHash = &listCollection.URLHashList;
+				for (auto it = deqDomain.rbegin(); it != deqDomain.rend(); ++it) {
+					auto& pURLHash = (*pmapChildURLHash)[*it];
+					if (pURLHash == nullptr)
+						pURLHash.reset(new HashedListCollection::URLHash);
+
+					if (std::next(it) == deqDomain.rend()) {
+						UnicodeString patfirst(firstWildcard.c_str(), firstWildcard.length());
+						StringCharacterIterator patternfirstIt(patfirst);
+						UnicodeString patlast(lastWildcard.c_str(), lastWildcard.length());
+						StringCharacterIterator patternlastIt(patlast);
+						pURLHash->vecpairNode.emplace_back(
+							std::shared_ptr<Proxydomo::CNode>(Proxydomo::CMatcher::expr(patternfirstIt)), std::shared_ptr<Proxydomo::CNode>(Proxydomo::CMatcher::expr(patternlastIt)));
+						auto& pair = pURLHash->vecpairNode.back();
+						pair.first->setNextNode(nullptr);
+						pair.second->setNextNode(nullptr);
+						return ;
+					}
+					pmapChildURLHash = &pURLHash->mapChildURLHash;
+				}
+			}
+		}
+	}
+
     // parse the pattern
 	try {
 		UnicodeString pat(pattern.c_str(), pattern.length());
@@ -459,5 +587,5 @@ void CSettings::_CreatePattern(const std::wstring& pattern, HashedListCollection
 		return ;
 	}
 
-	listCollection.deqNormalNode.back()->setNextNode(NULL);
+	listCollection.deqNormalNode.back()->setNextNode(nullptr);
 }

@@ -44,10 +44,16 @@ struct HashedListCollection {
 	// 固定プレフィックスリスト
 	struct PreHashWord {
 		std::unordered_map<wchar_t, std::unique_ptr<PreHashWord>>	mapChildPreHashWord;
-
 		std::vector<std::shared_ptr<Proxydomo::CNode>>	vecNode;
 	};
-	PreHashWord	hashWordList;
+	std::unordered_map<wchar_t, std::unique_ptr<PreHashWord>>	PreHashWordList;
+
+	// URLハッシュリスト
+	struct URLHash {
+		std::unordered_map<std::wstring, std::unique_ptr<URLHash>>	mapChildURLHash;
+		std::vector<std::pair<std::shared_ptr<Proxydomo::CNode>, std::shared_ptr<Proxydomo::CNode>>>	vecpairNode;
+	};
+	std::unordered_map<std::wstring, std::unique_ptr<URLHash>>	URLHashList;
 
 	// Normalリスト
 	std::deque<std::shared_ptr<Proxydomo::CNode>>	deqNormalNode;

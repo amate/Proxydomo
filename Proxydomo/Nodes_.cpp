@@ -901,8 +901,7 @@ const UChar* CNode_List::match(const UChar* start, const UChar* stop, MatchData*
         // Check the hashed list corresponding to the first char
 		boost::shared_lock<boost::shared_mutex>	lock(m_phashedCollection->mutex);
 		// 固定プレフィックス
-		auto& preHashWordList = m_phashedCollection->hashWordList;
-		std::unordered_map<wchar_t, std::unique_ptr<HashedListCollection::PreHashWord>>* pmapPreHashWord = &preHashWordList.mapChildPreHashWord;
+		std::unordered_map<wchar_t, std::unique_ptr<HashedListCollection::PreHashWord>>* pmapPreHashWord = &m_phashedCollection->PreHashWordList;
 		while (start < stop) {
 			auto itfound = pmapPreHashWord->find(towlower(*start));
 			if (itfound == pmapPreHashWord->end())
@@ -920,6 +919,59 @@ const UChar* CNode_List::match(const UChar* start, const UChar* stop, MatchData*
 			}
 			pmapPreHashWord = &itfound->second->mapChildPreHashWord;
 		}
+
+		start = startOrigin;
+		// URLハッシュ
+		enum { kMaxDomainLength = 255 };
+		const UChar* slashPos = start;
+		for (int i = 0; start < stop && i < kMaxDomainLength; ++i, ++start) {
+			if (*start == L'/') {
+				slashPos = start;
+				break;
+			}
+		}
+		if (slashPos != startOrigin) {
+			std::wstring urlHost(startOrigin, slashPos);
+			CUtil::lower(urlHost);
+			std::deque<std::pair<std::wstring, const UChar*>> deqDomain;
+			std::wstring domain;
+			for (auto it = urlHost.cbegin(); it != urlHost.cend(); ++it) {
+				if (*it == L'.') {
+					deqDomain.emplace_back(domain, &*it);
+					domain.clear();
+
+				} else if (std::next(it) == urlHost.cend()) {
+					domain.push_back(*it);
+					deqDomain.emplace_back(domain, &urlHost.back());
+					domain.clear();
+					break;
+
+				} else {
+					domain.push_back(*it);
+				}
+			}
+
+			std::unordered_map<std::wstring, std::unique_ptr<HashedListCollection::URLHash>>*	pmapChildURLHash = &m_phashedCollection->URLHashList;
+			for (auto it = deqDomain.rbegin(); it != deqDomain.rend(); ++it) {
+				auto itfound = pmapChildURLHash->find(it->first);
+				if (itfound == pmapChildURLHash->end())
+					break;
+
+				for (auto& pairNode : itfound->second->vecpairNode) {
+					if (pairNode.first->match(urlHost.c_str(), it->second, pMatch)) {
+						const UChar* ptr = pairNode.second->match(slashPos + 1, stop, pMatch);
+						if (ptr) {
+							start = ptr;
+							const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
+							pMatch->consumed = start;
+							return ret;
+						}
+					}
+				}
+				pmapChildURLHash = &itfound->second->mapChildURLHash;
+			}
+		}
+		
 
 		start = startOrigin;
 		// NormalList
