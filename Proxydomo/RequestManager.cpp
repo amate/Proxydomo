@@ -1066,9 +1066,7 @@ void	CRequestManager::_ProcessIn()
 						"Connection: close" CRLF
 						"Transfer-Encoding: chunked" CRLF CRLF;
 					std::string buf =
-						"<?xml version=\"1.0\" encoding=\"iso-8859-1\"?>\n"
-						"<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\""
-						" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">\n"
+						"<!DOCTYPE html>\n"
 						"<html>\n<head>\n<title>Source of ";
 					CUtil::htmlEscape(buf, m_filterOwner.url.getProtocol() + "://" +
 										   m_filterOwner.url.getFromHost());

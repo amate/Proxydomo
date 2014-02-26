@@ -188,19 +188,36 @@ void CTextBuffer::DataFeed(const std::string& data)
 			}
 		}
 
-		if (charaCode.empty()) 
+		bool bGetCharaCodeFromBuffer = false;
+		if (charaCode.empty()) {
+			bGetCharaCodeFromBuffer = true;
 			charaCode = GetCharaCode(m_buffer);
+		}
 		if (charaCode.empty())
 			charaCode = "UTF-8";	// ‚±‚±‚Ü‚Å‰½‚à‚È‚©‚Á‚½‚çUTF-8‚Æ‚µ‚Ä‰ðŽß‚·‚é
 		
 		CCritSecLock lock(g_csMapConverter);
 		auto& pConverter = g_mapConverter[charaCode];
 		if (pConverter == nullptr) {
+			//if (charaCode == "ISO-20220-JP")
+			//	charaCode = "JIS";
 			UErrorCode err = UErrorCode::U_ZERO_ERROR;
 			pConverter = ucnv_open(charaCode.c_str(), &err);
+			if (pConverter == nullptr && bGetCharaCodeFromBuffer == false) {
+				charaCode = GetCharaCode(m_buffer);
+				auto& pConverter2 = g_mapConverter[charaCode];
+				if (pConverter2 == nullptr) {
+					err = UErrorCode::U_ZERO_ERROR;
+					pConverter2 = ucnv_open(charaCode.c_str(), &err);
+					ATLASSERT( pConverter2 );
+					m_pConverter = pConverter2;
+					goto convert2;
+				}
+			}
 			ATLASSERT( pConverter );			
 		}
 		m_pConverter = pConverter;
+		convert2:
 		m_bCharaCodeDectated = true;
 	} else {
 		m_buffer += m_tailBuffer;
