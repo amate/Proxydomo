@@ -257,113 +257,116 @@ void CTextBuffer::DataFeed(const std::string& data)
 	const UChar* bufEnd   = bufStart + len;
     const UChar* index    = bufStart;
     const UChar* done     = bufStart;
-    
-    // test every filter at every position
-    for (; index <= bufEnd; m_currentFilter = m_vecpTextfilters.begin(), ++index) {
-        for (; m_currentFilter != m_vecpTextfilters.end(); ++m_currentFilter) {
 
-            // don't need to test the filter if character is not a good candidate
-            if ((*m_currentFilter)->bypassed ||
-                (index < bufEnd && !(*m_currentFilter)->okayChars[(unsigned char)(*index)]))
-                continue;
+	if (m_owner.bypassBody == false) {	// Debug + BypassBodyの時もあるので
 
-            // try and match
-            int ret = (*m_currentFilter)->match(index, bufEnd);
+		// test every filter at every position
+		for (; index <= bufEnd; m_currentFilter = m_vecpTextfilters.begin(), ++index) {
+			for (; m_currentFilter != m_vecpTextfilters.end(); ++m_currentFilter) {
 
-            if (ret < 0) {
+				// don't need to test the filter if character is not a good candidate
+				if ((*m_currentFilter)->bypassed ||
+					(index < bufEnd && !(*m_currentFilter)->okayChars[(unsigned char)(*index)]))
+					continue;
 
-                if (m_owner.killed) {	// '\k'	?
+				// try and match
+				int ret = (*m_currentFilter)->match(index, bufEnd);
 
-                    // filter would like more data, but killed the stream anyway
-                    escapeOutput(out, done, CharCount(index, done));
-					m_unicodeBuffer.remove();
-                    m_output->DataFeed(out.str());
-                    m_output->DataDump();
-                    return;         // no more processing
-                    
-                } else {
+				if (ret < 0) {
 
-                    // filter does not have enough data to provide an accurate result
-                    escapeOutput(out, done, CharCount(index, done));
-					m_unicodeBuffer.remove(0, CharCount(index, bufStart));
-                    m_output->DataFeed(out.str());
-                    return;         // when more data arrives, same filter, same position
-                }
+					if (m_owner.killed) {	// '\k'	?
 
-            } else if (ret > 0) {
+						// filter would like more data, but killed the stream anyway
+						escapeOutput(out, done, CharCount(index, done));
+						m_unicodeBuffer.remove();
+						m_output->DataFeed(out.str());
+						m_output->DataDump();
+						return;         // no more processing
 
-                std::wstring replaceText = (*m_currentFilter)->getReplaceText();
+					} else {
 
-                // log match events                
-				// フィルタがマッチした
-				CLog::FilterEvent(kLogFilterTextMatch, m_owner.requestNumber, 
-					UTF8fromUTF16((*m_currentFilter)->title), ""/*occurrence*/);
-				//CLog::FilterEvent(kLogFilterTextReplace, m_owner.requestNumber, (*m_currentFilter)->title, replaceText);
+						// filter does not have enough data to provide an accurate result
+						escapeOutput(out, done, CharCount(index, done));
+						m_unicodeBuffer.remove(0, CharCount(index, bufStart));
+						m_output->DataFeed(out.str());
+						return;         // when more data arrives, same filter, same position
+					}
 
-                escapeOutput(out, done, CharCount(index, done));
-                if (m_owner.url.getDebug()) {
-					std::wstring occurrence(index, 
-											CharCount((*m_currentFilter)->endOfMatched, index));
-                    string buf = "<div class=\"match\">\n"
-                        "<div class=\"filter\">Match: ";
-                    CUtil::htmlEscape(buf, ConvertFromUTF16((*m_currentFilter)->title, m_pConverter));
-                    buf += "</div>\n<div class=\"in\">";
-                    CUtil::htmlEscape(buf, ConvertFromUTF16(occurrence, m_pConverter));
-                    buf += "</div>\n<div class=\"repl\">";
-                    CUtil::htmlEscape(buf, ConvertFromUTF16(replaceText, m_pConverter));
-                    buf += "</div>\n</div>\n";
-                    out << buf;
-                }
-                if (m_owner.killed) {
+				} else if (ret > 0) {
 
-                    // filter matched and killed the stream
-                    if (!m_owner.url.getDebug())
-                        out << ConvertFromUTF16(replaceText, m_pConverter);
+					std::wstring replaceText = (*m_currentFilter)->getReplaceText();
 
-					m_unicodeBuffer.remove();
-                    m_output->DataFeed(out.str());
-                    m_output->DataDump();
-                    return;         // no more processing
+					// log match events                
+					// フィルタがマッチした
+					CLog::FilterEvent(kLogFilterTextMatch, m_owner.requestNumber,
+						UTF8fromUTF16((*m_currentFilter)->title), ""/*occurrence*/);
+					//CLog::FilterEvent(kLogFilterTextReplace, m_owner.requestNumber, (*m_currentFilter)->title, replaceText);
 
-                } else if ((*m_currentFilter)->multipleMatches) {
+					escapeOutput(out, done, CharCount(index, done));
+					if (m_owner.url.getDebug()) {
+						std::wstring occurrence(index,
+							CharCount((*m_currentFilter)->endOfMatched, index));
+						string buf = "<div class=\"match\">\n"
+							"<div class=\"filter\">Match: ";
+						CUtil::htmlEscape(buf, ConvertFromUTF16((*m_currentFilter)->title, m_pConverter));
+						buf += "</div>\n<div class=\"in\">";
+						CUtil::htmlEscape(buf, ConvertFromUTF16(occurrence, m_pConverter));
+						buf += "</div>\n<div class=\"repl\">";
+						CUtil::htmlEscape(buf, ConvertFromUTF16(replaceText, m_pConverter));
+						buf += "</div>\n</div>\n";
+						out << buf;
+					}
+					if (m_owner.killed) {
 
-                    // filter matched, insert replace text in buffer
-                    //m_buffer.replace(0, (size_t)((*m_currentFilter)->endOfMatched - bufStart),
-                    //               replaceText);
-                    //bufStart = m_buffer.data();
-					m_unicodeBuffer.replace(0, 
-						CharCount((*m_currentFilter)->endOfMatched, bufStart), 
-						replaceText.c_str(), replaceText.length());
-					bufStart = m_unicodeBuffer.getBuffer();
-					bufEnd   = bufStart + m_unicodeBuffer.length();
-                    index    = bufStart;
-                    done     = bufStart;
-                    continue;       // next filter, same position
-                    
-                } else {
+						// filter matched and killed the stream
+						if (!m_owner.url.getDebug())
+							out << ConvertFromUTF16(replaceText, m_pConverter);
 
-                    // filter matched, output replace text.
-                    if (m_owner.url.getDebug() == false)
-                        out << ConvertFromUTF16(replaceText, m_pConverter);
-                    done = (*m_currentFilter)->endOfMatched;
-                    // If the occurrence is length 0, we'll try next filters
-                    // then move 1 byte, to avoid infinite loop on the filter.
-                    if (done == index) 
-						continue;
-                    index = done - 1;
-                    break;          // first filter, after the occurrence
-                }
+						m_unicodeBuffer.remove();
+						m_output->DataFeed(out.str());
+						m_output->DataDump();
+						return;         // no more processing
 
-            } else if (m_owner.killed) {
+					} else if ((*m_currentFilter)->multipleMatches) {
 
-                // filter did not match but killed the stream
-				escapeOutput(out, done, CharCount(index, done));
-                m_output->DataFeed(out.str());
-                m_output->DataDump();
-                return;             // no more processing
-            }
-        }
-    }
+						// filter matched, insert replace text in buffer
+						//m_buffer.replace(0, (size_t)((*m_currentFilter)->endOfMatched - bufStart),
+						//               replaceText);
+						//bufStart = m_buffer.data();
+						m_unicodeBuffer.replace(0,
+							CharCount((*m_currentFilter)->endOfMatched, bufStart),
+							replaceText.c_str(), replaceText.length());
+						bufStart = m_unicodeBuffer.getBuffer();
+						bufEnd = bufStart + m_unicodeBuffer.length();
+						index = bufStart;
+						done = bufStart;
+						continue;       // next filter, same position
+
+					} else {
+
+						// filter matched, output replace text.
+						if (m_owner.url.getDebug() == false)
+							out << ConvertFromUTF16(replaceText, m_pConverter);
+						done = (*m_currentFilter)->endOfMatched;
+						// If the occurrence is length 0, we'll try next filters
+						// then move 1 byte, to avoid infinite loop on the filter.
+						if (done == index)
+							continue;
+						index = done - 1;
+						break;          // first filter, after the occurrence
+					}
+
+				} else if (m_owner.killed) {
+
+					// filter did not match but killed the stream
+					escapeOutput(out, done, CharCount(index, done));
+					m_output->DataFeed(out.str());
+					m_output->DataDump();
+					return;             // no more processing
+				}
+			}
+		}
+	}
     
     // we processed all the available data.
     // Add unmatching data left and send everything.

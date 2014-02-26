@@ -90,7 +90,7 @@ void CUrl::parseUrl(const string& str) {
         if (foundUrlCmd == false)
             pos1 -= _countof(CSettings::s_urlCommandPrefix);
     }
-	//	debug	= (::GetAsyncKeyState(VK_PAUSE) < 0) || CSettings::s_WebFilterDebug;
+	debug	|= CSettings::s_WebFilterDebug;
 
     size_t pos2 = str.find_first_of("/?#", pos1);
     if (pos2 == string::npos) pos2 = str.length();
