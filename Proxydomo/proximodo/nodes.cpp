@@ -697,12 +697,12 @@ CNode_Memory::~CNode_Memory() {
 
 const char* CNode_Memory::match(const char* start, const char* stop) {
 
-    if (memorizer) {
+    if (memorizer) {	// 親Memoryの時に通る。子Memory(memorizer)に現在の位置を記憶しておく
         memorizer->recordPos = start;
         const char* ret = node->match(start, stop);
         consumed = node->consumed;
         return ret;
-    } else {
+    } else {	// setNextNodeで次のマッチの前にmemorizerがよばれるようになっている
         // Backup memory and replace by a new one, or push new one on stack
         if (memory) {
             backup = *memory;

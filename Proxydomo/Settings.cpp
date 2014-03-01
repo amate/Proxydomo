@@ -339,16 +339,6 @@ void CSettings::EnumActiveFilter(std::function<void (CFilterDescriptor*)> func)
 	ActiveFilterCallFunc(s_vecpFilters, func);
 }
 
-
-static bool isHashable(char c) {
-    return (c != '\\' && c != '[' && c != '$'  && c != '('  && c != ')'  &&
-            c != '|'  && c != '&' && c != '?'  && c != ' '  && c != '\t' &&
-            c != '='  && c != '*' && c != '\'' && c != '\"' );
-}
-
-static inline int hashBucket(char c)
-    { return tolower(c) & 0xff; }
-
 void CSettings::LoadList(const CString& filePath)
 {
 	// ÅI‘‚«‚İ‚ğæ“¾

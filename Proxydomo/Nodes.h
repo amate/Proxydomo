@@ -429,7 +429,7 @@ private:
 class CNode_List : public CNode
 {
 public:
-    CNode_List(const std::string& name/*, CMatcher& matcher*/);
+    CNode_List(const std::string& name);
     ~CNode_List();
 
 	// CNode
@@ -437,8 +437,6 @@ public:
 	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override;
 
 private:
-    int hashBucket(char c) { return tolower(c) & 0xff; }
-
 	// Data members
     const std::string		m_name;            // name of the list
 	HashedListCollection*	m_phashedCollection;
@@ -467,7 +465,7 @@ enum CMD_ID {
 class CNode_Command : public CNode
 {
 public:
-    CNode_Command(CMD_ID num, const std::wstring& name, const std::wstring& content/*, CFilter& filter*/);
+    CNode_Command(CMD_ID num, const std::wstring& name, const std::wstring& content);
     ~CNode_Command();
 
 	// CNode
@@ -478,8 +476,7 @@ private:
     CMD_ID	m_num;
     std::wstring m_name;
     std::wstring m_content;
-    //CFilter& filter;
-    //CFilterOwner& owner;
+
     CMatcher* m_matcher;
 };
 

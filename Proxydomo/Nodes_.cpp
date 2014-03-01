@@ -55,8 +55,7 @@ const UChar* CNode_Star::match(const UChar* start, const UChar* stop, MatchData*
     if (m_maxFirst) {
         UpdateReached(stop, pMatch);
         if (m_nextNode == nullptr || m_nextNode->match(stop, stop, pMatch)) {
-			pMatch->consumed = stop;
-            return pMatch->consumed;
+			return stop;
         }
         --stop;
     }
@@ -68,7 +67,6 @@ const UChar* CNode_Star::match(const UChar* start, const UChar* stop, MatchData*
         }
         const UChar* ret = m_nextNode->match(start, stop, pMatch);
         if (ret) {
-            pMatch->consumed = start;
             UpdateReached(start, pMatch);
             return ret;
         }
@@ -120,8 +118,7 @@ const UChar* CNode_MemStar::match(const UChar* start, const UChar* stop, MatchDa
     if (m_maxFirst) {
 		UpdateReached(stop, pMatch);
         if (m_nextNode == nullptr || m_nextNode->match(stop, stop, pMatch)) {
-			pMatch->consumed = stop;
-            return pMatch->consumed;
+			return stop;
         }
         --stop;
     }
@@ -139,7 +136,6 @@ const UChar* CNode_MemStar::match(const UChar* start, const UChar* stop, MatchDa
         }
         const UChar* ret = m_nextNode->match(start, stop, pMatch);
         if (ret) {
-            pMatch->consumed = start;
 			UpdateReached(start, pMatch);
             return ret;
         }
@@ -188,7 +184,6 @@ const UChar* CNode_Space::match(const UChar* start, const UChar* stop, MatchData
 
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
 	UpdateReached(start, pMatch);
-    pMatch->consumed = start;
     return ret;
 }
 
@@ -223,7 +218,6 @@ const UChar* CNode_Equal::match(const UChar* start, const UChar* stop, MatchData
 
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
     UpdateReached(start, pMatch);
-    pMatch->consumed = start;
     return ret;
 }
 
@@ -264,7 +258,6 @@ const UChar* CNode_Quote::match(const UChar* start, const UChar* stop, MatchData
 
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
 	UpdateReached(start, pMatch);
-    pMatch->consumed = start;
     return ret;
 }
 
@@ -292,7 +285,6 @@ const UChar* CNode_Char::match(const UChar* start, const UChar* stop, MatchData*
 
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
     UpdateReached(start, pMatch);
-    pMatch->consumed = start;
     return ret;
 }
 
@@ -346,7 +338,6 @@ const UChar* CNode_Range::match(const UChar* start, const UChar* stop, MatchData
 
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
 	UpdateReached(start, pMatch);
-    pMatch->consumed = start;
     return ret;
 }
 
@@ -381,7 +372,6 @@ const UChar* CNode_String::match(const UChar* start, const UChar* stop, MatchDat
 
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
     UpdateReached(start, pMatch);
-    pMatch->consumed = start;
     return ret;
 }
 
@@ -417,7 +407,6 @@ const UChar* CNode_Chars::match(const UChar* start, const UChar* stop, MatchData
 
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
     UpdateReached(start, pMatch);
-    pMatch->consumed = start;
     return ret;
 }
 
@@ -441,7 +430,6 @@ const UChar* CNode_Empty::match(const UChar* start, const UChar* stop, MatchData
 
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
     UpdateReached(start, pMatch);
-    pMatch->consumed = start;
     return ret;
 }
 
@@ -465,7 +453,6 @@ const UChar* CNode_Any::match(const UChar* start, const UChar* stop, MatchData* 
     
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
     UpdateReached(start, pMatch);
-    pMatch->consumed = start;
     return ret;
 }
 
@@ -490,7 +477,6 @@ CNode_Run::~CNode_Run() {
 const UChar* CNode_Run::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
     const UChar* ret = m_firstNode->match(start, stop, pMatch);
-    //m_consumed = m_nodes->back()->m_consumed;
     return ret;
 }
 
@@ -523,7 +509,6 @@ const UChar* CNode_Or::match(const UChar* start, const UChar* stop, MatchData* p
 	for (CNode* node : *m_nodes) {
 		const UChar* ret = node->match(start, stop, pMatch);
         if (ret) {
-            //m_consumed = node->m_consumed;
             return ret;
         }
 	}
@@ -533,8 +518,10 @@ const UChar* CNode_Or::match(const UChar* start, const UChar* stop, MatchData* p
 bool CNode_Or::mayMatch(bool* tab)
 {
     bool ret = false;
-    for (unsigned int i=0; i< m_nodes->size(); i++)
-        if ((*m_nodes)[i]->mayMatch(tab)) ret = true;
+	for (auto& node : *m_nodes) {
+		if (node->mayMatch(tab))
+			ret = true;
+	}
     return ret;
 }
 
@@ -562,22 +549,42 @@ CNode_And::~CNode_And()
 const UChar* CNode_And::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
     // Ask left node for the first match
+	const UChar* reachedOrigin = pMatch->reached;
+	pMatch->reached = start;
     const UChar* posL = m_nodeL->match(start, stop, pMatch);
-    if (posL == nullptr) 
+	if (posL == nullptr) {
+		pMatch->reached = reachedOrigin;
 		return nullptr;
+	}
 
-	const UChar* consumedL = pMatch->consumed;
-    //m_consumed = m_nodeL->m_consumed;
+	const UChar* reachedL = pMatch->reached;
+	pMatch->reached = start;
 
     // Ask right node for the first match
-    const UChar* posR = m_nodeR->match(start, (m_force ? consumedL : stop), pMatch);
-    if (posR == nullptr || (m_force && posR != consumedL)) 
-		return nullptr;
+	if (m_force) {	// &&
+		const UChar* posR = m_nodeR->match(start, reachedL, pMatch);
+		// && の右側のパターンがマッチなし、もしくはパターンがreachedLまで消費しなかったらマッチなし
+		if (posR == nullptr || posR != reachedL) {	
+			pMatch->reached = reachedOrigin;
+			return nullptr;
+		}
+		return posR;
 
-	const UChar* consumedR = pMatch->consumed;
-    if (consumedL < consumedR) 
-		pMatch->consumed = consumedR;
-    return (posL > posR ? posL : posR);
+	} else {	// &
+		const UChar* posR = m_nodeR->match(start, stop, pMatch);
+		if (posR == nullptr) {
+			pMatch->reached = reachedOrigin;
+			return nullptr;
+		}
+		const UChar* reachedR = pMatch->reached;
+		if (reachedR < reachedL)
+			pMatch->reached = reachedL;
+		if (posL > posR) {
+			return posL;
+		} else {
+			return posR;
+		}
+	}
 }
 
 bool CNode_And::mayMatch(bool* tab)
@@ -625,7 +632,6 @@ const UChar* CNode_Repeat::match(const UChar* start, const UChar* stop, MatchDat
         if (m_iterate && m_nextNode && rcount >= m_rmin) {
             const UChar* ret = m_nextNode->match(start, stop, pMatch);
             if (ret) {
-                pMatch->consumed = start;
                 return ret;
             }
             checked = true;
@@ -646,7 +652,6 @@ const UChar* CNode_Repeat::match(const UChar* start, const UChar* stop, MatchDat
 		return nullptr;
 
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
-    pMatch->consumed = start;
     return ret;
 }
 
@@ -682,36 +687,38 @@ CNode_Memory::~CNode_Memory()
 
 const UChar* CNode_Memory::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
-    if (m_memorizer) {
+    if (m_memorizer) {	// // 親Memoryの時に通る。子Memory(memorizer)のために現在の位置を記憶しておく
         //m_memorizer->m_recordPos = start;
-		pMatch->vecRecordPos.push_back(start);
+		pMatch->mapRecordPos.insert(std::make_pair((void*)m_memorizer, start));
         const UChar* ret = m_node->match(start, stop, pMatch);
-		pMatch->vecRecordPos.pop_back();
-        //m_consumed = m_node->m_consumed;
+		pMatch->mapRecordPos.erase((void*)m_memorizer);
         return ret;
-    } else {
-		ATLASSERT( pMatch->vecRecordPos.size() > 0 );
+    } else {	// setNextNodeで次のマッチの前にmemorizer(this)がよばれるようになっている
+		ATLASSERT(pMatch->mapRecordPos.size() > 0);
 
+		auto itfound = pMatch->mapRecordPos.find((void*)this);
+		ATLASSERT(itfound != pMatch->mapRecordPos.end());
+		const UChar* begin = itfound->second;
 		CMemory backup;
         // Backup memory and replace by a new one, or push new one on stack
         if (m_memoryPos != -1) {
 			backup = pMatch->pFilter->memoryTable[m_memoryPos];
-			pMatch->pFilter->memoryTable[m_memoryPos](pMatch->vecRecordPos.back(), start);
+			pMatch->pFilter->memoryTable[m_memoryPos](begin, start);
         } else {
-			pMatch->pFilter->memoryStack.push_back(CMemory(pMatch->vecRecordPos.back(), start));
+			pMatch->pFilter->memoryStack.push_back(CMemory(begin, start));
         }
+
         // Ask next node
         const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
         if (ret) {
-            pMatch->consumed = start;
             return ret;
         }
         // Undo backup.
         if (m_memoryPos != -1) {
             pMatch->pFilter->memoryTable[m_memoryPos] = backup;
-        } else {
-            pMatch->pFilter->memoryStack.pop_back();
-        }
+		} else {
+			pMatch->pFilter->memoryStack.pop_back();
+		}
         return nullptr;
     }
 }
@@ -748,7 +755,6 @@ const UChar* CNode_Negate::match(const UChar* start, const UChar* stop, MatchDat
     if (test) 
 		return nullptr;
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
-    pMatch->consumed = start;
     return ret;
 }
 
@@ -806,7 +812,6 @@ const UChar* CNode_AV::match(const UChar* start, const UChar* stop, MatchData* p
 
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
 	UpdateReached(start, pMatch);
-    pMatch->consumed = start;
     return ret;
 }
 
@@ -855,7 +860,6 @@ const UChar* CNode_Url::match(const UChar* start, const UChar* stop, MatchData* 
 
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
 	UpdateReached(start, pMatch);
-    pMatch->consumed = start;
     return ret;
 }
 
@@ -876,8 +880,8 @@ bool CNode_Url::mayMatch(bool* tab)
  * Try and match nodes one after another, in CSettings::lists order.
  * Corresponds to $LST() command.
  */
-CNode_List::CNode_List(const std::string& name/*, CMatcher& matcher*/) :
-            CNode(LIST), m_name(name)/*, matcher(matcher)*/
+CNode_List::CNode_List(const std::string& name) :
+            CNode(LIST), m_name(name)
 {
 	std::lock_guard<std::recursive_mutex> lock(CSettings::s_mutexHashedLists);
 	auto& hashedLists = CSettings::s_mapHashedLists[m_name];
@@ -893,8 +897,7 @@ CNode_List::~CNode_List()
 
 const UChar* CNode_List::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
-	if (m_phashedCollection == nullptr)
-		return nullptr;
+	ATLASSERT(m_phashedCollection);
 
     if (start < stop) {
 		const UChar* startOrigin = start;
@@ -913,7 +916,6 @@ const UChar* CNode_List::match(const UChar* start, const UChar* stop, MatchData*
 				if (ptr) {
 					start = ptr;
 					const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
-					pMatch->consumed = start;
 					return ret;
 				}
 			}
@@ -963,7 +965,6 @@ const UChar* CNode_List::match(const UChar* start, const UChar* stop, MatchData*
 						if (ptr) {
 							start = ptr;
 							const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
-							pMatch->consumed = start;
 							return ret;
 						}
 					}
@@ -980,7 +981,6 @@ const UChar* CNode_List::match(const UChar* start, const UChar* stop, MatchData*
 			if (ptr) {
 				start = ptr;
 				const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
-				pMatch->consumed = start;
 				return ret;
 			}
 		}
@@ -1005,7 +1005,6 @@ bool CNode_List::mayMatch(bool* tab) {
  */
 CNode_Command::CNode_Command(CMD_ID num, const std::wstring& name, const std::wstring& content) :
         CNode(COMMAND), m_num(num), m_name(name), m_content(content), m_matcher(nullptr)
-		//, filter(filter), owner(filter.owner)
 {
     // For some commands we'll build a CMatcher (content is a pattern)
     if (num >= CMD_TSTSHARP) {
@@ -1224,7 +1223,6 @@ const UChar* CNode_Command::match(const UChar* start, const UChar* stop, MatchDa
     } // end of switch
 
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
-    pMatch->consumed = start;
     return ret;
 }
 
@@ -1243,7 +1241,6 @@ const UChar* CNode_Cnx::match(const UChar* start, const UChar* stop, MatchData* 
 		return nullptr;
 
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
-    pMatch->consumed = start;
     return ret;
 }
 
@@ -1309,7 +1306,6 @@ const UChar* CNode_Nest::match(const UChar* start, const UChar* stop, MatchData*
     }
     if (level > 0) {
 		UpdateReached(pos, pMatch);	// 消費したので更新しとかないとまずい？
-		pMatch->consumed = pos;
 		return NULL;	// Nestが収束しないのでマッチしない
 	}
 
@@ -1320,7 +1316,6 @@ const UChar* CNode_Nest::match(const UChar* start, const UChar* stop, MatchData*
     start = m_inest ? startR : pos;
     
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
-    pMatch->consumed = start;
     return ret;
 }
 
@@ -1373,7 +1368,6 @@ const UChar* CNode_Test::match(const UChar* start, const UChar* stop, MatchData*
 
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
     UpdateReached(start, pMatch);
-    pMatch->consumed = start;
     return ret;
 }
 
@@ -1446,7 +1440,6 @@ const UChar* CNode_Ask::match(const UChar* start, const UChar* stop, MatchData* 
     }
 
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
-    pMatch->consumed = start;
     return ret;
 }
 

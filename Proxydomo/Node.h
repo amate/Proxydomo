@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include <vector>
+#include <map>
 #include "proximodo\url.h"
 #include <unicode\schriter.h>
 
@@ -35,13 +35,12 @@ namespace Proxydomo {
 struct MatchData
 {
 	const UChar* reached;
-	const UChar* consumed;
 	CFilter*	pFilter;
 	CUrl		url;
 
-	std::vector<const UChar*>	vecRecordPos;	// for CNode_Memory
+	std::map<void*, const UChar*>	mapRecordPos;	// for CNode_Memory
 
-	MatchData(CFilter* filter) : reached(nullptr), consumed(nullptr), pFilter(filter) { }
+	MatchData(CFilter* filter) : reached(nullptr), pFilter(filter) { }
 };
 
 
@@ -97,10 +96,6 @@ public:
     // the pattern represented by the node itself.
     virtual const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) =0;
 
-    // If match() returned a value != NULL, this variable contains the
-    // position corresponding to the end of what just the node itself matched.
-    //const UChar* m_consumed;	// MatchData‚Ì•û‚ÖˆÚ“®
-
     // Enumeration for id()
     enum type { 
 		AND,      ANY,      ASK,      AV,       CHAR,     CHARS,
@@ -118,7 +113,7 @@ protected:
     CNode*	m_nextNode;
 
     // Protected construtor
-    CNode(type id) : m_id(id), /*m_consumed(nullptr),*/ m_nextNode(nullptr) { }
+    CNode(type id) : m_id(id), m_nextNode(nullptr) { }
 };
 
 }	// namespace Proxydomo
