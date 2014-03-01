@@ -160,27 +160,41 @@ void CTextBuffer::DataFeed(const std::string& data)
 		}
 		std::string charaCode;
 
-		std::string contentType = m_owner.GetInHeader("Content-Type");
-		if (contentType.size() > 0) {
-			CUtil::lower(contentType);
-			int nPos = contentType.find("charset=");
-			if (nPos != std::string::npos) {
-				charaCode = contentType.substr(nPos + 8);
-				CUtil::upper(charaCode);
-				if (charaCode == "NONE")
-					charaCode.clear();
+		// 1:ページ内の文字コード指定
+		if (m_owner.fileType == "htm") {
+			static std::regex rxMeta("(?:<meta ([^>]+)>|</head>)", std::regex_constants::icase);
+			auto begin = m_buffer.cbegin();
+			std::smatch result;
+			while (std::regex_search(begin, m_buffer.cend(), result, rxMeta)) {
+				std::string strAttribute = result.str(1);
+				if (strAttribute.length() == 0)	// </head>
+					break;
+				std::smatch attrResult;
+				static std::regex rx1("http-equiv=(?:\"|')?Content-Type(?:\"|')? [^>]*charset=(?:\"|')?([^\"' >]+)(?:\"|')?", std::regex_constants::icase);
+				static std::regex rx2("charset=(?:\"|')?([^\"' >]+)(?:\"|')? [^>]*http-equiv=(?:\"|')?Content-Type(?:\"|')?", std::regex_constants::icase);
+				static std::regex rx3("charset=(?:\"|')?([^\"' >]+)(?:\"|')?", std::regex_constants::icase);
+				if (std::regex_search(strAttribute, attrResult, rx1) ||
+					std::regex_search(strAttribute, attrResult, rx2) ||
+					std::regex_search(strAttribute, attrResult, rx3) )
+				{
+					charaCode = attrResult.str(1);
+					CUtil::upper(charaCode);
+					if (charaCode == "NONE")
+						charaCode.clear();
+					break;
+				}
+				begin = result[0].second;
 			}
 		}
-
+		
+		// 2:レスポンスヘッダのContent-Typeに書いてあるcharset
 		if (charaCode.empty()) {
-			if (m_owner.fileType == "htm") {
-				std::regex rx1("<meta [^>]*http-equiv=\"?Content-Type\"? [^>]*charset=\"?([^\"' >]+)\"?[^>]*>", std::regex_constants::icase);
-				std::regex rx2("<meta [^>]*charset=\"?([^\"' >]+)\"? [^>]*http-equiv=\"?Content-Type\"?[^>]*>", std::regex_constants::icase);
-				std::smatch result;
-				if (std::regex_search(m_buffer.cbegin(), m_buffer.cend(), result, rx1) ||
-					std::regex_search(m_buffer.cbegin(), m_buffer.cend(), result, rx2) )
-				{
-					charaCode = result.str(1);
+			std::string contentType = m_owner.GetInHeader("Content-Type");
+			if (contentType.size() > 0) {
+				CUtil::lower(contentType);
+				int nPos = contentType.find("charset=");
+				if (nPos != std::string::npos) {
+					charaCode = contentType.substr(nPos + 8);
 					CUtil::upper(charaCode);
 					if (charaCode == "NONE")
 						charaCode.clear();
@@ -188,6 +202,7 @@ void CTextBuffer::DataFeed(const std::string& data)
 			}
 		}
 
+		// 3:ページから文字コードを推定する
 		bool bGetCharaCodeFromBuffer = false;
 		if (charaCode.empty()) {
 			bGetCharaCodeFromBuffer = true;
