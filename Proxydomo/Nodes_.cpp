@@ -425,9 +425,6 @@ bool CNode_Chars::mayMatch(bool* tab)
  */
 const UChar* CNode_Empty::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
-    if (m_accept == false) 
-		return nullptr;
-
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
     UpdateReached(start, pMatch);
     return ret;
@@ -435,7 +432,7 @@ const UChar* CNode_Empty::match(const UChar* start, const UChar* stop, MatchData
 
 bool CNode_Empty::mayMatch(bool* tab)
 {
-    return m_accept && (m_nextNode == nullptr || m_nextNode->mayMatch(tab));
+    return m_nextNode == nullptr || m_nextNode->mayMatch(tab);
 }
 
 

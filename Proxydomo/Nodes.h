@@ -226,15 +226,12 @@ private:
 class CNode_Empty : public CNode
 {
 public:
-	CNode_Empty(bool accept = true) : CNode(EMPTY), m_accept(accept) { }
+	CNode_Empty() : CNode(EMPTY) { }
     ~CNode_Empty() { }
 
 	// CNode
     bool mayMatch(bool* tab) override;
 	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override;
-
-private:
-    bool m_accept;
 };
 
 

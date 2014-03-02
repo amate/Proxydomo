@@ -747,7 +747,6 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
                 // Command "match a tag parameter"
                 // Transform content of () in a tree and embed it in
                 // a fast quote searcher
-                int start = 0;
                 return new CNode_AV(expr(contentIt), false);
 
             } else if (command == L"AVQ") {
@@ -755,7 +754,6 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
                 // Command "match a tag parameter, including optional quotes"
                 // Transform content of () in a tree and embed it in a fast
                 // quote searcher
-                int start = 0;
                 return new CNode_AV(expr(contentIt), true);
 
             } else if (command == L"LST") {

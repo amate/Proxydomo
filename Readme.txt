@@ -42,3 +42,12 @@ $(SolutionDir)zlib\zlib125dll\static32\zlibstat.lib
 
 ICU は
 $(SolutionDir)icu\Win32 or Win64 フォルダに include と lib があればコンパイル通るようになっています
+
+boost::shared_mutexを使用するのでboost::threadのライブラリが必要になります
+ Boostライブラリのビルド方法
+ https://sites.google.com/site/boostjp/howtobuild
+コマンドライン
+// x86
+b2.exe install -j2 --prefix=lib toolset=msvc-12.0 runtime-link=static --with-thread --with-date_time
+// x64
+b2.exe install -j2 --prefix=lib64 toolset=msvc-12.0 runtime-link=static address-model=64 --with-thread --with-date_time
