@@ -921,6 +921,7 @@ const UChar* CNode_List::match(const UChar* start, const UChar* stop, MatchData*
 			}
 			pmapPreHashWord = &itfound->second->mapChildPreHashWord;
 		}
+		UpdateReached(start, pMatch);
 
 		start = startOrigin;
 		// URLƒnƒbƒVƒ…
