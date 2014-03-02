@@ -854,7 +854,7 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
                 // Command to check the downloaded file type
                 CUtil::trim(content);
                 CUtil::lower(content);
-                return new CNode_Command(CMD_TYPE, L"", content/*, filter*/);
+				return new CNode_Command_Type(content);
 
             } else if (command == L"IHDR") {
 

@@ -31,6 +31,7 @@
 #include <ctype.h>
 #include <sstream>
 #include <fstream>
+#include <iomanip>
 #include <Windows.h>
 #include "..\Misc.h"
 
@@ -234,11 +235,13 @@ wstring CUtil::ESC(const wstring& str) {
     static const wstring ok = L"@*-_+./";
     static const wstring hex = L"0123456789ABCDEF";
     for (auto c = str.begin(); c != str.end(); c++) {
-        if (   (*c >= L'A' && *c <= L'Z')
-            || (*c >= L'a' && *c <= L'z')
-            || (*c >= L'0' && *c <= L'9')
-            || ok.find_first_of(*c) != string::npos ) {
-            out << *c;
+		if ((*c >= L'A' && *c <= L'Z')
+			|| (*c >= L'a' && *c <= L'z')
+			|| (*c >= L'0' && *c <= L'9')
+			|| ok.find_first_of(*c) != string::npos) {
+			out << *c;
+		} else if (*c > 0xFF) {
+			out << L"%u" << std::hex << std::uppercase << std::setw(4) << std::setfill(L'0') << static_cast<short>(*c);
         } else {
             out << L'%' << hex[*c/16] << hex[*c%16];
         }
@@ -289,13 +292,38 @@ wstring CUtil::UESC(const wstring& str) {
     wstringstream out;
     static const wstring hex = L"0123456789ABCDEF";
     for (auto c = str.begin(); c != str.end(); c++) {
-        if (*c == L'%' && hex.find(*(c+1)) != string::npos
-                      && hex.find(*(c+2)) != string::npos) {
-            out << (char)(hex.find(*(c+1))*16+hex.find(*(c+2)));
-            c += 2;
-        } else {
-            out << *c;
+        if (*c == L'%') {
+			if (*(c + 1) == L'u' && 
+				hex.find(*(c + 2)) != string::npos && 
+				hex.find(*(c + 3)) != string::npos && 
+				hex.find(*(c + 4)) != string::npos && 
+				hex.find(*(c + 5)) != string::npos )
+			{
+				auto funcHexToNumber = [](const wchar_t c) -> BYTE {
+					if (L'0' <= c && c <= L'9') {
+						return c - L'0';
+					} else if (L'A' <= c && c <= L'F') {
+						return c - L'A' + 0x0A;
+					} else if (L'a' <= c && c <= L'f') {
+						return c - L'a' + 0x0A;
+					}
+					ATLASSERT(FALSE);
+					return 0;
+				};
+				wchar_t wc = funcHexToNumber(*(c + 2)) << 12 | funcHexToNumber(*(c + 3)) << 8 | funcHexToNumber(*(c + 4)) << 4 | funcHexToNumber(*(c + 5));
+				out << wc;
+				c += 5;
+				continue;
+
+			} else if (hex.find(*(c + 1)) != string::npos &&
+					   hex.find(*(c + 2)) != string::npos) 
+			{
+				out << (char)(hex.find(*(c + 1)) * 16 + hex.find(*(c + 2)));
+				c += 2;
+				continue;
+			}
         }
+        out << *c;
     }
     return out.str();
 }

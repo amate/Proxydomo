@@ -1157,10 +1157,6 @@ const UChar* CNode_Command::match(const UChar* start, const UChar* stop, MatchDa
         //if (tmp != wxYES) return NULL;
         break;
 
-    case CMD_TYPE:
-        if (UTF8fromUTF16(m_content) != owner.fileType) return NULL;
-        break;
-
     case CMD_STOP:
         filter.bypassed = true;
         break;
@@ -1219,6 +1215,9 @@ const UChar* CNode_Command::match(const UChar* start, const UChar* stop, MatchDa
             filter.locked = false;
         }
         break;
+
+	default:
+		ATLASSERT(FALSE);
     
     } // end of switch
 
@@ -1231,6 +1230,27 @@ bool CNode_Command::mayMatch(bool* tab)
     return m_nextNode == nullptr || m_nextNode->mayMatch(tab);
 }
 
+/* class CNode_Command_Type
+* $TYPE()
+*/
+CNode_Command_Type::CNode_Command_Type(const std::wstring& type) :
+	CNode(COMMAND), m_type(UTF8fromUTF16(type))
+{
+}
+
+const UChar* CNode_Command_Type::match(const UChar* start, const UChar* stop, MatchData* pMatch)
+{
+	if (m_type != pMatch->pFilter->owner.fileType)
+		return nullptr;
+
+	const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
+	return ret;
+}
+
+bool CNode_Command_Type::mayMatch(bool* tab)
+{
+	return m_nextNode == nullptr || m_nextNode->mayMatch(tab);
+}
 
 /* class CNode_Cnx
  * Matches depending on connection number.

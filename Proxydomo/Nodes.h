@@ -480,6 +480,22 @@ private:
     CMatcher* m_matcher;
 };
 
+/* class CNode_Command_Type
+ * $TYPE()
+ */
+class CNode_Command_Type : public CNode
+{
+public:
+	CNode_Command_Type(const std::wstring& type);
+
+	// CNode
+	bool mayMatch(bool* tab) override;
+	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override;
+
+private:
+	std::string m_type;
+};
+
 
 /* class CNode_Cnx
  * Matches depending on connection number.
