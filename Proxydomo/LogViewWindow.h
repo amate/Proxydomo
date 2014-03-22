@@ -54,12 +54,15 @@ public:
 	virtual void AddNewRequest(long requestNumber) override;
 
 	BEGIN_DLGRESIZE_MAP( CLogViewWindow )
-		DLGRESIZE_CONTROL( IDC_RICHEDIT_LOG, DLSZ_SIZE_X | DLSZ_SIZE_Y )
+		DLGRESIZE_CONTROL(IDC_RICHEDIT_LOG, DLSZ_SIZE_X | DLSZ_SIZE_Y)
+		DLGRESIZE_CONTROL(IDC_RICHEDIT_PARTLOG, DLSZ_SIZE_X | DLSZ_SIZE_Y)		
 		DLGRESIZE_CONTROL( IDC_LIST_RECENTURLS, DLSZ_SIZE_X | DLSZ_SIZE_Y )
+
 		DLGRESIZE_CONTROL( IDC_CHECKBOX_STOPLOG, DLSZ_MOVE_Y )
 		DLGRESIZE_CONTROL( IDC_CHECKBOX_RECENTURLS, DLSZ_MOVE_Y )
 		DLGRESIZE_CONTROL( IDC_BUTTON_SHOWACTIVEREQUESTLOG, DLSZ_MOVE_Y )
 		DLGRESIZE_CONTROL( IDC_BUTTON_CLEAR, DLSZ_MOVE_Y )
+		DLGRESIZE_CONTROL( IDC_COMBO_REQUEST, DLSZ_MOVE_Y )
 
 		DLGRESIZE_CONTROL( IDC_CHECKBOX_BROWSERTOPROXY, DLSZ_MOVE_Y )
 		DLGRESIZE_CONTROL( IDC_CHECKBOX_PROXYTOWEB, DLSZ_MOVE_Y )
@@ -90,15 +93,19 @@ public:
 	BEGIN_MSG_MAP_EX( CLogViewWindow )
 		MSG_WM_INITDIALOG( OnInitDialog )
 		MSG_WM_DESTROY( OnDestroy )
+
 		COMMAND_ID_HANDLER_EX( IDCANCEL, OnCancel )
 		COMMAND_ID_HANDLER_EX( IDC_BUTTON_CLEAR, OnClear )
 		COMMAND_ID_HANDLER_EX( IDC_BUTTON_SHOWACTIVEREQUESTLOG, OnShowActiveRequestLog )
+
+		COMMAND_HANDLER_EX( IDC_COMBO_REQUEST, CBN_SELCHANGE, OnComboRequestSelChange )
 
 		NOTIFY_HANDLER_EX( IDC_LIST_RECENTURLS, NM_RCLICK , OnRecentURLListRClick )
 		NOTIFY_HANDLER_EX( IDC_LIST_RECENTURLS, NM_DBLCLK , OnRecentURLListDblClick )
 
 		COMMAND_ID_HANDLER_EX( IDC_CHECKBOX_STOPLOG			, OnCheckBoxChanged )
-		COMMAND_ID_HANDLER_EX( IDC_CHECKBOX_RECENTURLS		, OnCheckBoxChanged )	
+		COMMAND_ID_HANDLER_EX( IDC_CHECKBOX_STOPSCROLL		, OnCheckBoxChanged)
+		COMMAND_ID_HANDLER_EX( IDC_CHECKBOX_RECENTURLS		, OnCheckBoxChanged)
 		COMMAND_ID_HANDLER_EX( IDC_CHECKBOX_BROWSERTOPROXY	, OnCheckBoxChanged )
 		COMMAND_ID_HANDLER_EX( IDC_CHECKBOX_PROXYTOWEB		, OnCheckBoxChanged )	
 		COMMAND_ID_HANDLER_EX( IDC_CHECKBOX_PROXYFROMWEB	, OnCheckBoxChanged )	
@@ -113,10 +120,12 @@ public:
 
 	BOOL OnInitDialog(CWindow wndFocus, LPARAM lInitParam);
 	void OnDestroy();
+
 	void OnCancel(UINT uNotifyCode, int nID, CWindow wndCtl);
 	void OnClear(UINT uNotifyCode, int nID, CWindow wndCtl);
 	void OnShowActiveRequestLog(UINT uNotifyCode, int nID, CWindow wndCtl);
 
+	void OnComboRequestSelChange(UINT uNotifyCode, int nID, CWindow wndCtl);
 	LRESULT OnRecentURLListRClick(LPNMHDR pnmh);
 	LRESULT OnRecentURLListDblClick(LPNMHDR pnmh);
 
@@ -124,13 +133,18 @@ public:
 
 private:
 	void	_AppendText(const CString& text, COLORREF textColor);
+	void	_AppendRequestLogText(const CString& text, COLORREF textColor);
 	void	_RefreshTitle();
 	void	_AddNewRequest(CLog::RecentURLData* it);
 
 	// Data members
 	CRichEditCtrl	m_editLog;
+	CRichEditCtrl	m_editPartLog;
 	CSortListViewCtrl	m_listRequest;
+	CComboBox		m_cmbRequest;
+
 	CCriticalSection	m_csLog;
+
 	struct EventLog {
 		uint16_t	port;
 		CString		text;
@@ -140,6 +154,20 @@ private:
 	};
 	std::vector<std::unique_ptr<EventLog>>	m_vecActiveRequestLog;
 	CCriticalSection	m_csActiveRequestLog;
+
+	struct RequestLog {
+		int			RequestNumber;
+		struct TextLog {
+			CString		text;
+			COLORREF	textColor;
+			TextLog(const CString& t, COLORREF c) : text(t), textColor(c) { }
+		};
+		std::vector<std::unique_ptr<TextLog>>	vecLog;
+
+		RequestLog(int rq) : RequestNumber(rq) { }
+	};
+	std::vector<std::unique_ptr<RequestLog>>	m_vecRquestLog;
+	CCriticalSection	m_csRequestLog;
 
 	bool	m_bStopLog;
 	bool	m_bRecentURLs;

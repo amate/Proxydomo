@@ -32,7 +32,7 @@
 #include "Log.h"
 #include "Settings.h"
 #include "CodeConvert.h"
-#include <unicode\uchar.h>
+//#include <unicode\uchar.h>
 
 using namespace CodeConvert;
 
@@ -317,14 +317,14 @@ const UChar* CNode_Range::match(const UChar* start, const UChar* stop, MatchData
         start++;
     }
     // Check if there is a digit
-    if (start >= stop || u_isdigit(*start) == false) {
+	if (start >= stop || iswdigit(*start) == false) {
 		UpdateReached(start, pMatch);
         return nullptr;
     }
     // Read the number
     int num = 0;
-    while (start < stop && u_isdigit(*start)) {
-        num = num*10 + *start++ - '0';
+	while (start < stop && iswdigit(*start)) {
+        num = num*10 + *start++ - L'0';
     }
     num *= sign;
     // Check if optional quotes correspond
@@ -334,7 +334,8 @@ const UChar* CNode_Range::match(const UChar* start, const UChar* stop, MatchData
     }
     // Rule: [#]
     // Check if the number is in the range. Optional quote must be closed
-    if (quote || (m_allow ^ (m_min <= num && num <= m_max))) return nullptr;
+    if (quote || (m_allow ^ (m_min <= num && num <= m_max))) 
+		return nullptr;
 
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
 	UpdateReached(start, pMatch);

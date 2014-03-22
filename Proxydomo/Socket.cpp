@@ -101,8 +101,20 @@ bool IPv4Address::SetHostName(const std::string& IPorHost)
 	hinsts.ai_socktype	= SOCK_STREAM;
 	hinsts.ai_family	= AF_INET;
 	hinsts.ai_protocol	= IPPROTO_TCP;
-	if (::getaddrinfo(IPorHost.c_str(), service.c_str(), &hinsts, &result) != 0)
-		return false;
+	for (int tryCount = 0;; ++tryCount) {
+		int ret = ::getaddrinfo(IPorHost.c_str(), service.c_str(), &hinsts, &result);
+		if (ret == 0) {
+			break;
+		} else if (ret == EAI_AGAIN) {
+			if (tryCount >= 5)
+				return false;
+			::Sleep(10);
+		} else {
+			std::wstring strerror = gai_strerror(ret);
+			return false;
+		}
+	}
+
 	addrinfoList.reset(result, [](addrinfo* p) { ::freeaddrinfo(p); });
 	current_addrinfo	= addrinfoList.get();
 

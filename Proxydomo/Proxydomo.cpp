@@ -32,6 +32,7 @@
 #include "Proxy.h"
 #include "Settings.h"
 #include "VersionControl.h"
+#include "Logger.h"
 
 // ÉOÉçÅ[ÉoÉãïœêî
 CAppModule _Module;
@@ -87,7 +88,9 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR lp
 
 	hRes = _Module.Init(NULL, hInstance);
 	ATLASSERT(SUCCEEDED(hRes));
-
+#ifdef _DEBUG
+	CLogger::Init();
+#endif
 	CVersionControl::Run();
 
 	CSettings::LoadSettings();

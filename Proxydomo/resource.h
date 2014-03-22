@@ -68,6 +68,9 @@
 #define IDC_LIST_RECENTURLS             1052
 #define IDC_CHECKBOX_RECENTURLS         1053
 #define IDC_FILTERMANAGERTOOLBAR		1054
+#define IDC_COMBO_REQUEST				1055
+#define IDC_RICHEDIT_PARTLOG			1056
+#define IDC_CHECKBOX_STOPSCROLL			1057
 
 // Next default values for new objects
 // 

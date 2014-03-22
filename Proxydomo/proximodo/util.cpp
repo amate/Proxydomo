@@ -470,8 +470,13 @@ string CUtil::getMimeType(string filename) {
 		return "text/plain";
     else if (ext == "png" || ext == "jpeg" || ext == "gif")
         return "image/" + ext;
-    else if (ext == "jpg")
-        return "image/jpeg";
+	else if (ext == "jpg")
+		return "image/jpeg";
+	else if (ext == "swf")
+		return "application/x-shockwave-flash";
+	else if (ext == "json")
+		return "application/json";
+
     return "application/octet-stream";
 }
 

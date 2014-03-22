@@ -72,9 +72,6 @@ void	CLogViewWindow::ShowWindow()
 
 void CLogViewWindow::ProxyEvent(LogProxyEvent Event, const IPv4Address& addr)
 {
-	if (m_bProxyEvent == false)
-		return ;
-
 	CString msg;
 	msg.Format(_T(">>> ポート %d : "), addr.GetPortNumber());
 	switch (Event) {
@@ -106,6 +103,9 @@ void CLogViewWindow::ProxyEvent(LogProxyEvent Event, const IPv4Address& addr)
 	CString title;
 	title.Format(_T("ログ - Active[ %d ]"), CLog::GetActiveRequestCount());
 	SetWindowText(title);
+
+	if (m_bProxyEvent == false)
+		return;
 
 	_AppendText(msg, LOG_COLOR_PROXY);
 }
@@ -147,6 +147,31 @@ void CLogViewWindow::HttpEvent(LogHttpEvent Event, const IPv4Address& addr, int 
 		CCritSecLock	lock(m_csActiveRequestLog);
 		m_vecActiveRequestLog.emplace_back(new EventLog(addr.GetPortNumber(), msg, color));
 	}
+	{
+		CCritSecLock	lock(m_csRequestLog);
+		bool bFound = false;
+		for (auto& reqLog : m_vecRquestLog) {
+			if (reqLog->RequestNumber == RequestNumber) {
+				reqLog->vecLog.emplace_back(new RequestLog::TextLog(msg, color));
+				lock.Unlock();
+				int nCurSel = m_cmbRequest.GetCurSel();
+				if (nCurSel > 0 && m_cmbRequest.GetItemData(nCurSel) == RequestNumber) {
+					_AppendRequestLogText(msg, color);
+				}
+				bFound = true;
+				break;
+			}
+		}
+		if (bFound == false) {
+			m_vecRquestLog.emplace_back(new RequestLog(RequestNumber));
+			m_vecRquestLog.back()->vecLog.emplace_back(new RequestLog::TextLog(msg, color));
+			lock.Unlock();
+			CString temp;
+			temp.Format(_T("#%d"), RequestNumber);
+			int nSel = m_cmbRequest.AddString(temp);
+			m_cmbRequest.SetItemData(nSel, RequestNumber);
+		}
+	}
 	_AppendText(msg, color);
 }
 
@@ -156,6 +181,34 @@ void CLogViewWindow::FilterEvent(LogFilterEvent Event, int RequestNumber, const 
 		return ;
 
 	CString msg;
+
+	auto funcPartLog = [&]() {
+		COLORREF color = LOG_COLOR_FILTER;
+		CCritSecLock	lock(m_csRequestLog);
+		bool bFound = false;
+		for (auto& reqLog : m_vecRquestLog) {
+			if (reqLog->RequestNumber == RequestNumber) {
+				reqLog->vecLog.emplace_back(new RequestLog::TextLog(msg, color));
+				lock.Unlock();
+				int nCurSel = m_cmbRequest.GetCurSel();
+				if (nCurSel > 0 && m_cmbRequest.GetItemData(nCurSel) == RequestNumber) {
+					_AppendRequestLogText(msg, color);
+				}
+				bFound = true;
+				break;
+			}
+		}
+		if (bFound == false) {
+			m_vecRquestLog.emplace_back(new RequestLog(RequestNumber));
+			m_vecRquestLog.back()->vecLog.emplace_back(new RequestLog::TextLog(msg, color));
+			lock.Unlock();
+			CString temp;
+			temp.Format(_T("#%d"), RequestNumber);
+			int nSel = m_cmbRequest.AddString(temp);
+			m_cmbRequest.SetItemData(nSel, RequestNumber);
+		}
+	};
+	
 	msg.Format(_T("#%d : "), RequestNumber);
 	switch (Event) {
 	case kLogFilterHeaderMatch:
@@ -184,6 +237,7 @@ void CLogViewWindow::FilterEvent(LogFilterEvent Event, int RequestNumber, const 
 		msg += _T("JumpTo: ");
 		msg += text.c_str();
 		msg += _T("\n");
+		funcPartLog();
 		_AppendText(msg, LOG_COLOR_FILTER);
 		return ;
 		break;
@@ -192,6 +246,7 @@ void CLogViewWindow::FilterEvent(LogFilterEvent Event, int RequestNumber, const 
 		msg += _T("RedirectTo: ");
 		msg += text.c_str();
 		msg += _T("\n");
+		funcPartLog();
 		_AppendText(msg, LOG_COLOR_FILTER);
 		return ;
 		break;
@@ -212,6 +267,8 @@ void CLogViewWindow::FilterEvent(LogFilterEvent Event, int RequestNumber, const 
 	if (Event == kLogFilterHeaderMatch)
 		msg += text.c_str();
 	msg += _T("\n");
+
+	funcPartLog();
 	
 	_AppendText(msg, LOG_COLOR_FILTER);
 }
@@ -255,6 +312,16 @@ BOOL CLogViewWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 {
 	m_editLog = GetDlgItem(IDC_RICHEDIT_LOG);
 	m_editLog.SetBackgroundColor(LOG_COLOR_BACKGROUND);
+	m_editLog.SetTargetDevice(NULL, 0);
+
+	m_editPartLog = GetDlgItem(IDC_RICHEDIT_PARTLOG);
+	m_editPartLog.SetBackgroundColor(LOG_COLOR_BACKGROUND);
+	m_editPartLog.SetTargetDevice(NULL, 0);
+	m_editPartLog.ShowWindow(FALSE);
+
+	m_cmbRequest = GetDlgItem(IDC_COMBO_REQUEST);
+	m_cmbRequest.AddString(_T("すべてのログ"));
+	m_cmbRequest.SetCurSel(0);
 
 	m_listRequest.SubclassWindow(GetDlgItem(IDC_LIST_RECENTURLS));
 	m_listRequest.SetExtendedListViewStyle(LVS_EX_FULLROWSELECT, LVS_EX_FULLROWSELECT);
@@ -357,7 +424,6 @@ void CLogViewWindow::OnCancel(UINT uNotifyCode, int nID, CWindow wndCtl)
 	__super::ShowWindow(FALSE);
 }
 
-
 void CLogViewWindow::OnClear(UINT uNotifyCode, int nID, CWindow wndCtl)
 {
 	if (m_bRecentURLs) {
@@ -371,7 +437,46 @@ void CLogViewWindow::OnClear(UINT uNotifyCode, int nID, CWindow wndCtl)
 		m_editLog.SetWindowText(_T(""));
 		_RefreshTitle();
 		m_editLog.Invalidate();
+
+		m_editPartLog.SetWindowText(_T(""));
+
+		m_vecRquestLog.clear();
+
+		m_cmbRequest.ResetContent();
+		m_cmbRequest.AddString(_T("すべてのログ"));
+		m_cmbRequest.SetCurSel(0);
+
+		m_editPartLog.ShowWindow(FALSE);
+		m_editLog.ShowWindow(TRUE);
 	}
+}
+
+void CLogViewWindow::OnComboRequestSelChange(UINT uNotifyCode, int nID, CWindow wndCtl)
+{
+	int nCurSel = m_cmbRequest.GetCurSel();
+	if (nCurSel == 0) {
+		m_editPartLog.SetWindowText(_T(""));
+		m_editPartLog.ShowWindow(FALSE);
+		m_editLog.ShowWindow(TRUE);
+	} else {
+		m_editPartLog.SetWindowText(_T(""));
+		if (m_editPartLog.IsWindowVisible() == FALSE) {
+			m_editPartLog.ShowWindow(TRUE);
+			m_editLog.ShowWindow(FALSE);
+		}
+		int RequestNumber = (int)m_cmbRequest.GetItemData(nCurSel);
+		CCritSecLock	lock(m_csRequestLog);
+		for (auto& reqLog : m_vecRquestLog) {
+			if (reqLog->RequestNumber == RequestNumber) {
+				for (auto& log : reqLog->vecLog)
+					_AppendRequestLogText(log->text, log->textColor);
+				m_editPartLog.PostMessage(WM_VSCROLL, SB_TOP);
+				break;
+			}
+		}
+	}
+
+
 }
 
 void CLogViewWindow::OnShowActiveRequestLog(UINT uNotifyCode, int nID, CWindow wndCtl)
@@ -417,14 +522,22 @@ void CLogViewWindow::OnCheckBoxChanged(UINT uNotifyCode, int nID, CWindow wndCtl
 	DoDataExchange(DDX_SAVE, nID);
 	if (nID == IDC_CHECKBOX_WEBFILTERDEBUG) {
 		CSettings::s_WebFilterDebug	= m_bWebFilterDebug;
+
 	} else if (nID == IDC_CHECKBOX_STOPLOG) {
 		if (m_bStopLog)
 			CLog::RemoveLogTrace(this);
 		else
 			CLog::RegisterLogTrace(this);
+
 	} else if (nID == IDC_CHECKBOX_RECENTURLS) {
 		GetDlgItem(IDC_LIST_RECENTURLS).ShowWindow(m_bRecentURLs);
-		GetDlgItem(IDC_RICHEDIT_LOG).ShowWindow(!m_bRecentURLs);
+		if (!m_bRecentURLs) {
+			m_editLog.ShowWindow(!m_bRecentURLs);
+			m_cmbRequest.SetCurSel(0);
+		} else {
+			m_editLog.ShowWindow(!m_bRecentURLs);
+			m_editPartLog.ShowWindow(!m_bRecentURLs);
+		}
 		if (m_bRecentURLs) {
 			m_listRequest.DeleteAllItems();
 			CCritSecLock	lock(CLog::s_csdeqRecentURLs);
@@ -445,6 +558,8 @@ void	CLogViewWindow::_AppendText(const CString& text, COLORREF textColor)
 	CHARFORMAT cfmt = { sizeof(CHARFORMAT) };
 	cfmt.dwMask = CFM_COLOR;
 	cfmt.crTextColor	= textColor;
+
+	m_editLog.HideSelection(TRUE);
 	
 	m_editLog.SetSel(-1, -1);
 	long start = 0;
@@ -456,8 +571,34 @@ void	CLogViewWindow::_AppendText(const CString& text, COLORREF textColor)
 	m_editLog.SetSel(end, -1);
 	m_editLog.SetSelectionCharFormat(cfmt);
 	m_editLog.SetSel(-1, -1);
+	
+	m_editLog.HideSelection(FALSE);
 
 	m_editLog.PostMessage(WM_VSCROLL, SB_BOTTOM);
+}
+
+void	CLogViewWindow::_AppendRequestLogText(const CString& text, COLORREF textColor)
+{
+	CHARFORMAT cfmt = { sizeof(CHARFORMAT) };
+	cfmt.dwMask = CFM_COLOR;
+	cfmt.crTextColor = textColor;
+
+	m_editPartLog.HideSelection(TRUE);
+
+	m_editPartLog.SetSel(-1, -1);
+	long start = 0;
+	long end = 0;
+	m_editPartLog.GetSel(start, end);
+
+	m_editPartLog.AppendText(text);
+
+	m_editPartLog.SetSel(end, -1);
+	m_editPartLog.SetSelectionCharFormat(cfmt);
+	m_editPartLog.SetSel(-1, -1);
+
+	m_editPartLog.HideSelection(FALSE);
+
+	m_editPartLog.PostMessage(WM_VSCROLL, SB_BOTTOM);
 }
 
 void	CLogViewWindow::_RefreshTitle()

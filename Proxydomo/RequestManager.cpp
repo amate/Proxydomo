@@ -1290,18 +1290,25 @@ bool	CRequestManager::_VerifyContentType(std::string& ctype)
     CUtil::lower(type);
 
     if (type == "html") {
-      m_filterOwner.fileType = "htm";
-      return true;
+		m_filterOwner.fileType = "htm";
+		return true;
     } else if (type == "javascript") {
-      m_filterOwner.fileType = "js";
-      return true;
+		m_filterOwner.fileType = "js";
+		return true;
     } else if (type == "css") {
-      m_filterOwner.fileType = "css";
-      return true;
-    } else if (type == "vbscript") {
-      m_filterOwner.fileType = "vbs";
-      return true;
-    }
+		m_filterOwner.fileType = "css";
+		return true;
+	} else if (type == "vbscript") {
+		m_filterOwner.fileType = "vbs";
+		return false;
+	} else if (type == "json") {
+		m_filterOwner.fileType = "json";
+		return false;
+	} else if (type == "xml") {
+		m_filterOwner.fileType = "xml";
+		return false;
+	}
+
     m_filterOwner.fileType = "oth";
     return false;
 }
@@ -1372,7 +1379,7 @@ void	CRequestManager::_EndFeeding() {
 
 void	CRequestManager::_FakeResponse(const std::string& code, const std::string& filename /*= ""*/)
 {
-	std::string contentType = filename.empty() ? std::string("text/plain") : CUtil::getMimeType(filename) ;
+	std::string contentType = filename.empty() ? std::string("text/plain") : CUtil::getMimeType(filename);
 	std::string content;
 	if (filename.size() > 0)
 		content = CUtil::getFile(filename);
@@ -1380,7 +1387,7 @@ void	CRequestManager::_FakeResponse(const std::string& code, const std::string& 
 		content = CUtil::replaceAll(content, "%%1%%", code);
 	m_inStep = STEP_FINISH;
 	m_sendInBuf = 
-        "HTTP/1.1 " + code + CRLF
+		"HTTP/1.1 " + code + CRLF;
 		"Content-Type: " + contentType + CRLF
 		"Content-Length: " + boost::lexical_cast<std::string>(content.size()) + CRLF
 		"Connection: close" + CRLF;

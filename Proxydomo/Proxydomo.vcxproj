@@ -234,6 +234,7 @@
     <ClCompile Include="FilterEditWindow.cpp" />
     <ClCompile Include="FilterManageWindow.cpp" />
     <ClCompile Include="FilterOwner.cpp" />
+    <ClCompile Include="Logger.cpp" />
     <ClCompile Include="LogViewWindow.cpp" />
     <ClCompile Include="MainDlg.cpp" />
     <ClCompile Include="Matcher_.cpp">
@@ -493,6 +494,7 @@
     <ClInclude Include="FilterManageWindow.h" />
     <ClInclude Include="FilterOwner.h" />
     <ClInclude Include="Log.h" />
+    <ClInclude Include="Logger.h" />
     <ClInclude Include="LogViewWindow.h" />
     <ClInclude Include="MainDlg.h" />
     <ClInclude Include="Matcher.h" />

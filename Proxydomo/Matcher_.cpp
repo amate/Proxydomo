@@ -774,13 +774,14 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
                 CUtil::trim(name);
                 CUtil::lower(name);
                 if (name[0] == L'\\') name.erase(0,1);
-                if (name == L"#") {
-                    return new CNode_Command(CMD_SETSHARP, L"", value/*, filter*/);
-					bool b = iswdigit(name[0]) != 0;
-                } else if (name.length() == 1 && CUtil::digit(name[0])) {
-                    return new CNode_Command(CMD_SETDIGIT, name, value/*, filter*/);
-                } else {
-                    return new CNode_Command(CMD_SETVAR, name, value/*, filter*/);
+                if (name == L"#") {	// #=value
+                    return new CNode_Command(CMD_SETSHARP, L"", value);
+
+				} else if (name.length() == 1 && iswdigit(name[0])) {	// \0-9=value
+                    return new CNode_Command(CMD_SETDIGIT, name, value);
+
+                } else {	// globalName=value
+                    return new CNode_Command(CMD_SETVAR, name, value);
                 }
 
             } else if (command == L"TST") {
@@ -810,14 +811,17 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
                 if (name[0] != L'(') CUtil::lower(name);
                 if (name[0] == L'\\') name.erase(0,1);
                 if (name == L"#") {
-                    return new CNode_Command(CMD_TSTSHARP, L"", value/*, filter*/);
-                } else if (name.length() == 1 && CUtil::digit(name[0])) {
-                    return new CNode_Command(CMD_TSTDIGIT, name, value/*, filter*/);
+                    return new CNode_Command(CMD_TSTSHARP, L"", value);
+
+				} else if (name.length() == 1 && iswdigit(name[0])) {
+                    return new CNode_Command(CMD_TSTDIGIT, name, value);
+
                 } else if (name[0] == L'(' && name[name.size()-1] == L')') {
                     name = name.substr(1, name.size()-2);
-                    return new CNode_Command(CMD_TSTEXPAND, name, value/*, filter*/);
+                    return new CNode_Command(CMD_TSTEXPAND, name, value);
+
                 } else {
-                    return new CNode_Command(CMD_TSTVAR, name, value/*, filter*/);
+                    return new CNode_Command(CMD_TSTVAR, name, value);
                 }
 
             } else if (command == L"ADDLST") {
