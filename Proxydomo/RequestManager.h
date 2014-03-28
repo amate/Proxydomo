@@ -142,9 +142,6 @@ private:
 	STEP	m_inStep;	/// サイト ⇒ Proxy(this) ⇒ ブラウザ 間の処理の状態を示す
 	int		m_inSize;
 	bool	m_inChunked;
-	struct { 
-		std::string ver, code, msg;
-	} m_responseLine;
 
 	CFilterOwner	m_filterOwner;
 

@@ -39,6 +39,9 @@ class CFilterOwner
 {
 public:
 	CUrl		url;
+	struct {
+		std::string ver, code, msg;
+	}			responseLine;			 // for WebFilterDebug
 	std::string responseCode;            // response code from website
 	long		requestNumber;
 

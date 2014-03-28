@@ -234,6 +234,10 @@ void CTextBuffer::DataFeed(const std::string& data)
 		m_pConverter = pConverter;
 		convert2:
 		m_bCharaCodeDectated = true;
+
+		if (m_owner.url.getDebug())
+			_firstDebugOutput(charaCode);
+
 	} else {
 		m_buffer += m_tailBuffer;
 		m_tailBuffer.clear();
@@ -418,3 +422,37 @@ void CTextBuffer::escapeOutput(std::stringstream& out, const UChar *data, size_t
         out << webcode;
     }
 }
+
+
+void CTextBuffer::_firstDebugOutput(const std::string& charaCode)
+{
+	std::string buf =
+		"<!DOCTYPE html>\n"
+		"<html>\n<head>\n";
+	buf += "<meta charset=\"" + charaCode + "\">\n";
+	buf += "<title>Source of ";
+	CUtil::htmlEscape(buf, m_owner.url.getProtocol() + "://" + m_owner.url.getFromHost());
+	buf += "</title>\n"
+		"<link rel=\"stylesheet\" media=\"all\" "
+		"href=\"http://local.ptron/ViewSource.css\" />\n"
+		"</head>\n\n<body>\n<div id=\"headers\">\n";
+	buf += "<div class=\"res\">";
+	CUtil::htmlEscape(buf, m_owner.responseLine.ver);
+	buf += " ";
+	CUtil::htmlEscape(buf, m_owner.responseLine.code);
+	buf += " ";
+	CUtil::htmlEscape(buf, m_owner.responseLine.msg);
+	buf += "</div>\n";
+
+	for (auto& pair : m_owner.inHeaders) {
+		buf += "<div class=\"hdr\">";
+		CUtil::htmlEscape(buf, pair.first);
+		buf += ": <span class=\"val\">";
+		CUtil::htmlEscape(buf, pair.second);
+		buf += "</span></div>\n";
+	}
+	buf += "</div><div id=\"body\">\n";
+
+	m_output->DataFeed(buf);
+}
+

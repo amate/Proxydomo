@@ -64,6 +64,8 @@ private:
 
     // pass string to output, escaping HTML chars as needed
     void escapeOutput(std::stringstream& out, const UChar *data, size_t len);
+
+	void _firstDebugOutput(const std::string& charaCode);
     
     // the actual buffer
     std::string	m_buffer;

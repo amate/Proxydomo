@@ -888,9 +888,9 @@ void	CRequestManager::_ProcessIn()
 				// Parse it
 				size_t p1 = m_recvInBuf.find_first_of(" ");
 				size_t p2 = m_recvInBuf.find_first_of(" ", p1+1);
-				m_responseLine.ver  = m_recvInBuf.substr(0,p1);
-				m_responseLine.code = m_recvInBuf.substr(p1+1, p2-p1-1);
-				m_responseLine.msg  = m_recvInBuf.substr(p2+1, pos-p2-1);
+				m_filterOwner.responseLine.ver = m_recvInBuf.substr(0, p1);
+				m_filterOwner.responseLine.code = m_recvInBuf.substr(p1 + 1, p2 - p1 - 1);
+				m_filterOwner.responseLine.msg = m_recvInBuf.substr(p2 + 1, pos - p2 - 1);
 				m_filterOwner.responseCode = m_recvInBuf.substr(p1+1, pos-p1-1);
 
 				// Remove it from receive-in buffer.
@@ -924,11 +924,11 @@ void	CRequestManager::_ProcessIn()
 				m_inStep = STEP_DECODE;
 				// In case of 'HTTP 100 Continue,' expect another set of
 				// response headers before the data
-				if (m_responseLine.code == "100") {
+				if (m_filterOwner.responseLine.code == "100") {
 					m_inStep = STEP_FIRSTLINE;
-					m_responseLine.ver.clear();
-					m_responseLine.code.clear();
-					m_responseLine.msg.clear();
+					m_filterOwner.responseLine.ver.clear();
+					m_filterOwner.responseLine.code.clear();
+					m_filterOwner.responseLine.msg.clear();
 					m_filterOwner.responseCode.clear();
 				}
 			}
@@ -963,7 +963,7 @@ void	CRequestManager::_ProcessIn()
 				}
 
 				if (   CUtil::noCaseContains("close", m_filterOwner.GetInHeader("Connection"))
-					|| (CUtil::noCaseBeginsWith("HTTP/1.0", m_responseLine.ver) && 
+					|| (CUtil::noCaseBeginsWith("HTTP/1.0", m_filterOwner.responseLine.ver) &&
 					    CUtil::noCaseContains("Keep-Alive", m_filterOwner.GetInHeader("Connection")) == false) ) {
 						m_recvConnectionClose = true;
 				}
@@ -1043,7 +1043,7 @@ void	CRequestManager::_ProcessIn()
 					continue;
 				}
 
-				CLog::AddNewRequest(m_filterOwner.requestNumber, m_responseLine.code, contentType, m_inChunked ? std::string("-1") : contentLength, m_filterOwner.url.getUrl());
+				CLog::AddNewRequest(m_filterOwner.requestNumber, m_filterOwner.responseLine.code, contentType, m_inChunked ? std::string("-1") : contentLength, m_filterOwner.url.getUrl());
 
 				// Decode new headers to control browser-side beehaviour
 				if (CUtil::noCaseContains("close", CFilterOwner::GetHeader(inHeadersFiltered, "Connection")))
@@ -1065,38 +1065,12 @@ void	CRequestManager::_ProcessIn()
 						"Content-Type: text/html" CRLF
 						"Connection: close" CRLF
 						"Transfer-Encoding: chunked" CRLF CRLF;
-					std::string buf =
-						"<!DOCTYPE html>\n"
-						"<html>\n<head>\n<title>Source of ";
-					CUtil::htmlEscape(buf, m_filterOwner.url.getProtocol() + "://" +
-										   m_filterOwner.url.getFromHost());
-					buf += "</title>\n"
-						"<link rel=\"stylesheet\" media=\"all\" "
-						"href=\"http://local.ptron/ViewSource.css\" />\n"
-						"</head>\n\n<body>\n<div id=\"headers\">\n";
-					buf += "<div class=\"res\">";
-					CUtil::htmlEscape(buf, m_responseLine.ver);
-					buf += " ";
-					CUtil::htmlEscape(buf, m_responseLine.code);
-					buf += " ";
-					CUtil::htmlEscape(buf, m_responseLine.msg);
-					buf += "</div>\n";
-					string name;
-					for (auto& pair : inHeadersFiltered) {
-						buf += "<div class=\"hdr\">";
-						CUtil::htmlEscape(buf, pair.first);
-						buf += ": <span class=\"val\">";
-						CUtil::htmlEscape(buf, pair.second);
-						buf += "</span></div>\n";
-					}
-					buf += "</div><div id=\"body\">\n";
 					//m_useChain = true;
 					m_textFilterChain.DataReset();
 					DataReset();
-					DataFeed(buf);
-				} else {
 
-					m_sendInBuf = "HTTP/1.1 " + m_responseLine.code + " " + m_responseLine.msg  + CRLF ;
+				} else {
+					m_sendInBuf = "HTTP/1.1 " + m_filterOwner.responseLine.code + " " + m_filterOwner.responseLine.msg + CRLF;
 					std::string name;
 					for (auto& pair : inHeadersFiltered) 
 						m_sendInBuf += pair.first + ": " + pair.second + CRLF;
@@ -1116,9 +1090,9 @@ void	CRequestManager::_ProcessIn()
 				}
 
 				// Decide what to do next
-				m_inStep = (m_responseLine.code == "204"  ? STEP_FINISH :
-							m_responseLine.code == "304"  ? STEP_FINISH :
-							m_responseLine.code[0] == '1' ? STEP_FINISH :
+				m_inStep = (m_filterOwner.responseLine.code == "204" ? STEP_FINISH :
+							m_filterOwner.responseLine.code == "304" ? STEP_FINISH :
+							m_filterOwner.responseLine.code[0] == '1' ? STEP_FINISH :
 							m_inChunked                   ? STEP_CHUNK  :
 							m_inSize                      ? STEP_RAW    :
 							STEP_FINISH );
@@ -1387,12 +1361,12 @@ void	CRequestManager::_FakeResponse(const std::string& code, const std::string& 
 		content = CUtil::replaceAll(content, "%%1%%", code);
 	m_inStep = STEP_FINISH;
 	m_sendInBuf = 
-		"HTTP/1.1 " + code + CRLF;
+		"HTTP/1.1 " + code + CRLF
 		"Content-Type: " + contentType + CRLF
 		"Content-Length: " + boost::lexical_cast<std::string>(content.size()) + CRLF
-		"Connection: close" + CRLF;
+		"Connection: close" + CRLF CRLF;
 	CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_filterOwner.requestNumber, m_sendInBuf);
-	m_sendInBuf += CRLF + content;
+	m_sendInBuf += content;
 	m_sendConnectionClose = true;
 }
 
