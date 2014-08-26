@@ -68,8 +68,8 @@ void	CVersionControl::_0to1()
 			return ;
 		}
 		fs.imbue(std::locale(std::locale(), new std::codecvt_utf8_utf16<wchar_t>));
-
-		write_xml(fs, pt, xml_parser::xml_writer_make_settings(L' ', 2, xml_parser::widen<wchar_t>("UTF-8")));
+		
+		write_xml(fs, pt, xml_parser::xml_writer_make_settings<std::wstring>(L' ', 2, xml_parser::widen<std::wstring>("UTF-8")));
 
 		::DeleteFile(jsonfilterPath);
 	}

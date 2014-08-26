@@ -25,13 +25,21 @@
 
 /// アプリケーションの名前
 #ifndef _DEBUG
-#define	APP_NAME	_T("Proxydomo")
+	#ifndef _WIN64
+	#define	APP_NAME	_T("Proxydomo")
+	#else
+	#define APP_NAME	_T("Proxydomo64")
+	#endif
 #else
-#define APP_NAME	_T("Proxydomo_debug")
+	#ifndef _WIN64
+	#define APP_NAME	_T("Proxydomo_debug")
+	#else
+	#define APP_NAME	_T("Proxydomo64_debug")
+	#endif
 #endif
 
 /// アプリケーションのバージョン
-#define APP_VERSION	_T("1.24")
+#define APP_VERSION	_T("1.25")
 
 
 
