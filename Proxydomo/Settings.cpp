@@ -37,6 +37,7 @@
 #include "Log.h"
 #include "Matcher.h"
 #include "CodeConvert.h"
+#include "Logger.h"
 
 using namespace CodeConvert;
 using namespace boost::property_tree;
@@ -79,10 +80,10 @@ uint16_t		CSettings::s_proxyPort	= DEFAULTPECA_PORT;
 bool			CSettings::s_filterText	= true;
 bool			CSettings::s_filterIn	= true;
 bool			CSettings::s_filterOut	= true;
-
+bool			CSettings::s_SSLFilter = false;
 bool			CSettings::s_WebFilterDebug	= false;
 
-char			CSettings::s_urlCommandPrefix[16] = {};
+std::string		CSettings::s_urlCommandPrefix;	
 
 std::thread		CSettings::s_threadSaveFilter;
 
@@ -111,11 +112,13 @@ void	CSettings::LoadSettings()
 	}
 
 	// prefixÇê›íË
-	static const char charactorSelection[] = "abcdefghijklmnopqrstuvqxyz0123456789_";
+	enum { kPrefixSize = 8 };
+	static const char charactorSelection[] = "abcdefghijklmnopqrstuvqxyz0123456789";
 	std::random_device	randEngine;
 	std::uniform_int_distribution<int> dist(0, _countof(charactorSelection) - 2);
-	for (auto& c : s_urlCommandPrefix)
-		c = charactorSelection[dist(randEngine)];
+	for (int i = 0; i < kPrefixSize; ++i)
+		s_urlCommandPrefix += charactorSelection[dist(randEngine)];
+	s_urlCommandPrefix += '_';
 
 	CSettings::LoadFilter();
 

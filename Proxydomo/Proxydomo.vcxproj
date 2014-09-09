@@ -66,29 +66,29 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <LibraryPath>$(SolutionDir)icu\Win32\lib;$(SolutionDir)zlib\zlib125dll\static32;C:\Program\boost_1_56_0\lib\lib;$(LibraryPath)</LibraryPath>
-    <IncludePath>$(SolutionDir)icu\Win32\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Program\gnutls-3.2.16-w32\lib;$(SolutionDir)icu\Win32\lib;$(SolutionDir)zlib\zlib125dll\static32;C:\Program\boost_1_56_0\lib\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Program\gnutls-3.2.16-w32\include;$(SolutionDir)icu\Win32\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(SolutionDir)icu\Win64\include;C:\Program\WTL81_12085\Include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Program\Proxydomo\GnuTLS\x64\include;$(SolutionDir)icu\Win64\include;C:\Program\WTL81_12085\Include;$(IncludePath)</IncludePath>
     <OutDir>$(SolutionDir)$(Configuration)$(Platform)\</OutDir>
     <IntDir>$(Configuration)$(Platform)\</IntDir>
     <TargetName>$(ProjectName)64</TargetName>
-    <LibraryPath>$(SolutionDir)icu\Win64\lib64;$(SolutionDir)zlib\zlib125dll\staticx64;$(VCInstallDir)lib\amd64;$(VCInstallDir)atlmfc\lib\amd64;$(WindowsSDK_LibraryPath_x64);$(LibraryPath)</LibraryPath>
+    <LibraryPath>C:\Program\Proxydomo\GnuTLS\x64\lib;$(SolutionDir)icu\Win64\lib64;$(SolutionDir)zlib\zlib125dll\staticx64;$(VCInstallDir)lib\amd64;$(VCInstallDir)atlmfc\lib\amd64;$(WindowsSDK_LibraryPath_x64);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <LibraryPath>$(SolutionDir)icu\Win32\lib;$(SolutionDir)zlib\zlib125dll\static32;$(VCInstallDir)lib;$(VCInstallDir)atlmfc\lib;$(WindowsSDK_LibraryPath_x86);$(LibraryPath)</LibraryPath>
-    <IncludePath>$(SolutionDir)icu\Win32\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Program\gnutls-3.2.16-w32\lib;$(SolutionDir)icu\Win32\lib;$(SolutionDir)zlib\zlib125dll\static32;$(VCInstallDir)lib;$(VCInstallDir)atlmfc\lib;$(WindowsSDK_LibraryPath_x86);$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Program\gnutls-3.2.16-w32\include;$(SolutionDir)icu\Win32\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)$(Configuration)$(Platform)\</OutDir>
     <IntDir>$(Configuration)$(Platform)\</IntDir>
     <TargetName>$(ProjectName)64</TargetName>
-    <LibraryPath>$(SolutionDir)icu\Win64\lib64;$(SolutionDir)zlib\zlib125dll\staticx64;$(VCInstallDir)lib\amd64;$(VCInstallDir)atlmfc\lib\amd64;$(WindowsSdkDir_71A)lib\x64;$(LibraryPath)</LibraryPath>
-    <IncludePath>$(SolutionDir)icu\Win64\include;$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSDK_IncludePath);$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Program\Proxydomo\GnuTLS\x64\lib;$(SolutionDir)icu\Win64\lib64;$(SolutionDir)zlib\zlib125dll\staticx64;$(VCInstallDir)lib\amd64;$(VCInstallDir)atlmfc\lib\amd64;$(WindowsSdkDir_71A)lib\x64;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Program\Proxydomo\GnuTLS\x64\include;$(SolutionDir)icu\Win64\include;$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSDK_IncludePath);$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -167,11 +167,13 @@
       <WarningLevel>Level3</WarningLevel>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <ExceptionHandling>Sync</ExceptionHandling>
-      <DebugInformationFormat />
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <PreprocessorDefinitions>WIN32;_WINDOWS;STRICT;NOMINMAX;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)zlib\zlib-1.2.5;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -208,6 +210,8 @@
       <AdditionalIncludeDirectories>$(SolutionDir)zlib\zlib-1.2.5;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -478,6 +482,7 @@
     <ClCompile Include="RequestManager.cpp" />
     <ClCompile Include="Settings.cpp" />
     <ClCompile Include="Socket.cpp" />
+    <ClCompile Include="ssl.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -506,6 +511,7 @@
     <ClInclude Include="Misc.h" />
     <ClInclude Include="Node.h" />
     <ClInclude Include="Nodes.h" />
+    <ClInclude Include="OptionDialog.h" />
     <ClInclude Include="proximodo\configscreen.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -722,6 +728,7 @@
     <ClInclude Include="resource.h" />
     <ClInclude Include="Settings.h" />
     <ClInclude Include="Socket.h" />
+    <ClInclude Include="ssl.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="TextBuffer.h" />
     <ClInclude Include="VersionControl.h" />

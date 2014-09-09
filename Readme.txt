@@ -1,5 +1,5 @@
 /* ===================================
-　　　　　　　　　　　　　Proxydomo　　　　　　　　　　　　
+　　　　　　　Proxydomo　　　　　　　　　　　　
  ==================================== */
  
 ■はじめに
@@ -32,7 +32,24 @@ Copyright (C) 2013 amate
  画像の一部に「VS2010ImageLibrary」の一部を使用しています。
  
 ■ビルドについて
-ビルドには boost(1.54~)と zlib と WTL と ICU が必要なのでそれぞれ用意してください。
+ビルドには boost(1.54~)と zlib と WTL と ICU と GnuTLS が必要なのでそれぞれ用意してください。
+
+◆boost
+http://www.boost.org/
+
+◆zlib
+http://zlib.net/
+
+◆ICU
+http://site.icu-project.org/
+
+◆WTL
+http://sourceforge.net/projects/wtl/
+
+◆GnuTLS
+http://www.gnutls.org/
+
+
 zlibのソースの場所
 $(SolutionDir)zlib\zlib-1.2.5
 zlibのライブラリの場所
@@ -51,3 +68,39 @@ boost::shared_mutexを使用するのでboost::threadのライブラリが必要になります
 b2.exe install -j 2 --prefix=lib toolset=msvc-12.0 runtime-link=static --with-thread --with-date_time
 // x64
 b2.exe install -j 2 --prefix=lib64 toolset=msvc-12.0 runtime-link=static address-model=64 --with-thread --with-date_time
+
+
+■GnuTls (64bit版)dllの作り方
+
+http://www.devlog.alt-area.org/?p=2802
+このサイトを参考に MinGW64 + MSYS の環境を作る
+
+#gmp6.0.0a build
+./configure --build=x86_64-w64-mingw32 --enable-shared --disable-static
+make
+make install
+
+#nettle2.7.1 build
+$ ./configure --build=x86_64-w64-mingw32 --with-lib-path=/local/lib --with-include-path=/local/include
+make
+make install
+
+#gnutls3.2.17 build
+./configure --build=x86_64-w64-mingw32 -enable-threads=win32 --disable-guile --disable-nls --without-zlib PKG_CONFIG_PATH=/local/lib/pkgconfig LDFLAGS=-L/local/lib
+make
+make install
+
+http://einguste.hatenablog.com/entry/2014/01/29/002601
+lib/gnutls.pc(.in)の修正が必要かもしれない
+
+
+"VS2013 x64 Native Tools コマンド プロンプト"から
+lib /def:libgnutls-28.def
+で libgnutls-28.libを作成しリンクする必要があります
+
+そのままではリンクエラーが出るので
+gnutls.hの 1470行目
+extern   gnutls_free_function gnutls_free;
+を
+__declspec(dllimport)  gnutls_free_function gnutls_free;
+に変更する必要があります

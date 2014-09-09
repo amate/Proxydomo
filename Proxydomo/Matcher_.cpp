@@ -219,6 +219,8 @@ std::shared_ptr<CMatcher>	CMatcher::CreateMatcher(const std::wstring& pattern)
 		return std::shared_ptr<CMatcher>(new CMatcher(pattern));
 	} catch (parsing_exception& e) {
 		//ATLTRACE("CreateMatcher parsererro pattern(%s) : err %s [%d]", pattern.c_str(), e.message.c_str(), e.position);
+	} catch (...) {
+
 	}
 	return nullptr;
 }
@@ -473,7 +475,7 @@ CNode* CMatcher::run(StringCharacterIterator& patternIt)
         } catch (parsing_exception e) {
             CUtil::deleteVector<CNode>(*v);
             delete v;
-            throw e;
+            throw;
         }
     }
     // (end of the run)

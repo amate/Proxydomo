@@ -10,6 +10,8 @@
 #define IDD_FILTEREDIT                  132
 #define IDD_FILTERTEST                  133
 #define IDD_LISTEDIT                    134
+#define IDD_OPTION						135
+#define IDD_CERTIFICATEERROR			136
 #define IDI_FOLDER                      201
 #define IDI_FILTER                      202
 #define IDB_FILTERMANAGERTOOLBAR        250
@@ -71,6 +73,13 @@
 #define IDC_COMBO_REQUEST				1055
 #define IDC_RICHEDIT_PARTLOG			1056
 #define IDC_CHECKBOX_STOPSCROLL			1057
+#define IDC_GENERATE_CACERTIFICATE		1058
+#define IDC_BUTTON_SHOWOPTION			1059
+#define IDC_STATIC_DETAIL				1060
+#define IDC_BTN_PERMANENTDENY			1061
+#define IDC_BTN_PERMANENTALLOW			1062
+#define IDC_BTN_TEMPDENY				1063
+#define IDC_BTN_TEMPALLOW				1064
 
 // Next default values for new objects
 // 

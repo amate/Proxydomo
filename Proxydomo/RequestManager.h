@@ -32,6 +32,7 @@
 #include "proximodo\url.h"
 #include "proximodo\zlibbuffer.h"
 #include "proximodo\headerfilter.h"
+#include "ssl.h"
 
 namespace Proxydomo { class CMatcher; }
 
@@ -110,6 +111,8 @@ private:
 	std::unique_ptr<CSocket>	m_psockBrowser;
 	std::unique_ptr<CSocket>	m_psockWebsite;
 	std::string	m_previousHost;
+	std::unique_ptr<CSSLSession>	m_pSSLClientSession;
+	std::unique_ptr<CSSLSession>	m_pSSLServerSession;
 
 	bool	m_valid;
 	bool	m_dumped;

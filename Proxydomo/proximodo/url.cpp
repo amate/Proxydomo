@@ -55,12 +55,12 @@ void CUrl::parseUrl(const string& str) {
 
     bypassIn = bypassOut = bypassText = debug = source = false;
 
-	if (str.substr(pos1, _countof(CSettings::s_urlCommandPrefix)) == CSettings::s_urlCommandPrefix) {
+	if (str.substr(pos1, CSettings::s_urlCommandPrefix.length()) == CSettings::s_urlCommandPrefix) {
         bool foundUrlCmd = false;        
         for (;;) {
-			if (str.length() <= pos1 + _countof(CSettings::s_urlCommandPrefix))
+			if (str.length() <= pos1 + CSettings::s_urlCommandPrefix.length())
 				break;
-			pos1 += _countof(CSettings::s_urlCommandPrefix);
+			pos1 += CSettings::s_urlCommandPrefix.length();
             string begin = str.substr(pos1);
             if (CUtil::noCaseBeginsWith("bin.", begin)) {
                 bypassIn = true;
@@ -82,13 +82,13 @@ void CUrl::parseUrl(const string& str) {
                 pos1 += 4;
             } else {
 				if (foundUrlCmd)
-					pos1 -= _countof(CSettings::s_urlCommandPrefix);
+					pos1 -= CSettings::s_urlCommandPrefix.length();
                 break;
             }
             foundUrlCmd = true;
         }
         if (foundUrlCmd == false)
-            pos1 -= _countof(CSettings::s_urlCommandPrefix);
+			pos1 -= CSettings::s_urlCommandPrefix.length();
     }
 	debug	|= CSettings::s_WebFilterDebug;
 

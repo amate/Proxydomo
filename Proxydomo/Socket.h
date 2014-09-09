@@ -76,6 +76,7 @@ struct IPv4Address
 
 class CSocket
 {
+	friend class CSSLSession;
 public:
 	CSocket();
 
@@ -83,6 +84,7 @@ public:
 	static bool Init();
 	static void Term();
 
+	SOCKET	GetSocket() { return m_sock; }
 	bool	IsConnected() const { return m_sock != 0; }
 	IPv4Address GetFromAddress() const;
 

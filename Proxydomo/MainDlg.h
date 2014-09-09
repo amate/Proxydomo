@@ -68,8 +68,6 @@ public:
 		DDX_CHECK(IDC_CHECKBOX_WEBPAGE	,	CSettings::s_filterText)
 		DDX_CHECK(IDC_CHECKBOX_OUTHEADER,	CSettings::s_filterOut)
 		DDX_CHECK(IDC_CHECKBOX_INHEADER,	CSettings::s_filterIn)
-		DDX_UINT_RANGE(IDC_EDIT_PROXYPORT,	CSettings::s_proxyPort, (uint16_t)1024, (uint16_t)65535)
-
 	END_DDX_MAP()
 
 	BEGIN_MSG_MAP(CMainDlg)
@@ -83,6 +81,7 @@ public:
 
 		COMMAND_ID_HANDLER(IDC_BUTTON_SHOWLOGWINDOW, OnShowLogWindow )
 		COMMAND_ID_HANDLER(IDC_BUTTON_SHOWFILTERMANAGE, OnShowFilterManageWindow )
+		COMMAND_ID_HANDLER(IDC_BUTTON_SHOWOPTION, OnShowOption)
 		COMMAND_ID_HANDLER( IDC_CHECKBOX_WEBPAGE	, OnFilterButtonCheck )
 		COMMAND_ID_HANDLER( IDC_CHECKBOX_OUTHEADER	, OnFilterButtonCheck )
 		COMMAND_ID_HANDLER( IDC_CHECKBOX_INHEADER	, OnFilterButtonCheck )
@@ -104,6 +103,7 @@ public:
 
 	LRESULT OnShowLogWindow(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnShowFilterManageWindow(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnShowOption(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnFilterButtonCheck(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 
 	void CloseDialog(int nVal);

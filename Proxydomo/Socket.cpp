@@ -252,7 +252,7 @@ void	CSocket::Close()
 		}
 		::shutdown(m_sock, SD_RECEIVE);
 		if (::closesocket(m_sock) == SOCKET_ERROR) {
-			ATLASSERT( FALSE );
+			//ATLASSERT( FALSE );
 			throw SocketException("closesocket failed");
 			//LOG_ERROR("closesocket() error");
 		}

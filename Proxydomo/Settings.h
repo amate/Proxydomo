@@ -82,10 +82,10 @@ public:
 	static bool			s_filterText;
 	static bool			s_filterIn;
 	static bool			s_filterOut;
-
+	static bool			s_SSLFilter;
 	static bool			s_WebFilterDebug;
 
-	static char			s_urlCommandPrefix[16];
+	static std::string	s_urlCommandPrefix;
 
 	static std::thread	s_threadSaveFilter;
 	

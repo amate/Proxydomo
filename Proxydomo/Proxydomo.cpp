@@ -33,6 +33,9 @@
 #include "Settings.h"
 #include "VersionControl.h"
 #include "Logger.h"
+#include "ssl.h"
+
+
 
 // ÉOÉçÅ[ÉoÉãïœêî
 CAppModule _Module;
@@ -85,23 +88,27 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR lp
         return 0;
     }
 
-
 	hRes = _Module.Init(NULL, hInstance);
 	ATLASSERT(SUCCEEDED(hRes));
-#ifdef _DEBUG
-	CLogger::Init();
-#endif
+
 	CVersionControl::Run();
 
 	CSettings::LoadSettings();
 
 	CSocket::Init();
+	
+	CSettings::s_SSLFilter = InitSSL();
+
 	CProxy	proxy;
 	proxy.OpenProxyPort(CSettings::s_proxyPort);
 
 	int nRet = Run(lpstrCmdLine, nCmdShow);
 
 	proxy.CloseProxyPort();
+
+	if (CSettings::s_SSLFilter)
+		TermSSL();
+
 	CSocket::Term();
 
 	CSettings::SaveSettings();

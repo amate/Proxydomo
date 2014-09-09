@@ -26,6 +26,7 @@
 #include <boost\property_tree\ptree.hpp>
 #include <boost\property_tree\ini_parser.hpp>
 #include "AboutDlg.h"
+#include "OptionDialog.h"
 #include "Misc.h"
 
 using namespace boost::property_tree;
@@ -222,6 +223,13 @@ LRESULT CMainDlg::OnShowFilterManageWindow(WORD /*wNotifyCode*/, WORD wID, HWND 
 	if (m_filterManagerWindow.IsWindow() == FALSE)
 		m_filterManagerWindow.Create(m_hWnd);
 	m_filterManagerWindow.ShowWindow(TRUE);
+	return 0;
+}
+
+LRESULT CMainDlg::OnShowOption(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+{
+	COptionDialog optionDialog;
+	optionDialog.DoModal(m_hWnd);
 	return 0;
 }
 

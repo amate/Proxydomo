@@ -1,4 +1,4 @@
-#Windowsによって作られるサムネイルを無視
+﻿#Windowsによって作られるサムネイルを無視
 Thumbs.db
 #Visual Studioによって作られるファイルを無視
 *.obj
@@ -35,3 +35,4 @@ clx/
 \#Release/
 icu/
 srell/
+GnuTLS/

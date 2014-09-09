@@ -25,6 +25,11 @@
 #include <deque>
 #include "RequestManager.h"
 #include "Log.h"
+#include "Misc.h"
+
+
+///////////////////////////////////////////////////////////////////////
+// CProxy
 
 CProxy::CProxy(void) : m_bServerActive(false)
 {
@@ -58,19 +63,17 @@ void CProxy::CloseProxyPort()
 
 		m_threadServer.join();
 
-		enum { kMaxRetryCount = 20 };
-		int Count = 0;
-		while (m_vecpRequestManager.size() != 0 && Count < kMaxRetryCount) {
+		while (m_vecpRequestManager.size()) {
 			::Sleep(50);
-			++Count;
 		}
+		m_vecpRequestManager.clear();
 	}
 }
 
 
 void CProxy::_ServerThread()
 {
-	enum { kMaxActiveRequestThread = 30 };
+	enum { kMaxActiveRequestThread = 100 };
 
 	auto funcCreateRequestManagerThread = [this](CRequestManager* manager) {
 		{
@@ -103,20 +106,9 @@ void CProxy::_ServerThread()
 			// 最大接続数を超えた
 			// 最大接続数以下になるまでこのスレッドはロックしちゃってもよい
 			if (CLog::GetActiveRequestCount() > kMaxActiveRequestThread) {
-				do {
-					{
-						CCritSecLock	lock(m_csRequestManager);
-						for (auto& processingmanager : m_vecpRequestManager) {
-							if (processingmanager->IsValid() == false)	// このマネージャーは終了予定なので待っとく...
-								break;
-							if (processingmanager->IsValid() && processingmanager->IsDoInvalidPossible()) {
-								processingmanager->SwitchToInvalid();
-								break;
-							}
-						}
-					}
+				while (m_bServerActive && CLog::GetActiveRequestCount() > kMaxActiveRequestThread) {
 					::Sleep(50);
-				} while (CLog::GetActiveRequestCount() > kMaxActiveRequestThread);
+				}
 			}
 
 			funcCreateRequestManagerThread(manager);
