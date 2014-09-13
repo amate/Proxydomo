@@ -70,23 +70,40 @@ b2.exe install -j 2 --prefix=lib toolset=msvc-12.0 runtime-link=static --with-th
 b2.exe install -j 2 --prefix=lib64 toolset=msvc-12.0 runtime-link=static address-model=64 --with-thread --with-date_time
 
 
-■GnuTls (64bit版)dllの作り方
+■GnuTLS (64bit版)dllの作り方
 
 http://www.devlog.alt-area.org/?p=2802
 このサイトを参考に MinGW64 + MSYS の環境を作る
 
+// x64 ==============================================================
 #gmp6.0.0a build
 ./configure --build=x86_64-w64-mingw32 --enable-shared --disable-static
 make
 make install
 
 #nettle2.7.1 build
-$ ./configure --build=x86_64-w64-mingw32 --with-lib-path=/local/lib --with-include-path=/local/include
+./configure --build=x86_64-w64-mingw32 --with-lib-path=/local/lib --with-include-path=/local/include
 make
 make install
 
 #gnutls3.2.17 build
-./configure --build=x86_64-w64-mingw32 -enable-threads=win32 --disable-guile --disable-nls --without-zlib PKG_CONFIG_PATH=/local/lib/pkgconfig LDFLAGS=-L/local/lib
+./configure --build=x86_64-w64-mingw32 -enable-threads=win32 --disable-guile --disable-nls --without-zlib PKG_CONFIG_PATH=/local/lib/pkgconfig LDFLAGS=-L/local/lib --disable-cxx --disable-openssl-compatibility --disable-doc
+make
+make install
+
+// x86 =================================================================
+#gmp6.0.0a build
+./configure --build=i686-w64-mingw32 --enable-shared --disable-static
+make
+make install
+
+#nettle2.7.1 build
+./configure --build=i686-w64-mingw32 --with-lib-path=/local/lib --with-include-path=/local/include --disable-openssl --disable-documentation
+make
+make install
+
+#gnutls3.2.17 build
+./configure --build=i686-w64-mingw32 -enable-threads=win32 --disable-guile --disable-nls --without-zlib PKG_CONFIG_PATH=/local/lib/pkgconfig LDFLAGS=-L/local/lib --disable-cxx --disable-openssl-compatibility --disable-doc
 make
 make install
 

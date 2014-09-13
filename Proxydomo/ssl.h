@@ -27,7 +27,8 @@ public:
 	CSSLSession();
 	~CSSLSession();
 
-	bool	IsConnectionKilledFromPeer() const { return m_bConnectionKilledFromPeer; }
+	bool	IsConnected() const { return m_sock->IsConnected(); }
+
 	bool	Read(char* buffer, int length);
 	int		GetLastReadCount() const { return m_nLastReadCount; }
 
@@ -39,7 +40,6 @@ public:
 private:
 	CSocket*		m_sock;
 	gnutls_session_t m_session;
-	bool	m_bConnectionKilledFromPeer;
 	int		m_nLastReadCount;
 	int		m_nLastWriteCount;
 };

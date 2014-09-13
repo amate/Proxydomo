@@ -76,7 +76,6 @@ struct IPv4Address
 
 class CSocket
 {
-	friend class CSSLSession;
 public:
 	CSocket();
 
@@ -99,7 +98,6 @@ public:
 	void	SendStop();
 
 	bool	IsDataAvailable();
-	bool	IsConnectionKilledFromPeer() const { return m_bConnectionKilledFromPeer; }
 	bool	Read(char* buffer, int length);
 	int		GetLastReadCount() const { return m_nLastReadCount; }
 
@@ -117,7 +115,6 @@ private:
 	IPv4Address	m_addrFrom;
 	int		m_nLastReadCount;
 	int		m_nLastWriteCount;
-	bool	m_bConnectionKilledFromPeer;
 };
 
 

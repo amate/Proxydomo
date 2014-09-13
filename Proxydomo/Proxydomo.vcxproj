@@ -66,8 +66,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <LibraryPath>C:\Program\gnutls-3.2.16-w32\lib;$(SolutionDir)icu\Win32\lib;$(SolutionDir)zlib\zlib125dll\static32;C:\Program\boost_1_56_0\lib\lib;$(LibraryPath)</LibraryPath>
-    <IncludePath>C:\Program\gnutls-3.2.16-w32\include;$(SolutionDir)icu\Win32\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Program\Proxydomo\GnuTLS\x86\lib;$(SolutionDir)icu\Win32\lib;$(SolutionDir)zlib\zlib125dll\static32;C:\Program\boost_1_56_0\lib\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Program\Proxydomo\GnuTLS\x86\include;$(SolutionDir)icu\Win32\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
@@ -79,8 +79,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <LibraryPath>C:\Program\gnutls-3.2.16-w32\lib;$(SolutionDir)icu\Win32\lib;$(SolutionDir)zlib\zlib125dll\static32;$(VCInstallDir)lib;$(VCInstallDir)atlmfc\lib;$(WindowsSDK_LibraryPath_x86);$(LibraryPath)</LibraryPath>
-    <IncludePath>C:\Program\gnutls-3.2.16-w32\include;$(SolutionDir)icu\Win32\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Program\Proxydomo\GnuTLS\x86\lib;$(SolutionDir)icu\Win32\lib;$(SolutionDir)zlib\zlib125dll\static32;$(VCInstallDir)lib;$(VCInstallDir)atlmfc\lib;$(WindowsSDK_LibraryPath_x86);$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Program\Proxydomo\GnuTLS\x86\include;$(SolutionDir)icu\Win32\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>

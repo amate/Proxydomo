@@ -25,6 +25,7 @@
 #include <string>
 #include <memory>
 #include <vector>
+#include <chrono>
 #include "Socket.h"
 #include "DataReceptor.h"
 #include "TextBuffer.h"
@@ -47,11 +48,10 @@ public:
 
 	bool	IsValid() const { return m_valid; }
 	void	SwitchToInvalid() { m_valid = false; }
-	bool	IsDoInvalidPossible();
 
 private:
 
-	/// ブラウザ ⇒ Proxy(this) ⇒ サイト
+	// ブラウザ ⇒ Proxy(this) ⇒ サイト
 	bool	_ReceiveOut();
 	std::string	m_recvOutBuf;
 	void	_ProcessOut();
@@ -60,11 +60,11 @@ private:
 
 	void	_ConnectWebsite();
 
-	/// サイトからのデータを受信
+	// サイトからのデータを受信
 	bool	_ReceiveIn();
 	std::string m_recvInBuf;
 
-	/// サイト ⇒ Proxy(this) ⇒ ブラウザ
+	// サイト ⇒ Proxy(this) ⇒ ブラウザ
 	void	_ProcessIn();
 	bool	_SendIn();
 	std::string m_sendInBuf;
@@ -80,6 +80,8 @@ private:
 	void	_EndFeeding();
 
 	void	_FakeResponse(const std::string& code, const std::string& filename = "");
+
+	void	_JudgeManageContinue();
 
 	// Constants
 	enum { kReadBuffSize = 10240 };
@@ -114,6 +116,9 @@ private:
 	std::unique_ptr<CSSLSession>	m_pSSLClientSession;
 	std::unique_ptr<CSSLSession>	m_pSSLServerSession;
 
+	// 処理の開始待ち時間
+	std::chrono::steady_clock::time_point	m_processIdleTime;	
+
 	bool	m_valid;
 	bool	m_dumped;
 
@@ -134,7 +139,7 @@ private:
 	std::unique_ptr<CZlibBuffer>	m_compressor;
 
     // Variables and functions for outgoing processing
-    STEP	m_outStep;	/// ブラウザ ⇒ Proxy(this) ⇒ サイト 間の処理の状態を示す
+    STEP	m_outStep;	// ブラウザ ⇒ Proxy(this) ⇒ サイト 間の処理の状態を示す
 	int		m_outSize;
 	bool	m_outChunked;
 	struct { 
@@ -142,7 +147,7 @@ private:
 	} m_requestLine;
 
 	// Variables and functions for incoming processing
-	STEP	m_inStep;	/// サイト ⇒ Proxy(this) ⇒ ブラウザ 間の処理の状態を示す
+	STEP	m_inStep;	// サイト ⇒ Proxy(this) ⇒ ブラウザ 間の処理の状態を示す
 	int		m_inSize;
 	bool	m_inChunked;
 
@@ -162,6 +167,7 @@ const wchar_t* CRequestManager::STEPtoString(CRequestManager::STEP step)
 	case STEP_DECODE:	return L"STEP_DECODE";
 	case STEP_CHUNK:	return L"STEP_CHUNK";
 	case STEP_RAW:		return L"STEP_RAW";
+	case STEP_TUNNELING:return L"STEP_TUNNELING";
 	case STEP_FINISH:	return L"STEP_FINISH";
 	default:	return L"err";
 	}

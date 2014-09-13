@@ -181,57 +181,22 @@ void CRequestManager::Manage()
 					_ProcessOut();
 				}
 
-				if (bRest) {
-					if (m_pSSLServerSession) {	// SSL
-						if ((m_inStep == STEP_START && m_outStep == STEP_START) &&
-							 (m_pSSLServerSession->IsConnectionKilledFromPeer() ||
-							  m_pSSLClientSession->IsConnectionKilledFromPeer()) )
-						{
-							INFO_LOG << L"#" << m_ipFromAddress.GetPortNumber()
-								<< L" SSL すべての STEP が START なので接続を切ります。"
-								<< L" svcon:" << m_pSSLServerSession->IsConnectionKilledFromPeer()
-								<< L" clcon:" << m_pSSLClientSession->IsConnectionKilledFromPeer();
-							m_pSSLServerSession->Close();
-							m_pSSLClientSession->Close();
-						}
-					} else {
-						// 規定秒(10秒)ブラウザからデータが来なかったら切断する
-						if (m_outStep != STEP_START) {
-							if (stopDataTimeFromBrowser != time_point())		
-								stopDataTimeFromBrowser = time_point();		// 処理が行われてるのでリセットする
-						} else {
-							if (stopDataTimeFromBrowser == time_point()) 
-								stopDataTimeFromBrowser = steady_clock::now();
-							if ((steady_clock::now() - stopDataTimeFromBrowser) > std::chrono::seconds(10))
-								m_psockBrowser->Close();
-						}
-					}
-					if (m_inStep == STEP_TUNNELING || m_outStep == STEP_TUNNELING) {
-						if (m_psockWebsite->IsConnectionKilledFromPeer()) {
-							m_psockBrowser->SendStop();
-						} else if (m_psockBrowser->IsConnectionKilledFromPeer()) {
-							m_psockWebsite->SendStop();
-						}
-					}
-
-					// どちらからもデータが受信できなかったら切る
-					if (m_psockWebsite->IsConnectionKilledFromPeer() &&
-						m_psockBrowser->IsConnectionKilledFromPeer())
+				if (m_pSSLServerSession) {	// SSL
+					if ((m_inStep == STEP_START && m_outStep == STEP_START) &&
+						 (m_pSSLServerSession->IsConnected() == false ||
+						  m_pSSLClientSession->IsConnected() == false) )
 					{
-						TRACEIN(L"Manage ポート %d : outStep[%s] inStep[%s] "
-							L"ブラウザとサイトのデータ受信が終了しました",
-							m_ipFromAddress.GetPortNumber(),
-							STEPtoString(m_outStep), STEPtoString(m_inStep));
-						m_psockWebsite->Close();
-						//m_psockBrowser->Close();
-					}
-
-					if (m_valid == false) {	// 接続を強制終了させる
 						INFO_LOG << L"#" << m_ipFromAddress.GetPortNumber()
-							<< L" m_valid == falseで接続を終了します。";
-						m_psockWebsite->Close();
-						m_psockBrowser->Close();
+							<< L" SSL すべての STEP が START なので接続を切ります。"
+							<< L" svcon:" << m_pSSLServerSession->IsConnected()
+							<< L" clcon:" << m_pSSLClientSession->IsConnected();
+						m_pSSLServerSession->Close();
+						m_pSSLClientSession->Close();
 					}
+				}
+
+				if (bRest) {
+					_JudgeManageContinue();
 
 					::Sleep(10);
 				}
@@ -239,10 +204,6 @@ void CRequestManager::Manage()
 
 			TRACEIN(L"Manage ポート %d : outStep[%s] inStep[%s] whileEnd、sitecon(%d) brocon(%d)", 
 					m_ipFromAddress.GetPortNumber(), STEPtoString(m_outStep), STEPtoString(m_inStep), m_psockWebsite->IsConnected(), m_psockBrowser->IsConnected());
-	
-			//if (m_outStep == STEP_TUNNELING && m_psockBrowser->IsConnected()) {
-			//	_ProcessIn();
-			//}
 
 			// Terminate feeding browser
 			_ReceiveIn();
@@ -266,19 +227,10 @@ void CRequestManager::Manage()
 		}
 
 		if (bRest) {
-			// 規定秒(10秒)ブラウザからデータが来なかったら切断する
-			if (m_outStep != STEP_START) {
-				if (stopDataTimeFromBrowser != time_point())		
-					stopDataTimeFromBrowser = time_point();		// 処理が行われてるのでリセットする
-			} else {
-				if (stopDataTimeFromBrowser == time_point()) 
-					stopDataTimeFromBrowser = steady_clock::now();
-				if ((steady_clock::now() - stopDataTimeFromBrowser) > std::chrono::seconds(10))
-					m_psockBrowser->Close();
-			}
+			_JudgeManageContinue();
+
 			::Sleep(10);
 		}
-
 	}	// while
 	} catch (SocketException& e) {
 		TRACEIN("例外が発生しました！ : ポート %d 例外:%s(%d)", m_ipFromAddress.GetPortNumber(), e.msg, e.err); 
@@ -288,17 +240,40 @@ void CRequestManager::Manage()
 	TRACEIN(_T("Manage finish : ポート %d"), m_ipFromAddress.GetPortNumber());
 }
 
-bool	CRequestManager::IsDoInvalidPossible()
+void	CRequestManager::_JudgeManageContinue()
 {
-	if (m_valid == false) {
-		return false;
+	if (m_valid == false) {	// 接続を強制終了させる
+		m_psockWebsite->Close();
+		m_psockBrowser->Close();
+		return;
 	}
-	if (m_psockBrowser->IsConnected() && m_psockBrowser->IsConnectionKilledFromPeer()) {
-		if (m_outStep == STEP_TUNNELING) {
-			return true;
+
+	if (m_pSSLServerSession)
+		return;
+
+	if (m_outStep == STEP_TUNNELING) {
+		if (m_psockBrowser->IsConnected() == false || m_psockWebsite->IsConnected() == false) {
+			m_psockBrowser->Close();
+			m_psockWebsite->Close();
+		}
+		return;
+	}
+
+	using std::chrono::steady_clock;
+	typedef steady_clock::time_point time_point;
+
+	// 規定秒(10秒)処理の開始待ち時間が経過すると切断する
+	if (m_outStep != STEP_START) {
+		if (m_processIdleTime != time_point())
+			m_processIdleTime = time_point();		// 処理が行われてるので時間をリセットする
+
+	} else {	// m_outStep == STE_START
+		if (m_processIdleTime == time_point()) {
+			m_processIdleTime = steady_clock::now();
+		} else if ((steady_clock::now() - m_processIdleTime) > std::chrono::seconds(10)) {
+			m_psockBrowser->Close();
 		}
 	}
-	return false;
 }
 
 
@@ -681,18 +656,6 @@ void CRequestManager::_ProcessOut()
 
 				m_sendOutBuf += m_recvOutBuf;
 				m_recvOutBuf.clear();
-
-				// ブラウザからのデータ送信が止まったらサイトにもデータがないことを知らせる
-				if ( m_sendOutBuf.empty() && 
-					m_psockWebsite->IsConnected() && 
-					m_psockBrowser->IsConnectionKilledFromPeer() )
-				{
-					m_psockWebsite->SendStop();
-					//m_sendConnectionClose = true;
-					//m_outStep = STEP_FINISH;
-					//m_inStep = STEP_FINISH;
-					//break;
-				}
 				return ;
 			}
 			break;
@@ -826,8 +789,7 @@ void CRequestManager::_ConnectWebsite()
 
     // Unless we are already connected to this host, we try and connect now
 	if (m_previousHost != m_filterOwner.contactHost || 
-		m_psockWebsite->IsConnected() == false ||
-		m_psockWebsite->IsConnectionKilledFromPeer() ) {
+		m_psockWebsite->IsConnected() == false ) {
 
         // Disconnect from previous host
         m_psockWebsite->Close();
@@ -1222,10 +1184,6 @@ void	CRequestManager::_ProcessIn()
 				int copySize = m_recvInBuf.size();
 				if (copySize > m_inSize)
 					copySize = m_inSize;
-
-				if (copySize == 0 && m_psockWebsite->IsConnectionKilledFromPeer())
-					m_inSize = 0;	// 接続が切れたのデータの受信は終了
-
 				if (copySize == 0 && m_inSize) 
 					return ;	// 処理するデータがなくなったので
 
@@ -1274,16 +1232,7 @@ void	CRequestManager::_ProcessIn()
 
 				m_sendInBuf += m_recvInBuf;
 				m_recvInBuf.clear();
-
-				// サイトからの接続が切れたらブラウザとの接続を切る
-				if (m_sendInBuf.empty() &&  m_psockWebsite->IsConnectionKilledFromPeer()) {
-					bool bNoReadFromBrowser = m_psockBrowser->IsConnectionKilledFromPeer();
-					m_inStep = STEP_FINISH;
-					m_outStep = STEP_FINISH;// サイトとの接続は切れてるのでこっちでやっても問題ないはず。。。
-					m_sendConnectionClose = true;
-					break;
-				}
-				return ;
+				return;
 			}
 			break;
 

@@ -112,7 +112,7 @@ void CProxy::_ServerThread()
 			}
 
 			funcCreateRequestManagerThread(manager);
-
+			continue;
 		}
 		::Sleep(50);
 	}

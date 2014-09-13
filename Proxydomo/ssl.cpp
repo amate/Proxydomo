@@ -829,7 +829,7 @@ void	GenerateCACertificate()
 // CSSLSession
 
 CSSLSession::CSSLSession() : 
-	m_sock(nullptr), m_session(NULL), m_bConnectionKilledFromPeer(false),
+	m_sock(nullptr), m_session(NULL),
 	m_nLastReadCount(0), m_nLastWriteCount(0)
 {
 }
@@ -987,18 +987,14 @@ std::unique_ptr<CSSLSession> CSSLSession::InitServerSession(CSocket* sock, const
 
 bool	CSSLSession::Read(char* buffer, int length)
 {
-	if (m_session == NULL || m_bConnectionKilledFromPeer)
+	if (m_session == NULL)
 		return false;
-
-	//if (m_sock->IsDataAvailable() == false)
-	//	return false;
 
 	m_nLastReadCount = 0;
 	ssize_t ret = gnutls_record_recv(m_session, buffer, length);
 	if (ret == 0) {
 		//printf("\n- Peer has closed the GnuTLS connection\n");
-		m_bConnectionKilledFromPeer = true;
-		m_sock->m_bConnectionKilledFromPeer = true;
+		Close();
 		return true;
 
 	} else if (ret < 0 && gnutls_error_is_fatal(ret) == 0) {
@@ -1008,8 +1004,7 @@ bool	CSSLSession::Read(char* buffer, int length)
 	} else if (ret < 0) {
 		//fprintf(stderr, "\n*** Received corrupted "
 		//	"data(%d). Closing the connection.\n\n", ret);
-		m_bConnectionKilledFromPeer = true;
-		m_sock->m_bConnectionKilledFromPeer = true;
+		Close();
 		return false;
 
 	} else {
@@ -1034,7 +1029,7 @@ bool	CSSLSession::Write(const char* buffer, int length)
 		//fprintf(stderr, "*** Warning: %s\n", gnutls_strerror(ret));
 		return false;
 	} else if (ret < 0) {
-		m_bConnectionKilledFromPeer = true;
+		Close();
 		return false;
 	} else {
 		m_nLastWriteCount = (int)ret;

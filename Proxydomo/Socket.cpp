@@ -143,7 +143,7 @@ bool IPv4Address::SetNextHost()
 ////////////////////////////////////////////////////////////////
 // CSocket
 
-CSocket::CSocket() : m_sock(0), m_nLastReadCount(0), m_nLastWriteCount(0), m_bConnectionKilledFromPeer(true)
+CSocket::CSocket() : m_sock(0), m_nLastReadCount(0), m_nLastWriteCount(0)
 {
 }
 
@@ -207,7 +207,6 @@ std::unique_ptr<CSocket>	CSocket::Accept()
     CSocket*	pSocket = new CSocket;
 	pSocket->m_sock = conSock;
 	pSocket->m_addrFrom = from;
-	pSocket->m_bConnectionKilledFromPeer = false;
 	//pSocket->_setBlocking(false);
 	//pSocket->_setBufSize(65535);
 
@@ -218,15 +217,16 @@ bool	CSocket::Connect(IPv4Address addr)
 {
 	ATLASSERT( m_sock == 0 );
 	m_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (m_sock ==  INVALID_SOCKET)
+	if (m_sock == INVALID_SOCKET) {
+		m_sock = 0;
 		throw SocketException("Can`t open socket");
+	}
 	int ret = ::connect(m_sock, addr, sizeof(sockaddr_in));
 	if (ret == SOCKET_ERROR) {
 		::closesocket(m_sock);
 		m_sock = 0;
 		return false;
 	} else {
-		m_bConnectionKilledFromPeer = false;
 		return true;
 	}
 }
@@ -252,12 +252,12 @@ void	CSocket::Close()
 		}
 		::shutdown(m_sock, SD_RECEIVE);
 		if (::closesocket(m_sock) == SOCKET_ERROR) {
+			m_sock = 0;
 			//ATLASSERT( FALSE );
 			throw SocketException("closesocket failed");
 			//LOG_ERROR("closesocket() error");
 		}
 		m_sock = 0;
-		m_bConnectionKilledFromPeer = true;
 	}
 }
 
@@ -326,8 +326,9 @@ bool	 CSocket::Read(char* buffer, int length)
 		//Close();
 		return false;
 	}
-	if (nLen == 0)
-		m_bConnectionKilledFromPeer = true;
+	if (nLen == 0) {
+		Close();
+	}
 	return true;
 }
 
