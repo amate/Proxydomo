@@ -937,9 +937,6 @@ std::unique_ptr<CSSLSession> CSSLSession::InitServerSession(CSocket* sock, const
 		} else {
 			ATLVERIFY(gnutls_certificate_allocate_credentials(&server_cred) == GNUTLS_E_SUCCESS);
 
-			//ret = gnutls_certificate_set_x509_trust(server_cred, &g_ca_crt, 1);
-			//ATLASSERT(ret > 0);
-
 			// ÉTÅ[ÉoÅ[èÿñæèëê∂ê¨/ìoò^
 			gnutls_x509_privkey_t x509serverKey;
 			gnutls_x509_crt_t crt = generate_signed_certificate(&x509serverKey, host);
@@ -953,7 +950,6 @@ std::unique_ptr<CSSLSession> CSSLSession::InitServerSession(CSocket* sock, const
 	}
 
 	// à√çÜÇÃóDêÊìxÇê›íË
-
 	gnutls_init(&session->m_session, GNUTLS_SERVER);
 	gnutls_priority_set(session->m_session, g_server_priority_cache);
 	gnutls_credentials_set(session->m_session, GNUTLS_CRD_CERTIFICATE, server_cred);
@@ -1021,9 +1017,14 @@ bool	CSSLSession::Write(const char* buffer, int length)
 
 	m_nLastWriteCount = 0;
 	ssize_t ret = 0;
-	do {
+	for (;;) {
 		ret = gnutls_record_send(m_session, buffer, length);
-	} while (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED);
+		if (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED) {
+			::Sleep(10);
+		} else {
+			break;
+		}
+	};
 
 	if (ret < 0 && gnutls_error_is_fatal(ret) == 0) {
 		//fprintf(stderr, "*** Warning: %s\n", gnutls_strerror(ret));

@@ -43,13 +43,13 @@ CZlibBuffer::CZlibBuffer()
 /* Destructor
  */
 CZlibBuffer::~CZlibBuffer() {
-    free();
+	freemem();
 }
 
 
 /* Free zlib stream's internal state
  */
-void CZlibBuffer::free() {
+void CZlibBuffer::freemem() {
 
     if (!freed) {
         if (shrink) {
@@ -66,7 +66,7 @@ void CZlibBuffer::free() {
  */
 bool CZlibBuffer::reset(bool shrink, bool modeGzip) {
 	
-    free();
+	freemem();
     this->shrink = shrink;
     this->modeGzip = modeGzip;
     buffer.clear();
@@ -154,7 +154,7 @@ void CZlibBuffer::dump() {
             err = deflate(&stream, Z_FINISH);
             output << string(buf2, ZLIB_BLOCK - stream.avail_out);
         } while (err == Z_OK);
-        free();
+		freemem();
         delete[] buf1;
     } else {
 		// デバッグ時利用

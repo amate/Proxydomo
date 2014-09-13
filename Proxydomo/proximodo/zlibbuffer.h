@@ -50,7 +50,7 @@ public:
     void feed(string data);
     void dump();
     void read(string& data);
-    void free();
+	void freemem();
 
 private:
     bool modeGzip;

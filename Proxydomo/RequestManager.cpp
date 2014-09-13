@@ -248,7 +248,7 @@ void	CRequestManager::_JudgeManageContinue()
 		return;
 	}
 
-	if (m_pSSLServerSession)
+	if (m_pSSLServerSession && m_filterOwner.responseLine.code != "101")
 		return;
 
 	if (m_outStep == STEP_TUNNELING) {
@@ -649,7 +649,7 @@ void CRequestManager::_ProcessOut()
 		// Foward outgoing data to website
 		case STEP_TUNNELING:
 			{
-				if (m_pSSLClientSession) {
+				if (m_pSSLClientSession && m_filterOwner.responseLine.code != "101") {
 					m_outStep = STEP_START;
 					continue;
 				}
@@ -1144,12 +1144,17 @@ void	CRequestManager::_ProcessIn()
 				}
 
 				// Decide what to do next
-				m_inStep = (m_filterOwner.responseLine.code == "204" ? STEP_FINISH :
-							m_filterOwner.responseLine.code == "304" ? STEP_FINISH :
-							m_filterOwner.responseLine.code[0] == '1' ? STEP_FINISH :
-							m_inChunked                   ? STEP_CHUNK  :
-							m_inSize                      ? STEP_RAW    :
-							STEP_FINISH );
+				if (m_filterOwner.responseLine.code == "101") {
+					m_inStep  = STEP_TUNNELING;
+					m_outStep = STEP_TUNNELING;
+				} else {
+					m_inStep = (m_filterOwner.responseLine.code == "204" ? STEP_FINISH :
+								m_filterOwner.responseLine.code == "304" ? STEP_FINISH :
+								m_filterOwner.responseLine.code[0] == '1' ? STEP_FINISH :
+								m_inChunked ? STEP_CHUNK :
+								m_inSize ? STEP_RAW :
+								STEP_FINISH);
+				}
 			}
 			break;
 
@@ -1225,7 +1230,7 @@ void	CRequestManager::_ProcessIn()
 		// Forward incoming data to browser
 		case STEP_TUNNELING:
 			{
-				if (m_pSSLServerSession) {
+				if (m_pSSLServerSession && m_filterOwner.responseLine.code != "101") {
 					m_inStep = STEP_START;
 					continue;
 				}
