@@ -54,6 +54,8 @@ private:
 	// ブラウザ ⇒ Proxy(this) ⇒ サイト
 	bool	_ReceiveOut();
 	std::string	m_recvOutBuf;
+
+	// ブラウザ ⇒ Proxy(this) ⇒ サイト
 	void	_ProcessOut();
 	std::string m_sendOutBuf;	/// サイトに送るデータ
 	bool	_SendOut();			/// Send outgoing data to website

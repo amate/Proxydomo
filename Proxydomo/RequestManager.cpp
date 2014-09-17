@@ -223,7 +223,6 @@ void CRequestManager::Manage()
                 _SendIn();
                 m_psockBrowser->Close();
 			}
-
 		}
 
 		if (bRest) {
@@ -551,6 +550,13 @@ void CRequestManager::_ProcessOut()
 
 					// Now we can put everything in the filtered buffer
 					m_sendOutBuf = m_requestLine.method + " " + m_requestLine.url + " " + m_requestLine.ver + CRLF;
+					
+					// デバッグ有効時、"304 Not Modified"が帰ってこないようにする
+					if (m_filterOwner.url.getDebug()) {
+						CFilterOwner::RemoveHeader(outHeadersFiltered, "If-Modified-Since");
+						CFilterOwner::RemoveHeader(outHeadersFiltered, "If-None-Match");
+					}
+
 					for (auto& pair : outHeadersFiltered)
 						m_sendOutBuf += pair.first + ": " + pair.second + CRLF;
 
@@ -1018,7 +1024,7 @@ void	CRequestManager::_ProcessIn()
 
 				// Tell text filters to see whether they should work on it
 				m_useChain = (m_filterOwner.bypassBody == false && CSettings::s_filterText) ||
-							m_filterOwner.url.getDebug();
+							  m_filterOwner.url.getDebug();
 
 				if (m_useChain) {
 					std::string contentEncoding = m_filterOwner.GetInHeader("Content-Encoding");
@@ -1119,7 +1125,7 @@ void	CRequestManager::_ProcessIn()
 						"Content-Type: text/html" CRLF
 						"Connection: close" CRLF
 						"Transfer-Encoding: chunked" CRLF CRLF;
-					//m_useChain = true;
+					m_useChain = true;
 					m_textFilterChain.DataReset();
 					DataReset();
 

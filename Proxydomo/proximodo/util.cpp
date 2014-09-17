@@ -76,11 +76,15 @@ wstring& CUtil::trim(wstring& s, wstring list)
 
 // Decode hexadecimal number at string start
 unsigned int CUtil::readHex(const string& s) {
-    unsigned int n = 0, h = 0;
+	unsigned int n = 0;
+	std::string::size_type h = 0;
     string H("0123456789ABCDEF");
-    for (string::const_iterator c = s.begin(); c != s.end()
-            && (h = H.find(toupper(*c))) != string::npos; c++)
-        n = n*16 + h;
+	for (auto c = s.begin(); c != s.end(); ++c) {
+		auto h = H.find(toupper(*c));
+		if (h == std::string::npos)
+			break;
+		n = n*16 + h;
+	}
     return n;
 }
 
