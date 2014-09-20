@@ -64,6 +64,7 @@ public:
 	
 	HeadPairList	outHeaders;			// Outgoing headers
 	HeadPairList	inHeaders;			// Incoming headers
+	HeadPairList	inHeadersFiltered;	// Filtered Incoming headers
 	std::string		fileType;           // useable by $TYPE
 
 	// Header operation

@@ -359,7 +359,7 @@ void CRequestManager::_ProcessOut()
 				m_redirectedIn = 0;
 				m_recvConnectionClose = false;
 				m_sendConnectionClose = false;
-				m_recvContentCoding = m_sendContentCoding = 0;
+				m_recvContentCoding = 0;
 				m_logPostData.clear();
 
 				++m_RequestCountFromBrowser;
@@ -683,7 +683,7 @@ void CRequestManager::_ProcessOut()
 
 				// Disconnect browser if we send it "Connection:close"
 				// If manager has been set invalid, close connection too
-				if (m_sendConnectionClose || m_valid == false) {
+				if (m_sendConnectionClose) {
 					_SendIn();
 					m_psockBrowser->Close();
 				}
@@ -720,6 +720,60 @@ void CRequestManager::_ConnectWebsite()
         m_filterOwner.rdirToHost = "http://file//./html" + CUrl(m_filterOwner.rdirToHost).getPath();
     }
 
+	if (CSettings::s_SSLFilter) {
+		if (m_filterOwner.url.getHost() == "local.ptron:443") {
+			m_filterOwner.rdirToHost = m_filterOwner.url.getUrl();
+		}
+		if (CUtil::noCaseBeginsWith("https://local.ptron", m_filterOwner.rdirToHost)) {
+			m_sendInBuf = "HTTP/1.0 200 Connection established" CRLF
+				"Proxy-agent: " "Proxydomo/1.0"/*APP_NAME " " APP_VERSION*/ CRLF CRLF;
+			CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_filterOwner.requestNumber, m_sendInBuf);
+			_SendIn();
+			m_pSSLClientSession = CSSLSession::InitServerSession(m_psockBrowser.get(), "local.ptron");
+			if (m_pSSLClientSession == nullptr) {
+				throw GeneralException("LocalSSLServer handshake failed");
+			}
+
+			auto findGetURL = [this]() -> bool {
+				// Do we have the full first line yet?
+				size_t pos, len;
+				if (CUtil::endOfLine(m_recvOutBuf, 0, pos, len) == false)
+					return false;				// 最初の改行まで来てないので帰る
+
+				// Get it and record it
+				size_t p1 = m_recvOutBuf.find_first_of(" ");
+				size_t p2 = m_recvOutBuf.find_first_of(" ", p1 + 1);
+				m_requestLine.method = m_recvOutBuf.substr(0, p1);
+				m_requestLine.url = m_recvOutBuf.substr(p1 + 1, p2 - p1 - 1);
+				m_requestLine.ver = m_recvOutBuf.substr(p2 + 1, pos - p2 - 1);
+				m_logRequest = m_recvOutBuf.substr(0, pos + len);
+				m_recvOutBuf.erase(0, pos + len);
+				return true;
+			};
+			for (; m_pSSLClientSession->IsConnected();) {
+				if (_ReceiveOut()) {
+					if (findGetURL())
+						break;
+				}
+				::Sleep(10);
+			}
+			m_recvOutBuf.clear();
+
+			string subpath = "./html" + CUrl(m_requestLine.url).getPath();
+			string filename = CUtil::makePath(subpath);
+			if (::PathFileExists(Misc::GetFullPath_ForExe(filename.c_str()))) {
+				_FakeResponse("200 OK", filename);
+			} else {
+				//fakeResponse("404 Not Found", "./html/error.html", true,
+				//             CSettings::ref().getMessage("404_NOT_FOUND"),
+				//             filename);
+				_FakeResponse("404 Not Found");
+			}
+
+			m_filterOwner.rdirToHost.clear();
+			return;
+		}
+	}
 
     // Test for redirection __to file__
     // ($JUMP to file will behave like a transparent redirection,
@@ -961,7 +1015,7 @@ void	CRequestManager::_ProcessIn()
 				//m_filterOwner.responseCode.clear();	 // だめだろ・・・
 				m_recvConnectionClose = false;
 				m_sendConnectionClose = false;
-				m_recvContentCoding = m_sendContentCoding = 0;
+				m_recvContentCoding = 0;
 			}
 			break;
 
@@ -1026,6 +1080,11 @@ void	CRequestManager::_ProcessIn()
 				m_useChain = (m_filterOwner.bypassBody == false && CSettings::s_filterText) ||
 							  m_filterOwner.url.getDebug();
 
+
+				// We'll work on a copy, since we don't want to alter
+				// the real headers that $IHDR and $OHDR may access
+				m_filterOwner.inHeadersFiltered = m_filterOwner.inHeaders;
+
 				if (m_useChain) {
 					std::string contentEncoding = m_filterOwner.GetInHeader("Content-Encoding");
 					if (CUtil::noCaseContains("gzip", contentEncoding)) {
@@ -1033,23 +1092,19 @@ void	CRequestManager::_ProcessIn()
 						if (m_decompressor == nullptr) 
 							m_decompressor.reset(new CZlibBuffer());
 						m_decompressor->reset(false, true);
-						if (CSettings::s_filterText)
-							CFilterOwner::RemoveHeader(m_filterOwner.inHeaders, "Content-Encoding");
+						CFilterOwner::RemoveHeader(m_filterOwner.inHeadersFiltered, "Content-Encoding");
+
 					} else if (CUtil::noCaseContains("deflate", contentEncoding)) {
 						m_recvContentCoding = 2;
 						if (m_decompressor == nullptr) 
 							m_decompressor.reset(new CZlibBuffer());
 						m_decompressor->reset(false, false);
-						if (CSettings::s_filterText)
-							CFilterOwner::RemoveHeader(m_filterOwner.inHeaders, "Content-Encoding");
+						CFilterOwner::RemoveHeader(m_filterOwner.inHeadersFiltered, "Content-Encoding");
+
 					} else if (CUtil::noCaseContains("compress", contentEncoding)) {
 						m_filterOwner.bypassBody = true;
 					}
 				}
-
-				// We'll work on a copy, since we don't want to alter
-				// the real headers that $IHDR and $OHDR may access
-				auto inHeadersFiltered = m_filterOwner.inHeaders;
 
 				if (m_filterOwner.bypassIn == false && CSettings::s_filterIn) {
 					// Apply filters one by one
@@ -1058,20 +1113,20 @@ void	CRequestManager::_ProcessIn()
 						string name = headerfilter->headerName;
 
 						// If header is absent, temporarily create one
-						if (CFilterOwner::GetHeader(inHeadersFiltered, name).empty()) {
+						if (CFilterOwner::GetHeader(m_filterOwner.inHeadersFiltered, name).empty()) {
 							if (CUtil::noCaseBeginsWith("url", name)) {
-								CFilterOwner::SetHeader(inHeadersFiltered, name, m_filterOwner.url.getUrl());
+								CFilterOwner::SetHeader(m_filterOwner.inHeadersFiltered, name, m_filterOwner.url.getUrl());
 							} else {
-								CFilterOwner::SetHeader(inHeadersFiltered, name, "");
+								CFilterOwner::SetHeader(m_filterOwner.inHeadersFiltered, name, "");
 							}
 						}
 						// Test headers one by one
-						for (auto& pair : inHeadersFiltered) {
+						for (auto& pair : m_filterOwner.inHeadersFiltered) {
 							if (CUtil::noCaseEqual(name, pair.first))
 								headerfilter->filter(pair.second);
 						}
 						// Remove null headers
-						CFilterOwner::CleanHeader(inHeadersFiltered);
+						CFilterOwner::CleanHeader(m_filterOwner.inHeadersFiltered);
 
 						if (m_filterOwner.killed) {
 							// There has been a \k in a header filter, so we
@@ -1106,15 +1161,15 @@ void	CRequestManager::_ProcessIn()
 				CLog::AddNewRequest(m_filterOwner.requestNumber, m_filterOwner.responseLine.code, contentType, m_inChunked ? std::string("-1") : contentLength, m_filterOwner.url.getUrl());
 
 				// Decode new headers to control browser-side beehaviour
-				if (CUtil::noCaseContains("close", CFilterOwner::GetHeader(inHeadersFiltered, "Connection")))
+				if (CUtil::noCaseContains("close", CFilterOwner::GetHeader(m_filterOwner.inHeadersFiltered, "Connection")))
 					m_sendConnectionClose = true;
 
 				if (m_useChain && (m_inChunked || m_inSize)) {
 					// Our output will always be chunked: filtering can
 					// change body size. So let's force this header.
-					CFilterOwner::SetHeader(inHeadersFiltered, "Transfer-Encoding", "chunked");
+					CFilterOwner::SetHeader(m_filterOwner.inHeadersFiltered, "Transfer-Encoding", "chunked");
 					// Content-Lengthを消さないとおかしい
-					CFilterOwner::RemoveHeader(inHeadersFiltered, "Content-Length");
+					CFilterOwner::RemoveHeader(m_filterOwner.inHeadersFiltered, "Content-Length");
 				}
 
 				// Now we can put everything in the filtered buffer
@@ -1124,7 +1179,11 @@ void	CRequestManager::_ProcessIn()
 					m_sendInBuf += "HTTP/1.1 200 OK" CRLF
 						"Content-Type: text/html" CRLF
 						"Connection: close" CRLF
-						"Transfer-Encoding: chunked" CRLF CRLF;
+						"Transfer-Encoding: chunked" CRLF;
+					
+					CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_filterOwner.requestNumber, m_sendInBuf); 
+					m_sendInBuf += CRLF;
+
 					m_useChain = true;
 					m_textFilterChain.DataReset();
 					DataReset();
@@ -1132,7 +1191,7 @@ void	CRequestManager::_ProcessIn()
 				} else {
 					m_sendInBuf = "HTTP/1.1 " + m_filterOwner.responseLine.code + " " + m_filterOwner.responseLine.msg + CRLF;
 					std::string name;
-					for (auto& pair : inHeadersFiltered) 
+					for (auto& pair : m_filterOwner.inHeadersFiltered)
 						m_sendInBuf += pair.first + ": " + pair.second + CRLF;
 					
 					CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_filterOwner.requestNumber, m_sendInBuf);
@@ -1204,8 +1263,7 @@ void	CRequestManager::_ProcessIn()
 
 				// We must decompress compressed data,
 				// unless bypassed body with same coding
-				if (m_recvContentCoding && (m_useChain) /*||
-										m_recvContentCoding != m_sendContentCoding)*/) {
+				if (m_recvContentCoding && m_useChain) {
 					m_decompressor->feed(data);
 					m_decompressor->read(data);
 				}
@@ -1391,8 +1449,7 @@ void	CRequestManager::DataDump()
  */
 void	CRequestManager::_EndFeeding() {
 
-    if (m_recvContentCoding && m_useChain/*&& (useChain ||
-                recvContentCoding != sendContentCoding)*/) {
+    if (m_recvContentCoding && m_useChain) {
         string data;
         m_decompressor->dump();
         m_decompressor->read(data);

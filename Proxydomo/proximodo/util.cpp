@@ -476,6 +476,8 @@ string CUtil::getMimeType(string filename) {
         return "image/" + ext;
 	else if (ext == "jpg")
 		return "image/jpeg";
+	else if (ext == "ico")
+		return "image/x-icon";
 	else if (ext == "swf")
 		return "application/x-shockwave-flash";
 	else if (ext == "json")

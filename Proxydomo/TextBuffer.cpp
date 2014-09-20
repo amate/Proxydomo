@@ -434,8 +434,12 @@ void CTextBuffer::_firstDebugOutput(const std::string& charaCode)
 	CUtil::htmlEscape(buf, m_owner.url.getProtocol() + "://" + m_owner.url.getFromHost());
 	buf += "</title>\n"
 		"<link rel=\"stylesheet\" media=\"all\" "
-		"href=\"http://local.ptron/ViewSource.css\" />\n"
-		"</head>\n\n<body>\n<div id=\"headers\">\n";
+		"href=\"";
+	buf += m_owner.url.getProtocol() + "://local.ptron/ViewSource.css";
+	buf += "\" />\n"
+		"</head>\n\n<body>\n";
+	
+	buf += "<div id=\"headers\">\n";
 	buf += "<div class=\"res\">";
 	CUtil::htmlEscape(buf, m_owner.responseLine.ver);
 	buf += " ";
@@ -444,6 +448,8 @@ void CTextBuffer::_firstDebugOutput(const std::string& charaCode)
 	CUtil::htmlEscape(buf, m_owner.responseLine.msg);
 	buf += "</div>\n";
 
+	buf += "<div class=\"rawInHeaders\">";
+	buf += "[raw data]";
 	for (auto& pair : m_owner.inHeaders) {
 		buf += "<div class=\"hdr\">";
 		CUtil::htmlEscape(buf, pair.first);
@@ -451,7 +457,21 @@ void CTextBuffer::_firstDebugOutput(const std::string& charaCode)
 		CUtil::htmlEscape(buf, pair.second);
 		buf += "</span></div>\n";
 	}
-	buf += "</div><div id=\"body\">\n";
+	buf += "</div>";
+
+	buf += "<div class=\"filteredInHeaders\">";
+	buf += "[filtered data]";
+	for (auto& pair : m_owner.inHeadersFiltered) {
+		buf += "<div class=\"hdr\">";
+		CUtil::htmlEscape(buf, pair.first);
+		buf += ": <span class=\"val\">";
+		CUtil::htmlEscape(buf, pair.second);
+		buf += "</span></div>\n";
+	}
+	buf += "</div>";
+
+	buf += "</div>";	// id="headers" />
+	buf += "<div id=\"body\">\n";
 
 	m_output->DataFeed(buf);
 }

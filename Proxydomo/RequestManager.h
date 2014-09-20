@@ -136,7 +136,6 @@ private:
     bool	m_recvConnectionClose; // should the connection be closed when finished
     bool	m_sendConnectionClose;
     int		m_recvContentCoding;   // 0: plain/compress, 1: gzip, 2:deflate (zlib)
-    int		m_sendContentCoding;
 	std::unique_ptr<CZlibBuffer>	m_decompressor;
 	std::unique_ptr<CZlibBuffer>	m_compressor;
 
