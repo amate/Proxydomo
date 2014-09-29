@@ -64,6 +64,10 @@ public:
 	{
 		m_errorMsg.Insert(0, _T("è⁄ç◊:"));
 		GetDlgItem(IDC_STATIC_DETAIL).SetWindowText(m_errorMsg);
+
+		CString host;
+		host.Format(_T("Host: %s"), (LPWSTR)CA2W(m_host.c_str()));
+		GetDlgItem(IDC_STATIC_HOST).SetWindowText(host);
 		return TRUE;
 	}
 
@@ -144,7 +148,12 @@ int verify_certificate_callback(gnutls_session_t session)
 		return GNUTLS_E_CERTIFICATE_ERROR;
 	}
 
-	if (status != 0) {
+	if (status == 66) {
+		ERROR_LOG << L"certificate verify error 66 [host: " << (LPWSTR)CA2W(hostname) << L"]";
+		status = 0;
+	}
+
+	if (status != 0 && status != 66) {
 		CCritSecLock lock(g_csmapHost);
 		std::string host = hostname;
 		auto itfound = g_mapHostAllowOrDeny.find(host);
@@ -1041,7 +1050,7 @@ bool	CSSLSession::Write(const char* buffer, int length)
 
 void	CSSLSession::Close()
 {
-	if (m_session == NULL)
+	if (m_session == NULL || m_sock == nullptr)
 		return;
 
 	int ret = gnutls_bye(m_session, GNUTLS_SHUT_RDWR);
@@ -1051,6 +1060,7 @@ void	CSSLSession::Close()
 	} catch (SocketException& e) {
 		e;
 	}
+	m_sock = nullptr;
 
 	gnutls_deinit(m_session);
 	m_session = NULL;

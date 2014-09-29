@@ -32,6 +32,7 @@
 #include "CodeConvert.h"
 #include <atlsync.h>
 #include <regex>
+#include "Logger.h"
 
 using namespace CodeConvert;
 using namespace icu;
@@ -109,7 +110,7 @@ inline size_t CharCount(const wchar_t* end, const wchar_t* begin)
 }
 
 
-static std::string GetCharaCode(const std::string& data)
+static std::pair<int32_t, std::string> GetCharaCode(const std::string& data)
 {
 	UCharsetDetector* pDectator = nullptr;
 	try {
@@ -124,24 +125,77 @@ static std::string GetCharaCode(const std::string& data)
 		if (err != UErrorCode::U_ZERO_ERROR)
 			throw err;
 		err = UErrorCode::U_ZERO_ERROR;
+
+#if 0
 		const UCharsetMatch* charaCodeMatch = ucsdet_detect(pDectator, &err);
 		ATLASSERT( charaCodeMatch );
 		ATLASSERT( U_SUCCESS( err ) );
 		if (err != UErrorCode::U_ZERO_ERROR)
 			throw err;
+
 		err = UErrorCode::U_ZERO_ERROR;
 		std::string charaCode = ucsdet_getName(charaCodeMatch, &err);
 		if (err != UErrorCode::U_ZERO_ERROR)
 			throw err;
+#endif
+
+#if 0
+		int32_t founded = 0;
+		int32_t confidence = 0;
+		std::string charaCode;
+		const UCharsetMatch** matchers = ucsdet_detectAll(pDectator, &founded, &err);
+		if (founded > 0) {
+			const int32_t kThresold = 10;
+			for (int i = 0; i < founded; ++i) {
+				confidence = ucsdet_getConfidence(matchers[i], &err);
+				if (U_FAILURE(err)) {
+					err = U_ZERO_ERROR;
+					continue;
+				}
+				if (confidence < kThresold)
+					break;
+				const char* match_encoding = ucsdet_getName(matchers[i], &err);
+				if (U_FAILURE(err)) {
+					err = U_ZERO_ERROR;
+					continue;
+				}
+				const char* match_lang = ucsdet_getLanguage(matchers[i], &err);
+				if (U_FAILURE(err)) {
+					err = U_ZERO_ERROR;
+					continue;
+				}
+				INFO_LOG << "confidence: " << confidence << L" name: " << (LPWSTR)CA2W(match_encoding);
+				//std::cout << "     neme:" << match_encoding
+				//	<< " language:" << match_lang
+				//	<< std::endl;
+			}
+		}
+#endif
+
+		int32_t confidence = 0;
+		std::string charaCode;
+
+		int32_t founded = 0;
+		const UCharsetMatch** matchers = ucsdet_detectAll(pDectator, &founded, &err);
+		if (founded > 0) {
+			confidence = ucsdet_getConfidence(matchers[0], &err);
+			if (U_FAILURE(err)) {
+				confidence = 0;
+				throw err;
+			}
+			charaCode = ucsdet_getName(matchers[0], &err);
+			if (U_FAILURE(err))
+				throw err;
+		}
 
 		ucsdet_close(pDectator);
-		return charaCode;
+		return std::pair<int32_t, std::string>(confidence, charaCode);
 
 	} catch (UErrorCode err) {
 		ATLASSERT( FALSE );
 		if (pDectator)
 			ucsdet_close(pDectator);
-		return "";
+		return std::pair<int32_t, std::string>(0, "");
 	}
 }
 
@@ -160,8 +214,17 @@ void CTextBuffer::DataFeed(const std::string& data)
 		}
 		std::string charaCode;
 
+		// 3:ページから文字コードを推定する
+		enum { kThreshold = 50 };
+		bool bGetCharaCodeFromBuffer = false;
+		auto supposeCharaCode = GetCharaCode(m_buffer);
+		if (kThreshold <= supposeCharaCode.first) {	// 推定が閾値を超えていれば判定を優先する
+			charaCode = supposeCharaCode.second;
+			bGetCharaCodeFromBuffer = true;
+		}
+
 		// 1:ページ内の文字コード指定
-		if (m_owner.fileType == "htm") {
+		if (charaCode.empty() && m_owner.fileType == "htm") {
 			static std::regex rxMeta("(?:<meta ([^>]+)>|</head>)", std::regex_constants::icase);
 			auto begin = m_buffer.cbegin();
 			std::smatch result;
@@ -202,15 +265,13 @@ void CTextBuffer::DataFeed(const std::string& data)
 			}
 		}
 
-		// 3:ページから文字コードを推定する
-		bool bGetCharaCodeFromBuffer = false;
 		if (charaCode.empty()) {
-			bGetCharaCodeFromBuffer = true;
-			charaCode = GetCharaCode(m_buffer);
+			charaCode = supposeCharaCode.second;
+			if (charaCode.empty()) {
+				charaCode = "UTF-8";	// ここまで何もなかったらUTF-8として解釈する
+			}
 		}
-		if (charaCode.empty())
-			charaCode = "UTF-8";	// ここまで何もなかったらUTF-8として解釈する
-		
+
 		CCritSecLock lock(g_csMapConverter);
 		auto& pConverter = g_mapConverter[charaCode];
 		if (pConverter == nullptr) {
@@ -219,18 +280,19 @@ void CTextBuffer::DataFeed(const std::string& data)
 			UErrorCode err = UErrorCode::U_ZERO_ERROR;
 			pConverter = ucnv_open(charaCode.c_str(), &err);
 			if (pConverter == nullptr && bGetCharaCodeFromBuffer == false) {
-				charaCode = GetCharaCode(m_buffer);
+				charaCode = supposeCharaCode.second;
 				auto& pConverter2 = g_mapConverter[charaCode];
 				if (pConverter2 == nullptr) {
 					err = UErrorCode::U_ZERO_ERROR;
 					pConverter2 = ucnv_open(charaCode.c_str(), &err);
-					ATLASSERT( pConverter2 );
+					ATLASSERT(pConverter2);
 					m_pConverter = pConverter2;
 					goto convert2;
 				}
 			}
-			ATLASSERT( pConverter );			
+			ATLASSERT(pConverter);
 		}
+		lock.Unlock();
 		m_pConverter = pConverter;
 		convert2:
 		m_bCharaCodeDectated = true;

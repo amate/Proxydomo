@@ -182,9 +182,9 @@ void CRequestManager::Manage()
 				}
 
 				if (m_pSSLServerSession) {	// SSL
-					if ((m_inStep == STEP_START && m_outStep == STEP_START) &&
+					if ( m_outStep == STEP_START &&
 						 (m_pSSLServerSession->IsConnected() == false ||
-						  m_pSSLClientSession->IsConnected() == false) )
+						  m_pSSLClientSession->IsConnected() == false   ) )
 					{
 						INFO_LOG << L"#" << m_ipFromAddress.GetPortNumber()
 							<< L" SSL すべての STEP が START なので接続を切ります。"
@@ -414,7 +414,9 @@ void CRequestManager::_ProcessOut()
 
 				// Get the URL and the host to contact (unless we use a proxy)
 				if (m_pSSLServerSession) {
-					std::string sslurl = "https://" + m_filterOwner.contactHost + m_requestLine.url;
+					std::string sslurl = "https://" 
+										+ CFilterOwner::GetHeader(m_filterOwner.outHeaders, "Host") 
+										+ m_requestLine.url;
 					m_filterOwner.url.parseUrl(sslurl);
 				} else if (m_requestLine.method == "CONNECT") {
 					m_filterOwner.url.parseUrl("https://" + m_requestLine.url);
@@ -509,7 +511,7 @@ void CRequestManager::_ProcessOut()
 				// connection fails, incoming processing will jump to
 				// the finish state, so that we can accept other requests
 				// on the same browser socket (persistent connection).
-				if (m_pSSLServerSession) {
+				if (m_pSSLServerSession && m_filterOwner.killed == false) {
 					m_inStep = STEP_START;
 
 					// $RDIR
@@ -517,8 +519,10 @@ void CRequestManager::_ProcessOut()
 						CUrl rdirURL(m_filterOwner.rdirToHost);
 						if (m_filterOwner.url.getHost() != rdirURL.getHost()) {
 							ERROR_LOG << L"#" << m_ipFromAddress.GetPortNumber()
-								<< L" SSLで違うホストにリダイレクトしようとしています。";
-							throw GeneralException("SSL RidirectError");
+								<< L" SSLで違うホストにリダイレクトしようとしています。"
+								<< L" nowHost: " << (LPWSTR)CA2W(m_filterOwner.url.getHost().c_str())
+								<< L" -> rdirHost: " << (LPWSTR)CA2W(rdirURL.getHost().c_str());
+							throw GeneralException("SSL invalid Redirect Error");
 						} else {
 							m_filterOwner.url.parseUrl(m_filterOwner.rdirToHost);
 							m_filterOwner.rdirToHost.clear();

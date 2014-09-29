@@ -27,7 +27,7 @@ public:
 	CSSLSession();
 	~CSSLSession();
 
-	bool	IsConnected() const { return m_sock->IsConnected(); }
+	bool	IsConnected() const { return m_sock ? m_sock->IsConnected() : false; }
 
 	bool	Read(char* buffer, int length);
 	int		GetLastReadCount() const { return m_nLastReadCount; }

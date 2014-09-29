@@ -80,6 +80,7 @@
 #define IDC_BTN_PERMANENTALLOW			1062
 #define IDC_BTN_TEMPDENY				1063
 #define IDC_BTN_TEMPALLOW				1064
+#define IDC_STATIC_HOST					1065
 
 // Next default values for new objects
 // 

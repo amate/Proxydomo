@@ -25,10 +25,11 @@
 #include "zlibbuffer.h"
 //#include "const.h"
 #include <assert.h>
+#include <Windows.h>
 
 #define ZLIB_BLOCK 4096
 
-#pragma comment(lib, "zlibstat.lib")
+#pragma comment(lib, "zlib.lib")
 
 using namespace std;
 
@@ -86,7 +87,7 @@ bool CZlibBuffer::reset(bool shrink, bool modeGzip) {
 		if (modeGzip) {
 			err = inflateInit2(&stream, 47);
 		} else {
-			err = inflateInit(&stream);
+			err = inflateInit2(&stream, -15);
 		}
     }
     if (err != Z_OK) 
