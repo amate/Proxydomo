@@ -49,11 +49,17 @@ http://sourceforge.net/projects/wtl/
 ◆GnuTLS
 http://www.gnutls.org/
 
+□コンパイル済みdll
+zlibとGnuTLSのコンパイル済みdllを下記のURLで公開しています
+http://1drv.ms/1vqvcaG
 
-zlibのソースの場所
-$(SolutionDir)zlib\zlib-1.2.5
+
+zlibのヘッダの場所
+$(SolutionDir)zlib\x86\include
+$(SolutionDir)zlib\x64\include
 zlibのライブラリの場所
-$(SolutionDir)zlib\zlib125dll\static32\zlibstat.lib
+$(SolutionDir)zlib\x86\lib
+$(SolutionDir)zlib\x64\lib
 を以下の場所にすればとくに設定はいらないはずです
 これ以外の場所にzlibを置いているなら適当にzlibbuffer.h/cppを修正してください
 
