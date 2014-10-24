@@ -92,8 +92,8 @@ make install
 make
 make install
 
-#gnutls3.2.17 build
-./configure --build=x86_64-w64-mingw32 -enable-threads=win32 --disable-guile --disable-nls --without-zlib PKG_CONFIG_PATH=/local/lib/pkgconfig LDFLAGS=-L/local/lib --disable-cxx --disable-openssl-compatibility --disable-doc
+#gnutls3.3.9 build
+./configure --build=x86_64-w64-mingw32 --disable-guile --disable-nls --without-zlib PKG_CONFIG_PATH=/local/lib/pkgconfig LDFLAGS=-L/local/lib --disable-cxx --disable-openssl-compatibility --disable-doc --disable-heartbeat-support
 make
 make install
 
@@ -108,10 +108,14 @@ make install
 make
 make install
 
-#gnutls3.2.17 build
-./configure --build=i686-w64-mingw32 -enable-threads=win32 --disable-guile --disable-nls --without-zlib PKG_CONFIG_PATH=/local/lib/pkgconfig LDFLAGS=-L/local/lib --disable-cxx --disable-openssl-compatibility --disable-doc
+#gnutls3.3.9 build
+./configure --build=i686-w64-mingw32 --disable-guile --disable-nls --without-zlib PKG_CONFIG_PATH=/local/lib/pkgconfig LDFLAGS=-L/local/lib --disable-cxx --disable-openssl-compatibility --disable-doc  --disable-heartbeat-support
 make
 make install
+
+// ================================================================
+msys\local
+à»â∫Ç…ê∂ê¨ï®Ç™Ç≈Ç´ÇÈ
 
 http://einguste.hatenablog.com/entry/2014/01/29/002601
 lib/gnutls.pc(.in)ÇÃèCê≥Ç™ïKóvÇ©Ç‡ÇµÇÍÇ»Ç¢

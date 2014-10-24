@@ -707,7 +707,11 @@ void CRequestManager::_ConnectWebsite()
 {
 	// If download was on, disconnect (to avoid downloading genuine document)
 	if (m_inStep == STEP_DECODE) {
-		m_psockWebsite->Close();
+		if (m_pSSLServerSession) {
+			m_pSSLServerSession->Close();
+		} else {
+			m_psockWebsite->Close();
+		}
 		m_inStep = STEP_START;
 		m_filterOwner.bypassBody = m_filterOwner.bypassBodyForced = false;
 	}
@@ -1148,18 +1152,9 @@ void	CRequestManager::_ProcessIn()
 				// Test for redirection (limited to 3, to prevent infinite loop)
 				if (m_filterOwner.rdirToHost.size() > 0 && m_redirectedIn < 3) {
 					// (This function will also take care of incoming variables)
-					if (m_pSSLServerSession) {
-						CUrl rdirURL(m_filterOwner.rdirToHost);
-						if (m_filterOwner.url.getHost() != rdirURL.getHost()) {
-							ERROR_LOG << L"#" << m_ipFromAddress.GetPortNumber()
-								<< L" SSLで違うホストにリダイレクトしようとしています。";
-							throw GeneralException("SSL RidirectError");
-						}
-					} else {
-						_ConnectWebsite();
-						++m_redirectedIn;
-						continue;
-					}
+					_ConnectWebsite();
+					++m_redirectedIn;
+					continue;
 				}
 
 				CLog::AddNewRequest(m_filterOwner.requestNumber, m_filterOwner.responseLine.code, contentType, m_inChunked ? std::string("-1") : contentLength, m_filterOwner.url.getUrl());

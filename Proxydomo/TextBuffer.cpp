@@ -215,7 +215,7 @@ void CTextBuffer::DataFeed(const std::string& data)
 		std::string charaCode;
 
 		// 3:ページから文字コードを推定する
-		enum { kThreshold = 50 };
+		enum { kThreshold = 70 };
 		bool bGetCharaCodeFromBuffer = false;
 		auto supposeCharaCode = GetCharaCode(m_buffer);
 		if (kThreshold <= supposeCharaCode.first) {	// 推定が閾値を超えていれば判定を優先する

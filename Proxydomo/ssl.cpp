@@ -28,12 +28,13 @@ LPCSTR	kCAFileName = "ca.pem.crt";
 LPCSTR	kCAKeyFileName = "ca-key.pem";
 
 gnutls_priority_t g_server_priority_cache = NULL;
-gnutls_dh_params_t dh_params = NULL;
+//gnutls_dh_params_t dh_params = NULL;
 
 gnutls_x509_crt_t g_ca_crt = NULL;
 gnutls_privkey_t g_ca_key = NULL;
 
 gnutls_certificate_credentials_t	g_client_cred = NULL;
+gnutls_priority_t					g_client_priority_cache = NULL;
 
 std::unordered_map<std::string, bool>	g_mapHostAllowOrDeny;
 CCriticalSection						g_csmapHost;
@@ -752,11 +753,13 @@ bool	InitSSL()
 		* be wise to regenerate parameters often.
 		*/
 		//gnutls_dh_params_t dh_params = NULL;
-		gnutls_dh_params_init(&dh_params);
-		gnutls_dh_params_generate2(dh_params, bits);
+		//gnutls_dh_params_init(&dh_params);
+		//gnutls_dh_params_generate2(dh_params, bits);
 
 		// à√çÜÇÃóDêÊìxÇê›íË
-		gnutls_priority_init(&g_server_priority_cache, "PERFORMANCE:%SERVER_PRECEDENCE", NULL);
+		ret = gnutls_priority_init(&g_server_priority_cache, 
+			"PERFORMANCE:%SERVER_PRECEDENCE:-VERS-SSL3.0", NULL);
+		ATLASSERT(ret == GNUTLS_E_SUCCESS);
 	}
 
 	// client init
@@ -769,6 +772,11 @@ bool	InitSSL()
 		ATLASSERT(ret > 0);
 
 		gnutls_certificate_set_verify_function(g_client_cred, verify_certificate_callback);
+
+		// à√çÜÇÃóDêÊìxÇê›íË : SSL3.0Çñ≥å¯âª
+		ret = gnutls_priority_init(&g_client_priority_cache, 
+			"NORMAL:%LATEST_RECORD_VERSION:-VERS-SSL3.0", NULL);
+		ATLASSERT(ret == GNUTLS_E_SUCCESS);
 	}
 	return true;
 }
@@ -785,6 +793,9 @@ void	TermSSL()
 
 	gnutls_certificate_free_credentials(g_client_cred);
 	g_client_cred = NULL;
+
+	gnutls_priority_deinit(g_client_priority_cache);
+	g_client_priority_cache = NULL;
 
 	gnutls_global_deinit();
 }
@@ -860,12 +871,13 @@ std::unique_ptr<CSSLSession>	CSSLSession::InitClientSession(CSocket* sock, const
 
 	ret = gnutls_server_name_set(session->m_session, GNUTLS_NAME_DNS, (const void*)host.c_str(), host.length());
 
-	/* use default priorities */
-	ret = gnutls_set_default_priority(session->m_session);
+	ret = gnutls_priority_set(session->m_session, g_client_priority_cache);
+	ATLASSERT(ret == GNUTLS_E_SUCCESS);
 
 	/* put the x509 credentials to the current session
 	*/
 	ret = gnutls_credentials_set(session->m_session, GNUTLS_CRD_CERTIFICATE, g_client_cred);
+	ATLASSERT(ret == GNUTLS_E_SUCCESS);
 
 	gnutls_transport_set_int(session->m_session, sock->GetSocket());
 	gnutls_handshake_set_timeout(session->m_session, GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT);
@@ -953,7 +965,7 @@ std::unique_ptr<CSSLSession> CSSLSession::InitServerSession(CSocket* sock, const
 			gnutls_x509_privkey_deinit(x509serverKey);
 			//ATLASSERT(ret == GNUTLS_E_SUCCESS);
 
-			gnutls_certificate_set_dh_params(server_cred, dh_params);
+			//gnutls_certificate_set_dh_params(server_cred, dh_params);
 			s_mapHostServerCred[host] = server_cred;
 		}
 	}
