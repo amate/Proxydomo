@@ -344,6 +344,11 @@ void CSettings::EnumActiveFilter(std::function<void (CFilterDescriptor*)> func)
 
 void CSettings::LoadList(const CString& filePath)
 {
+	CString ext = Misc::GetFileExt(filePath);
+	ext.MakeLower();
+	if (ext != _T("txt"))
+		return;
+
 	// ÅI‘‚«‚İ‚ğæ“¾
 	HANDLE hFile = CreateFile(filePath, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (hFile == INVALID_HANDLE_VALUE) 

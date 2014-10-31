@@ -37,7 +37,7 @@
 
 namespace Proxydomo { class CNode; }
 
-/// １つのリストにあるすべてのパータンを持っている
+/// １つのリストにあるすべてのパターンを持っている
 struct HashedListCollection {
 	boost::shared_mutex	mutex;
 

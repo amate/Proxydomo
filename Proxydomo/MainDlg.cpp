@@ -195,15 +195,87 @@ LRESULT CMainDlg::OnTrayIconNotify(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, 
 		ShowWindow(TRUE);
 		SetForegroundWindow(m_hWnd);
 	} else if (lParam == WM_RBUTTONUP) {
+		enum {
+			kProxydomoOpen = 100,
+			kWebPageFilter,
+			kOutHeaderFilter,
+			kInHeaderFileter,
+			kBlockListBegin,
+			kBlockListEnd = kBlockListBegin + 500,
+			kExit,
+		};
 		CMenu menu;
 		menu.CreatePopupMenu();
-		menu.AppendMenu(MF_STRING, 1U, _T("終了"));
+		menu.AppendMenu(MF_STRING, kProxydomoOpen, _T("Proxydomoを開く(&P)"));
+		menu.SetMenuDefaultItem(kProxydomoOpen);
+		menu.AppendMenu(MF_SEPARATOR);
+
+		menu.AppendMenu(CSettings::s_filterText ? MF_CHECKED : MF_STRING, kWebPageFilter, _T("Webページフィルター(&W)"));
+		menu.AppendMenu(CSettings::s_filterOut ? MF_CHECKED : MF_STRING, kOutHeaderFilter, _T("送信ヘッダフィルター(&O)"));
+		menu.AppendMenu(CSettings::s_filterIn ? MF_CHECKED : MF_STRING, kInHeaderFileter, _T("受信ヘッダフィルター(&I)"));
+		menu.AppendMenu(MF_SEPARATOR);
+
+		CMenuHandle menuBlockList;
+		menuBlockList.CreatePopupMenu();
+		std::vector<std::wstring> vecBlockListName;
+		{
+			std::lock_guard<std::recursive_mutex> lock(CSettings::s_mutexHashedLists);
+			for (auto& list : CSettings::s_mapHashedLists) {
+				std::wstring name = (LPWSTR)CA2W((list.first + ".txt").c_str());
+				vecBlockListName.emplace_back(name);
+			}
+		}
+		std::sort(vecBlockListName.begin(), vecBlockListName.end());
+		const size_t count = vecBlockListName.size();
+		for (size_t i = 0; i < count; ++i) {
+			CString listName = vecBlockListName[i].c_str();
+			CString filePath = Misc::GetExeDirectory() + _T("lists\\") + (LPCTSTR)listName;
+			BOOL bExist = ::PathFileExists(filePath);
+			menuBlockList.AppendMenu(bExist ? MF_STRING : MF_GRAYED, kBlockListBegin + i, listName);
+		}
+		if (count == 0) {
+			menuBlockList.AppendMenu(MF_STRING | MF_GRAYED, (UINT_PTR)0, _T("(なし)"));
+		}
+		menu.AppendMenu(MF_POPUP, menuBlockList, _T("ブロックリストの編集(&E)"));
+		menu.AppendMenu(MF_SEPARATOR);
+
+		menu.AppendMenu(MF_STRING, kExit, _T("プログラムの終了(&X)"));
 		CPoint pt;
 		::GetCursorPos(&pt);
 		::SetForegroundWindow(m_hWnd);
 		BOOL bRet = menu.TrackPopupMenu(TPM_RETURNCMD, pt.x, pt.y, m_hWnd, NULL);
-		if (bRet == 1) {
+		switch (bRet) {
+		case kProxydomoOpen:
+			ShowWindow(TRUE);
+			SetForegroundWindow(m_hWnd);
+			break;
+
+		case kWebPageFilter:
+			CSettings::s_filterText = !CSettings::s_filterText;
+			DoDataExchange(DDX_LOAD, IDC_CHECKBOX_WEBPAGE);
+			break;
+
+		case kOutHeaderFilter:
+			CSettings::s_filterOut = !CSettings::s_filterOut;
+			DoDataExchange(DDX_LOAD, IDC_CHECKBOX_OUTHEADER);
+			break;
+
+		case kInHeaderFileter:
+			CSettings::s_filterIn = !CSettings::s_filterIn;
+			DoDataExchange(DDX_LOAD, IDC_CHECKBOX_INHEADER);
+			break;
+
+		case kExit:
 			CloseDialog(0);
+			break;
+
+		default:
+			if (kBlockListBegin <= bRet && bRet <= kBlockListEnd) {
+				size_t index = bRet - kBlockListBegin;
+				CString filePath = Misc::GetExeDirectory() + _T("lists\\") + vecBlockListName[index].c_str();
+				::ShellExecute(NULL, NULL, filePath, NULL, NULL, SW_NORMAL);
+			}
+			break;
 		}
 	}
 	return 0;
@@ -243,7 +315,8 @@ LRESULT CMainDlg::OnFilterButtonCheck(WORD /*wNotifyCode*/, WORD wID, HWND /*hWn
 void CMainDlg::CloseDialog(int nVal)
 {
 	if (CLog::GetActiveRequestCount() > 0) {
-		int ret = MessageBox(_T("まだ接続中のリクエストがあります。\r\n終了してもいいですか？"), _T("確認 - ") APP_NAME, MB_ICONWARNING | MB_OKCANCEL | MB_DEFBUTTON2);
+		int ret = MessageBox(_T("まだ接続中のリクエストがあります。\r\n終了してもよろしいですか？"), 
+								_T("確認 - ") APP_NAME, MB_ICONWARNING | MB_OKCANCEL | MB_DEFBUTTON2);
 		if (ret == IDCANCEL)
 			return ;
 	}

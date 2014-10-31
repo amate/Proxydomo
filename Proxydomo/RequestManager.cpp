@@ -1084,36 +1084,9 @@ void	CRequestManager::_ProcessIn()
 				if (CUtil::noCaseBeginsWith("206", m_filterOwner.responseCode))
 					m_filterOwner.bypassBody = true;
 
-				// Tell text filters to see whether they should work on it
-				m_useChain = (m_filterOwner.bypassBody == false && CSettings::s_filterText) ||
-							  m_filterOwner.url.getDebug();
-
-
 				// We'll work on a copy, since we don't want to alter
 				// the real headers that $IHDR and $OHDR may access
 				m_filterOwner.inHeadersFiltered = m_filterOwner.inHeaders;
-
-				if (m_useChain) {
-					std::string contentEncoding = m_filterOwner.GetInHeader("Content-Encoding");
-					if (CUtil::noCaseContains("gzip", contentEncoding)) {
-						m_recvContentCoding = 1;
-						if (m_decompressor == nullptr) 
-							m_decompressor.reset(new CZlibBuffer());
-						m_decompressor->reset(false, true);
-						CFilterOwner::RemoveHeader(m_filterOwner.inHeadersFiltered, "Content-Encoding");
-
-					} else if (CUtil::noCaseContains("deflate", contentEncoding)) {
-						m_recvContentCoding = 2;
-						if (m_decompressor == nullptr) 
-							m_decompressor.reset(new CZlibBuffer());
-						m_decompressor->reset(false, false);
-						CFilterOwner::RemoveHeader(m_filterOwner.inHeadersFiltered, "Content-Encoding");
-
-					} else if (CUtil::noCaseContains("compress", contentEncoding)) {
-						m_filterOwner.bypassBody = true;
-					}
-				}
-
 				if (m_filterOwner.bypassIn == false && CSettings::s_filterIn) {
 					// Apply filters one by one
 					for (auto& headerfilter : m_vecpInFilter) {
@@ -1149,7 +1122,8 @@ void	CRequestManager::_ProcessIn()
 					}
 				}
 
-				// Test for redirection (limited to 3, to prevent infinite loop)
+				// 受信ヘッダでリダイレクトを指示されたらリダイレクトする
+				// (limited to 3, to prevent infinite loop)
 				if (m_filterOwner.rdirToHost.size() > 0 && m_redirectedIn < 3) {
 					// (This function will also take care of incoming variables)
 					_ConnectWebsite();
@@ -1157,7 +1131,33 @@ void	CRequestManager::_ProcessIn()
 					continue;
 				}
 
-				CLog::AddNewRequest(m_filterOwner.requestNumber, m_filterOwner.responseLine.code, contentType, m_inChunked ? std::string("-1") : contentLength, m_filterOwner.url.getUrl());
+				// Tell text filters to see whether they should work on it
+				if (m_filterOwner.url.getDebug()) {
+					m_useChain = true;
+				} else {
+					m_useChain = (m_filterOwner.bypassBody == false && CSettings::s_filterText);
+				}
+
+				if (m_useChain) {
+					std::string contentEncoding = m_filterOwner.GetInHeader("Content-Encoding");
+					if (CUtil::noCaseContains("gzip", contentEncoding)) {
+						m_recvContentCoding = 1;
+						if (m_decompressor == nullptr)
+							m_decompressor.reset(new CZlibBuffer());
+						m_decompressor->reset(false, true);
+						CFilterOwner::RemoveHeader(m_filterOwner.inHeadersFiltered, "Content-Encoding");
+
+					} else if (CUtil::noCaseContains("deflate", contentEncoding)) {
+						m_recvContentCoding = 2;
+						if (m_decompressor == nullptr)
+							m_decompressor.reset(new CZlibBuffer());
+						m_decompressor->reset(false, false);
+						CFilterOwner::RemoveHeader(m_filterOwner.inHeadersFiltered, "Content-Encoding");
+
+					} else if (CUtil::noCaseContains("compress", contentEncoding)) {
+						m_filterOwner.bypassBody = true;
+					}
+				}
 
 				// Decode new headers to control browser-side beehaviour
 				if (CUtil::noCaseContains("close", CFilterOwner::GetHeader(m_filterOwner.inHeadersFiltered, "Connection")))
@@ -1206,6 +1206,8 @@ void	CRequestManager::_ProcessIn()
 					// File type will be reevaluated using first block of data
 					//m_filterOwner.fileType.clear();	// ここでは消さない
 				}
+
+				CLog::AddNewRequest(m_filterOwner.requestNumber, m_filterOwner.responseLine.code, contentType, m_inChunked ? std::string("-1") : contentLength, m_filterOwner.url.getUrl());
 
 				// Decide what to do next
 				if (m_filterOwner.responseLine.code == "101") {
@@ -1419,14 +1421,16 @@ void	CRequestManager::DataFeed(const std::string& data)
 		return;
 
     size_t size = data.size();
-	if (size && (m_useChain || m_inChunked)) {
-		m_sendInBuf += CUtil::makeHex(size) + CRLF + data + CRLF;
+	if (size) {
+		if (m_useChain || m_inChunked) {
+			m_sendInBuf += CUtil::makeHex(size) + CRLF + data + CRLF;
 
-    } else if (size) {
-        // Send a chunk of uncompressed/unchanged data
-        //m_sendInBuf += CUtil::makeHex(size) + CRLF + data + CRLF;
-		m_sendInBuf += data;
-    }
+		} else {
+			// Send a chunk of uncompressed/unchanged data
+			//m_sendInBuf += CUtil::makeHex(size) + CRLF + data + CRLF;
+			m_sendInBuf += data;
+		}
+	}
 }
 
 /// Record that the chain emptied itself, finish compression if needed
@@ -1461,9 +1465,12 @@ void	CRequestManager::_EndFeeding() {
     }
 
     if (m_useChain) {
-        if (m_filterOwner.url.getDebug())
-            DataFeed("\n</div>\n</body>\n</html>\n");
         m_textFilterChain.DataDump();
+		if (m_filterOwner.url.getDebug()) {
+			m_dumped = false;
+			DataFeed("\n</div>\n</body>\n</html>\n");
+			m_dumped = true;
+		}
     } else {
         DataDump();
     }

@@ -286,16 +286,17 @@ void CTextBuffer::DataFeed(const std::string& data)
 					err = UErrorCode::U_ZERO_ERROR;
 					pConverter2 = ucnv_open(charaCode.c_str(), &err);
 					ATLASSERT(pConverter2);
-					m_pConverter = pConverter2;
-					goto convert2;
 				}
+				m_pConverter = pConverter2;
+				goto convert2;
 			}
 			ATLASSERT(pConverter);
-		}
-		lock.Unlock();
+		}		
 		m_pConverter = pConverter;
+
 		convert2:
 		m_bCharaCodeDectated = true;
+		lock.Unlock();
 
 		if (m_owner.url.getDebug())
 			_firstDebugOutput(charaCode);
