@@ -24,6 +24,7 @@
 
 #include "resource.h"
 #include <vector>
+#include <list>
 #include <memory>
 #include <atlcrack.h>
 #include <atlctrls.h>
@@ -41,6 +42,8 @@ class CLogViewWindow :
 {
 public:
 	enum { IDD = IDD_LOGVIEW };
+
+	enum { WM_APPENDTEXT = WM_APP + 100 };
 
 	CLogViewWindow();
 	~CLogViewWindow();
@@ -113,6 +116,8 @@ public:
 		COMMAND_ID_HANDLER_EX( IDC_CHECKBOX_PROXYEVENT		, OnCheckBoxChanged )	
 		COMMAND_ID_HANDLER_EX( IDC_CHECKBOX_FILTEREVENT		, OnCheckBoxChanged )	
 		COMMAND_ID_HANDLER_EX( IDC_CHECKBOX_WEBFILTERDEBUG	, OnCheckBoxChanged )	
+
+		MESSAGE_HANDLER_EX(WM_APPENDTEXT, OnAppendText)
 		CHAIN_MSG_MAP( CDialogResize<CLogViewWindow> )
 	END_MSG_MAP()
 
@@ -131,6 +136,8 @@ public:
 
 	void OnCheckBoxChanged(UINT uNotifyCode, int nID, CWindow wndCtl);
 
+	LRESULT OnAppendText(UINT uMsg, WPARAM wParam, LPARAM lParam);
+
 private:
 	void	_AppendText(const CString& text, COLORREF textColor);
 	void	_AppendRequestLogText(const CString& text, COLORREF textColor);
@@ -143,8 +150,6 @@ private:
 	CSortListViewCtrl	m_listRequest;
 	CComboBox		m_cmbRequest;
 
-	CCriticalSection	m_csLog;
-
 	struct EventLog {
 		uint16_t	port;
 		CString		text;
@@ -155,19 +160,23 @@ private:
 	std::vector<std::unique_ptr<EventLog>>	m_vecActiveRequestLog;
 	CCriticalSection	m_csActiveRequestLog;
 
+	struct TextLog {
+		CString		text;
+		COLORREF	textColor;
+		TextLog(const CString& t, COLORREF c) : text(t), textColor(c) { }
+	};
+
 	struct RequestLog {
 		int			RequestNumber;
-		struct TextLog {
-			CString		text;
-			COLORREF	textColor;
-			TextLog(const CString& t, COLORREF c) : text(t), textColor(c) { }
-		};
 		std::vector<std::unique_ptr<TextLog>>	vecLog;
 
 		RequestLog(int rq) : RequestNumber(rq) { }
 	};
 	std::vector<std::unique_ptr<RequestLog>>	m_vecRquestLog;
 	CCriticalSection	m_csRequestLog;
+
+	CCriticalSection	m_csLog;
+	std::list<TextLog>	m_logList;
 
 	bool	m_bStopLog;
 	bool	m_bRecentURLs;

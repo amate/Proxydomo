@@ -879,6 +879,7 @@ std::unique_ptr<CSSLSession>	CSSLSession::InitClientSession(CSocket* sock, const
 	ret = gnutls_credentials_set(session->m_session, GNUTLS_CRD_CERTIFICATE, g_client_cred);
 	ATLASSERT(ret == GNUTLS_E_SUCCESS);
 
+	sock->SetBlocking(false);
 	gnutls_transport_set_int(session->m_session, sock->GetSocket());
 	gnutls_handshake_set_timeout(session->m_session, GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT);
 
@@ -936,7 +937,7 @@ std::unique_ptr<CSSLSession>	CSSLSession::InitClientSession(CSocket* sock, const
 		gnutls_free(desc);
 	}
 	session->m_sock = sock;
-	session->m_sock->SetBlocking(false);
+	//session->m_sock->SetBlocking(false);
 	return session;
 }
 
@@ -982,6 +983,7 @@ std::unique_ptr<CSSLSession> CSSLSession::InitServerSession(CSocket* sock, const
 	*/
 	gnutls_certificate_server_set_request(session->m_session, GNUTLS_CERT_IGNORE);
 
+	sock->SetBlocking(false);
 	gnutls_transport_set_int(session->m_session, sock->GetSocket());
 
 	do {
@@ -997,7 +999,7 @@ std::unique_ptr<CSSLSession> CSSLSession::InitServerSession(CSocket* sock, const
 	}
 
 	session->m_sock = sock;
-	session->m_sock->SetBlocking(false);
+	//session->m_sock->SetBlocking(false);
 	return session;
 }
 

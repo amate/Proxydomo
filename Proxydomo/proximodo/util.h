@@ -73,6 +73,7 @@ public:
 
     // Append b to a, escaping HTML chars (< > &) as needed
     static void htmlEscape(string& a, const string& b);
+	static std::wstring htmlEscape(const wchar_t* data, size_t len);
 
     // Deletes the dynamic content of a vector
     template <typename V>

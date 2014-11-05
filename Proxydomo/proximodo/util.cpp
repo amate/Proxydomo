@@ -162,6 +162,77 @@ void CUtil::htmlEscape(string& a, const string& b) {
         a += "</span>";
 }
 
+std::wstring CUtil::htmlEscape(const wchar_t* data, size_t len)
+{
+	std::wstring a;
+	enum { 
+		outside, tag, attr, val 
+	} state = outside;
+
+	bool quote = false;
+	for (size_t i = 0; i < len; ++i) {
+		switch (data[i]) {
+		case L'<':
+			if (state == outside && i < (len - 1) &&
+				!isspace(data[i + 1])) {
+				state = tag;
+				quote = false;
+				a += L"<span class=\"tag\">";
+			}
+			a += L"&lt;";
+			break;
+
+		case L'>':
+			if (state != outside) {
+				state = outside;
+				quote = false;
+				a += L"</span>";
+			}
+			a += L"<span class=\"tag\">&gt;</span>";
+			break;
+
+		case L'&':
+			a += L"&amp;";
+			break;
+
+		case L' ':
+			if (!quote && state != outside) {
+				state = attr;
+				a += L"</span><span class=\"attr\">";
+			}
+			a += data[i];
+			break;
+
+		case L'=':
+			a += data[i];
+			if (state == attr) {
+				state = val;
+				quote = false;
+				a += L"</span><span class=\"aval\">";
+			}
+			break;
+
+		case L'\n':
+			a += L"<br />\n";
+			break;
+
+		case L'\r':
+			break;
+
+		case L'\"':
+		case L'\'':
+			quote = !quote;
+			// fall through
+		default:
+			a += data[i];
+			break;
+		}
+	}
+	if (state != outside)
+		a += L"</span>";
+	return a;
+}
+
 // Put string in uppercase
 string& CUtil::upper(string& s) {
     for (string::iterator it = s.begin(); it != s.end(); it++) {

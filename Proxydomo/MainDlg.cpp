@@ -43,6 +43,17 @@ void CMainDlg::ProxyEvent(LogProxyEvent Event, const IPv4Address& addr)
 	GetDlgItem(IDC_STATIC_ACTIVEREQUESTCOUNT).SetWindowText(text);
 }
 
+void CMainDlg::FilterEvent(LogFilterEvent Event, int RequestNumber, const std::string& title, const std::string& text)
+{
+	if (Event == kLogFilterLogCommand) {
+		if (text.length() > 0 && text[0] == '!') {
+			if (m_logView.IsWindowVisible() == FALSE) {
+				m_logView.ShowWindow();
+				m_logView.FilterEvent(Event, RequestNumber, title, text);
+			}
+		}
+	}
+}
 
 LRESULT CMainDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 {
@@ -107,6 +118,9 @@ LRESULT CMainDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam
 		// center the dialog on the screen
 		CenterWindow();
 	}
+
+	m_logView.Create(m_hWnd);
+
 	return TRUE;
 }
 
@@ -284,8 +298,6 @@ LRESULT CMainDlg::OnTrayIconNotify(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, 
 
 LRESULT CMainDlg::OnShowLogWindow(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
-	if (m_logView.IsWindow() == FALSE)
-		m_logView.Create(m_hWnd);
 	m_logView.ShowWindow();
 	return 0;
 }

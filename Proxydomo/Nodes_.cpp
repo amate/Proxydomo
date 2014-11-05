@@ -32,6 +32,7 @@
 #include "Log.h"
 #include "Settings.h"
 #include "CodeConvert.h"
+#include "AppConst.h"
 //#include <unicode\uchar.h>
 
 using namespace CodeConvert;
@@ -1146,8 +1147,12 @@ const UChar* CNode_Command::match(const UChar* start, const UChar* stop, MatchDa
         }
         break;
     
-    case CMD_ALERT:
-        //wxMessageBox(S2W(CExpander::expand(content, filter)), wxT(APP_NAME));
+	case CMD_ALERT:
+		//wxMessageBox(S2W(CExpander::expand(content, filter)), wxT(APP_NAME));
+		{
+			std::wstring text = CExpander::expand(m_content, filter);
+			MessageBox(NULL, text.c_str(), APP_NAME, MB_OK);
+		}
         break;
 
     case CMD_CONFIRM:

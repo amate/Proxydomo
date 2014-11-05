@@ -47,6 +47,7 @@ public:
     void DataDump();
 
 private:
+
 	// Data members
 
     // the object which contains header values and variables
@@ -66,6 +67,9 @@ private:
     void escapeOutput(std::stringstream& out, const UChar *data, size_t len);
 
 	void _firstDebugOutput(const std::string& charaCode);
+
+	// EUC-JP, Shift-JIS, UTF-8, JIS ‚Ì––”ö‚ð’²‚×‚é
+	int	_findEndPoint(const char* start, const char*& end);
     
     // the actual buffer
     std::string	m_buffer;
@@ -75,5 +79,6 @@ private:
 	icu::UnicodeString	m_unicodeBuffer;
 	UConverter*	m_pConverter;
 	bool	m_bDataDump;
+	bool	m_bJISCode;
 };
 

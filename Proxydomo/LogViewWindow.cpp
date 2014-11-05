@@ -62,8 +62,10 @@ CLogViewWindow::~CLogViewWindow()
 
 void	CLogViewWindow::ShowWindow()
 {
-	CLog::RegisterLogTrace(this);
-	_RefreshTitle();
+	if (IsWindowVisible() == FALSE) {
+		CLog::RegisterLogTrace(this);
+		_RefreshTitle();
+	}
 	__super::ShowWindow(TRUE);
 }
 
@@ -152,7 +154,7 @@ void CLogViewWindow::HttpEvent(LogHttpEvent Event, const IPv4Address& addr, int 
 		bool bFound = false;
 		for (auto& reqLog : m_vecRquestLog) {
 			if (reqLog->RequestNumber == RequestNumber) {
-				reqLog->vecLog.emplace_back(new RequestLog::TextLog(msg, color));
+				reqLog->vecLog.emplace_back(new TextLog(msg, color));
 				lock.Unlock();
 				int nCurSel = m_cmbRequest.GetCurSel();
 				if (nCurSel > 0 && m_cmbRequest.GetItemData(nCurSel) == RequestNumber) {
@@ -164,7 +166,7 @@ void CLogViewWindow::HttpEvent(LogHttpEvent Event, const IPv4Address& addr, int 
 		}
 		if (bFound == false) {
 			m_vecRquestLog.emplace_back(new RequestLog(RequestNumber));
-			m_vecRquestLog.back()->vecLog.emplace_back(new RequestLog::TextLog(msg, color));
+			m_vecRquestLog.back()->vecLog.emplace_back(new TextLog(msg, color));
 			lock.Unlock();
 			CString temp;
 			temp.Format(_T("#%d"), RequestNumber);
@@ -181,14 +183,14 @@ void CLogViewWindow::FilterEvent(LogFilterEvent Event, int RequestNumber, const 
 		return ;
 
 	CString msg;
+	COLORREF color = LOG_COLOR_FILTER;
 
 	auto funcPartLog = [&]() {
-		COLORREF color = LOG_COLOR_FILTER;
 		CCritSecLock	lock(m_csRequestLog);
 		bool bFound = false;
 		for (auto& reqLog : m_vecRquestLog) {
 			if (reqLog->RequestNumber == RequestNumber) {
-				reqLog->vecLog.emplace_back(new RequestLog::TextLog(msg, color));
+				reqLog->vecLog.emplace_back(new TextLog(msg, color));
 				lock.Unlock();
 				int nCurSel = m_cmbRequest.GetCurSel();
 				if (nCurSel > 0 && m_cmbRequest.GetItemData(nCurSel) == RequestNumber) {
@@ -200,7 +202,7 @@ void CLogViewWindow::FilterEvent(LogFilterEvent Event, int RequestNumber, const 
 		}
 		if (bFound == false) {
 			m_vecRquestLog.emplace_back(new RequestLog(RequestNumber));
-			m_vecRquestLog.back()->vecLog.emplace_back(new RequestLog::TextLog(msg, color));
+			m_vecRquestLog.back()->vecLog.emplace_back(new TextLog(msg, color));
 			lock.Unlock();
 			CString temp;
 			temp.Format(_T("#%d"), RequestNumber);
@@ -230,7 +232,32 @@ void CLogViewWindow::FilterEvent(LogFilterEvent Event, int RequestNumber, const 
 		break;
 
 	case kLogFilterLogCommand:
-		msg += _T("LogCommand");
+	{
+		std::string log = text;
+		if (log.length() > 0) {
+			if (text[0] == '!') {
+				ShowWindow();
+				log.erase(log.begin());
+			}
+		}
+		if (log.length() > 0) {
+			switch (log[0]) {
+			case 'R': color = RGB(238, 0, 0); log.erase(log.begin()); break;
+			case 'W': color = RGB(0, 0, 0); log.erase(log.begin()); break;
+			case 'w': color = RGB(170, 170, 170); log.erase(log.begin()); break;
+			case 'B': color = RGB(0, 0, 221); log.erase(log.begin()); break;
+			case 'G': color = RGB(0, 170, 0); log.erase(log.begin()); break;
+			case 'Y': color = RGB(216, 216, 0); log.erase(log.begin()); break;
+			case 'V': color = RGB(136, 0, 136); log.erase(log.begin()); break;
+			case 'C': color = RGB(0, 255, 255); log.erase(log.begin()); break;
+			}
+		}
+		msg += UTF16fromUTF8(log).c_str();
+		msg += _T("\n");
+		funcPartLog();
+		_AppendText(msg, color);
+		return;
+	}
 		break;
 
 	case kLogFilterJump:
@@ -263,14 +290,14 @@ void CLogViewWindow::FilterEvent(LogFilterEvent Event, int RequestNumber, const 
 		ATLASSERT( FALSE );
 		return ;
 	}
-	msg.AppendFormat(_T(", title[ %s ] "), UTF16fromUTF8(title).c_str());
-	if (Event == kLogFilterHeaderMatch)
-		msg += text.c_str();
+	msg.AppendFormat(_T(" [%s] "), UTF16fromUTF8(title).c_str());
+	//if (Event == kLogFilterHeaderMatch)
+	//	msg += text.c_str();
 	msg += _T("\n");
 
 	funcPartLog();
 	
-	_AppendText(msg, LOG_COLOR_FILTER);
+	_AppendText(msg, color);
 }
 
 void	CLogViewWindow::_AddNewRequest(CLog::RecentURLData* it)
@@ -554,27 +581,43 @@ void	CLogViewWindow::_AppendText(const CString& text, COLORREF textColor)
 		return ;
 
 	CCritSecLock lock(m_csLog);
+	m_logList.emplace_back(text, textColor);
+	PostMessage(WM_APPENDTEXT);
+}
 
-	CHARFORMAT cfmt = { sizeof(CHARFORMAT) };
-	cfmt.dwMask = CFM_COLOR;
-	cfmt.crTextColor	= textColor;
+LRESULT CLogViewWindow::OnAppendText(UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	CCritSecLock lock(m_csLog);
+	std::list<TextLog> logList;
+	logList.swap(m_logList);
+	lock.Unlock();
 
-	m_editLog.HideSelection(TRUE);
-	
-	m_editLog.SetSel(-1, -1);
-	long start = 0;
-	long end = 0;
-	m_editLog.GetSel(start, end);
+	for (auto& log : logList){
+		const CString& text = log.text;
+		COLORREF textColor = log.textColor;
 
-	m_editLog.AppendText(text);
+		CHARFORMAT cfmt = { sizeof(CHARFORMAT) };
+		cfmt.dwMask = CFM_COLOR;
+		cfmt.crTextColor = textColor;
 
-	m_editLog.SetSel(end, -1);
-	m_editLog.SetSelectionCharFormat(cfmt);
-	m_editLog.SetSel(-1, -1);
-	
-	m_editLog.HideSelection(FALSE);
+		m_editLog.HideSelection(TRUE);
 
-	m_editLog.PostMessage(WM_VSCROLL, SB_BOTTOM);
+		m_editLog.SetSel(-1, -1);
+		long start = 0;
+		long end = 0;
+		m_editLog.GetSel(start, end);
+
+		m_editLog.AppendText(text);
+
+		m_editLog.SetSel(end, -1);
+		m_editLog.SetSelectionCharFormat(cfmt);
+		m_editLog.SetSel(-1, -1);
+
+		m_editLog.HideSelection(FALSE);
+
+		m_editLog.PostMessage(WM_VSCROLL, SB_BOTTOM);
+	}
+	return 0;
 }
 
 void	CLogViewWindow::_AppendRequestLogText(const CString& text, COLORREF textColor)
@@ -601,9 +644,15 @@ void	CLogViewWindow::_AppendRequestLogText(const CString& text, COLORREF textCol
 	m_editPartLog.PostMessage(WM_VSCROLL, SB_BOTTOM);
 }
 
+
 void	CLogViewWindow::_RefreshTitle()
 {
 	CString title;
 	title.Format(_T("ÉçÉO - Active[ %d ]"), CLog::GetActiveRequestCount());
 	SetWindowText(title);
 }
+
+
+
+
+

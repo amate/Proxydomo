@@ -49,7 +49,7 @@ std::map<std::string, UConverter*>	g_mapConverter;
 
 CTextBuffer::CTextBuffer(CFilterOwner& owner, IDataReceptor* output) : 
 	m_owner(owner), m_output(output), 
-	m_bCharaCodeDectated(false), m_pConverter(nullptr), m_bDataDump(false)
+	m_bCharaCodeDectated(false), m_pConverter(nullptr), m_bDataDump(false), m_bJISCode(false)
 {
 	CSettings::EnumActiveFilter([&, this](CFilterDescriptor* filter) {
 		if (filter->filterType == filter->kFilterText)
@@ -80,20 +80,42 @@ void CTextBuffer::DataReset()
 	m_pConverter = nullptr;
 	m_output->DataReset();	
 	m_bDataDump = false;
+	m_bJISCode = false;
 }
 
-/// EUC-JP, Shift-JIS, UTF-8 の末尾を調べる
-static int findEndPoint(const char* start, const char*& end)
+/// EUC-JP, Shift-JIS, UTF-8, JIS の末尾を調べる
+int CTextBuffer::_findEndPoint(const char* start, const char*& end)
 {
 	enum { kMaxDecriment = 512 };
 	--end;
-	for (int decrimentCount = 0; 
-			start < end && decrimentCount < kMaxDecriment; ++decrimentCount, --end)
-	{
-		unsigned char code = *end;
-		if (/*0x20*/0 < code && code <= 0x7E) {	// acii	// Shift-JISだと2byte目の可能性もあるが大丈夫
-			++end;
-			return decrimentCount;
+	if (m_bJISCode) {
+		for (int decrimentCount = 0;
+			start < end && decrimentCount < kMaxDecriment; 
+			++decrimentCount, --end )
+		{
+			unsigned char code = *end;
+			if (code == 0x1B) {	// ESC
+				if (2 <= decrimentCount) {
+					unsigned char esc1 = *std::next(end);
+					unsigned char esc2 = *std::next(end, 2);
+					if (esc1 == 0x28 && esc2 == 0x42) {	// (B
+						std::advance(end, 3);
+						decrimentCount -= 2;
+						return decrimentCount;
+					}
+				}
+			}
+		}
+	} else {
+		for (int decrimentCount = 0;
+			start < end && decrimentCount < kMaxDecriment; 
+			++decrimentCount, --end )
+		{
+			unsigned char code = *end;
+			if (/*0x20*/0 < code && code <= 0x7E) {	// acii	// Shift-JISだと2byte目の可能性もあるが大丈夫
+				++end;
+				return decrimentCount;
+			}
 		}
 	}
 	return -1;
@@ -297,6 +319,8 @@ void CTextBuffer::DataFeed(const std::string& data)
 		convert2:
 		m_bCharaCodeDectated = true;
 		lock.Unlock();
+		if (charaCode == "ISO-2022-JP" || charaCode == "JIS")
+			m_bJISCode = true;
 
 		if (m_owner.url.getDebug())
 			_firstDebugOutput(charaCode);
@@ -309,7 +333,7 @@ void CTextBuffer::DataFeed(const std::string& data)
 	std::stringstream out;
 	if (m_bDataDump == false) {		// 通常時
 		const char* endPoint = m_buffer.c_str() + m_buffer.size();
-		int decrimentCount = findEndPoint(m_buffer.c_str(), endPoint);
+		int decrimentCount = _findEndPoint(m_buffer.c_str(), endPoint);
 		if (decrimentCount == -1) {
 			if (data.size() > 0)
 				return ;	// 末尾が見つからなかったら危ないので帰る
@@ -476,13 +500,11 @@ void CTextBuffer::DataDump()
 
 void CTextBuffer::escapeOutput(std::stringstream& out, const UChar *data, size_t len)
 {
-	std::string webcode = ConvertFromUTF16(data, len, m_pConverter);
     if (m_owner.url.getDebug()) {
-        std::string buf;
-        CUtil::htmlEscape(buf, webcode);
-        out << buf;
+		std::wstring buf = CUtil::htmlEscape(data, len);
+		out << ConvertFromUTF16(buf, m_pConverter);
     } else {
-        out << webcode;
+		out << ConvertFromUTF16(data, len, m_pConverter);
     }
 }
 

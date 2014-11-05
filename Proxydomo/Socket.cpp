@@ -26,6 +26,7 @@
 #pragma comment(lib, "ws2_32.lib")
 
 #include "DebugWindow.h"
+#include "Logger.h"
 
 
 ////////////////////////////////////////////////////////////////
@@ -106,9 +107,11 @@ bool IPv4Address::SetHostName(const std::string& IPorHost)
 		if (ret == 0) {
 			break;
 		} else if (ret == EAI_AGAIN) {
-			if (tryCount >= 5)
+			if (tryCount >= 5) {
+				WARN_LOG << L"getaddrinfo retry failed: " << IPorHost;
 				return false;
-			::Sleep(10);
+			}
+			::Sleep(50);
 		} else {
 			std::wstring strerror = gai_strerror(ret);
 			return false;
