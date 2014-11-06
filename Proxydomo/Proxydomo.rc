@@ -54,6 +54,8 @@ END
 IDR_MAINFRAME           ICON                    "res\\Proxydomo.ico"
 IDI_FOLDER              ICON                    "res\\folder.ico"
 IDI_FILTER              ICON                    "res\\filter.ico"
+IDI_HEADERFILTER        ICON                    "res\\HeaderFilter.ico"
+IDI_WEBFILTER           ICON                    "res\\WebFilter.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //

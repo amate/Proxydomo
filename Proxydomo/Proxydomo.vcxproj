@@ -740,7 +740,9 @@
     <Image Include="res\filter.ico" />
     <Image Include="res\FilterManagerToolBar.bmp" />
     <Image Include="res\folder.ico" />
+    <Image Include="res\HeaderFilter.ico" />
     <Image Include="res\Proxydomo.ico" />
+    <Image Include="res\WebFilter.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

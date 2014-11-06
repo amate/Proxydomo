@@ -14,6 +14,8 @@
 #define IDD_CERTIFICATEERROR			136
 #define IDI_FOLDER                      201
 #define IDI_FILTER                      202
+#define IDI_HEADERFILTER				203
+#define IDI_WEBFILTER					204
 #define IDB_FILTERMANAGERTOOLBAR        250
 #define IDC_RICHEDIT_LOG                1000
 #define IDC_BUTTON_CLEAR                1001

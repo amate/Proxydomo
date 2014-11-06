@@ -68,11 +68,17 @@ struct FilterItem
 
 	FilterItem() : active(false) { }
 
+	FilterItem(std::unique_ptr<CFilterDescriptor>&& filter) : 
+		name(filter->title.c_str()), active(filter->Active), pFilter(std::move(filter))
+	{
+	}
+
 	FilterItem(const FilterItem& item) : name(item.name), active(item.active)
 	{
 		if (item.pFilter)
 			pFilter.reset(new CFilterDescriptor(*item.pFilter));
 	}
+
 };
 
 class CSettings

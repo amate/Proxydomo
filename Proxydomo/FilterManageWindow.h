@@ -39,8 +39,14 @@ public:
 	enum { IDD = IDD_FILTERMANAGE };
 
 	enum { 
-		WM_CHECKSTATECHANGED = WM_APP + 1
+		WM_CHECKSTATECHANGED = WM_APP + 1,
+
+		kDragFolderExpandTimerId = 1,
+		kDragFolderExpandTimerInterval = 400,
 	};
+
+	enum { kIconFolder = 0, kIconHeaderFilter = 1, kIconWebFilter = 2, };
+
 
 	CFilterManageWindow();
 
@@ -58,12 +64,14 @@ public:
 		MSG_WM_DESTROY( OnDestroy )
 		COMMAND_ID_HANDLER_EX( IDCANCEL, OnCancel )
 		NOTIFY_HANDLER_EX( IDC_TREE_FILTER, NM_CLICK, OnTreeFilterClick )
-		NOTIFY_HANDLER_EX( IDC_TREE_FILTER, TVN_BEGINLABELEDIT, OnTreeFilterBeginLabelEdit )
+		NOTIFY_HANDLER_EX( IDC_TREE_FILTER, NM_RCLICK, OnTreeFilterRClick)
+		NOTIFY_HANDLER_EX( IDC_TREE_FILTER, TVN_BEGINLABELEDIT, OnTreeFilterBeginLabelEdit)
 		NOTIFY_HANDLER_EX( IDC_TREE_FILTER, TVN_ENDLABELEDIT, OnTreeFilterEndLabelEdit )
 		MESSAGE_HANDLER_EX( WM_CHECKSTATECHANGED, OnCheckStateChanged )
 		NOTIFY_HANDLER_EX( IDC_TREE_FILTER, NM_DBLCLK, OnTreeFilterDblClk )		
 		NOTIFY_HANDLER_EX( IDC_TREE_FILTER, TVN_BEGINDRAG, OnTreeFilterBeginDrag )
 		MSG_WM_MOUSEMOVE( OnMouseMove )
+		MSG_WM_TIMER( OnTimer )
 		MSG_WM_LBUTTONUP( OnLButtonUp )
 		MSG_WM_RBUTTONDOWN( OnRButtonDown )
 
@@ -83,6 +91,7 @@ public:
 	void OnCancel(UINT uNotifyCode, int nID, CWindow wndCtl);
 
 	LRESULT OnTreeFilterClick(LPNMHDR pnmh);
+	LRESULT OnTreeFilterRClick(LPNMHDR pnmh);
 	LRESULT OnTreeFilterBeginLabelEdit(LPNMHDR pnmh);
 	LRESULT OnTreeFilterEndLabelEdit(LPNMHDR pnmh);
 	LRESULT OnCheckStateChanged(UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -90,6 +99,7 @@ public:
 
 	LRESULT OnTreeFilterBeginDrag(LPNMHDR pnmh);
 	void OnMouseMove(UINT nFlags, CPoint point);
+	void OnTimer(UINT_PTR nIDEvent);
 	void OnLButtonUp(UINT nFlags, CPoint point);
 	void OnRButtonDown(UINT nFlags, CPoint point);
 
@@ -102,7 +112,9 @@ public:
 
 private:
 	void _AddTreeItem(HTREEITEM htRoot, std::vector<std::unique_ptr<FilterItem>>& vecpFilter);
-	void _AddFilterDescriptor(CFilterDescriptor* filter);
+	void _AddFilterDescriptor(std::unique_ptr<CFilterDescriptor>&& filter);
+	void _InsertFilterItem(std::unique_ptr<FilterItem>&& filterItem, 
+							HTREEITEM htParentFolder, HTREEITEM htInsertAfter = TVI_LAST);
 	std::vector<std::unique_ptr<FilterItem>>* _GetParentFilterFolder(HTREEITEM htItem);
 	bool	_IsChildItem(HTREEITEM htParent, HTREEITEM htItem);
 
@@ -111,5 +123,6 @@ private:
 	CTreeViewCtrl	m_treeFilter;
 
 	HTREEITEM		m_htBeginDrag;
+	//CImageList		m_dragImage;
 	std::vector<std::unique_ptr<FilterItem>>*	m_pvecBeginDragParent;	// for delete
 };

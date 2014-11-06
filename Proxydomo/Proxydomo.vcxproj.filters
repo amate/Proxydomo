@@ -16,6 +16,9 @@
     <Filter Include="Source Files\proximodo">
       <UniqueIdentifier>{de11e98c-32ba-4c7b-8c5a-478fa139d94f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Window">
+      <UniqueIdentifier>{77f0da3b-3a0b-4914-a007-0964fd88071a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -114,25 +117,13 @@
     <ClCompile Include="proximodo\url.cpp">
       <Filter>Source Files\proximodo</Filter>
     </ClCompile>
-    <ClCompile Include="DebugWindow.cpp">
-      <Filter>Header Files</Filter>
-    </ClCompile>
     <ClCompile Include="Misc.cpp">
-      <Filter>Header Files</Filter>
-    </ClCompile>
-    <ClCompile Include="LogViewWindow.cpp">
       <Filter>Header Files</Filter>
     </ClCompile>
     <ClCompile Include="TextBuffer.cpp">
       <Filter>Header Files</Filter>
     </ClCompile>
     <ClCompile Include="FilterOwner.cpp">
-      <Filter>Header Files</Filter>
-    </ClCompile>
-    <ClCompile Include="FilterManageWindow.cpp">
-      <Filter>Header Files</Filter>
-    </ClCompile>
-    <ClCompile Include="FilterEditWindow.cpp">
       <Filter>Header Files</Filter>
     </ClCompile>
     <ClCompile Include="FilterDescriptor.cpp">
@@ -142,9 +133,6 @@
       <Filter>Header Files</Filter>
     </ClCompile>
     <ClCompile Include="RequestManager.cpp">
-      <Filter>Header Files</Filter>
-    </ClCompile>
-    <ClCompile Include="MainDlg.cpp">
       <Filter>Header Files</Filter>
     </ClCompile>
     <ClCompile Include="Proxy.cpp">
@@ -174,15 +162,24 @@
     <ClCompile Include="ssl.cpp">
       <Filter>Header Files</Filter>
     </ClCompile>
+    <ClCompile Include="DebugWindow.cpp">
+      <Filter>Header Files\Window</Filter>
+    </ClCompile>
+    <ClCompile Include="FilterEditWindow.cpp">
+      <Filter>Header Files\Window</Filter>
+    </ClCompile>
+    <ClCompile Include="FilterManageWindow.cpp">
+      <Filter>Header Files\Window</Filter>
+    </ClCompile>
+    <ClCompile Include="LogViewWindow.cpp">
+      <Filter>Header Files\Window</Filter>
+    </ClCompile>
+    <ClCompile Include="MainDlg.cpp">
+      <Filter>Header Files\Window</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="MainDlg.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="AboutDlg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="proximodo\configscreen.h">
@@ -302,13 +299,7 @@
     <ClInclude Include="proximodo\url.h">
       <Filter>Source Files\proximodo</Filter>
     </ClInclude>
-    <ClInclude Include="DebugWindow.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Misc.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="LogViewWindow.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
@@ -324,12 +315,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="FilterOwner.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="FilterManageWindow.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="FilterEditWindow.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="FilterDescriptor.h">
@@ -365,8 +350,26 @@
     <ClInclude Include="ssl.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="AboutDlg.h">
+      <Filter>Header Files\Window</Filter>
+    </ClInclude>
+    <ClInclude Include="DebugWindow.h">
+      <Filter>Header Files\Window</Filter>
+    </ClInclude>
+    <ClInclude Include="FilterEditWindow.h">
+      <Filter>Header Files\Window</Filter>
+    </ClInclude>
+    <ClInclude Include="FilterManageWindow.h">
+      <Filter>Header Files\Window</Filter>
+    </ClInclude>
+    <ClInclude Include="LogViewWindow.h">
+      <Filter>Header Files\Window</Filter>
+    </ClInclude>
+    <ClInclude Include="MainDlg.h">
+      <Filter>Header Files\Window</Filter>
+    </ClInclude>
     <ClInclude Include="OptionDialog.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\Window</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -385,6 +388,12 @@
       <Filter>Resource Files</Filter>
     </Image>
     <Image Include="res\FilterManagerToolBar.bmp">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\HeaderFilter.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="res\WebFilter.ico">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>
