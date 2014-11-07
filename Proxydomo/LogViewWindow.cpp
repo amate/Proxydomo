@@ -280,10 +280,16 @@ void CLogViewWindow::FilterEvent(LogFilterEvent Event, int RequestNumber, const 
 
 	case kLogFilterListReload:
 		msg = _T("リストが再読み込みされました: ");
-		msg += title.c_str();
+		msg += UTF16fromUTF8(title).c_str();
 		msg += _T("\n");
 		_AppendText(msg, LOG_COLOR_FILTER);
 		return ;
+		break;
+
+	case kLogFilterListBadLine:
+		msg.Format(_T("リストのマッチングルールに異常があります: [%s] %d 行目\n"), UTF16fromUTF8(title).c_str(), RequestNumber);
+		_AppendText(msg, LOG_COLOR_FILTER);
+		return;
 		break;
 
 	default:

@@ -578,7 +578,7 @@ const UChar* CNode_And::match(const UChar* start, const UChar* stop, MatchData* 
 		const UChar* reachedR = pMatch->reached;
 		if (reachedR < reachedL)
 			pMatch->reached = reachedL;
-		if (posL > posR) {
+		if (posR < posL) {
 			return posL;
 		} else {
 			return posR;

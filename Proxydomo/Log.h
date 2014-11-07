@@ -54,6 +54,7 @@ enum LogFilterEvent
 	kLogFilterJump,
 	kLogFilterRdir,
 	kLogFilterListReload,
+	kLogFilterListBadLine,
 };
 
 

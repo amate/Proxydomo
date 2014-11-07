@@ -384,11 +384,17 @@ void CSettings::LoadList(const CString& filePath)
 		hashedLists->deqNormalNode.clear();
 
 		std::wstring strLine;
-		while (std::getline(fs, strLine).good()) {
+		int nLineCount = 1;
+		while (std::getline(fs, strLine).fail() == false) {
 			CUtil::trim(strLine);
 			if (strLine.size() > 0 && strLine[0] != L'#') {
-				_CreatePattern(strLine, *hashedLists);
+				bool bSuccess = _CreatePattern(strLine, *hashedLists);
+				if (bSuccess == false)
+					CLog::FilterEvent(kLogFilterListBadLine, nLineCount, filename, "");
 			}
+			++nLineCount;
+			if (fs.eof())
+				break;
 		}
 		s_mutexHashedLists.unlock();
 	}
@@ -400,7 +406,7 @@ static inline bool isNonWildWord(wchar_t c) {
 }
 
 
-void CSettings::_CreatePattern(std::wstring& pattern, HashedListCollection& listCollection)
+bool CSettings::_CreatePattern(std::wstring& pattern, HashedListCollection& listCollection)
 {
 	// 固定プレフィックス
 	enum { kMaxPreHashWordLength = 7 };
@@ -417,7 +423,7 @@ void CSettings::_CreatePattern(std::wstring& pattern, HashedListCollection& list
 
 		// 最初にパターンが正常かテスト
 		if (Proxydomo::CMatcher::CreateMatcher(pattern) == nullptr)
-			return;
+			return false;
 
 		UnicodeString pat(pattern.c_str(), pattern.length());
 		StringCharacterIterator patternIt(pat);
@@ -433,10 +439,10 @@ void CSettings::_CreatePattern(std::wstring& pattern, HashedListCollection& list
 					pmapChildHashWord->vecNode.emplace_back(Proxydomo::CMatcher::expr(patternIt));
 				}
 				catch (...) {
-					return;
+					return false;
 				}
 				pmapChildHashWord->vecNode.back()->setNextNode(nullptr);
-				return;
+				return true;
 			}
 			pmapPreHashWord = &pmapChildHashWord->mapChildPreHashWord;
 		}
@@ -481,14 +487,27 @@ void CSettings::_CreatePattern(std::wstring& pattern, HashedListCollection& list
 				ATLASSERT(domain.empty());
 				return deqDomain;
 			};
+
+			auto funcGetFirstWildcard = [&urlHost](std::wstring::const_iterator& it) -> std::wstring {
+				for (; it != urlHost.cend(); ++it) {
+					if (*it == L'.') {
+						std::wstring firstWildcard(urlHost.cbegin(), it);
+						++it;
+						return firstWildcard;
+					}
+				}
+				return L"";
+			};
+
 			wchar_t first = urlHost.front();
 			std::wstring firstWildcard;
 			std::deque<std::wstring>	deqDomain;
 			switch (first) {
 				case L'*':
 				{
-					firstWildcard = first;
-					deqDomain = funcSplitDomain(std::next(urlHost.cbegin()));
+					auto it = std::next(urlHost.cbegin());
+					firstWildcard = funcGetFirstWildcard(it);
+					deqDomain = funcSplitDomain(it);
 				}
 				break;
 
@@ -501,8 +520,9 @@ void CSettings::_CreatePattern(std::wstring& pattern, HashedListCollection& list
 						} else if (*it == L')') {
 							nkakko--;
 							if (nkakko == 0) {
-								firstWildcard.assign(urlHost.cbegin(), it);
-								deqDomain = funcSplitDomain(std::next(it));
+								std::advance(it, 1);
+								firstWildcard = funcGetFirstWildcard(it);
+								deqDomain = funcSplitDomain(it);
 								break;
 							}
 						}
@@ -520,17 +540,20 @@ void CSettings::_CreatePattern(std::wstring& pattern, HashedListCollection& list
 							if (next1 != urlHost.cend() && *next1 == L'+') {	// ]+
 								auto next2 = std::next(next1);
 								if (next2 != urlHost.cend() && *next2 == L'+') {	// ]++
-									firstWildcard.assign(urlHost.cbegin(), std::next(next2));
-									deqDomain = funcSplitDomain(std::next(next2));
+									std::advance(next2, 1);
+									firstWildcard = funcGetFirstWildcard(next2);
+									deqDomain = funcSplitDomain(next2);
 									break;
 								} else {
-									firstWildcard.assign(urlHost.cbegin(), std::next(next1));
-									deqDomain = funcSplitDomain(std::next(next1));
+									std::advance(next1, 1);
+									firstWildcard = funcGetFirstWildcard(next1);
+									deqDomain = funcSplitDomain(next1);
 									break;
 								}
 							}
-							firstWildcard.assign(urlHost.cbegin(), it);	// ]
-							deqDomain = funcSplitDomain(std::next(it));
+							std::advance(it, 1);
+							firstWildcard = funcGetFirstWildcard(it);	// ]
+							deqDomain = funcSplitDomain(it);
 							break;
 						}
 					}
@@ -540,8 +563,9 @@ void CSettings::_CreatePattern(std::wstring& pattern, HashedListCollection& list
 				case L'\\':
 				{
 					if (*std::next(urlHost.cbegin()) == L'w') {
-						firstWildcard = L"\\w";
-						deqDomain = funcSplitDomain(std::next(urlHost.cbegin(), 2));
+						auto it = std::next(urlHost.cbegin(), 2);
+						firstWildcard = funcGetFirstWildcard(it);
+						deqDomain = funcSplitDomain(it);
 					}
 				}
 				break;
@@ -549,7 +573,7 @@ void CSettings::_CreatePattern(std::wstring& pattern, HashedListCollection& list
 			if (firstWildcard.length() > 0 && deqDomain.size() > 0) {
 				// 最初にパターンが正常かテスト
 				if (Proxydomo::CMatcher::CreateMatcher(pattern) == nullptr)
-					return;
+					return false;
 
 				std::wstring lastWildcard = pattern.substr(slashPos + 1);
 				std::unordered_map<std::wstring, std::unique_ptr<HashedListCollection::URLHash>>*	pmapChildURLHash = &listCollection.URLHashList;
@@ -568,7 +592,7 @@ void CSettings::_CreatePattern(std::wstring& pattern, HashedListCollection& list
 						auto& pair = pURLHash->vecpairNode.back();
 						pair.first->setNextNode(nullptr);
 						pair.second->setNextNode(nullptr);
-						return ;
+						return true;
 					}
 					pmapChildURLHash = &pURLHash->mapChildURLHash;
 				}
@@ -582,8 +606,9 @@ void CSettings::_CreatePattern(std::wstring& pattern, HashedListCollection& list
 		StringCharacterIterator patternIt(pat);
 		listCollection.deqNormalNode.emplace_back(Proxydomo::CMatcher::expr(patternIt));
 	} catch (...) {
-		return ;
+		return false;
 	}
 
 	listCollection.deqNormalNode.back()->setNextNode(nullptr);
+	return true;
 }
