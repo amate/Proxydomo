@@ -87,6 +87,8 @@ public:
     // match at start, _even_ if the buffer is smaller than the window
     // size.
     // The function returns true if the node may consume nothing yet match.
+	// 文字を消費しなくてもマッチすることがあるならtrueが返る？
+	// 必ず文字を消費するならfalseを返す？
     virtual bool mayMatch(bool* tab) =0;
 
     // Match function.

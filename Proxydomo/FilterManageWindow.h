@@ -41,6 +41,7 @@ public:
 	enum { 
 		WM_CHECKSTATECHANGED = WM_APP + 1,
 
+		kDropItemSpan = 3,
 		kDragFolderExpandTimerId = 1,
 		kDragFolderExpandTimerInterval = 400,
 	};

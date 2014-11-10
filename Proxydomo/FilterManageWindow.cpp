@@ -369,19 +369,20 @@ LRESULT CFilterManageWindow::OnTreeFilterBeginLabelEdit(LPNMHDR pnmh)
 LRESULT CFilterManageWindow::OnTreeFilterEndLabelEdit(LPNMHDR pnmh)
 {
 	auto ptvdi = (LPNMTVDISPINFO)pnmh;
-	m_treeFilter.SetItem(&ptvdi->item);
 	auto pFitlerItem = (FilterItem*)m_treeFilter.GetItemData(ptvdi->item.hItem);
-	if (pFitlerItem == nullptr || ptvdi->item.pszText == nullptr)
+	if (pFitlerItem == nullptr || ptvdi->item.pszText == nullptr || ptvdi->item.pszText[0] == L'\0')
 		return 0;
+
+	pFitlerItem->name = ptvdi->item.pszText;
 	if (pFitlerItem->pFilter) {
 		pFitlerItem->pFilter->title = ptvdi->item.pszText;
-	} else {
-		pFitlerItem->name = ptvdi->item.pszText;
 	}
+	m_treeFilter.SetItem(&ptvdi->item);
 	CSettings::SaveFilter();
 	return 0;
 }
 
+// チェックを反転させる
 LRESULT CFilterManageWindow::OnTreeFilterClick(LPNMHDR pnmh)
 {
 	CPoint pt(::GetMessagePos());
@@ -396,7 +397,7 @@ LRESULT CFilterManageWindow::OnTreeFilterClick(LPNMHDR pnmh)
 	return 0;
 }
 
-
+// 右クリックメニューを表示
 LRESULT CFilterManageWindow::OnTreeFilterRClick(LPNMHDR pnmh)
 {
 	CPoint pt(::GetMessagePos());
@@ -406,14 +407,10 @@ LRESULT CFilterManageWindow::OnTreeFilterRClick(LPNMHDR pnmh)
 	if (htHit == NULL)
 		return 0;
 
-	HTREEITEM htRoot = m_treeFilter.GetRootItem();
-	if (htRoot == htHit)
-		return 0;
-
 	m_treeFilter.SelectItem(htHit);
 
 	FilterItem* filterItem = (FilterItem*)m_treeFilter.GetItemData(htHit);
-	bool bFolder = filterItem->pvecpChildFolder != nullptr;
+	bool bFolder = filterItem == nullptr || filterItem->pvecpChildFolder != nullptr;
 
 	enum { 
 		kFilterEdit = 1,
@@ -431,8 +428,10 @@ LRESULT CFilterManageWindow::OnTreeFilterRClick(LPNMHDR pnmh)
 		menu.AppendMenu(MF_SEPARATOR);
 	}
 	menu.AppendMenu(MF_STRING, kAddFilter,		_T("新規フィルターを追加する(&A)"));
-	menu.AppendMenu(MF_STRING, kFilterDelete,
-		bFolder ? _T("フォルダを削除する(&D)") : _T("フィルターを削除する(&D)"));
+	if (htHit != m_treeFilter.GetRootItem()) {
+		menu.AppendMenu(MF_STRING, kFilterDelete,
+			bFolder ? _T("フォルダを削除する(&D)") : _T("フィルターを削除する(&D)"));
+	}
 	menu.AppendMenu(MF_SEPARATOR);
 	menu.AppendMenu(MF_STRING, kCreateFolder,	_T("フォルダを作成する(&C)"));
 	menu.AppendMenu(MF_SEPARATOR);
@@ -529,29 +528,28 @@ LRESULT CFilterManageWindow::OnCheckStateChanged(UINT uMsg, WPARAM wParam, LPARA
 /// フィルター編集ウィンドウを開く
 LRESULT CFilterManageWindow::OnTreeFilterDblClk(LPNMHDR pnmh)
 {
-	HTREEITEM htHit = m_treeFilter.GetSelectedItem();
-	if (htHit == NULL || htHit == m_treeFilter.GetRootItem())
+	CPoint pt(::GetMessagePos());
+	m_treeFilter.ScreenToClient(&pt);
+	UINT flags = 0;
+	HTREEITEM htHit = m_treeFilter.HitTest(pt, &flags);
+	if (htHit == NULL || (flags & (TVHT_ONITEMICON | TVHT_ONITEMLABEL)) == 0)
 		return 0;
 	
 	FilterItem* filterItem = (FilterItem*)m_treeFilter.GetItemData(htHit);
-	if (filterItem == nullptr)
+	if (filterItem == nullptr || filterItem->pFilter == nullptr)
 		return 0;
 
-	if (filterItem->pFilter) {
-		// フィルター編集ダイアログを開く
-		CFilterEditWindow filterEdit(filterItem->pFilter.get());
-		if (filterEdit.DoModal(m_hWnd) == IDCANCEL) 
-			return 0;
+	// フィルター編集ダイアログを開く
+	CFilterEditWindow filterEdit(filterItem->pFilter.get());
+	if (filterEdit.DoModal(m_hWnd) == IDCANCEL) 
+		return 0;
 
-		filterItem->name = filterItem->pFilter->title.c_str();
-		m_treeFilter.SetItemText(htHit, filterItem->pFilter->title.c_str());
-		int iconIndex = filterItem->pFilter->filterType == CFilterDescriptor::kFilterText ? kIconWebFilter : kIconHeaderFilter;
-		m_treeFilter.SetItemImage(htHit, iconIndex, iconIndex);
+	filterItem->name = filterItem->pFilter->title.c_str();
+	m_treeFilter.SetItemText(htHit, filterItem->pFilter->title.c_str());
+	int iconIndex = filterItem->pFilter->filterType == CFilterDescriptor::kFilterText ? kIconWebFilter : kIconHeaderFilter;
+	m_treeFilter.SetItemImage(htHit, iconIndex, iconIndex);
 
-		CSettings::SaveFilter();
-	} else {
-
-	}
+	CSettings::SaveFilter();	
 
 	return 0;
 }
@@ -651,8 +649,34 @@ void CFilterManageWindow::OnMouseMove(UINT nFlags, CPoint point)
 		}
 		
 		FilterItem* filterItem = (FilterItem*)m_treeFilter.GetItemData(htHit);
-		// フォルダー
-		if (filterItem == nullptr || filterItem->pvecpChildFolder) {
+		bool bFolder = filterItem == nullptr || filterItem->pvecpChildFolder;
+		
+		CRect rcItem;
+		m_treeFilter.GetItemRect(htHit, &rcItem, FALSE);
+		CRect rcItemTop = rcItem;
+		if (bFolder) {
+			rcItemTop.bottom = rcItemTop.top + kDropItemSpan;
+		} else {
+			rcItemTop.bottom -= (rcItem.Height() / 2);
+		}
+		CRect rcItemBottom = rcItem;
+		if (bFolder) {
+			rcItemBottom.top = rcItemBottom.bottom - kDropItemSpan;
+		} else {
+			rcItemBottom.top += (rcItem.Height() / 2);
+		}
+		if (htHit == m_treeFilter.GetRootItem()) {
+			rcItemTop.SetRectEmpty();
+			rcItemBottom.SetRectEmpty();
+		}
+
+		if (rcItemTop.PtInRect(point)) {
+			m_treeFilter.SetInsertMark(htHit, FALSE);
+
+		} else if (rcItemBottom.PtInRect(point)) {
+			m_treeFilter.SetInsertMark(htHit, TRUE);
+
+		} else if (bFolder) {	// フォルダー
 			SetCursor(LoadCursor(0, IDC_CROSS));
 			//m_treeFilter.Expand(htHit);
 			m_treeFilter.RemoveInsertMark();
@@ -662,18 +686,9 @@ void CFilterManageWindow::OnMouseMove(UINT nFlags, CPoint point)
 				SetTimer(kDragFolderExpandTimerId, kDragFolderExpandTimerInterval);
 			}
 			return;
-		} else {
-			CRect rcItem;
-			m_treeFilter.GetItemRect(htHit, &rcItem, FALSE);
-			rcItem.bottom	-= (rcItem.Height() / 2);
-			if (rcItem.PtInRect(point)) {
-				m_treeFilter.SetInsertMark(htHit, FALSE);
-			} else {
-				m_treeFilter.SetInsertMark(htHit, TRUE);
-			}
-			//m_treeFilter.SelectDropTarget(NULL);
-			KillTimer(kDragFolderExpandTimerId);
 		}
+		//m_treeFilter.SelectDropTarget(NULL);
+		KillTimer(kDragFolderExpandTimerId);
 
 	} else {
 		m_treeFilter.RemoveInsertMark();
@@ -728,7 +743,11 @@ void CFilterManageWindow::OnLButtonUp(UINT nFlags, CPoint point)
 		CCritSecLock	lock(CSettings::s_csFilters);
 		FilterItem* filterItem = (FilterItem*)m_treeFilter.GetItemData(htHit);
 		FilterItem* dragFilterItem = (FilterItem*)m_treeFilter.GetItemData(m_htBeginDrag);
-		auto funcInsertTreeItem = [this, &dragFilterItem](HTREEITEM htParent, HTREEITEM htInsertAfter) -> HTREEITEM {
+		bool bFolder = filterItem == nullptr || filterItem->pvecpChildFolder;
+
+		auto funcInsertTreeItem = 
+			[this, &dragFilterItem](HTREEITEM htParent, HTREEITEM htInsertAfter) -> HTREEITEM 
+		{
 			CString name;
 			bool	active;
 			int		icon;
@@ -746,14 +765,8 @@ void CFilterManageWindow::OnLButtonUp(UINT nFlags, CPoint point)
 			m_treeFilter.SetCheckState(htInsert, active);
 			return htInsert;
 		};
-		// フォルダーにドロップされた
-		if (filterItem == nullptr || filterItem->pvecpChildFolder) {
-			std::vector<std::unique_ptr<FilterItem>>* pvecFilter;
-			if (filterItem == nullptr)
-				pvecFilter = &CSettings::s_vecpFilters;
-			else
-				pvecFilter = filterItem->pvecpChildFolder.get();
 
+		auto funcDropFolder = [&]() {
 			// Drag元から消す
 			for (auto it = m_pvecBeginDragParent->begin(); it != m_pvecBeginDragParent->end(); ++it) {
 				if (it->get() == dragFilterItem) {
@@ -766,73 +779,108 @@ void CFilterManageWindow::OnLButtonUp(UINT nFlags, CPoint point)
 					break;
 				}
 			}
+			ATLASSERT(m_htBeginDrag == NULL);
+
+			// 親フォルダを見つける
+			std::vector<std::unique_ptr<FilterItem>>* pvecFilter = nullptr;
+			if (filterItem == nullptr) {
+				pvecFilter = &CSettings::s_vecpFilters;
+			} else {
+				pvecFilter = filterItem->pvecpChildFolder.get();
+			}
+
 			// 追加
 			HTREEITEM htInsert = funcInsertTreeItem(htHit, TVI_LAST);
 			m_treeFilter.SetItemData(htInsert, (DWORD_PTR)dragFilterItem);
 			pvecFilter->push_back(std::unique_ptr<FilterItem>(std::move(dragFilterItem)));
 
 			// 子アイテムは登録し直し
-			if (dragFilterItem->pvecpChildFolder) 
+			if (dragFilterItem->pvecpChildFolder)
 				_AddTreeItem(htInsert, *dragFilterItem->pvecpChildFolder);
 
 			m_treeFilter.Expand(htHit);
 			m_treeFilter.SelectItem(htInsert);
-		} else {
-			// 挿入ポイントを見つける
-			int nInsertPos = 0;
-			HTREEITEM htParent = m_treeFilter.GetParentItem(htHit);
-			HTREEITEM htItem = m_treeFilter.GetChildItem(htParent);
-			HTREEITEM htInsert = NULL;
-			do {
+
+			CSettings::SaveFilter();
+		};
+
+		// 挿入ポイントを見つける
+		int nInsertPos = 0;
+		HTREEITEM htParent = m_treeFilter.GetParentItem(htHit);
+		HTREEITEM htItem = m_treeFilter.GetChildItem(htParent);
+		HTREEITEM htInsert = NULL;
+		do {
+			if (htItem == htHit) {
 				CRect rcItem;
 				m_treeFilter.GetItemRect(htItem, &rcItem, FALSE);
-				if (rcItem.PtInRect(ptTree)) {
-					rcItem.bottom	-= (rcItem.Height() / 2);
-					if (rcItem.PtInRect(ptTree) == false) {
-						++nInsertPos;
-						htInsert = funcInsertTreeItem(htParent, htItem);
-					} else {
-						htItem = m_treeFilter.GetPrevSiblingItem(htItem);
-						if (htItem == NULL)
-							htItem = TVI_FIRST;
-						htInsert = funcInsertTreeItem(htParent, htItem);
-					}
-					break;					
+				CRect rcItemTop = rcItem;
+				if (bFolder) {
+					rcItemTop.bottom = rcItemTop.top + kDropItemSpan;
+				} else {
+					rcItemTop.bottom -= (rcItem.Height() / 2);
 				}
-				++nInsertPos;
-			} while (htItem = m_treeFilter.GetNextSiblingItem(htItem));
-	
-			// 追加
-			std::vector<std::unique_ptr<FilterItem>>* pvecFilter = _GetParentFilterFolder(htHit);
-			pvecFilter->insert(pvecFilter->begin() + nInsertPos, std::unique_ptr<FilterItem>(std::move(dragFilterItem)));
-			
-			// Drag元から消す
-			int i = 0;
-			for (auto it = m_pvecBeginDragParent->begin(); it != m_pvecBeginDragParent->end(); ++it, ++i) {
-				if (pvecFilter == m_pvecBeginDragParent && i == nInsertPos)
-					continue;	// フォルダ内移動で移動先が先にヒットしないようにする
-
-				if (it->get() == dragFilterItem) {
-					it->release();
-					m_pvecBeginDragParent->erase(it);
-
-					m_treeFilter.DeleteItem(m_htBeginDrag);
-					m_htBeginDrag = NULL;
-					m_pvecBeginDragParent = nullptr;
-					break;
+				CRect rcItemBottom = rcItem;
+				if (bFolder) {
+					rcItemBottom.top = rcItemBottom.bottom - kDropItemSpan;
+				} else {
+					rcItemBottom.top += (rcItem.Height() / 2);
 				}
+				if (htHit == m_treeFilter.GetRootItem()) {
+					rcItemTop.SetRectEmpty();
+					rcItemBottom.SetRectEmpty();
+				}
+
+				if (rcItemTop.PtInRect(ptTree)) {
+					htItem = m_treeFilter.GetPrevSiblingItem(htItem);
+					if (htItem == NULL)
+						htItem = TVI_FIRST;
+					htInsert = funcInsertTreeItem(htParent, htItem);
+
+				} else if (rcItemBottom.PtInRect(ptTree)) {
+					++nInsertPos;
+					htInsert = funcInsertTreeItem(htParent, htItem);
+
+				} else if (bFolder) {
+					funcDropFolder();
+					return;	// フォルダにドロップされた
+				}
+				break;
 			}
-			m_treeFilter.SetItemData(htInsert, (DWORD_PTR)dragFilterItem);
+			++nInsertPos;
+		} while (htItem = m_treeFilter.GetNextSiblingItem(htItem));
+	
+		ATLASSERT(htInsert);
+		// 追加
+		std::vector<std::unique_ptr<FilterItem>>* pvecFilter = _GetParentFilterFolder(htHit);
+		pvecFilter->insert(pvecFilter->begin() + nInsertPos, std::unique_ptr<FilterItem>(std::move(dragFilterItem)));
+			
+		// Drag元から消す
+		int i = 0;
+		for (auto it = m_pvecBeginDragParent->begin(); it != m_pvecBeginDragParent->end(); ++it, ++i) {
+			if (pvecFilter == m_pvecBeginDragParent && i == nInsertPos)
+				continue;	// フォルダ内移動で移動先が先にヒットしないようにする
 
-			// 子アイテムは登録し直し
-			if (dragFilterItem->pvecpChildFolder) 
-				_AddTreeItem(htInsert, *dragFilterItem->pvecpChildFolder);
+			if (it->get() == dragFilterItem) {
+				it->release();	// 解放されないようにする
+				m_pvecBeginDragParent->erase(it);
 
-			m_treeFilter.SelectItem(htInsert);
+				m_treeFilter.DeleteItem(m_htBeginDrag);
+				m_htBeginDrag = NULL;
+				m_pvecBeginDragParent = nullptr;
+				break;
+			}
 		}
+		ATLASSERT(m_htBeginDrag == NULL);
+		m_treeFilter.SetItemData(htInsert, (DWORD_PTR)dragFilterItem);
+
+		// 子アイテムは登録し直し
+		if (dragFilterItem->pvecpChildFolder) 
+			_AddTreeItem(htInsert, *dragFilterItem->pvecpChildFolder);
+
+		m_treeFilter.SelectItem(htInsert);
+
 		CSettings::SaveFilter();
 	}
-
 }
 
 /// ドラッグ中ならキャンセルする
@@ -911,7 +959,7 @@ void CFilterManageWindow::OnCreateFolder(UINT uNotifyCode, int nID, CWindow wndC
 	pfolder->pvecpChildFolder.reset(new std::vector<std::unique_ptr<FilterItem>>);
 
 	HTREEITEM htSel = m_treeFilter.GetSelectedItem();
-	if (htSel == NULL) {
+	if (htSel == NULL || htSel == m_treeFilter.GetRootItem()) {
 		_InsertFilterItem(std::move(pfolder), m_treeFilter.GetRootItem());
 	} else {
 		FilterItem*	pFilterItem = (FilterItem*)m_treeFilter.GetItemData(htSel);
@@ -980,12 +1028,14 @@ void CFilterManageWindow::OnExportToProxomitron(UINT uNotifyCode, int nID, CWind
 	}
 }
 
-
+// フィルターを追加する
+// 現在の選択アイテムがフォルダならそのフォルダの末尾に追加する
+// それ以外なら選択アイテムの親のフォルダの末尾に追加する
 void CFilterManageWindow::_AddFilterDescriptor(std::unique_ptr<CFilterDescriptor>&& filter)
 {
 	auto filterItem = std::make_unique<FilterItem>(std::move(filter));
 	HTREEITEM htSel = m_treeFilter.GetSelectedItem();
-	if (htSel == NULL) {
+	if (htSel == NULL || htSel == m_treeFilter.GetRootItem()) {
 		_InsertFilterItem(std::move(filterItem), m_treeFilter.GetRootItem());
 	} else {
 		FilterItem*	pFilterItem = (FilterItem*)m_treeFilter.GetItemData(htSel);
@@ -1043,6 +1093,7 @@ void CFilterManageWindow::_InsertFilterItem(std::unique_ptr<FilterItem>&& filter
 		}
 		ATLASSERT(bFound);
 	} else {
+		CCritSecLock	lock(CSettings::s_csFilters);
 		pvecpFilter->push_back(std::move(filterItem));
 	}
 	m_treeFilter.SelectItem(htNew);

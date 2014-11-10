@@ -54,25 +54,26 @@ const UChar* CNode_Star::match(const UChar* start, const UChar* stop, MatchData*
 {
     //  if desired, try first by consuming everything
     if (m_maxFirst) {
-        UpdateReached(stop, pMatch);
         if (m_nextNode == nullptr || m_nextNode->match(stop, stop, pMatch)) {
+			UpdateReached(stop, pMatch);
 			return stop;
         }
-        --stop;
     }
 
     // try positions one by one (use hint if available)
     do {
-        if (m_useTab) {
+#if 0	// 使われていない
+        if (m_useTab) {	
             while (start < stop && m_tab[(unsigned char)(*start)] == false) ++start;
         }
+#endif
         const UChar* ret = m_nextNode->match(start, stop, pMatch);
         if (ret) {
             UpdateReached(start, pMatch);
             return ret;
         }
         ++start;
-    } while (start <= stop);
+    } while (start < stop);
 
     UpdateReached(stop, pMatch);
     return nullptr;
@@ -117,18 +118,19 @@ const UChar* CNode_MemStar::match(const UChar* start, const UChar* stop, MatchDa
 
     //  if desired, try first by consuming everything
     if (m_maxFirst) {
-		UpdateReached(stop, pMatch);
         if (m_nextNode == nullptr || m_nextNode->match(stop, stop, pMatch)) {
+			UpdateReached(stop, pMatch);
 			return stop;
         }
-        --stop;
     }
 
     // try positions one by one (use hint if available)
     do {
+#if 0	// 使われていない
         if (m_useTab) {
             while (start < stop && m_tab[(unsigned char)(*start)] == false) ++start;
         }
+#endif
         // Change stored/pushed memory
         if (m_memoryPos != -1) {
             pMatch->pFilter->memoryTable[m_memoryPos](left, start);
@@ -141,7 +143,7 @@ const UChar* CNode_MemStar::match(const UChar* start, const UChar* stop, MatchDa
             return ret;
         }
         ++start;
-    } while (start <= stop);
+    } while (start < stop);
 
     // Undo backup.
     if (m_memoryPos != -1) {
@@ -181,7 +183,7 @@ void CNode_MemStar::setNextNode(CNode* node)
 const UChar* CNode_Space::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
     // Rule: space
-    while (start < stop && *start <= ' ') ++start;
+    while (start < stop && *start <= L' ') ++start;
 
     const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
 	UpdateReached(start, pMatch);
@@ -231,7 +233,7 @@ bool CNode_Equal::mayMatch(bool* tab)
         tab['\r'] = true;
         tab['\n'] = true;
     }
-    return false;
+    return false;	// 必ず '=' を消費するのでfalseを返す？
 }
 
 
@@ -295,7 +297,7 @@ bool CNode_Char::mayMatch(bool* tab)
         tab[(unsigned char)m_byte] = true;
         tab[(unsigned char)towupper(m_byte)] = true;
     }
-    return false;
+    return false;	// 必ず文字を消費するのでfalseを返す？
 }
 
 
@@ -935,16 +937,18 @@ const UChar* CNode_List::match(const UChar* start, const UChar* stop, MatchData*
 		if (slashPos != startOrigin) {
 			std::wstring urlHost(startOrigin, slashPos);
 			CUtil::lower(urlHost);
+			const UChar* firstMatchEnd = urlHost.c_str();
 			std::deque<std::pair<std::wstring, const UChar*>> deqDomain;
 			std::wstring domain;
 			for (auto it = urlHost.cbegin(); it != urlHost.cend(); ++it) {
 				if (*it == L'.') {
-					deqDomain.emplace_back(domain, &*it);
+					deqDomain.emplace_back(domain, firstMatchEnd);	// domain == (it ~ firstMatchEnd)
 					domain.clear();
+					firstMatchEnd = &*it;
 
 				} else if (std::next(it) == urlHost.cend()) {
 					domain.push_back(*it);
-					deqDomain.emplace_back(domain, &urlHost.back());
+					deqDomain.emplace_back(domain, firstMatchEnd);
 					domain.clear();
 					break;
 
@@ -1335,7 +1339,8 @@ const UChar* CNode_Nest::match(const UChar* start, const UChar* stop, MatchData*
 
     if (m_middle) {
         const UChar* end = m_middle->match(endL, startR, pMatch);
-        if (end != startR) return NULL;
+        if (end != startR) 
+			return NULL;
     }
     start = m_inest ? startR : pos;
     
