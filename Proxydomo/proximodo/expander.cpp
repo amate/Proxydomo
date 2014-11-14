@@ -46,6 +46,7 @@
 #include <wctype.h>
 #include "..\CodeConvert.h"
 #include "..\Settings.h"
+#include "..\AppConst.h"
 
 using namespace std;
 using namespace Proxydomo;
@@ -220,32 +221,24 @@ std::wstring CExpander::expand(const std::wstring& pattern, CFilter& filter) {
                     }
 
                 } else if (command == L"SETPROXY") {
-#if 0
                     CUtil::trim(content);
-                    size_t len = content.length();
-                    set<string>& proxies = CSettings::ref().proxies;
-                    for (set<string>::iterator it = proxies.begin();
-                                it != proxies.end(); it++) {
-                        if (content == it->substr(0, len)) {
-                            filter.owner.contactHost = *it;
-                            filter.owner.useSettingsProxy = false;
-                            break;
-                        }
-                    }
-#endif
+					auto it = CSettings::s_setRemoteProxy.find(UTF8fromUTF16(content));
+					if (it != CSettings::s_setRemoteProxy.end()) {
+						filter.owner.contactHost = *it;
+						filter.owner.useSettingsProxy = false;
+					}
                 } else if (command == L"USEPROXY") {
-#if 0
                     CUtil::trim(content);
                     CUtil::lower(content);
-                    if (content == "true") {
+                    if (content == L"true") {
                         filter.owner.useSettingsProxy = true;
-                    } else if (content == "false") {
+                    } else if (content == L"false") {
                         filter.owner.useSettingsProxy = false;
                     }
-#endif
                 } else if (command == L"ALERT") {
-
                     //wxMessageBox(S2W(expand(content, filter)), wxT(APP_NAME));
+					std::wstring text = CExpander::expand(content, filter);
+					MessageBox(NULL, text.c_str(), APP_NAME, MB_OK);
 
                 } else if (command == L"CONFIRM") {
 

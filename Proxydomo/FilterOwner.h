@@ -38,6 +38,10 @@ typedef std::vector<std::pair<std::string, std::string>> HeadPairList;		// first
 class CFilterOwner
 {
 public:
+	CFilterOwner();
+
+	void	Reset();
+
 	CUrl		url;
 	struct {
 		std::string ver, code, msg;
@@ -45,7 +49,7 @@ public:
 	std::string responseCode;            // response code from website
 	long		requestNumber;
 
-	int		    cnxNumber;                   // number of the connection
+	//int		    cnxNumber;                   // number of the connection
 
 	bool		useSettingsProxy;			 // can be overridden by $USEPROXY
 	

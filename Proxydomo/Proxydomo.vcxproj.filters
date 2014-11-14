@@ -177,6 +177,9 @@
     <ClCompile Include="MainDlg.cpp">
       <Filter>Header Files\Window</Filter>
     </ClCompile>
+    <ClCompile Include="WinHTTPWrapper.cpp">
+      <Filter>Header Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -370,6 +373,9 @@
     </ClInclude>
     <ClInclude Include="OptionDialog.h">
       <Filter>Header Files\Window</Filter>
+    </ClInclude>
+    <ClInclude Include="WinHTTPWrapper.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

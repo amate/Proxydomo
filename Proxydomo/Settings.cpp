@@ -29,6 +29,7 @@
 #include <boost\property_tree\ptree.hpp>
 #include <boost\property_tree\ini_parser.hpp>
 #include <boost\property_tree\xml_parser.hpp>
+#include <boost\format.hpp>
 #include <Shlwapi.h>
 #pragma comment(lib, "Shlwapi.lib")
 #include "Misc.h"
@@ -38,6 +39,7 @@
 #include "Matcher.h"
 #include "CodeConvert.h"
 #include "Logger.h"
+#include "Matcher.h"
 
 using namespace CodeConvert;
 using namespace boost::property_tree;
@@ -83,12 +85,18 @@ bool			CSettings::s_filterOut	= true;
 bool			CSettings::s_SSLFilter = false;
 bool			CSettings::s_WebFilterDebug	= false;
 
+bool			CSettings::s_useRemoteProxy	= false;
+std::string		CSettings::s_defaultRemoteProxy;
+std::set<std::string> CSettings::s_setRemoteProxy;
+
 std::string		CSettings::s_urlCommandPrefix;	
 
 std::thread		CSettings::s_threadSaveFilter;
 
 std::vector<std::unique_ptr<FilterItem>>	CSettings::s_vecpFilters;
 CCriticalSection							CSettings::s_csFilters;
+
+std::shared_ptr<Proxydomo::CMatcher>	CSettings::s_pBypassMatcher;
 
 std::recursive_mutex						CSettings::s_mutexHashedLists;
 std::unordered_map<std::string, std::unique_ptr<HashedListCollection>>	CSettings::s_mapHashedLists;
@@ -109,6 +117,16 @@ void	CSettings::LoadSettings()
 			s_filterIn	= value.get();
 		if (auto value = pt.get_optional<bool>("Setting.filterOut"))
 			s_filterOut	= value.get();
+
+		s_useRemoteProxy = pt.get<bool>("RemoteProxy.UseRemoteProxy", s_useRemoteProxy);
+		s_defaultRemoteProxy = pt.get("RemoteProxy.defaultRemoteProxy", "");
+		const int remoteProxyCount = pt.get("RemoteProxy.Count", 0);
+		for (int i = 0; i < remoteProxyCount; ++i) {
+			std::string path = boost::io::str(boost::format("RemoteProxy.proxy%d") % i);
+			std::string remoteproxy = pt.get(path, "");
+			if (remoteproxy.length())
+				s_setRemoteProxy.insert(remoteproxy);
+		}
 	}
 
 	// prefix‚ðÝ’è
@@ -119,6 +137,9 @@ void	CSettings::LoadSettings()
 	for (int i = 0; i < kPrefixSize; ++i)
 		s_urlCommandPrefix += charactorSelection[dist(randEngine)];
 	s_urlCommandPrefix += '_';
+
+	// Bypass matcher‚ðì¬
+	s_pBypassMatcher = Proxydomo::CMatcher::CreateMatcher(L"$LST(Bypass)");
 
 	CSettings::LoadFilter();
 
@@ -140,6 +161,18 @@ void	CSettings::SaveSettings()
 	pt.put("Setting.filterText"	, s_filterText);
 	pt.put("Setting.filterIn"	, s_filterIn);
 	pt.put("Setting.filterOut"	, s_filterOut);
+
+	pt.erase("RemoteProxy");
+	pt.put<bool>("RemoteProxy.UseRemoteProxy", s_useRemoteProxy);
+	pt.put("RemoteProxy.defaultRemoteProxy", s_defaultRemoteProxy);
+	const int remoteProxyCount = (int)s_setRemoteProxy.size();
+	pt.put("RemoteProxy.Count", remoteProxyCount);
+	int i = 0;
+	for (auto& remoteproxy : s_setRemoteProxy) {
+		std::string path = boost::io::str(boost::format("RemoteProxy.proxy%d") % i);
+		++i;
+		pt.put(path, remoteproxy);
+	}
 
 	write_ini(settingsPath, pt);
 }

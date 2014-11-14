@@ -24,6 +24,39 @@
 #include "FilterOwner.h"
 #include "proximodo\util.h"
 
+CFilterOwner::CFilterOwner()
+{
+	Reset();
+}
+
+void	CFilterOwner::Reset()
+{
+	//url
+	responseLine.ver.clear();
+	responseLine.code.clear();
+	responseLine.msg.clear();
+	responseCode.clear();
+	useSettingsProxy = false;
+
+	requestNumber = 0;
+	bypassOut = false;
+	bypassIn = false;
+	bypassBody = false;
+	bypassBodyForced = false;
+	killed = false;
+
+	variables.clear();
+
+	contactHost.clear();
+	rdirMode = 0;
+	rdirToHost.clear();
+
+	outHeaders.clear();
+	inHeaders.clear();
+	inHeadersFiltered.clear();
+	fileType.clear();
+}
+
 
 std::string	CFilterOwner::GetHeader(const HeadPairList& headers, const std::string& name)
 {

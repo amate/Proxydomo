@@ -89,7 +89,6 @@ bool	GetHeaders(std::string& buf, HeadPairList& headers, std::string& log)
 CRequestManager::CRequestManager(std::unique_ptr<CSocket>&& psockBrowser) :
 	m_useChain(false),
 	m_textFilterChain(m_filterOwner, this),
-	m_urlBypassFilter(m_filterOwner),
 	m_psockBrowser(std::move(psockBrowser)),
 	m_valid(true),
 	m_dumped(false),
@@ -101,8 +100,6 @@ CRequestManager::CRequestManager(std::unique_ptr<CSocket>&& psockBrowser) :
 	m_RequestCountFromBrowser(0)
 {
 	m_filterOwner.requestNumber = 0;
-
-	m_pUrlBypassMatcher = Proxydomo::CMatcher::CreateMatcher(L"$LST(Bypass)");
 
 	CSettings::EnumActiveFilter([&, this](CFilterDescriptor* filter) {
 		try {
@@ -347,15 +344,9 @@ void CRequestManager::_ProcessOut()
 				}
 
 				// Reset variables relative to a single request/response
-				m_filterOwner.bypassOut = false;
-				m_filterOwner.bypassIn = false;
-				m_filterOwner.bypassBody = false;
-				m_filterOwner.bypassBodyForced = false;
-				m_filterOwner.killed = false;
-				//variables.clear();
+				m_filterOwner.Reset();
 				m_filterOwner.requestNumber = CLog::IncrementRequestCount();
-				m_filterOwner.rdirMode = 0;
-				m_filterOwner.rdirToHost.clear();
+
 				m_redirectedIn = 0;
 				m_recvConnectionClose = false;
 				m_sendConnectionClose = false;
@@ -390,10 +381,6 @@ void CRequestManager::_ProcessOut()
 				// we won't expect anything after headers.
 				m_outSize = 0;
 				m_outChunked = false;
-				m_filterOwner.outHeaders.clear();
-				// (in case a silly OUT filter wants to read IN headers)
-				m_filterOwner.inHeaders.clear();
-				m_filterOwner.responseCode.clear();
 			}
 			break;
 
@@ -427,15 +414,15 @@ void CRequestManager::_ProcessOut()
 				m_filterOwner.bypassOut = m_filterOwner.url.getBypassOut();
 				m_filterOwner.bypassBody = m_filterOwner.url.getBypassText();
 
+				m_filterOwner.useSettingsProxy = CSettings::s_useRemoteProxy;
 				m_filterOwner.contactHost = m_filterOwner.url.getHostPort();
 
 				// Test URL with bypass-URL matcher, if matches we'll bypass all
 				{
-					m_urlBypassFilter.clearMemory();
 					CFilter filter(m_filterOwner);
 					const std::string& url = m_filterOwner.url.getFromHost();
 					const char* end = nullptr;
-					if (m_pUrlBypassMatcher->match(url, &filter))
+					if (CSettings::s_pBypassMatcher->match(url, &filter))
 						m_filterOwner.bypassOut = m_filterOwner.bypassIn = m_filterOwner.bypassBody = true;
 				}
 
@@ -543,12 +530,12 @@ void CRequestManager::_ProcessOut()
 						CFilterOwner::RemoveHeader(outHeadersFiltered, "Proxy-Connection");
 						CFilterOwner::SetHeader(outHeadersFiltered, "Connection", "Keep-Alive");
 					}
-
 				
-					if (m_filterOwner.contactHost == m_filterOwner.url.getHostPort())
+					if (m_filterOwner.contactHost == m_filterOwner.url.getHostPort()) {
 						m_requestLine.url = m_filterOwner.url.getAfterHost();
-					else
+					} else {
 						m_requestLine.url = m_filterOwner.url.getUrl();
+					}
 					if (m_requestLine.url.empty())
 						m_requestLine.url = "/";
 
@@ -706,6 +693,7 @@ void CRequestManager::_ProcessOut()
 void CRequestManager::_ConnectWebsite()
 {
 	// If download was on, disconnect (to avoid downloading genuine document)
+	// 受信ヘッダフィルターでリダイレクトを指示された場合
 	if (m_inStep == STEP_DECODE) {
 		if (m_pSSLServerSession) {
 			m_pSSLServerSession->Close();
@@ -830,20 +818,19 @@ void CRequestManager::_ConnectWebsite()
         if (m_filterOwner.url.getBypassIn())    m_filterOwner.bypassIn   = true;
         if (m_filterOwner.url.getBypassOut())   m_filterOwner.bypassOut  = true;
         if (m_filterOwner.url.getBypassText())  m_filterOwner.bypassBody = true;
-        //m_filterOwner.useSettingsProxy = CSettings::ref().useNextProxy;
+		m_filterOwner.useSettingsProxy = CSettings::s_useRemoteProxy;
         m_filterOwner.contactHost = m_filterOwner.url.getHostPort();
 		m_filterOwner.SetOutHeader("Host", m_filterOwner.url.getHost());
 
         m_filterOwner.rdirToHost.clear();
     }
 
-#if 0
     // If we must contact the host via the settings' proxy,
     // we now override the contactHost
-    if (useSettingsProxy && !CSettings::ref().nextProxy.empty()) {
-        contactHost = CSettings::ref().nextProxy;
+	if (m_filterOwner.useSettingsProxy && CSettings::s_defaultRemoteProxy.length() > 0) {
+		m_filterOwner.contactHost = CSettings::s_defaultRemoteProxy;
     }
-#endif
+
 	// The host string is composed of host and port
 	std::string name = m_filterOwner.contactHost;
 	std::string port;
@@ -896,6 +883,46 @@ void CRequestManager::_ConnectWebsite()
 			CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_filterOwner.requestNumber, m_sendInBuf);
             m_inStep = STEP_TUNNELING;
 			_SendIn();
+
+			// remote proxy
+			if (m_filterOwner.contactHost != m_filterOwner.url.getHostPort()) {
+				name = m_filterOwner.url.getHost();
+				size_t colon = name.find(':');
+				if (colon != std::string::npos) {    // (this should always happen)
+					name = name.substr(0, colon);
+				}
+				m_sendOutBuf = m_logRequest + CRLF;
+				_SendOut();
+
+				auto fucnGetResponse = [this]() -> bool {
+					// Do we have the full first line yet?
+					size_t pos, len;
+					if (CUtil::endOfLine(m_recvInBuf, 0, pos, len) == false)
+						return false;				// 最初の改行まで来てないので帰る
+
+					// Parse it
+					size_t p1 = m_recvInBuf.find_first_of(" ");
+					size_t p2 = m_recvInBuf.find_first_of(" ", p1 + 1);
+					m_filterOwner.responseLine.ver = m_recvInBuf.substr(0, p1);
+					m_filterOwner.responseLine.code = m_recvInBuf.substr(p1 + 1, p2 - p1 - 1);
+					m_filterOwner.responseLine.msg = m_recvInBuf.substr(p2 + 1, pos - p2 - 1);
+					m_filterOwner.responseCode = m_recvInBuf.substr(p1 + 1, pos - p1 - 1);
+
+					m_recvInBuf.erase(0, pos + len);
+					return true;
+				};
+				for (; m_psockWebsite->IsConnected();) {
+					if (_ReceiveIn()) {
+						if (fucnGetResponse())
+							break;
+					}
+					::Sleep(10);
+				}
+				m_recvInBuf.clear();
+
+				if (m_filterOwner.responseLine.code != "200")
+					throw GeneralException("RemoteProxy SSL Connection Establish failed");
+			}
 
 			if (CSettings::s_SSLFilter) {
 				if (m_pSSLServerSession = CSSLSession::InitClientSession(m_psockWebsite.get(), name)) {
@@ -1018,9 +1045,7 @@ void	CRequestManager::_ProcessIn()
 				// we won't expect anything after headers.
 				m_inSize = 0;
 				m_inChunked = false;
-				m_filterOwner.inHeaders.clear();
-				m_filterOwner.fileType.clear();
-				//m_filterOwner.responseCode.clear();	 // だめだろ・・・
+
 				m_recvConnectionClose = false;
 				m_sendConnectionClose = false;
 				m_recvContentCoding = 0;
@@ -1334,9 +1359,10 @@ void	CRequestManager::_ProcessIn()
 				}	
 			}
 			break;	
-			}
-		}
+
+		}	// swtich
 	}
+}
 
 
 

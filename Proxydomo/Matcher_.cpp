@@ -267,10 +267,11 @@ bool CMatcher::match(const UChar* start, const UChar* stop, const UChar*& end, M
 /// simple
 bool CMatcher::match(const std::string& text, CFilter* filter)
 {
-	UnicodeString str(text.c_str(), text.length());
+	std::wstring str = UTF16fromUTF8(text);
+	//UnicodeString str(text.c_str(), text.length());
 	MatchData	mdata(filter);
 	const UChar* end = nullptr;
-	return match(str.getBuffer(), str.getBuffer() + str.length(), end, &mdata);
+	return match(str.c_str(), str.c_str() + str.length(), end, &mdata);
 }
 
 

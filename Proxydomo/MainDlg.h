@@ -68,6 +68,7 @@ public:
 		DDX_CHECK(IDC_CHECKBOX_WEBPAGE	,	CSettings::s_filterText)
 		DDX_CHECK(IDC_CHECKBOX_OUTHEADER,	CSettings::s_filterOut)
 		DDX_CHECK(IDC_CHECKBOX_INHEADER,	CSettings::s_filterIn)
+		DDX_CHECK(IDC_CHECKBOX_USEREMOTEPROXY, CSettings::s_useRemoteProxy)
 	END_DDX_MAP()
 
 	BEGIN_MSG_MAP(CMainDlg)
@@ -85,6 +86,7 @@ public:
 		COMMAND_ID_HANDLER( IDC_CHECKBOX_WEBPAGE	, OnFilterButtonCheck )
 		COMMAND_ID_HANDLER( IDC_CHECKBOX_OUTHEADER	, OnFilterButtonCheck )
 		COMMAND_ID_HANDLER( IDC_CHECKBOX_INHEADER	, OnFilterButtonCheck )
+		COMMAND_ID_HANDLER(IDC_CHECKBOX_USEREMOTEPROXY, OnFilterButtonCheck)
 	END_MSG_MAP()
 
 // Handler prototypes (uncomment arguments if needed):

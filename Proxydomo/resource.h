@@ -10,12 +10,12 @@
 #define IDD_FILTEREDIT                  132
 #define IDD_FILTERTEST                  133
 #define IDD_LISTEDIT                    134
-#define IDD_OPTION						135
-#define IDD_CERTIFICATEERROR			136
+#define IDD_OPTION                      135
+#define IDD_CERTIFICATEERROR            136
 #define IDI_FOLDER                      201
 #define IDI_FILTER                      202
-#define IDI_HEADERFILTER				203
-#define IDI_WEBFILTER					204
+#define IDI_HEADERFILTER                203
+#define IDI_WEBFILTER                   204
 #define IDB_FILTERMANAGERTOOLBAR        250
 #define IDC_RICHEDIT_LOG                1000
 #define IDC_BUTTON_CLEAR                1001
@@ -52,6 +52,8 @@
 #define IDC_CHECKBOX_OUTHEADER          1032
 #define IDC_CHECKBOX_INHEADER           1033
 #define IDC_STATIC_VERSION              1034
+#define IDC_CHECKBOX_INHEADER2          1034
+#define IDC_CHECKBOX_USEREMOTEPROXY     1034
 #define IDC_STATIC_LIMIT                1035
 #define IDC_STATIC_BOUNDS               1036
 #define IDC_STATIC_REPLACE              1037
@@ -71,18 +73,23 @@
 #define IDC_BUTTON_EXPORTTOPROXOMITRON  1051
 #define IDC_LIST_RECENTURLS             1052
 #define IDC_CHECKBOX_RECENTURLS         1053
-#define IDC_FILTERMANAGERTOOLBAR		1054
-#define IDC_COMBO_REQUEST				1055
-#define IDC_RICHEDIT_PARTLOG			1056
-#define IDC_CHECKBOX_STOPSCROLL			1057
-#define IDC_GENERATE_CACERTIFICATE		1058
-#define IDC_BUTTON_SHOWOPTION			1059
-#define IDC_STATIC_DETAIL				1060
-#define IDC_BTN_PERMANENTDENY			1061
-#define IDC_BTN_PERMANENTALLOW			1062
-#define IDC_BTN_TEMPDENY				1063
-#define IDC_BTN_TEMPALLOW				1064
-#define IDC_STATIC_HOST					1065
+#define IDC_FILTERMANAGERTOOLBAR        1054
+#define IDC_COMBO_REQUEST               1055
+#define IDC_RICHEDIT_PARTLOG            1056
+#define IDC_CHECKBOX_STOPSCROLL         1057
+#define IDC_GENERATE_CACERTIFICATE      1058
+#define IDC_BUTTON_SHOWOPTION           1059
+#define IDC_STATIC_DETAIL               1060
+#define IDC_BTN_PERMANENTDENY           1061
+#define IDC_BTN_PERMANENTALLOW          1062
+#define IDC_BTN_TEMPDENY                1063
+#define IDC_BTN_TEMPALLOW               1064
+#define IDC_STATIC_HOST                 1065
+#define IDC_COMBO_REMOTEPROXY           1066
+#define IDC_BUTTON_ADDPROXYLIST         1067
+#define IDC_BUTTON_DELETEFROMPROXYLIST  1068
+#define IDC_BUTTON_TESTREMOTEPROXY      1069
+#define IDC_STATIC_TESTREMOTEPROXY      1071
 
 // Next default values for new objects
 // 
@@ -90,7 +97,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        251
 #define _APS_NEXT_COMMAND_VALUE         32775
-#define _APS_NEXT_CONTROL_VALUE         1101
+#define _APS_NEXT_CONTROL_VALUE         1072
 #define _APS_NEXT_SYMED_VALUE           140
 #endif
 #endif

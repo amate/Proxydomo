@@ -169,7 +169,7 @@ public:
 		owner.SetInHeader("Host", "www.host.org");
         std::string url = "http://www.host.org/path/page.html?query=true#anchor";
         owner.url.parseUrl(url);
-        owner.cnxNumber = 1;
+        //owner.cnxNumber = 1;
 		owner.fileType	= "htm";
         CFilter filter(owner);
 		Proxydomo::MatchData matchData(&filter);

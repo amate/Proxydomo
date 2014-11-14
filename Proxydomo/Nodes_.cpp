@@ -1173,15 +1173,14 @@ const UChar* CNode_Command::match(const UChar* start, const UChar* stop, MatchDa
         owner.useSettingsProxy = (m_content[0] == L't');
         break;
 
-    case CMD_SETPROXY:
-        //for (set<string>::iterator it = CSettings::ref().proxies.begin();
-        //            it != CSettings::ref().proxies.end(); it++) {
-        //    if (CUtil::noCaseBeginsWith(content, *it)) {
-        //        owner.contactHost = *it;
-        //        owner.useSettingsProxy = false;
-        //        break;
-        //    }
-        //}
+	case CMD_SETPROXY:
+		{
+			auto it = CSettings::s_setRemoteProxy.find(UTF8fromUTF16(m_content));
+			if (it != CSettings::s_setRemoteProxy.end()) {
+				owner.contactHost = *it;
+				owner.useSettingsProxy = false;	// デフォルトのリモートプロクシが使われないようにする
+			}
+		}
         break;
 
     case CMD_LOG:

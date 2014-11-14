@@ -24,6 +24,7 @@
 
 #include <vector>
 #include <deque>
+#include <set>
 #include <unordered_map>
 #include <memory>
 #include <string>
@@ -35,7 +36,10 @@
 #include <boost\thread.hpp>	// for shared_mutex
 #include "FilterDescriptor.h"
 
-namespace Proxydomo { class CNode; }
+namespace Proxydomo { 
+	class CNode;
+	class CMatcher;
+}
 
 /// １つのリストにあるすべてのパターンを持っている
 struct HashedListCollection {
@@ -91,6 +95,10 @@ public:
 	static bool			s_SSLFilter;
 	static bool			s_WebFilterDebug;
 
+	static bool			s_useRemoteProxy;
+	static std::string	s_defaultRemoteProxy;
+	static std::set<std::string> s_setRemoteProxy;
+
 	static std::string	s_urlCommandPrefix;
 
 	static std::thread	s_threadSaveFilter;
@@ -99,8 +107,12 @@ public:
 	static void	SaveSettings();
 
 	// CCritSecLock	lock(CSettings::s_csFilters);
+	static CCriticalSection		s_csFilters;
+	// 全所有フィルター
 	static std::vector<std::unique_ptr<FilterItem>>	s_vecpFilters;
-	static CCriticalSection									s_csFilters;
+
+	// Bypass フィルター
+	static std::shared_ptr<Proxydomo::CMatcher>	s_pBypassMatcher;
 
 	/// アクティブなフィルターを返す (※ lockは必要ない)
 	static void EnumActiveFilter(std::function<void (CFilterDescriptor*)> func);

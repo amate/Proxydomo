@@ -41,10 +41,8 @@ bool	CFilterDescriptor::CreateMatcher()
 
 	spBoundsMatcher = (boundsPattern.size() > 0) ? 
 		Proxydomo::CMatcher::CreateMatcher(boundsPattern, errorMsg) : nullptr;
-	spURLMatcher	= (urlPattern.size() > 0) ? 
-		Proxydomo::CMatcher::CreateMatcher(urlPattern, errorMsg) : nullptr;
-	spTextMatcher	= (matchPattern.size() > 0) ? 
-		Proxydomo::CMatcher::CreateMatcher(matchPattern, errorMsg) : nullptr;
+	spURLMatcher	= Proxydomo::CMatcher::CreateMatcher(urlPattern, errorMsg);
+	spTextMatcher	= Proxydomo::CMatcher::CreateMatcher(matchPattern, errorMsg);
 
 	return errorMsg.empty();
 }
