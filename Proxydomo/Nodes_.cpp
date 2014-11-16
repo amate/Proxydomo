@@ -281,7 +281,7 @@ bool CNode_Quote::mayMatch(bool* tab) {
 const UChar* CNode_Char::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
     // The test is case insensitive
-    if (start>=stop || towlower(*start) != m_byte) 
+	if (start >= stop || towlower(*start) != m_char)
 		return nullptr;		// マッチしなかった
 
     start++;
@@ -294,8 +294,8 @@ const UChar* CNode_Char::match(const UChar* start, const UChar* stop, MatchData*
 bool CNode_Char::mayMatch(bool* tab)
 {
     if (tab) {
-        tab[(unsigned char)m_byte] = true;
-        tab[(unsigned char)towupper(m_byte)] = true;
+		tab[(unsigned char)m_char] = true;
+		tab[(unsigned char)towupper(m_char)] = true;
     }
     return false;	// 必ず文字を消費するのでfalseを返す？
 }
@@ -396,15 +396,29 @@ CNode_Chars::CNode_Chars(const std::wstring& s, bool allow /*= true*/) : CNode(C
 {
     // For a fast matching, all allowed (or forbidden) characters are
     // tagged in a table of booleans.
-    for (unsigned int i=0; i<256; i++) m_byte[i] = !allow;
-	for (UChar c : s)
-		m_byte[(unsigned char)c] = allow;
+	for (unsigned int i = 0; i < 256; i++) {
+		m_byte[i] = !allow;
+	}
+
+	for (UChar c : s) {
+		add(c);
+	}
+}
+
+void CNode_Chars::add(UChar c)
+{
+	m_setChars.insert(c);
+	m_byte[LOBYTE(c)] = m_allow;
 }
 
 
 const UChar* CNode_Chars::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
-    if (start >= stop || m_byte[(unsigned char)(*start)] == false)
+	if (start >= stop)
+		return nullptr;
+
+	bool bFound = m_setChars.find(*start) != m_setChars.end();
+	if ( (m_allow == bFound) == false )	// (m_allow && bFound) or (m_allow == false && bFound == false) だとマッチする
 		return nullptr;
 
     start++;
@@ -417,7 +431,10 @@ const UChar* CNode_Chars::match(const UChar* start, const UChar* stop, MatchData
 bool CNode_Chars::mayMatch(bool* tab)
 {
     if (tab) {
-        for (int i=0; i<256; i++) if (m_byte[i]) tab[i] = true;
+		for (int i = 0; i < 256; i++) {
+			if (m_byte[i])
+				tab[i] = true;
+		}
     }
     return false;
 }

@@ -229,7 +229,7 @@ LRESULT CMainDlg::OnTrayIconNotify(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, 
 		menu.AppendMenu(CSettings::s_filterOut ? MF_CHECKED : MF_STRING, kOutHeaderFilter, _T("送信ヘッダフィルター(&O)"));
 		menu.AppendMenu(CSettings::s_filterIn ? MF_CHECKED : MF_STRING, kInHeaderFileter, _T("受信ヘッダフィルター(&I)"));
 		menu.AppendMenu(MF_SEPARATOR);
-		menu.AppendMenu(CSettings::s_useRemoteProxy ? MF_CHECKED : MF_STRING, kUseRemoteProxy, _T("リモートプロクシの使用(&R)"));
+		menu.AppendMenu(CSettings::s_useRemoteProxy ? MF_CHECKED : MF_STRING, kUseRemoteProxy, _T("リモートプロクシを使用(&R)"));
 		menu.AppendMenu(MF_SEPARATOR);
 
 		CMenuHandle menuBlockList;

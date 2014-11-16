@@ -304,10 +304,11 @@ bool CMatcher::match(const std::wstring& pattern, CFilter& filter,
 void CMatcher::mayMatch(bool* tab)
 {
     for (int i=0; i<256; i++) tab[i] = false;
-    if (m_root->mayMatch(tab))
-        // The whole pattern can match without consuming anything,
-        // we'll have to try it systematically.
-        for (int i=0; i<256; i++) tab[i] = true;
+	if (m_root->mayMatch(tab)) {
+		// The whole pattern can match without consuming anything,
+		// we'll have to try it systematically.
+		for (int i = 0; i < 256; i++) tab[i] = true;
+	}
 }
 
 
@@ -585,7 +586,7 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
                     return new CNode_MemStar(token - L'0');
 
                 // Rules: \u \h \p \a \q
-                if (std::wstring(L"uhpaq").find(token, 0) != string::npos)
+                if (std::wstring(L"uhpaq").find(token, 0) != std::wstring::npos)
                     return new CNode_Url(token);
 
                 // Rule: backslash

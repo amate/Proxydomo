@@ -62,7 +62,7 @@ public:
 
 	enum { kMaxPrefCount = 1000 };
 
-	CFilterTestWindow(CFilterDescriptor* pfd, std::function<void ()> func) : 
+	CFilterTestWindow(CFilterDescriptor* pfd, std::function<bool ()> func) : 
 		m_pFilter(pfd), m_funcSaveToTempFilter(func), m_bTestURLPattern(false) { }
 
 	void	SetURLPatternMode(bool b)
@@ -149,7 +149,8 @@ public:
 
 	void OnTestAnalyze(UINT uNotifyCode, int nID, CWindow wndCtl)
 	{
-		m_funcSaveToTempFilter();
+		if (m_funcSaveToTempFilter() == false)
+			return;
 
 		m_pFilter->TestValidity();
         // ensure there is no parsing error in this filter
@@ -326,7 +327,7 @@ public:
 private:
 	// Data members
 	CFilterDescriptor*	m_pFilter;
-	std::function<void ()>	m_funcSaveToTempFilter;
+	std::function<bool ()>	m_funcSaveToTempFilter;
 	CEdit	m_editTest;
 	CEdit	m_editResult;
 	static CString s_strLastTest;
@@ -439,7 +440,8 @@ void CFilterEditWindow::OnFilterSelChange(UINT uNotifyCode, int nID, CWindow wnd
 
 void CFilterEditWindow::OnOK(UINT uNotifyCode, int nID, CWindow wndCtl)
 {
-	_SaveToTempFilter();
+	if (_SaveToTempFilter() == false)
+		return;
 
 	//m_pTempFilter->TestValidity();
 	if (m_pTempFilter->CreateMatcher() == false) {
@@ -462,7 +464,8 @@ void CFilterEditWindow::OnCancel(UINT uNotifyCode, int nID, CWindow wndCtl)
 
 void CFilterEditWindow::OnTest(UINT uNotifyCode, int nID, CWindow wndCtl)
 {
-	_SaveToTempFilter();
+	if (_SaveToTempFilter() == false)
+		return;
 
 	if (m_pTestWindow->IsWindow() == FALSE) {
 		m_pTestWindow->Create(m_hWnd);
@@ -471,9 +474,40 @@ void CFilterEditWindow::OnTest(UINT uNotifyCode, int nID, CWindow wndCtl)
 	m_pTestWindow->ShowWindow(TRUE);
 }
 
-void	CFilterEditWindow::_SaveToTempFilter()
+
+void CFilterEditWindow::OnDataExchangeError(UINT nCtrlID, BOOL bSave)
 {
-	DoDataExchange(DDX_SAVE);
+	if (nCtrlID == IDC_EDIT_WINDOWWIDTH) {
+		_XData data;
+		data.intData.nMin = 1;
+		data.intData.nMax = INT_MAX;
+		OnDataValidateError(nCtrlID, bSave, data);
+
+	} else {
+		CString strMsg;
+		strMsg.Format(_T("コントロール（ID:%u）とのデータ交換に失敗。"), nCtrlID);
+		MessageBox(strMsg, _T("DataExchangeError"), MB_ICONWARNING);
+
+		::SetFocus(GetDlgItem(nCtrlID));
+	}
+}
+
+void CFilterEditWindow::OnDataValidateError(UINT nCtrlID, BOOL bSave, _XData& data)
+{
+	CString strMsg;
+	strMsg.Format(_T("%d から %d までの値を入力してください。"),
+		data.intData.nMin, data.intData.nMax);
+	MessageBox(strMsg, _T("DataValidateError"), MB_ICONEXCLAMATION);
+
+	::SetFocus(GetDlgItem(nCtrlID));
+}
+
+
+
+bool	CFilterEditWindow::_SaveToTempFilter()
+{
+	if (DoDataExchange(DDX_SAVE) == FALSE)
+		return false;
 
 	m_pTempFilter->title		= m_title.GetBuffer();
 	m_pTempFilter->author		= UTF8fromUTF16(m_auther.GetBuffer());
@@ -487,6 +521,7 @@ void	CFilterEditWindow::_SaveToTempFilter()
 	m_pTempFilter->windowWidth	= m_windowWidth;
 	m_pTempFilter->matchPattern	= (m_matchPattern.GetBuffer());
 	m_pTempFilter->replacePattern= (m_replacePattern.GetBuffer());
+	return  true;
 }
 
 

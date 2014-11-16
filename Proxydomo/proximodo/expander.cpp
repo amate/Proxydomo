@@ -26,7 +26,7 @@
 #include "expander.h"
 #include "url.h"
 #include "memory.h"
-#include "const.h"
+//#include "const.h"
 #include "util.h"
 //#include "settings.h"
 #include "..\Matcher.h"

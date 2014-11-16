@@ -42,6 +42,10 @@ public:
 	CFilterEditWindow(CFilterDescriptor* pfd);
 	~CFilterEditWindow();
 
+	// overrides
+	void OnDataExchangeError(UINT nCtrlID, BOOL bSave);
+	void OnDataValidateError(UINT nCtrlID, BOOL bSave, _XData& data);
+
 	BEGIN_DDX_MAP( CFilterEditWindow )
 		DDX_TEXT(IDC_EDIT_FILTERNAME		,	m_title)
 		DDX_TEXT(IDC_EDIT_AUTHERNAME		,	m_auther)
@@ -52,7 +56,7 @@ public:
 		DDX_CHECK(IDC_CHECKBOX_MULTIPLEMUTCH,	m_multipleMatch)
 		DDX_TEXT(IDC_EDIT_URLPATTERN		,	m_urlPattern)
 		DDX_TEXT(IDC_EDIT_BOUNDSPATTERN		,	m_boundesMatch)
-		DDX_INT(IDC_EDIT_WINDOWWIDTH		,	m_windowWidth)
+		DDX_INT_RANGE(IDC_EDIT_WINDOWWIDTH, m_windowWidth, 1, INT_MAX)
 		DDX_TEXT(IDC_EDIT_MATCHPATTERN		,	m_matchPattern)
 		DDX_TEXT(IDC_EDIT_REPLACEPATTERN	,	m_replacePattern)
 
@@ -102,7 +106,7 @@ public:
 	void OnTest(UINT uNotifyCode, int nID, CWindow wndCtl);
 
 private:
-	void	_SaveToTempFilter();
+	bool	_SaveToTempFilter();
 
 	// Data members
 	CFilterDescriptor*	m_pFilter;

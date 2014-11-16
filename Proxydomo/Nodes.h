@@ -29,6 +29,7 @@
 #include <deque>
 #include <mutex>
 #include <memory>
+#include <set>
 #include "Node.h"
 #include "proximodo\memory.h"
 #include "proximodo\url.h"
@@ -144,17 +145,17 @@ private:
 class CNode_Char : public CNode
 {
 public:
-	CNode_Char(UChar c) : CNode(CHAR), m_byte(c) { }
+	CNode_Char(UChar c) : CNode(CHAR), m_char(c) { }
     ~CNode_Char() { }
 
-	UChar getChar() { return m_byte; }
+	UChar getChar() { return m_char; }
 
 	// CNode
     bool mayMatch(bool* tab) override;
 	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override;
 
 private:
-    UChar m_byte;
+    UChar m_char;
 };
 
 
@@ -209,13 +210,14 @@ public:
     CNode_Chars(const std::wstring& c, bool allow = true);
     ~CNode_Chars() { }
 
-	void add(unsigned char c) { m_byte[c] = m_allow; }
+	void add(UChar c);
 
     bool mayMatch(bool* tab) override;
 	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override;
 
 private:
-    bool m_byte[256];
+	std::set<UChar>	m_setChars;
+	bool m_byte[256];
     bool m_allow;
 };
 
