@@ -214,6 +214,7 @@ LRESULT CMainDlg::OnTrayIconNotify(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, 
 			kWebPageFilter,
 			kOutHeaderFilter,
 			kInHeaderFileter,
+			kBypass,
 			kUseRemoteProxy,
 			kBlockListBegin,
 			kBlockListEnd = kBlockListBegin + 500,
@@ -228,6 +229,7 @@ LRESULT CMainDlg::OnTrayIconNotify(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, 
 		menu.AppendMenu(CSettings::s_filterText ? MF_CHECKED : MF_STRING, kWebPageFilter, _T("Webページフィルター(&W)"));
 		menu.AppendMenu(CSettings::s_filterOut ? MF_CHECKED : MF_STRING, kOutHeaderFilter, _T("送信ヘッダフィルター(&O)"));
 		menu.AppendMenu(CSettings::s_filterIn ? MF_CHECKED : MF_STRING, kInHeaderFileter, _T("受信ヘッダフィルター(&I)"));
+		menu.AppendMenu(CSettings::s_bypass ? MF_CHECKED : MF_STRING, kBypass, _T("バイパス(&B)"));
 		menu.AppendMenu(MF_SEPARATOR);
 		menu.AppendMenu(CSettings::s_useRemoteProxy ? MF_CHECKED : MF_STRING, kUseRemoteProxy, _T("リモートプロクシを使用(&R)"));
 		menu.AppendMenu(MF_SEPARATOR);
@@ -280,6 +282,11 @@ LRESULT CMainDlg::OnTrayIconNotify(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, 
 		case kInHeaderFileter:
 			CSettings::s_filterIn = !CSettings::s_filterIn;
 			DoDataExchange(DDX_LOAD, IDC_CHECKBOX_INHEADER);
+			break;
+
+		case kBypass:
+			CSettings::s_bypass = !CSettings::s_bypass;
+			DoDataExchange(DDX_LOAD, IDC_CHECK_BYPASS);
 			break;
 
 		case kUseRemoteProxy:

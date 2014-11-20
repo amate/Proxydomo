@@ -26,6 +26,7 @@
 #include <atlctrls.h>
 #include <atlframe.h>
 #include <atlddx.h>
+#include <atlmisc.h>
 #include "resource.h"
 
 class CFilterDescriptor;
@@ -38,6 +39,12 @@ class CFilterEditWindow :
 {
 public:
 	enum { IDD = IDD_FILTEREDIT };
+
+	enum {
+		kMinEditHeight = 24,
+		kMatchReplaceSpace = 20,
+		kcyStaticReplaceTextMargin = 4,
+	};
 
 	CFilterEditWindow(CFilterDescriptor* pfd);
 	~CFilterEditWindow();
@@ -74,10 +81,7 @@ public:
 		DLGRESIZE_CONTROL( IDC_STATIC_LIMIT, DLSZ_MOVE_X )
 		DLGRESIZE_CONTROL( IDC_EDIT_WINDOWWIDTH, DLSZ_MOVE_X )
 		DLGRESIZE_CONTROL( IDC_STATIC_BOUNDS, DLSZ_SIZE_X )
-		DLGRESIZE_CONTROL( IDC_BUTTON_TEST, DLSZ_MOVE_X )
-		DLGRESIZE_CONTROL( IDC_EDIT_MATCHPATTERN, DLSZ_SIZE_X | DLSZ_SIZE_Y)
-		DLGRESIZE_CONTROL( IDC_STATIC_REPLACE, DLSZ_MOVE_Y )
-		DLGRESIZE_CONTROL( IDC_EDIT_REPLACEPATTERN, DLSZ_MOVE_Y | DLSZ_SIZE_X )
+		DLGRESIZE_CONTROL( IDC_STATIC_EDITAREA, DLSZ_SIZE_X | DLSZ_SIZE_Y)
 		DLGRESIZE_CONTROL( IDOK, DLSZ_MOVE_X | DLSZ_MOVE_Y )
 		DLGRESIZE_CONTROL( IDCANCEL, DLSZ_MOVE_X | DLSZ_MOVE_Y )
 
@@ -86,6 +90,9 @@ public:
 	BEGIN_MSG_MAP_EX( CFilterEditWindow )
 		MSG_WM_INITDIALOG( OnInitDialog )
 		MSG_WM_DESTROY( OnDestroy )
+		MSG_WM_LBUTTONDOWN( OnLButtonDown )
+		MSG_WM_MOUSEMOVE( OnMouseMove )
+		MSG_WM_LBUTTONUP( OnLButtonUp )
 		COMMAND_HANDLER_EX( IDC_COMBO_FILTERTYPE, CBN_SELCHANGE, OnFilterSelChange )
 		COMMAND_ID_HANDLER_EX( IDOK, OnOK )
 		COMMAND_ID_HANDLER_EX( IDCANCEL, OnCancel )
@@ -99,6 +106,12 @@ public:
 
 	BOOL OnInitDialog(CWindow wndFocus, LPARAM lInitParam);
 	void OnDestroy();
+
+	void OnLButtonDown(UINT nFlags, CPoint point);
+	void OnMouseMove(UINT nFlags, CPoint point);
+	void OnLButtonUp(UINT nFlags, CPoint point);
+	void DlgResize_UpdateLayout(int cxWidth, int cyHeight);
+
 	void OnFilterSelChange(UINT uNotifyCode, int nID, CWindow wndCtl);
 	void OnOK(UINT uNotifyCode, int nID, CWindow wndCtl);
 	void OnCancel(UINT uNotifyCode, int nID, CWindow wndCtl);
@@ -107,6 +120,10 @@ public:
 
 private:
 	bool	_SaveToTempFilter();
+
+	int		_GetSplitterPos();
+	void	_MoveSplitterPos(int cyPos);
+	CRect	_GetControlRect(int nID);
 
 	// Data members
 	CFilterDescriptor*	m_pFilter;

@@ -52,7 +52,6 @@
 #define IDC_CHECKBOX_OUTHEADER          1032
 #define IDC_CHECKBOX_INHEADER           1033
 #define IDC_STATIC_VERSION              1034
-#define IDC_CHECKBOX_INHEADER2          1034
 #define IDC_CHECKBOX_USEREMOTEPROXY     1034
 #define IDC_STATIC_LIMIT                1035
 #define IDC_STATIC_BOUNDS               1036
@@ -90,6 +89,10 @@
 #define IDC_BUTTON_DELETEFROMPROXYLIST  1068
 #define IDC_BUTTON_TESTREMOTEPROXY      1069
 #define IDC_STATIC_TESTREMOTEPROXY      1071
+#define IDC_STATIC_EDITAREA             1072
+#define IDC_STATIC_SPLITTER             1073
+#define IDC_CHECK1                      1074
+#define IDC_CHECK_BYPASS                1074
 
 // Next default values for new objects
 // 
@@ -97,7 +100,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        251
 #define _APS_NEXT_COMMAND_VALUE         32775
-#define _APS_NEXT_CONTROL_VALUE         1072
+#define _APS_NEXT_CONTROL_VALUE         1075
 #define _APS_NEXT_SYMED_VALUE           140
 #endif
 #endif

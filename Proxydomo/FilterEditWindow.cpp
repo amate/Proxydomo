@@ -28,6 +28,7 @@
 #include <boost\property_tree\ptree.hpp>
 #include <boost\property_tree\ini_parser.hpp>
 #include <atlmisc.h>
+#include <atlsplit.h>
 #include "FilterDescriptor.h"
 #include "FilterOwner.h"
 #include "proximodo\filter.h"
@@ -76,8 +77,7 @@ public:
 	void OnFinalMessage(HWND /*hWnd*/) override { delete this; }
 
 	BEGIN_DLGRESIZE_MAP( CFilterTestWindow )
-		DLGRESIZE_CONTROL( IDC_EDIT_TESTTEXT, DLSZ_SIZE_X | DLSZ_SIZE_Y )
-		DLGRESIZE_CONTROL( IDC_EDIT_RESULTTEXT, DLSZ_MOVE_Y | DLSZ_SIZE_X )
+		DLGRESIZE_CONTROL(IDC_STATIC_SPLITTER, DLSZ_SIZE_X | DLSZ_SIZE_Y)
 
 	END_DLGRESIZE_MAP()
 
@@ -95,9 +95,26 @@ public:
 
 	BOOL OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 	{
+		HFONT hFont = GetDlgItem(IDC_STATIC_SPLITTER).GetFont();
+		CRect rcSplitter;
+		GetDlgItem(IDC_STATIC_SPLITTER).GetWindowRect(&rcSplitter);
+		ScreenToClient(&rcSplitter);
+		m_wndSplitter.Create(m_hWnd, rcSplitter, NULL, WS_CHILD | WS_VISIBLE);
+		GetDlgItem(IDC_STATIC_SPLITTER).SetDlgCtrlID(0);
+		m_wndSplitter.SetDlgCtrlID(IDC_STATIC_SPLITTER);
+		m_wndSplitter.SetSplitterExtendedStyle(SPLIT_BOTTOMALIGNED);
+
+		CLogFont lf;
+		lf.SetMenuFont();
+		m_editTest.Create(m_wndSplitter, NULL, NULL, 
+			WS_CHILD | WS_VISIBLE | ES_MULTILINE | ES_AUTOVSCROLL | ES_WANTRETURN | WS_VSCROLL | WS_HSCROLL | WS_BORDER);
+		m_editTest.SetFont(hFont);
+		m_editResult.Create(m_wndSplitter, NULL, NULL, 
+			WS_CHILD | WS_VISIBLE | ES_MULTILINE | ES_AUTOVSCROLL | ES_WANTRETURN | WS_VSCROLL | WS_HSCROLL | WS_BORDER);
+		m_editResult.SetFont(hFont);
+		m_wndSplitter.SetSplitterPanes(m_editTest, m_editResult);
+
 		enum { kMaxEditLimitSize = 3 * 1024 * 1024 };
-		m_editTest	= GetDlgItem(IDC_EDIT_TESTTEXT);
-		m_editResult= GetDlgItem(IDC_EDIT_RESULTTEXT);
 		m_editTest.LimitText(kMaxEditLimitSize);
 		m_editResult.LimitText(kMaxEditLimitSize);
 
@@ -120,30 +137,39 @@ public:
 		if (rcWindow != CRect())
 			MoveWindow(&rcWindow);
 
+		int splitterPos = pt.get("FilterTestWindow.SplitterPos", -1);
+		m_wndSplitter.SetSplitterPos(splitterPos);
+
 		return 0;
 	}
 
-	void OnDestroy() { s_strLastTest = MiscGetWindowText(m_editTest); }
-
-	void OnCancel(UINT uNotifyCode, int nID, CWindow wndCtl)
+	void OnDestroy()
 	{
+		s_strLastTest = MiscGetWindowText(m_editTest); 
+
 		std::string settingsPath = CT2A(Misc::GetExeDirectory() + _T("settings.ini"));
 		ptree pt;
 		try {
 			read_ini(settingsPath, pt);
-		} catch (...) {
+		}
+		catch (...) {
 		}
 
 		CRect rcWindow;
 		GetWindowRect(&rcWindow);
-		
+
 		pt.put("FilterTestWindow.top", rcWindow.top);
 		pt.put("FilterTestWindow.left", rcWindow.left);
 		pt.put("FilterTestWindow.right", rcWindow.right);
 		pt.put("FilterTestWindow.bottom", rcWindow.bottom);
 
-		write_ini(settingsPath, pt);
+		pt.put("FilterTestWindow.SplitterPos", m_wndSplitter.GetSplitterPos());
 
+		write_ini(settingsPath, pt);
+	}
+
+	void OnCancel(UINT uNotifyCode, int nID, CWindow wndCtl)
+	{
 		ShowWindow(FALSE);
 	}
 
@@ -204,13 +230,19 @@ public:
 			}
 		} else {
 			std::string text = CT2A(MiscGetWindowText(m_editTest));
+			auto brpos = text.find_first_of("\r\n");
+			if (brpos != std::string::npos) 
+				text = text.substr(0, brpos);
+			
 			CUrl	url;
 			url.parseUrl(text);
 			const char* end = nullptr;
+			CString result;
+			result.Format(_T("テスト文字列: %s\r\n\r\n"), (LPWSTR)CA2W(url.getFromHost().c_str()));
 			if (matcher.match(url.getFromHost(), &filter)) {
-				m_editResult.SetWindowText(_T("マッチしました！"));
+				m_editResult.SetWindowText(result + _T("マッチしました！"));
 			} else {
-				m_editResult.SetWindowText(_T("マッチしませんでした..."));
+				m_editResult.SetWindowText(result + _T("マッチしませんでした..."));
 			}
 			return ;
 		}
@@ -328,6 +360,8 @@ private:
 	// Data members
 	CFilterDescriptor*	m_pFilter;
 	std::function<bool ()>	m_funcSaveToTempFilter;
+
+	CHorSplitterWindow	m_wndSplitter;
 	CEdit	m_editTest;
 	CEdit	m_editResult;
 	static CString s_strLastTest;
@@ -389,7 +423,7 @@ BOOL CFilterEditWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 	DoDataExchange(DDX_LOAD);
 
     // ダイアログリサイズ初期化
-    DlgResize_Init(true, true, WS_THICKFRAME | WS_MAXIMIZEBOX);
+    DlgResize_Init(true, true, WS_CLIPCHILDREN | WS_THICKFRAME | WS_MAXIMIZEBOX);
 
 	std::string settingsPath = CT2A(Misc::GetExeDirectory() + _T("settings.ini"));
 	ptree pt;
@@ -397,6 +431,7 @@ BOOL CFilterEditWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 		read_ini(settingsPath, pt);
 	} catch (...) {
 	}
+
 	CRect rcWindow;
 	rcWindow.top	= pt.get("FilterEditWindow.top", 0);
 	rcWindow.left	= pt.get("FilterEditWindow.left", 0);
@@ -404,6 +439,9 @@ BOOL CFilterEditWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 	rcWindow.bottom	= pt.get("FilterEditWindow.bottom", 0);
 	if (rcWindow != CRect())
 		MoveWindow(&rcWindow);
+
+	if (auto value = pt.get_optional<int>("FilterEditWindow.SplitterPos"))
+		_MoveSplitterPos(value.get());
 
 	return 0;
 }
@@ -424,9 +462,123 @@ void CFilterEditWindow::OnDestroy()
 	pt.put("FilterEditWindow.left", rcWindow.left);
 	pt.put("FilterEditWindow.right", rcWindow.right);
 	pt.put("FilterEditWindow.bottom", rcWindow.bottom);
+	
+	pt.put("FilterEditWindow.SplitterPos", _GetSplitterPos());
 
 	write_ini(settingsPath, pt);
 }
+
+
+void CFilterEditWindow::OnLButtonDown(UINT nFlags, CPoint point)
+{
+	CRect rcMatching = _GetControlRect(IDC_EDIT_MATCHPATTERN);
+	CRect rcReplace = _GetControlRect(IDC_EDIT_REPLACEPATTERN);
+
+	CRect rcDragBound;
+	rcDragBound.top = rcMatching.bottom;
+	rcDragBound.left = rcMatching.left;
+	rcDragBound.right = rcMatching.right;
+	rcDragBound.bottom = rcReplace.top;
+
+	if (rcDragBound.PtInRect(point)) {
+		if (::DragDetect(m_hWnd, point)) {
+			SetCapture();
+			SetCursor(LoadCursor(0, IDC_SIZENS));
+		}
+	}
+}
+
+int		CFilterEditWindow::_GetSplitterPos()
+{
+	CRect rcMatching = _GetControlRect(IDC_EDIT_MATCHPATTERN);
+	return rcMatching.bottom;
+}
+
+void	CFilterEditWindow::_MoveSplitterPos(int cyPos)
+{
+	CRect rcMatching = _GetControlRect(IDC_EDIT_MATCHPATTERN);
+	CRect rcReplace = _GetControlRect(IDC_EDIT_REPLACEPATTERN);
+
+	CRect rcDragBound;
+	rcDragBound.top = rcMatching.bottom;
+	rcDragBound.left = rcMatching.left;
+	rcDragBound.right = rcMatching.right;
+	rcDragBound.bottom = rcReplace.top;
+
+	rcDragBound.MoveToY(cyPos);
+
+	CRect rcText = _GetControlRect(IDC_STATIC_REPLACE);
+	rcText.MoveToY(rcDragBound.top + kcyStaticReplaceTextMargin);
+
+	rcMatching.bottom = rcDragBound.top;
+	rcReplace.top = rcDragBound.bottom;
+	if (rcMatching.Height() < kMinEditHeight || rcReplace.Height() < kMinEditHeight)
+		return;
+
+	GetDlgItem(IDC_STATIC_REPLACE).MoveWindow(&rcText);
+	GetDlgItem(IDC_EDIT_MATCHPATTERN).MoveWindow(&rcMatching);
+	GetDlgItem(IDC_EDIT_REPLACEPATTERN).MoveWindow(&rcReplace);
+}
+
+void CFilterEditWindow::OnMouseMove(UINT nFlags, CPoint point)
+{
+	if (GetCapture() != m_hWnd)
+		return;
+
+	int moveY = point.y - (kMatchReplaceSpace / 2);
+	_MoveSplitterPos(moveY);
+}
+
+void CFilterEditWindow::OnLButtonUp(UINT nFlags, CPoint point)
+{
+	if (GetCapture() != m_hWnd)
+		return;
+
+	OnMouseMove(nFlags, point);
+	ReleaseCapture();
+	SetCursor(LoadCursor(0, IDC_ARROW));
+
+	POINT ptBack = m_ptMinTrackSize;
+	DlgResize_Init(true, true, WS_CLIPCHILDREN | WS_THICKFRAME | WS_MAXIMIZEBOX);
+	m_ptMinTrackSize = ptBack;
+}
+
+CRect	CFilterEditWindow::_GetControlRect(int nID)
+{
+	CRect rcArea;
+	GetDlgItem(nID).GetWindowRect(&rcArea);
+	ScreenToClient(&rcArea);
+	return rcArea;
+}
+
+void CFilterEditWindow::DlgResize_UpdateLayout(int cxWidth, int cyHeight)
+{
+	__super::DlgResize_UpdateLayout(cxWidth, cyHeight);
+
+	CRect rcArea = _GetControlRect(IDC_STATIC_EDITAREA);
+	
+	CRect rcReplace = rcArea;
+	rcReplace.top = rcArea.bottom - _GetControlRect(IDC_EDIT_REPLACEPATTERN).Height();
+
+	CRect rcText = _GetControlRect(IDC_STATIC_REPLACE);
+	rcText.MoveToY(rcReplace.top - kMatchReplaceSpace + kcyStaticReplaceTextMargin);
+
+	CRect rcMatch = rcArea;
+	rcMatch.bottom = rcReplace.top - kMatchReplaceSpace;
+
+	if (rcMatch.Height() < kMinEditHeight) {
+		rcMatch.bottom = rcMatch.top + kMinEditHeight;
+
+		rcText.MoveToY(rcMatch.bottom + kcyStaticReplaceTextMargin);
+
+		rcReplace.top = rcMatch.bottom + kMatchReplaceSpace;
+	}
+
+	GetDlgItem(IDC_EDIT_MATCHPATTERN).MoveWindow(&rcMatch);
+	GetDlgItem(IDC_STATIC_REPLACE).MoveWindow(&rcText);
+	GetDlgItem(IDC_EDIT_REPLACEPATTERN).MoveWindow(&rcReplace);
+}
+
 
 void CFilterEditWindow::OnFilterSelChange(UINT uNotifyCode, int nID, CWindow wndCtl)
 {
@@ -514,7 +666,11 @@ bool	CFilterEditWindow::_SaveToTempFilter()
 	m_pTempFilter->version		= UTF8fromUTF16(m_version.GetBuffer());
 	m_pTempFilter->comment		= UTF8fromUTF16(m_description.GetBuffer());
 	m_pTempFilter->filterType	= static_cast<CFilterDescriptor::FilterType>(m_filterType);
-	m_pTempFilter->headerName	= UTF8fromUTF16(m_headerName.GetBuffer());
+	if (m_pTempFilter->filterType != CFilterDescriptor::kFilterText) {
+		m_pTempFilter->headerName = UTF8fromUTF16(m_headerName.GetBuffer());
+	} else {
+		m_pTempFilter->headerName.clear();
+	}
 	m_pTempFilter->multipleMatches	= m_multipleMatch;
 	m_pTempFilter->urlPattern	= (m_urlPattern.GetBuffer());
 	m_pTempFilter->boundsPattern= (m_boundesMatch.GetBuffer());

@@ -92,6 +92,7 @@ public:
 	static bool			s_filterText;
 	static bool			s_filterIn;
 	static bool			s_filterOut;
+	static bool			s_bypass;
 	static bool			s_SSLFilter;
 	static bool			s_WebFilterDebug;
 

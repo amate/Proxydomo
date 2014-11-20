@@ -82,6 +82,7 @@ uint16_t		CSettings::s_proxyPort	= DEFAULTPECA_PORT;
 bool			CSettings::s_filterText	= true;
 bool			CSettings::s_filterIn	= true;
 bool			CSettings::s_filterOut	= true;
+bool			CSettings::s_bypass	= false;
 bool			CSettings::s_SSLFilter = false;
 bool			CSettings::s_WebFilterDebug	= false;
 
@@ -117,6 +118,8 @@ void	CSettings::LoadSettings()
 			s_filterIn	= value.get();
 		if (auto value = pt.get_optional<bool>("Setting.filterOut"))
 			s_filterOut	= value.get();
+		if (auto value = pt.get_optional<bool>("Setting.bypass"))
+			s_bypass = value.get();
 
 		s_useRemoteProxy = pt.get<bool>("RemoteProxy.UseRemoteProxy", s_useRemoteProxy);
 		s_defaultRemoteProxy = pt.get("RemoteProxy.defaultRemoteProxy", "");
@@ -161,6 +164,7 @@ void	CSettings::SaveSettings()
 	pt.put("Setting.filterText"	, s_filterText);
 	pt.put("Setting.filterIn"	, s_filterIn);
 	pt.put("Setting.filterOut"	, s_filterOut);
+	pt.put("Setting.bypass", s_bypass);
 
 	pt.erase("RemoteProxy");
 	pt.put<bool>("RemoteProxy.UseRemoteProxy", s_useRemoteProxy);
@@ -371,6 +375,9 @@ static void ActiveFilterCallFunc(std::vector<std::unique_ptr<FilterItem>>& vecFi
 
 void CSettings::EnumActiveFilter(std::function<void (CFilterDescriptor*)> func)
 {
+	if (s_bypass)
+		return;
+
 	CCritSecLock	lock(CSettings::s_csFilters);
 	ActiveFilterCallFunc(s_vecpFilters, func);
 }
