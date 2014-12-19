@@ -66,7 +66,7 @@ public:
 		m_hDir = CreateFile(
 								DirPath,                            // ファイル名へのポインタ
 								FILE_LIST_DIRECTORY,                // アクセス（ 読み書き）モード
-								FILE_SHARE_READ | FILE_SHARE_DELETE,  // 共有モード
+								FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,  // 共有モード
 								NULL,                               // セキュリティ記述子
 								OPEN_EXISTING,                      // 作成方法
 								FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED,         // ファイル属性

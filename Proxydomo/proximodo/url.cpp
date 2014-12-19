@@ -102,11 +102,22 @@ void CUrl::parseUrl(const string& str) {
     fromhost  = str.substr(pos1);
     afterhost = str.substr(pos2);
     host      = str.substr(pos1, pos2 - pos1);
+	hostport = host;
+	if (hostport.find(":") == string::npos)
+		hostport += ':' + protocol;
+	size_t pos5 = host.find(':');
+	if (pos5 != string::npos) {
+		string port = host.substr(pos5 + 1);
+		const char* kHttpPort = "80";
+		const char* kHttpsPort = "443";
+		if (protocol == "http" && port == kHttpPort) {
+			host = host.substr(0, pos5);
+		} else if (protocol == "https" && port == kHttpsPort) {
+			host = host.substr(0, pos5);
+		}
+	}
     path      = str.substr(pos2, pos3 - pos2);
     query     = str.substr(pos3, pos4 - pos3);
     anchor    = str.substr(pos4);
-    hostport  = host;
-    if (hostport.find(":") == string::npos)
-        hostport += ':' + protocol;
 }
 // vi:ts=4:sw=4:et

@@ -66,29 +66,29 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <LibraryPath>C:\Program\Proxydomo\GnuTLS\x86\lib;$(SolutionDir)icu\Win32\lib;$(SolutionDir)zlib\x86\lib;C:\Program\boost_1_56_0\lib\lib;$(LibraryPath)</LibraryPath>
-    <IncludePath>C:\Program\Proxydomo\GnuTLS\x86\include;$(SolutionDir)icu\Win32\include;$(SolutionDir)zlib\x86\include;$(IncludePath)</IncludePath>
+    <LibraryPath>D:\Program\Proxydomo\GnuTLS\x86\lib;$(SolutionDir)icu\Win32\lib;$(SolutionDir)zlib\x86\lib;D:\Program\boost_1_56_0\lib\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>D:\Program\Proxydomo\GnuTLS\x86\include;$(SolutionDir)icu\Win32\include;$(SolutionDir)zlib\x86\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Program\Proxydomo\GnuTLS\x64\include;$(SolutionDir)icu\Win64\include;C:\Program\WTL81_12085\Include;$(SolutionDir)zlib\x64\include;$(IncludePath)</IncludePath>
+    <IncludePath>D:\Program\Proxydomo\GnuTLS\x64\include;$(SolutionDir)icu\Win64\include;D:\Program\WTL81_12085\Include;$(SolutionDir)zlib\x64\include;$(IncludePath)</IncludePath>
     <OutDir>$(SolutionDir)$(Configuration)$(Platform)\</OutDir>
     <IntDir>$(Configuration)$(Platform)\</IntDir>
     <TargetName>$(ProjectName)64</TargetName>
-    <LibraryPath>C:\Program\Proxydomo\GnuTLS\x64\lib;$(SolutionDir)icu\Win64\lib64;$(SolutionDir)zlib\x64\lib;$(VCInstallDir)lib\amd64;$(VCInstallDir)atlmfc\lib\amd64;$(WindowsSDK_LibraryPath_x64);$(LibraryPath)</LibraryPath>
+    <LibraryPath>D:\Program\Proxydomo\GnuTLS\x64\lib;$(SolutionDir)icu\Win64\lib64;$(SolutionDir)zlib\x64\lib;$(VCInstallDir)lib\amd64;$(VCInstallDir)atlmfc\lib\amd64;$(WindowsSDK_LibraryPath_x64);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <LibraryPath>C:\Program\Proxydomo\GnuTLS\x86\lib;$(SolutionDir)icu\Win32\lib;$(SolutionDir)zlib\x86\lib;C:\Program\boost_1_56_0\lib\lib;$(LibraryPath)</LibraryPath>
-    <IncludePath>C:\Program\Proxydomo\GnuTLS\x86\include;$(SolutionDir)icu\Win32\include;$(SolutionDir)zlib\x86\include;$(IncludePath)</IncludePath>
+    <LibraryPath>D:\Program\Proxydomo\GnuTLS\x86\lib;$(SolutionDir)icu\Win32\lib;$(SolutionDir)zlib\x86\lib;D:\Program\boost_1_56_0\lib\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>D:\Program\Proxydomo\GnuTLS\x86\include;$(SolutionDir)icu\Win32\include;$(SolutionDir)zlib\x86\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)$(Configuration)$(Platform)\</OutDir>
     <IntDir>$(Configuration)$(Platform)\</IntDir>
     <TargetName>$(ProjectName)64</TargetName>
-    <LibraryPath>C:\Program\Proxydomo\GnuTLS\x64\lib;$(SolutionDir)icu\Win64\lib64;$(SolutionDir)zlib\x64\lib;$(VCInstallDir)lib\amd64;$(VCInstallDir)atlmfc\lib\amd64;$(WindowsSDK_LibraryPath_x64);$(LibraryPath)</LibraryPath>
-    <IncludePath>C:\Program\Proxydomo\GnuTLS\x64\include;$(SolutionDir)icu\Win64\include;C:\Program\WTL81_12085\Include;$(SolutionDir)zlib\x64\include;$(IncludePath)</IncludePath>
+    <LibraryPath>D:\Program\Proxydomo\GnuTLS\x64\lib;$(SolutionDir)icu\Win64\lib64;$(SolutionDir)zlib\x64\lib;$(VCInstallDir)lib\amd64;$(VCInstallDir)atlmfc\lib\amd64;$(WindowsSDK_LibraryPath_x64);$(LibraryPath)</LibraryPath>
+    <IncludePath>D:\Program\Proxydomo\GnuTLS\x64\include;$(SolutionDir)icu\Win64\include;D:\Program\WTL81_12085\Include;$(SolutionDir)zlib\x64\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
