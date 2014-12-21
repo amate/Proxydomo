@@ -75,9 +75,12 @@ bool CHeaderFilter::filter(string& content) {
     // clear memory
     clearMemory();
 
+	Proxydomo::MatchData matchData(this);
     // check if URL matches
-    if (urlMatcher) {
-        bool ret = urlMatcher->match(owner.url.getFromHost(), this);
+    if (urlMatcher) {		
+		std::wstring url =  UTF16fromUTF8(owner.url.getFromHost());
+		const UChar* end = nullptr;
+		bool ret = urlMatcher->match(url.c_str(), url.c_str() + url.length(), end, &matchData);
         unlock();
         if (!ret) return false;
     }
@@ -111,6 +114,10 @@ bool CHeaderFilter::filter(string& content) {
 
     // Log replace event
 	CLog::FilterEvent(kLogFilterHeaderReplace, owner.requestNumber, UTF8fromUTF16(title), content);
+
+	for (auto& matchListLog : matchData.matchListLog) {
+		CLog::FilterEvent(kLogFilterListMatch, owner.requestNumber, matchListLog.first, std::to_string(matchListLog.second));
+	}
 
     return true;
 }

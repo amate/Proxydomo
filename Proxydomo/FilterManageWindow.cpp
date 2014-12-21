@@ -532,7 +532,7 @@ LRESULT CFilterManageWindow::OnTreeFilterDblClk(LPNMHDR pnmh)
 	m_treeFilter.ScreenToClient(&pt);
 	UINT flags = 0;
 	HTREEITEM htHit = m_treeFilter.HitTest(pt, &flags);
-	if (htHit == NULL || (flags & (TVHT_ONITEMICON | TVHT_ONITEMLABEL)) == 0)
+	if (htHit == NULL || (((flags & (TVHT_ONITEMICON | TVHT_ONITEMLABEL)) == 0) && pnmh != nullptr))
 		return 0;
 	
 	FilterItem* filterItem = (FilterItem*)m_treeFilter.GetItemData(htHit);

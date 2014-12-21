@@ -922,7 +922,7 @@ const UChar* CNode_List::match(const UChar* start, const UChar* stop, MatchData*
         // Check the hashed list corresponding to the first char
 		boost::shared_lock<boost::shared_mutex>	lock(m_phashedCollection->mutex);
 		// 固定プレフィックス
-		std::unordered_map<wchar_t, std::unique_ptr<HashedListCollection::PreHashWord>>* pmapPreHashWord = &m_phashedCollection->PreHashWordList;
+		auto pmapPreHashWord = &m_phashedCollection->PreHashWordList;
 		while (start < stop) {
 			auto itfound = pmapPreHashWord->find(towlower(*start));
 			if (itfound == pmapPreHashWord->end())
@@ -930,8 +930,9 @@ const UChar* CNode_List::match(const UChar* start, const UChar* stop, MatchData*
 
 			++start;
 			for (auto& node : itfound->second->vecNode) {
-				const UChar* ptr = node->match(start, stop, pMatch);
+				const UChar* ptr = node.node->match(start, stop, pMatch);
 				if (ptr) {
+					pMatch->matchListLog.emplace_back(m_name, node.listLine);
 					start = ptr;
 					const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
 					return ret;
@@ -974,16 +975,17 @@ const UChar* CNode_List::match(const UChar* start, const UChar* stop, MatchData*
 				}
 			}
 
-			std::unordered_map<std::wstring, std::unique_ptr<HashedListCollection::URLHash>>*	pmapChildURLHash = &m_phashedCollection->URLHashList;
+			auto	pmapChildURLHash = &m_phashedCollection->URLHashList;
 			for (auto it = deqDomain.rbegin(); it != deqDomain.rend(); ++it) {
 				auto itfound = pmapChildURLHash->find(it->first);
 				if (itfound == pmapChildURLHash->end())
 					break;
 
 				for (auto& pairNode : itfound->second->vecpairNode) {
-					if (pairNode.first->match(urlHost.c_str(), it->second, pMatch)) {
-						const UChar* ptr = pairNode.second->match(slashPos + 1, stop, pMatch);
+					if (pairNode.nodeFirst->match(urlHost.c_str(), it->second, pMatch)) {
+						const UChar* ptr = pairNode.nodeLast->match(slashPos + 1, stop, pMatch);
 						if (ptr) {
+							pMatch->matchListLog.emplace_back(m_name, pairNode.listLine);
 							start = ptr;
 							const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
 							return ret;
@@ -998,8 +1000,9 @@ const UChar* CNode_List::match(const UChar* start, const UChar* stop, MatchData*
 		start = startOrigin;
 		// NormalList
 		for (auto& node : m_phashedCollection->deqNormalNode) {
-			const UChar* ptr = node->match(start, stop, pMatch);
+			const UChar* ptr = node.node->match(start, stop, pMatch);
 			if (ptr) {
+				pMatch->matchListLog.emplace_back(m_name, node.listLine);
 				start = ptr;
 				const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
 				return ret;

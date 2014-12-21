@@ -37,6 +37,7 @@
 #include "Misc.h"
 #include "Matcher.h"
 #include "CodeConvert.h"
+#include "Log.h"
 
 using namespace CodeConvert;
 using namespace boost::property_tree;
@@ -299,6 +300,13 @@ public:
                         continue;
                     }
                     found = true;
+
+					if (prof == false) {
+						for (auto& matchListLog : matchData.matchListLog) {
+							CLog::FilterEvent(kLogFilterListMatch, owner.requestNumber, matchListLog.first, std::to_string(matchListLog.second));
+						}
+					}
+
                     if (run == 0) numMatch++;
                     result << std::wstring(done, (size_t)(index-done));
                     result << CExpander::expand(m_pFilter->replacePattern, filter);

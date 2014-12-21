@@ -134,10 +134,6 @@ CRequestManager::~CRequestManager(void)
 
 void CRequestManager::Manage()
 {
-	using std::chrono::steady_clock;
-	typedef steady_clock::time_point time_point;
-	time_point	stopDataTimeFromBrowser;
-
 	m_outStep = STEP_START;
 	m_inStep = STEP_START;
 	m_ipFromAddress = m_psockBrowser->GetFromAddress();

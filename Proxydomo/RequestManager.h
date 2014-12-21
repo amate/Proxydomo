@@ -135,7 +135,6 @@ private:
     bool	m_sendConnectionClose;
     int		m_recvContentCoding;   // 0: plain/compress, 1: gzip, 2:deflate (zlib)
 	std::unique_ptr<CZlibBuffer>	m_decompressor;
-	std::unique_ptr<CZlibBuffer>	m_compressor;
 
     // Variables and functions for outgoing processing
     STEP	m_outStep;	// ブラウザ ⇒ Proxy(this) ⇒ サイト 間の処理の状態を示す

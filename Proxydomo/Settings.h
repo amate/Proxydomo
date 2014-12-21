@@ -45,22 +45,38 @@ namespace Proxydomo {
 struct HashedListCollection {
 	boost::shared_mutex	mutex;
 
+	struct NodeData {
+		std::shared_ptr<Proxydomo::CNode> node;
+		int	listLine;
+
+		NodeData(std::shared_ptr<Proxydomo::CNode> node, int listLine) : node(node), listLine(listLine) {}
+	};
+
+	struct NodePairData {
+		std::shared_ptr<Proxydomo::CNode> nodeFirst;
+		std::shared_ptr<Proxydomo::CNode> nodeLast;
+		int	listLine;
+
+		NodePairData(std::shared_ptr<Proxydomo::CNode> nodeFirst, std::shared_ptr<Proxydomo::CNode> nodeLast, int listLine) 
+			: nodeFirst(nodeFirst), nodeLast(nodeLast), listLine(listLine) {}
+	};
+
 	// 固定プレフィックスリスト
 	struct PreHashWord {
 		std::unordered_map<wchar_t, std::unique_ptr<PreHashWord>>	mapChildPreHashWord;
-		std::vector<std::shared_ptr<Proxydomo::CNode>>	vecNode;
+		std::vector<NodeData>	vecNode;
 	};
 	std::unordered_map<wchar_t, std::unique_ptr<PreHashWord>>	PreHashWordList;
 
 	// URLハッシュリスト
 	struct URLHash {
 		std::unordered_map<std::wstring, std::unique_ptr<URLHash>>	mapChildURLHash;
-		std::vector<std::pair<std::shared_ptr<Proxydomo::CNode>, std::shared_ptr<Proxydomo::CNode>>>	vecpairNode;
+		std::vector<NodePairData>	vecpairNode;
 	};
 	std::unordered_map<std::wstring, std::unique_ptr<URLHash>>	URLHashList;
 
 	// Normalリスト
-	std::deque<std::shared_ptr<Proxydomo::CNode>>	deqNormalNode;
+	std::deque<NodeData>	deqNormalNode;
 };
 
 struct FilterItem
@@ -127,6 +143,6 @@ public:
 
 	static void LoadList(const CString& filePath);
 private:
-	static bool _CreatePattern(std::wstring& pattern, HashedListCollection& listCollection);
+	static bool _CreatePattern(std::wstring& pattern, HashedListCollection& listCollection, int listLine);
 
 };

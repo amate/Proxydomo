@@ -27,7 +27,7 @@
 #include "url.h"
 #include "expander.h"
 #include "const.h"
-//#include "log.h"
+#include "..\Log.h"
 #include "..\FilterDescriptor.h"
 #include "..\FilterOwner.h"
 //#include "matcher.h"
@@ -160,5 +160,9 @@ int CTextFilter::match(const wchar_t* index, const wchar_t* bufTail) {
 		return -1;
     if (!matched || (boundsMatcher && endOfMatched != stop)) 
 		return 0;
+
+	for (auto& matchListLog : matchData.matchListLog) {
+		CLog::FilterEvent(kLogFilterListMatch, owner.requestNumber, matchListLog.first, std::to_string(matchListLog.second));
+	}
     return 1;
 }

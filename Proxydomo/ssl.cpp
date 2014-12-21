@@ -209,8 +209,7 @@ std::vector<BYTE>	LoadBinaryFile(const std::string& filePath)
 	auto eofPos = fs.tellg();
 	fs.clear();
 	fs.seekg(0, std::ios::beg);
-	auto begPos = fs.tellg();
-	size_t fileSize = eofPos - begPos;
+	size_t fileSize = (size_t)eofPos.seekpos();
 
 	std::vector<BYTE> vec(fileSize);
 	fs.read((char*)vec.data(), fileSize);

@@ -25,6 +25,7 @@
 #pragma once
 
 #include <map>
+#include <vector>
 #include "proximodo\url.h"
 #include <unicode\schriter.h>
 
@@ -34,11 +35,12 @@ namespace Proxydomo {
 
 struct MatchData
 {
-	const UChar* reached;
-	CFilter*	pFilter;
-	CUrl		url;
+	const UChar*	reached;
+	CFilter*		pFilter;
 
 	std::map<void*, const UChar*>	mapRecordPos;	// for CNode_Memory
+
+	std::vector<std::pair<std::string, int>> matchListLog;
 
 	MatchData(CFilter* filter) : reached(nullptr), pFilter(filter) { }
 };

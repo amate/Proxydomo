@@ -428,7 +428,7 @@ void CSettings::LoadList(const CString& filePath)
 		while (std::getline(fs, strLine).fail() == false) {
 			CUtil::trim(strLine);
 			if (strLine.size() > 0 && strLine[0] != L'#') {
-				bool bSuccess = _CreatePattern(strLine, *hashedLists);
+				bool bSuccess = _CreatePattern(strLine, *hashedLists, nLineCount);
 				if (bSuccess == false)
 					CLog::FilterEvent(kLogFilterListBadLine, nLineCount, filename, "");
 			}
@@ -446,7 +446,7 @@ static inline bool isNonWildWord(wchar_t c) {
 }
 
 
-bool CSettings::_CreatePattern(std::wstring& pattern, HashedListCollection& listCollection)
+bool CSettings::_CreatePattern(std::wstring& pattern, HashedListCollection& listCollection, int listLine)
 {
 	// 固定プレフィックス
 	enum { kMaxPreHashWordLength = 7 };
@@ -459,7 +459,7 @@ bool CSettings::_CreatePattern(std::wstring& pattern, HashedListCollection& list
 		}
 	}
 	if (bPreHash) {
-		std::unordered_map<wchar_t, std::unique_ptr<HashedListCollection::PreHashWord>>* pmapPreHashWord = &listCollection.PreHashWordList;
+		auto pmapPreHashWord = &listCollection.PreHashWordList;
 
 		// 最初にパターンが正常かテスト
 		if (Proxydomo::CMatcher::CreateMatcher(pattern) == nullptr)
@@ -476,12 +476,12 @@ bool CSettings::_CreatePattern(std::wstring& pattern, HashedListCollection& list
 			if (patternIt.hasNext() == false || ((patternIt.getIndex() + 1) == kMaxPreHashWordLength)) {
 				patternIt.next();
 				try {
-					pmapChildHashWord->vecNode.emplace_back(Proxydomo::CMatcher::expr(patternIt));
+					pmapChildHashWord->vecNode.emplace_back(std::shared_ptr<Proxydomo::CNode>(Proxydomo::CMatcher::expr(patternIt)), listLine);
 				}
 				catch (...) {
 					return false;
 				}
-				pmapChildHashWord->vecNode.back()->setNextNode(nullptr);
+				pmapChildHashWord->vecNode.back().node->setNextNode(nullptr);
 				return true;
 			}
 			pmapPreHashWord = &pmapChildHashWord->mapChildPreHashWord;
@@ -616,7 +616,7 @@ bool CSettings::_CreatePattern(std::wstring& pattern, HashedListCollection& list
 					return false;
 
 				std::wstring lastWildcard = pattern.substr(slashPos + 1);
-				std::unordered_map<std::wstring, std::unique_ptr<HashedListCollection::URLHash>>*	pmapChildURLHash = &listCollection.URLHashList;
+				auto	pmapChildURLHash = &listCollection.URLHashList;
 				for (auto it = deqDomain.rbegin(); it != deqDomain.rend(); ++it) {
 					auto& pURLHash = (*pmapChildURLHash)[*it];
 					if (pURLHash == nullptr)
@@ -628,10 +628,12 @@ bool CSettings::_CreatePattern(std::wstring& pattern, HashedListCollection& list
 						UnicodeString patlast(lastWildcard.c_str(), lastWildcard.length());
 						StringCharacterIterator patternlastIt(patlast);
 						pURLHash->vecpairNode.emplace_back(
-							std::shared_ptr<Proxydomo::CNode>(Proxydomo::CMatcher::expr(patternfirstIt)), std::shared_ptr<Proxydomo::CNode>(Proxydomo::CMatcher::expr(patternlastIt)));
+							std::shared_ptr<Proxydomo::CNode>(Proxydomo::CMatcher::expr(patternfirstIt)),
+							std::shared_ptr<Proxydomo::CNode>(Proxydomo::CMatcher::expr(patternlastIt)),
+							listLine);
 						auto& pair = pURLHash->vecpairNode.back();
-						pair.first->setNextNode(nullptr);
-						pair.second->setNextNode(nullptr);
+						pair.nodeFirst->setNextNode(nullptr);
+						pair.nodeLast->setNextNode(nullptr);
 						return true;
 					}
 					pmapChildURLHash = &pURLHash->mapChildURLHash;
@@ -644,11 +646,11 @@ bool CSettings::_CreatePattern(std::wstring& pattern, HashedListCollection& list
 	try {
 		UnicodeString pat(pattern.c_str(), pattern.length());
 		StringCharacterIterator patternIt(pat);
-		listCollection.deqNormalNode.emplace_back(Proxydomo::CMatcher::expr(patternIt));
+		listCollection.deqNormalNode.emplace_back(std::shared_ptr<Proxydomo::CNode>(Proxydomo::CMatcher::expr(patternIt)), listLine);
 	} catch (...) {
 		return false;
 	}
 
-	listCollection.deqNormalNode.back()->setNextNode(nullptr);
+	listCollection.deqNormalNode.back().node->setNextNode(nullptr);
 	return true;
 }

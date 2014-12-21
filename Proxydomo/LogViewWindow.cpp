@@ -292,6 +292,13 @@ void CLogViewWindow::FilterEvent(LogFilterEvent Event, int RequestNumber, const 
 		return;
 		break;
 
+	case kLogFilterListMatch:
+		msg.Format(_T("#%d : ListMatch [%s] %s çsñ⁄\n"), RequestNumber, UTF16fromUTF8(title).c_str(), UTF16fromUTF8(text).c_str());
+		funcPartLog();
+		_AppendText(msg, LOG_COLOR_FILTER);		
+		return;
+		break;
+
 	default:
 		ATLASSERT( FALSE );
 		return ;
