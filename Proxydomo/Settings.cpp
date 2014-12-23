@@ -408,10 +408,10 @@ void CSettings::LoadList(const CString& filePath)
 		return ;	// çXêVÇ≥ÇÍÇƒÇ¢Ç»Ç©Ç¡ÇΩÇÁãAÇÈ
 	prevLastWriteTime = time;
 
-	std::wifstream fs(filePath);
+	std::wifstream fs(filePath, std::ios::in | std::ios::binary);
 	if (!fs)
 		return ;
-	fs.imbue(std::locale(std::locale(), new std::codecvt_utf8_utf16<wchar_t>));
+	fs.imbue(std::locale(std::locale(), new std::codecvt_utf8_utf16<wchar_t, 0x10ffff, std::codecvt_mode::consume_header>));
 	{
 		s_mutexHashedLists.lock();
 		auto& hashedLists = s_mapHashedLists[filename];
@@ -423,18 +423,36 @@ void CSettings::LoadList(const CString& filePath)
 		hashedLists->URLHashList.clear();
 		hashedLists->deqNormalNode.clear();
 
+		std::wstring pattern;
 		std::wstring strLine;
 		int nLineCount = 1;
-		while (std::getline(fs, strLine).fail() == false) {
-			CUtil::trim(strLine);
-			if (strLine.size() > 0 && strLine[0] != L'#') {
-				bool bSuccess = _CreatePattern(strLine, *hashedLists, nLineCount);
-				if (bSuccess == false)
-					CLog::FilterEvent(kLogFilterListBadLine, nLineCount, filename, "");
+		while (std::getline(fs, strLine)) {
+			if (strLine.length() && (strLine[0] == L' ' || strLine[0] == L'\t')) {
+				CUtil::trim(strLine);
+				pattern += strLine;
+
+			} else {
+				CUtil::trim(strLine);
+				if (pattern.length()) {
+					bool bSuccess = _CreatePattern(pattern, *hashedLists, nLineCount);
+					if (bSuccess == false)
+						CLog::FilterEvent(kLogFilterListBadLine, nLineCount, filename, "");
+				}
+
+				if (strLine.empty() || strLine[0] == L'#') {
+					pattern.clear();
+				} else {
+					pattern = strLine;
+				}
 			}
 			++nLineCount;
 			if (fs.eof())
 				break;
+		}
+		if (pattern.length()) {
+			bool bSuccess = _CreatePattern(pattern, *hashedLists, nLineCount);
+			if (bSuccess == false)
+				CLog::FilterEvent(kLogFilterListBadLine, nLineCount, filename, "");
 		}
 		s_mutexHashedLists.unlock();
 	}

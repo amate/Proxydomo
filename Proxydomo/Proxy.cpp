@@ -23,9 +23,11 @@
 #include "stdafx.h"
 #include "Proxy.h"
 #include <deque>
+#include <chrono>
 #include "RequestManager.h"
 #include "Log.h"
 #include "Misc.h"
+#include "Logger.h"
 
 
 ///////////////////////////////////////////////////////////////////////
@@ -55,6 +57,19 @@ void CProxy::CloseProxyPort()
 	if (m_threadServer.joinable()) {
 		m_bServerActive = false;
 		
+#ifdef _WIN64
+		m_threadServer.join();
+
+		{
+			CCritSecLock	lock(m_csRequestManager);
+			for (auto& manager : m_vecpRequestManager)
+				manager->SwitchToInvalid();
+		}
+
+		m_threadPool.CloseAllThread();
+
+		m_vecpRequestManager.clear();
+#else
 		{
 			CCritSecLock	lock(m_csRequestManager);
 			for (auto& manager : m_vecpRequestManager)
@@ -67,6 +82,7 @@ void CProxy::CloseProxyPort()
 			::Sleep(50);
 		}
 		m_vecpRequestManager.clear();
+#endif
 	}
 }
 
@@ -80,6 +96,24 @@ void CProxy::_ServerThread()
 			CCritSecLock	lock(m_csRequestManager);
 			m_vecpRequestManager.emplace_back(std::move(manager));
 		}
+		auto start = std::chrono::steady_clock::now();
+#ifdef _WIN64
+		m_threadPool.CreateThread([this, manager]() {
+			try {
+				manager->Manage();
+			}
+			catch (...) {
+			}
+			CCritSecLock	lock(m_csRequestManager);
+			for (auto it = m_vecpRequestManager.begin(); it != m_vecpRequestManager.end(); ++it) {
+				if (it->get() == manager) {
+					m_vecpRequestManager.erase(it);
+					break;
+				}
+			}
+		});
+#else
+
 		std::thread([this, manager]() {
 			try {
 				manager->Manage();
@@ -96,13 +130,15 @@ void CProxy::_ServerThread()
 			}
 			//delete manager;
 		}).detach();
+#endif
 	};
-	
+
 	while (m_bServerActive) {
 		std::unique_ptr<CSocket> pSock = m_sockServer.Accept();
 		if (pSock) {
 			auto manager = new CRequestManager(std::move(pSock));
 
+#ifndef _WIN64
 			// 最大接続数を超えた
 			// 最大接続数以下になるまでこのスレッドはロックしちゃってもよい
 			if (CLog::GetActiveRequestCount() > kMaxActiveRequestThread) {
@@ -110,7 +146,7 @@ void CProxy::_ServerThread()
 					::Sleep(50);
 				}
 			}
-
+#endif
 			funcCreateRequestManagerThread(manager);
 			continue;
 		}

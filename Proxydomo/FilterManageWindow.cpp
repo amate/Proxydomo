@@ -528,13 +528,10 @@ LRESULT CFilterManageWindow::OnCheckStateChanged(UINT uMsg, WPARAM wParam, LPARA
 /// フィルター編集ウィンドウを開く
 LRESULT CFilterManageWindow::OnTreeFilterDblClk(LPNMHDR pnmh)
 {
-	CPoint pt(::GetMessagePos());
-	m_treeFilter.ScreenToClient(&pt);
-	UINT flags = 0;
-	HTREEITEM htHit = m_treeFilter.HitTest(pt, &flags);
-	if (htHit == NULL || (((flags & (TVHT_ONITEMICON | TVHT_ONITEMLABEL)) == 0) && pnmh != nullptr))
+	HTREEITEM htHit = m_treeFilter.GetSelectedItem();
+	if (htHit == NULL)
 		return 0;
-	
+
 	FilterItem* filterItem = (FilterItem*)m_treeFilter.GetItemData(htHit);
 	if (filterItem == nullptr || filterItem->pFilter == nullptr)
 		return 0;

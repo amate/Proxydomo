@@ -39,6 +39,9 @@ gnutls_priority_t					g_client_priority_cache = NULL;
 std::unordered_map<std::string, bool>	g_mapHostAllowOrDeny;
 CCriticalSection						g_csmapHost;
 
+std::unordered_map<std::string, std::shared_ptr<gnutls_datum_t>>	g_mapHostSessionData;
+CCriticalSection	g_csmapHostSessionData;
+
 
 class CCertificateErrorDialog : public CDialogImpl<CCertificateErrorDialog>
 {
@@ -882,13 +885,11 @@ std::unique_ptr<CSSLSession>	CSSLSession::InitClientSession(CSocket* sock, const
 	gnutls_transport_set_int(session->m_session, sock->GetSocket());
 	gnutls_handshake_set_timeout(session->m_session, GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT);
 
-	static std::unordered_map<std::string, std::shared_ptr<gnutls_datum_t>>	s_mapHostSessionData;
-	static CCriticalSection	s_cs;
 	std::shared_ptr<gnutls_datum_t>	psessionCache;
 	{
-		CCritSecLock lock(s_cs);
-		auto itfound = s_mapHostSessionData.find(host);
-		if (itfound != s_mapHostSessionData.end()) {
+		CCritSecLock lock(g_csmapHostSessionData);
+		auto itfound = g_mapHostSessionData.find(host);
+		if (itfound != g_mapHostSessionData.end()) {
 			psessionCache = itfound->second;
 			ret = gnutls_session_set_data(session->m_session, psessionCache->data, psessionCache->size);
 		}
@@ -926,8 +927,8 @@ std::unique_ptr<CSSLSession>	CSSLSession::InitClientSession(CSocket* sock, const
 				}
 			}
 #endif
-			CCritSecLock lock(s_cs);
-			s_mapHostSessionData[host] = psessionData;
+			CCritSecLock lock(g_csmapHostSessionData);
+			g_mapHostSessionData[host] = psessionData;
 		}
 
 		char *desc;

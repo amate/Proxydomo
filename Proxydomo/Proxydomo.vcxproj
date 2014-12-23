@@ -732,6 +732,7 @@
     <ClInclude Include="ssl.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="TextBuffer.h" />
+    <ClInclude Include="ThreadPool.h" />
     <ClInclude Include="VersionControl.h" />
     <ClInclude Include="WinHTTPWrapper.h" />
   </ItemGroup>

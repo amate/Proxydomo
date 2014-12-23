@@ -26,6 +26,7 @@
 #include <vector>
 #include <atlsync.h>
 #include "Socket.h"
+#include "ThreadPool.h"
 
 class CRequestManager;
 
@@ -45,6 +46,11 @@ private:
 	CSocket	m_sockServer;
 	std::thread	m_threadServer;
 	bool	m_bServerActive;
+
+
+#ifdef _WIN64
+	CThreadPool	m_threadPool;
+#endif
 	CCriticalSection	m_csRequestManager;
 	std::vector<std::unique_ptr<CRequestManager>>	m_vecpRequestManager;
 };
