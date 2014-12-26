@@ -820,12 +820,7 @@ void CRequestManager::_ConnectWebsite()
         // Change URL
         m_filterOwner.url.parseUrl(m_filterOwner.rdirToHost);
         if (m_filterOwner.url.getBypassIn())    m_filterOwner.bypassIn   = true;
-		if (m_filterOwner.url.getBypassOut()) {
-			m_filterOwner.bypassOut = true;
-			if (m_outStep == STEP_DECODE) {
-				m_filterOwner.outHeadersFiltered = m_filterOwner.outHeaders;
-			}
-		}
+		if (m_filterOwner.url.getBypassOut())	m_filterOwner.bypassOut  = true;
         if (m_filterOwner.url.getBypassText())  m_filterOwner.bypassBody = true;
 		m_filterOwner.useSettingsProxy = CSettings::s_useRemoteProxy;
         m_filterOwner.contactHost = m_filterOwner.url.getHostPort();
