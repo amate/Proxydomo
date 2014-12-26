@@ -110,9 +110,7 @@ void CUrl::parseUrl(const string& str) {
 		string port = host.substr(pos5 + 1);
 		const char* kHttpPort = "80";
 		const char* kHttpsPort = "443";
-		if (protocol == "http" && port == kHttpPort) {
-			host = host.substr(0, pos5);
-		} else if (protocol == "https" && port == kHttpsPort) {
+		if ((protocol == "http" && port == kHttpPort) || (protocol == "https" && port == kHttpsPort)) {
 			host = host.substr(0, pos5);
 		}
 	}

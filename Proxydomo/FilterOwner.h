@@ -67,6 +67,7 @@ public:
 	std::map<std::wstring, std::wstring> variables;       // variables for $SET and $GET
 	
 	HeadPairList	outHeaders;			// Outgoing headers
+	HeadPairList	outHeadersFiltered;	// Filtered Outgoingheaders
 	HeadPairList	inHeaders;			// Incoming headers
 	HeadPairList	inHeadersFiltered;	// Filtered Incoming headers
 	std::string		fileType;           // useable by $TYPE

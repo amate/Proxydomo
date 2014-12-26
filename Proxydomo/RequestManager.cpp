@@ -406,9 +406,13 @@ void CRequestManager::_ProcessOut()
 				} else {
 					m_filterOwner.url.parseUrl(m_requestLine.url);
 				}
-				m_filterOwner.bypassIn = m_filterOwner.url.getBypassIn();
-				m_filterOwner.bypassOut = m_filterOwner.url.getBypassOut();
-				m_filterOwner.bypassBody = m_filterOwner.url.getBypassText();
+
+				if (m_filterOwner.url.getBypassIn())
+					m_filterOwner.bypassIn = true;
+				if (m_filterOwner.url.getBypassOut())
+					m_filterOwner.bypassOut = true;
+				if (m_filterOwner.url.getBypassText())
+					m_filterOwner.bypassBody = true;
 
 				m_filterOwner.useSettingsProxy = CSettings::s_useRemoteProxy;
 				m_filterOwner.contactHost = m_filterOwner.url.getHostPort();
@@ -433,7 +437,7 @@ void CRequestManager::_ProcessOut()
 
 				// We'll work on a copy, since we don't want to alter
 				// the real headers that $IHDR and $OHDR may access
-				auto outHeadersFiltered = m_filterOwner.outHeaders;
+				m_filterOwner.outHeadersFiltered = m_filterOwner.outHeaders;
 
 				// Filter outgoing headers
 				if (m_filterOwner.bypassOut == false && CSettings::s_filterOut &&
@@ -446,15 +450,15 @@ void CRequestManager::_ProcessOut()
 						if (CUtil::noCaseBeginsWith("url", name) == false) {
 
 							// If header is absent, temporarily create one
-							if (CFilterOwner::GetHeader(outHeadersFiltered, name).empty())
-								CFilterOwner::SetHeader(outHeadersFiltered, name, "");
+							if (CFilterOwner::GetHeader(m_filterOwner.outHeadersFiltered, name).empty())
+								CFilterOwner::SetHeader(m_filterOwner.outHeadersFiltered, name, "");
 							// Test headers one by one
-							for (auto& pair : outHeadersFiltered) {
+							for (auto& pair : m_filterOwner.outHeadersFiltered) {
 								if (CUtil::noCaseEqual(name, pair.first))
 									headerfilter->filter(pair.second);
 							}
 							// Remove null headers
-							CFilterOwner::CleanHeader(outHeadersFiltered);
+							CFilterOwner::CleanHeader(m_filterOwner.outHeadersFiltered);
 
 						} else {
 
@@ -474,6 +478,10 @@ void CRequestManager::_ProcessOut()
 								if (m_filterOwner.url.getBypassText())  m_filterOwner.bypassBody = true;
 								if (changeHost) m_filterOwner.contactHost = m_filterOwner.url.getHostPort();
 							}
+						}
+						if (m_filterOwner.rdirToHost.size() > 0 && m_filterOwner.rdirMode == 1) {
+							if (CUrl(m_filterOwner.rdirToHost).getBypassOut())
+								break;
 						}
 
 						if (m_filterOwner.killed) {
@@ -519,12 +527,12 @@ void CRequestManager::_ProcessOut()
 
 					// Update URL within request
 					if (m_pSSLServerSession == nullptr) {
-						CFilterOwner::SetHeader(outHeadersFiltered, "Host", m_filterOwner.url.getHost());
+						CFilterOwner::SetHeader(m_filterOwner.outHeadersFiltered, "Host", m_filterOwner.url.getHost());
 					}
 
-					if (CUtil::noCaseContains("Keep-Alive", CFilterOwner::GetHeader(outHeadersFiltered, "Proxy-Connection"))) {
-						CFilterOwner::RemoveHeader(outHeadersFiltered, "Proxy-Connection");
-						CFilterOwner::SetHeader(outHeadersFiltered, "Connection", "Keep-Alive");
+					if (CUtil::noCaseContains("Keep-Alive", CFilterOwner::GetHeader(m_filterOwner.outHeadersFiltered, "Proxy-Connection"))) {
+						CFilterOwner::RemoveHeader(m_filterOwner.outHeadersFiltered, "Proxy-Connection");
+						CFilterOwner::SetHeader(m_filterOwner.outHeadersFiltered, "Connection", "Keep-Alive");
 					}
 				
 					if (m_filterOwner.contactHost == m_filterOwner.url.getHostPort()) {
@@ -540,11 +548,11 @@ void CRequestManager::_ProcessOut()
 					
 					// デバッグ有効時、"304 Not Modified"が帰ってこないようにする
 					if (m_filterOwner.url.getDebug()) {
-						CFilterOwner::RemoveHeader(outHeadersFiltered, "If-Modified-Since");
-						CFilterOwner::RemoveHeader(outHeadersFiltered, "If-None-Match");
+						CFilterOwner::RemoveHeader(m_filterOwner.outHeadersFiltered, "If-Modified-Since");
+						CFilterOwner::RemoveHeader(m_filterOwner.outHeadersFiltered, "If-None-Match");
 					}
 
-					for (auto& pair : outHeadersFiltered)
+					for (auto& pair : m_filterOwner.outHeadersFiltered)
 						m_sendOutBuf += pair.first + ": " + pair.second + CRLF;
 
 					// Log outgoing headers
@@ -812,7 +820,12 @@ void CRequestManager::_ConnectWebsite()
         // Change URL
         m_filterOwner.url.parseUrl(m_filterOwner.rdirToHost);
         if (m_filterOwner.url.getBypassIn())    m_filterOwner.bypassIn   = true;
-        if (m_filterOwner.url.getBypassOut())   m_filterOwner.bypassOut  = true;
+		if (m_filterOwner.url.getBypassOut()) {
+			m_filterOwner.bypassOut = true;
+			if (m_outStep == STEP_DECODE) {
+				m_filterOwner.outHeadersFiltered = m_filterOwner.outHeaders;
+			}
+		}
         if (m_filterOwner.url.getBypassText())  m_filterOwner.bypassBody = true;
 		m_filterOwner.useSettingsProxy = CSettings::s_useRemoteProxy;
         m_filterOwner.contactHost = m_filterOwner.url.getHostPort();
