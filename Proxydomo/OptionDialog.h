@@ -8,12 +8,15 @@
 #include <memory>
 #include <thread>
 #include <chrono>
+#include <list>
 #include <atlwin.h>
 #include <atlddx.h>
 #include "resource.h"
 #include "Settings.h"
 #include "ssl.h"
 #include "WinHTTPWrapper.h"
+#include "UITranslator.h"
+#include "Misc.h"
 
 
 class COptionDialog : public CDialogImpl<COptionDialog>, public CWinDataExchange<COptionDialog>
@@ -25,6 +28,7 @@ public:
 		DDX_UINT_RANGE(IDC_EDIT_PROXYPORT, CSettings::s_proxyPort, (uint16_t)1024, (uint16_t)65535)
 
 		DDX_CONTROL_HANDLE(IDC_COMBO_REMOTEPROXY, m_cmbRemoteProxy)
+		DDX_CONTROL_HANDLE(IDC_COMBO_LANG, m_cmbLang)
 	END_DDX_MAP()
 
 	BEGIN_MSG_MAP(CAboutDlg)
@@ -45,6 +49,22 @@ public:
 
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 	{
+		SetWindowText(UITranslator::GetTranslateMessage(IDD_OPTION).c_str());
+
+		UITranslator::ChangeControlTextForTranslateMessage(m_hWnd, IDC_GROUP_PROXYPORT);
+		UITranslator::ChangeControlTextForTranslateMessage(m_hWnd, IDC_STATIC_ENABLEONREBOOT);
+		UITranslator::ChangeControlTextForTranslateMessage(m_hWnd, IDC_GROUP_SSLFILTERING);
+		UITranslator::ChangeControlTextForTranslateMessage(m_hWnd, IDC_GENERATE_CACERTIFICATE);
+		UITranslator::ChangeControlTextForTranslateMessage(m_hWnd, IDC_GROUP_REMOTEHTTPPROXY);
+		UITranslator::ChangeControlTextForTranslateMessage(m_hWnd, IDC_BUTTON_ADDPROXYLIST);
+		UITranslator::ChangeControlTextForTranslateMessage(m_hWnd, IDC_BUTTON_DELETEFROMPROXYLIST);
+		UITranslator::ChangeControlTextForTranslateMessage(m_hWnd, IDC_BUTTON_TESTREMOTEPROXY);
+		UITranslator::ChangeControlTextForTranslateMessage(m_hWnd, IDC_STATIC_TESTREMOTEPROXY);
+		UITranslator::ChangeControlTextForTranslateMessage(m_hWnd, IDC_GROUP_LANGSETTING);
+		UITranslator::ChangeControlTextForTranslateMessage(m_hWnd, IDC_STATIC_ENABLEONREBOOT2);
+		UITranslator::ChangeControlTextForTranslateMessage(m_hWnd, IDOK);
+		UITranslator::ChangeControlTextForTranslateMessage(m_hWnd, IDCANCEL);
+
 		CenterWindow(GetParent());
 
 		DoDataExchange(DDX_LOAD);
@@ -53,6 +73,20 @@ public:
 		m_setRemoteProxy = CSettings::s_setRemoteProxy;
 		for (auto& remoteproxy : CSettings::s_setRemoteProxy)
 			m_cmbRemoteProxy.AddString(CA2W(remoteproxy.c_str()));
+
+		std::list<std::wstring> langList;
+		ForEachFile(Misc::GetExeDirectory() + L"lang\\", [&langList](const CString& filePath) {
+			CString ext = Misc::GetFileExt(filePath);
+			ext.MakeLower();
+			if (ext == L"lng")
+				langList.push_back((LPCWSTR)Misc::GetFileBaseNoExt(filePath));
+		});
+		langList.sort();
+		for (auto& lang : langList) {
+			int sel = m_cmbLang.AddString(lang.c_str());
+			if (::_wcsicmp(CSettings::s_language.c_str(), lang.c_str()) == 0)
+				m_cmbLang.SetCurSel(sel);
+		}
 		return TRUE;
 	}
 
@@ -66,6 +100,13 @@ public:
 		defaultRemoteProxy.ReleaseBuffer();
 		CSettings::s_defaultRemoteProxy = (LPCSTR)CW2A(defaultRemoteProxy);
 		CSettings::s_setRemoteProxy = m_setRemoteProxy;
+
+		int nSel = m_cmbLang.GetCurSel();
+		if (nSel != -1) {
+			CString lang;
+			m_cmbLang.GetLBText(nSel, lang);
+			CSettings::s_language = (LPCWSTR)lang;
+		}
 
 		CSettings::SaveSettings();
 
@@ -81,19 +122,19 @@ public:
 
 	LRESULT OnGenerateCACertificate(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 	{
-		int ret = MessageBox(_T("SSLフィルタリングで使用するCA証明書を作成します。"), _T("確認"), MB_OKCANCEL);
+		int ret = MessageBox(UITranslator::GetTranslateMessage(ID_CREATECACONFIRMMESSAGE).c_str(), UITranslator::GetTranslateMessage(ID_TRANS_CONFIRM).c_str(), MB_OKCANCEL);
 		if (ret == IDCANCEL)
 			return 0;
 
 		try {
 			GenerateCACertificate();
 		} catch (std::exception& e) {
-			CString errormsg = L"証明書の作成に失敗しました。: ";
+			CString errormsg = UITranslator::GetTranslateMessage(ID_CREATECAFAILEDMESSAGE).c_str();
 			errormsg += e.what();
-			MessageBox(errormsg, _T("エラー"), MB_ICONERROR);
+			MessageBox(errormsg, UITranslator::GetTranslateMessage(ID_TRANS_ERROR).c_str(), MB_ICONERROR);
 			return 0;
 		}
-		MessageBox(_T("CA証明書の作成に成功しました！\nSSLのフィルタリングはProxydomo再起動後に有効になります\nSSLフィルタリングを無効にしたい場合はフォルダ内に生成された[ca.pem.crt]と[ca-key.pem]を削除してください。"), _T("成功"));
+		MessageBox(UITranslator::GetTranslateMessage(ID_CREATECASUCCEEDEDMESSAGE).c_str(), UITranslator::GetTranslateMessage(ID_TRANS_SUCCESS).c_str());
 		return 0;
 	}
 
@@ -131,7 +172,7 @@ public:
 		m_cmbRemoteProxy.GetWindowText(remoteProxy.GetBuffer(256), 256);
 		remoteProxy.ReleaseBuffer();
 		if (remoteProxy.IsEmpty()) {
-			testLog.SetWindowText(_T("テストするProxyをセットしてください。"));
+			testLog.SetWindowText(UITranslator::GetTranslateMessage(ID_TESTREMOTEPROXYEMPTYMESSAGE).c_str());
 			return 0;
 		}
 
@@ -139,7 +180,7 @@ public:
 			*m_spThreadActive = false;
 			m_threadTestProxy.detach();
 		}
-		testLog.SetWindowText(_T("Proxyのテストを開始します..."));
+		testLog.SetWindowText(UITranslator::GetTranslateMessage(ID_PROXYTESTSTARTMESSAGE).c_str());
 
 		auto spThreadActive = std::make_shared<bool>(true);
 		m_spThreadActive = spThreadActive;
@@ -151,13 +192,11 @@ public:
 				bool bSuccess = false;
 				if (WinHTTPWrapper::InitWinHTTP(boost::none, remoteProxy)) {
 					if (*spThreadActive) {
-						if (auto downloadData = WinHTTPWrapper::HttpDownloadData(L"http://www.google.co.jp/")) {
+						if (auto downloadData = WinHTTPWrapper::HttpDownloadData(L"http://www.google.com/")) {
 							bSuccess = true;
 							if (*spThreadActive) {
 								long long processingTime = duration_cast<milliseconds>(steady_clock::now() - start).count();
-								CString result;
-								result.Format(_T("成功しました！ : %lld ms"), processingTime);
-								resultLog.SetWindowText(result);
+								resultLog.SetWindowText(UITranslator::GetTranslateMessage(ID_PROXYTESTSUCCEEDEDMESSAGE, processingTime).c_str());
 							}
 						}
 					}
@@ -165,7 +204,7 @@ public:
 				}
 				if (bSuccess == false) {
 					if (*spThreadActive) {
-						resultLog.SetWindowText(_T("失敗しました..."));
+						resultLog.SetWindowText(UITranslator::GetTranslateMessage(ID_PROXYTESTFAILEDMESSAGE).c_str());
 					}
 				}
 			}
@@ -187,6 +226,7 @@ private:
 
 	// Data members
 	CComboBox	m_cmbRemoteProxy;
+	CComboBox	m_cmbLang;
 	std::set<std::string>	m_setRemoteProxy;
 	std::shared_ptr<bool>	m_spThreadActive;
 	std::thread	m_threadTestProxy;

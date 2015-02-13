@@ -33,8 +33,9 @@
 #include "proximodo\util.h"
 #include "Misc.h"
 #include "CodeConvert.h"
-
 using namespace CodeConvert;
+#include "UITranslator.h"
+using namespace UITranslator;
 
 namespace {
 
@@ -237,6 +238,8 @@ void CFilterManageWindow::DlgResize_UpdateLayout(int cxWidth, int cyHeight)
 
 BOOL CFilterManageWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 {
+	SetWindowText(GetTranslateMessage(IDD_FILTERMANAGE).c_str());
+
 	m_treeFilter = GetDlgItem(IDC_TREE_FILTER);
 	// これがないと初回時のチェックが入らない…
 	m_treeFilter.ModifyStyle(TVS_CHECKBOXES, 0);
@@ -247,23 +250,27 @@ BOOL CFilterManageWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 	m_toolBar.Create(m_hWnd, CRect(0, 0, 400, 20), _T("ToolBar"),
 		WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | TBSTYLE_LIST | TBSTYLE_FLAT | TBSTYLE_WRAPABLE | CCS_NODIVIDER, 0, IDC_FILTERMANAGERTOOLBAR);
 	m_toolBar.SetButtonStructSize();
-
+	
 	CImageList toolBarImageList;
 	toolBarImageList.Create(20, 20, ILC_COLOR24 | ILC_MASK, 10, 2);
 	CBitmap	toolBarBitmap;
 	toolBarBitmap.LoadBitmap(IDB_FILTERMANAGERTOOLBAR);
 	toolBarImageList.Add(toolBarBitmap, RGB(255, 0, 255));
 	m_toolBar.SetImageList(toolBarImageList);
+
+	std::wstring addfilterText = GetTranslateMessage(IDC_BUTTON_ADDFILTER);
+	std::wstring deletefilterText = GetTranslateMessage(IDC_BUTTON_DELETEFILTER);
+	std::wstring createFolderText = GetTranslateMessage(IDC_BUTTON_CREATE_FOLDER);
+	std::wstring importText = GetTranslateMessage(IDC_BUTTON_IMPORTFROMPROXOMITRON);
+	std::wstring exportText = GetTranslateMessage(IDC_BUTTON_EXPORTTOPROXOMITRON);
 	TBBUTTON	tbns[] = {
-		{ 0, IDC_BUTTON_ADDFILTER, TBSTATE_ENABLED, TBSTYLE_BUTTON | BTNS_SHOWTEXT | TBSTYLE_AUTOSIZE, {}, 0, (INT_PTR)L"新規フィルターを追加" },
-		{ 1, IDC_BUTTON_DELETEFILTER, TBSTATE_ENABLED, TBSTYLE_BUTTON | BTNS_SHOWTEXT | TBSTYLE_AUTOSIZE, {}, 0, (INT_PTR)L"フィルターを削除" },
+		{ 0, IDC_BUTTON_ADDFILTER, TBSTATE_ENABLED, TBSTYLE_BUTTON | BTNS_SHOWTEXT | TBSTYLE_AUTOSIZE, {}, 0, (INT_PTR)addfilterText.c_str() },
+		{ 1, IDC_BUTTON_DELETEFILTER, TBSTATE_ENABLED, TBSTYLE_BUTTON | BTNS_SHOWTEXT | TBSTYLE_AUTOSIZE, {}, 0, (INT_PTR)deletefilterText.c_str() },
 		{ 0, 0, TBSTATE_ENABLED, TBSTYLE_SEP },
-		{ 2, IDC_BUTTON_CREATE_FOLDER, TBSTATE_ENABLED, TBSTYLE_BUTTON | BTNS_SHOWTEXT | TBSTYLE_AUTOSIZE, {}, 0, (INT_PTR)L"フォルダを作成" },
+		{ 2, IDC_BUTTON_CREATE_FOLDER, TBSTATE_ENABLED, TBSTYLE_BUTTON | BTNS_SHOWTEXT | TBSTYLE_AUTOSIZE, {}, 0, (INT_PTR)createFolderText.c_str() },
 		{ 0, 0, TBSTATE_ENABLED, TBSTYLE_SEP },
-		{ 3, IDC_BUTTON_IMPORTFROMPROXOMITRON, TBSTATE_ENABLED, TBSTYLE_BUTTON | BTNS_SHOWTEXT | TBSTYLE_AUTOSIZE, {}, 0, (INT_PTR)L"クリップボードからインポート" },
-		{ 4, IDC_BUTTON_EXPORTTOPROXOMITRON, TBSTATE_ENABLED, TBSTYLE_BUTTON | BTNS_SHOWTEXT | TBSTYLE_AUTOSIZE, {}, 0, (INT_PTR)L"クリップボードへエクスポート" },
-
-
+		{ 3, IDC_BUTTON_IMPORTFROMPROXOMITRON, TBSTATE_ENABLED, TBSTYLE_BUTTON | BTNS_SHOWTEXT | TBSTYLE_AUTOSIZE, {}, 0, (INT_PTR)importText.c_str() },
+		{ 4, IDC_BUTTON_EXPORTTOPROXOMITRON, TBSTATE_ENABLED, TBSTYLE_BUTTON | BTNS_SHOWTEXT | TBSTYLE_AUTOSIZE, {}, 0,  (INT_PTR)exportText.c_str() },
 	};
 	m_toolBar.AddButtons(_countof(tbns), tbns);
 
@@ -413,30 +420,40 @@ LRESULT CFilterManageWindow::OnTreeFilterRClick(LPNMHDR pnmh)
 	bool bFolder = filterItem == nullptr || filterItem->pvecpChildFolder != nullptr;
 
 	enum { 
-		kFilterEdit = 1,
-		kAddFilter,
-		kCreateFolder,
-		kFilterDelete,
-		kImportFilter,
-		kExportFilter,
+		kFilterEdit = ID_FILTERMANAGERWINDOWMENUBEGIN + 1,
+		kAddFilter	= ID_FILTERMANAGERWINDOWMENUBEGIN + 2,
+		kCreateFolder = ID_FILTERMANAGERWINDOWMENUBEGIN + 3,
+		kFilterDelete = ID_FILTERMANAGERWINDOWMENUBEGIN + 4,
+		kFolderDelete = ID_FILTERMANAGERWINDOWMENUBEGIN + 5,
+		kImportFilter = ID_FILTERMANAGERWINDOWMENUBEGIN + 6,
+		kExportFilter = ID_FILTERMANAGERWINDOWMENUBEGIN + 7,
 
 	};
+	std::wstring filterEditText = GetTranslateMessage(kFilterEdit);
+	std::wstring addFilterText = GetTranslateMessage(kAddFilter);
+	std::wstring createFolderText = GetTranslateMessage(kCreateFolder);
+	std::wstring filterDeleteText = GetTranslateMessage(kFilterDelete);
+	std::wstring folderDeleteText = GetTranslateMessage(kFolderDelete);
+	std::wstring importFilterText = GetTranslateMessage(kImportFilter);
+	std::wstring exportFilterText = GetTranslateMessage(kExportFilter);
+
+
 	CMenu menu;
 	menu.CreatePopupMenu();
 	if (bFolder == false) {
-		menu.AppendMenu(MF_STRING, kFilterEdit, _T("フィルターを編集する(&E)"));
+		menu.AppendMenu(MF_STRING, kFilterEdit, filterEditText.c_str());
 		menu.AppendMenu(MF_SEPARATOR);
 	}
-	menu.AppendMenu(MF_STRING, kAddFilter,		_T("新規フィルターを追加する(&A)"));
+	menu.AppendMenu(MF_STRING, kAddFilter, addFilterText.c_str());
 	if (htHit != m_treeFilter.GetRootItem()) {
 		menu.AppendMenu(MF_STRING, kFilterDelete,
-			bFolder ? _T("フォルダを削除する(&D)") : _T("フィルターを削除する(&D)"));
+			bFolder ? folderDeleteText.c_str() : filterDeleteText.c_str());
 	}
 	menu.AppendMenu(MF_SEPARATOR);
-	menu.AppendMenu(MF_STRING, kCreateFolder,	_T("フォルダを作成する(&C)"));
+	menu.AppendMenu(MF_STRING, kCreateFolder, createFolderText.c_str());
 	menu.AppendMenu(MF_SEPARATOR);
-	menu.AppendMenu(MF_STRING, kImportFilter,	_T("クリップボードからインポートする(&I)"));
-	menu.AppendMenu(MF_STRING, kExportFilter,	_T("クリップボードへエクスポートする(&E)"));
+	menu.AppendMenu(MF_STRING, kImportFilter, importFilterText.c_str());
+	menu.AppendMenu(MF_STRING, kExportFilter, exportFilterText.c_str());
 
 	HTREEITEM htSel = htHit;
 	HTREEITEM htParentFolder = m_treeFilter.GetParentItem(htHit);
@@ -454,7 +471,7 @@ LRESULT CFilterManageWindow::OnTreeFilterRClick(LPNMHDR pnmh)
 			OnAddFilter(0, 0, NULL);
 		} else {
 			std::unique_ptr<CFilterDescriptor>	filter(new CFilterDescriptor());
-			filter->title = L"new filter";
+			filter->title = GetTranslateMessage(ID_TRANS_NEWFILTER).c_str();
 
 			CFilterEditWindow filterEdit(filter.get());
 			if (filterEdit.DoModal(m_hWnd) == IDCANCEL) {
@@ -476,7 +493,7 @@ LRESULT CFilterManageWindow::OnTreeFilterRClick(LPNMHDR pnmh)
 		} else {
 			std::unique_ptr<FilterItem> pfolder(new FilterItem);
 			pfolder->active = true;
-			pfolder->name = L"新しいフォルダ";
+			pfolder->name = GetTranslateMessage(ID_TRANS_NEWFOLDER).c_str();
 			pfolder->pvecpChildFolder.reset(new std::vector<std::unique_ptr<FilterItem>>);
 
 			_InsertFilterItem(std::move(pfolder), htParentFolder, htSel);
@@ -903,7 +920,7 @@ void CFilterManageWindow::OnRButtonDown(UINT nFlags, CPoint point)
 void CFilterManageWindow::OnAddFilter(UINT uNotifyCode, int nID, CWindow wndCtl)
 {
 	std::unique_ptr<CFilterDescriptor>	filter(new CFilterDescriptor());
-	filter->title		=  L"new filter";
+	filter->title		=  GetTranslateMessage(ID_TRANS_NEWFILTER).c_str();
 
 	CFilterEditWindow filterEdit(filter.get());
 	if (filterEdit.DoModal(m_hWnd) == IDCANCEL) {
@@ -926,7 +943,7 @@ void CFilterManageWindow::OnDeleteFilter(UINT uNotifyCode, int nID, CWindow wndC
 	CCritSecLock	lock(CSettings::s_csFilters);
 	auto filterItem = (FilterItem*)m_treeFilter.GetItemData(htSel);
 	if (filterItem->pvecpChildFolder) {
-		int ret = MessageBox(_T("フォルダ内のフィルターはすべて削除されます。\nよろしいですか？"), _T("確認"), MB_ICONWARNING | MB_OKCANCEL);
+		int ret = MessageBox(GetTranslateMessage(ID_DELETEFILTERFOLDERCONFIRMMESSAGE).c_str(), GetTranslateMessage(ID_TRANS_CONFIRM).c_str(), MB_ICONWARNING | MB_OKCANCEL);
 		if (ret == IDCANCEL)
 			return ;
 	}
@@ -952,7 +969,7 @@ void CFilterManageWindow::OnCreateFolder(UINT uNotifyCode, int nID, CWindow wndC
 {
 	std::unique_ptr<FilterItem> pfolder(new FilterItem);
 	pfolder->active = true;
-	pfolder->name = L"新しいフォルダ";
+	pfolder->name = GetTranslateMessage(ID_TRANS_NEWFOLDER).c_str();
 	pfolder->pvecpChildFolder.reset(new std::vector<std::unique_ptr<FilterItem>>);
 
 	HTREEITEM htSel = m_treeFilter.GetSelectedItem();
@@ -998,7 +1015,7 @@ void CFilterManageWindow::OnExportToProxomitron(UINT uNotifyCode, int nID, CWind
 	}
 	if (pvecFilter) {
 		if (nID) {
-			int ret = MessageBox(_T("フォルダ内のフィルターをすべてクリップボードにコピーします。\nよろしいですか？ (※フォルダ構造はコピーされません)"), _T("確認"), MB_ICONQUESTION | MB_OKCANCEL);
+			int ret = MessageBox(GetTranslateMessage(ID_ALLFILTERCOPYTOCLIPBORDCONFIRMMESSAGE).c_str(), GetTranslateMessage(ID_TRANS_CONFIRM).c_str(), MB_ICONQUESTION | MB_OKCANCEL);
 			if (ret == IDCANCEL)
 				return;
 		}

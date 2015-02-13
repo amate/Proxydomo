@@ -23,6 +23,11 @@
 #include "stdafx.h"
 #include "FilterDescriptor.h"
 #include "Matcher.h"
+#include "UITranslator.h"
+using namespace UITranslator;
+#include "resource.h"
+#include "CodeConvert.h"
+using namespace CodeConvert;
 
 ///////////////////////////////////////////////////////////////
 // CFilterDescriptor
@@ -74,18 +79,18 @@ void	CFilterDescriptor::TestValidity()
 {
     errorMsg.clear();
     if (title.empty()) {
-        errorMsg = /*settings.getMessage*/("INVALID_FILTER_TITLE");
+        errorMsg = GetTranslateMessage(ID_INVALID_FILTER_TITLE);
     } else if (filterType == kFilterText) {
         if (matchPattern.empty()) {
-            errorMsg = /*settings.getMessage*/("INVALID_FILTER_MATCHEMPTY");
+			errorMsg = GetTranslateMessage(ID_INVALID_FILTER_MATCHEMPTY);
         } else if (windowWidth <= 0) {
-            errorMsg = /*settings.getMessage*/("INVALID_FILTER_WIDTH");
+			errorMsg = GetTranslateMessage(ID_INVALID_FILTER_WIDTH);
         } else {
 			CreateMatcher();
         }
     } else {	// ‘—ŽóMƒwƒbƒ_
         if (headerName.empty()) {
-            errorMsg = /*settings.getMessage*/("INVALID_FILTER_HEADEREMPTY");
+			errorMsg = GetTranslateMessage(ID_INVALID_FILTER_HEADEREMPTY);
         } else {
             CreateMatcher();
         }

@@ -63,7 +63,6 @@ public:
 
 		DLGRESIZE_CONTROL( IDC_CHECKBOX_STOPLOG, DLSZ_MOVE_Y )
 		DLGRESIZE_CONTROL( IDC_CHECKBOX_RECENTURLS, DLSZ_MOVE_Y )
-		DLGRESIZE_CONTROL( IDC_BUTTON_SHOWACTIVEREQUESTLOG, DLSZ_MOVE_Y )
 		DLGRESIZE_CONTROL( IDC_BUTTON_CLEAR, DLSZ_MOVE_Y )
 		DLGRESIZE_CONTROL( IDC_COMBO_REQUEST, DLSZ_MOVE_Y )
 
@@ -99,7 +98,6 @@ public:
 
 		COMMAND_ID_HANDLER_EX( IDCANCEL, OnCancel )
 		COMMAND_ID_HANDLER_EX( IDC_BUTTON_CLEAR, OnClear )
-		COMMAND_ID_HANDLER_EX( IDC_BUTTON_SHOWACTIVEREQUESTLOG, OnShowActiveRequestLog )
 
 		COMMAND_HANDLER_EX( IDC_COMBO_REQUEST, CBN_SELCHANGE, OnComboRequestSelChange )
 
@@ -128,7 +126,6 @@ public:
 
 	void OnCancel(UINT uNotifyCode, int nID, CWindow wndCtl);
 	void OnClear(UINT uNotifyCode, int nID, CWindow wndCtl);
-	void OnShowActiveRequestLog(UINT uNotifyCode, int nID, CWindow wndCtl);
 
 	void OnComboRequestSelChange(UINT uNotifyCode, int nID, CWindow wndCtl);
 	LRESULT OnRecentURLListRClick(LPNMHDR pnmh);
@@ -157,8 +154,6 @@ private:
 
 		EventLog(uint16_t p, const CString& t, COLORREF tc) : port(p), text(t), textColor(tc) { }
 	};
-	std::vector<std::unique_ptr<EventLog>>	m_vecActiveRequestLog;
-	CCriticalSection	m_csActiveRequestLog;
 
 	struct TextLog {
 		CString		text;

@@ -26,10 +26,14 @@
 #include "proximodo\util.h"
 #include "proximodo\const.h"	// for BIGNUMBER
 #include <unicode\uchar.h>
-#include "CodeConvert.h"
 #include "Settings.h"
+#include "resource.h"
+#include "UITranslator.h"
+using namespace UITranslator;
 
+#include "CodeConvert.h"
 using namespace CodeConvert;
+
 
 namespace Proxydomo {
 
@@ -62,7 +66,7 @@ int readNumber(StringCharacterIterator& patternIt, int &num) {
     num = 0;
     // At least one digit is needed
 	if (patternIt.current() == patternIt.DONE || iswdigit(patternIt.current()) == false )
-		throw parsing_exception("NOT_A_NUMBER", patternIt.getIndex());
+		throw parsing_exception(ID_PARSINGERROR_NOT_A_NUMBER, patternIt.getIndex());
 
     // Read all digits available
 	for (UChar code = patternIt.current(); code != patternIt.DONE && iswdigit(code); code = patternIt.next()) {
@@ -202,7 +206,7 @@ void	CMatcher::_CreatePattern(const UnicodeString& pattern)
     // consumed, i.e there was an unpaired )
 	/// パターンが完全に消費されていない。※例: ()がペアになっていない
 	if (patternIt.hasNext()) {
-		throw parsing_exception("PARSING_INCOMPLETE", patternIt.getIndex());
+		throw parsing_exception(ID_PARSINGERROR_PARSING_INCOMPLETE, patternIt.getIndex());
     }
 }
 
@@ -217,7 +221,7 @@ std::shared_ptr<CMatcher>	CMatcher::CreateMatcher(const std::wstring& pattern)
 {
 	try {
 		return std::shared_ptr<CMatcher>(new CMatcher(pattern));
-	} catch (parsing_exception& e) {
+	} catch (parsing_exception&) {
 		//ATLTRACE("CreateMatcher parsererro pattern(%s) : err %s [%d]", pattern.c_str(), e.message.c_str(), e.position);
 	} catch (...) {
 
@@ -225,17 +229,12 @@ std::shared_ptr<CMatcher>	CMatcher::CreateMatcher(const std::wstring& pattern)
 	return nullptr;
 }
 
-std::shared_ptr<CMatcher>	CMatcher::CreateMatcher(const std::wstring& pattern, std::string& errmsg)
+std::shared_ptr<CMatcher>	CMatcher::CreateMatcher(const std::wstring& pattern, std::wstring& errmsg)
 {
 	try {
 		return std::shared_ptr<CMatcher>(new CMatcher(pattern));
 	} catch (parsing_exception& e) {
-		errmsg = e.message;
-		char strpos[24];
-		::_itoa_s(e.position, strpos, 10);
-		errmsg += "\nposition: ";
-		errmsg += strpos;
-		errmsg += "\n";
+		errmsg = GetTranslateMessage(ID_PARSINGEXCEPTION_FORMAT, GetTranslateMessage(e.parsingErrorID), e.position);
 	}
 	return nullptr;
 }
@@ -288,7 +287,7 @@ bool CMatcher::match(const std::wstring& pattern, CFilter& filter,
 		bool match = matcher.match(start, stop, end, &matchData);
 		reached = matchData.reached;
         return match;
-    } catch (parsing_exception e) {
+    } catch (parsing_exception&) {
         return false;
     }
 }
@@ -344,7 +343,7 @@ CNode* CMatcher::expr(StringCharacterIterator& patternIt, int level)
                 patternIt.next();
                 try {
                     node = run(patternIt);
-                } catch (parsing_exception e) {
+                } catch (parsing_exception& e) {
                     // Clean before throwing exception
                     CUtil::deleteVector<CNode>(*vect);
                     delete vect;
@@ -375,7 +374,7 @@ CNode* CMatcher::expr(StringCharacterIterator& patternIt, int level)
 				CNode *node2 = expr(patternIt, level + 1); // &'s right run
 				// Build the CNode_And with left and right runs.
 				node = new CNode_And(node, node2, (level == 0));
-			} catch (parsing_exception e) {
+			} catch (parsing_exception& e) {
 				delete node;
 				throw e;
 			}
@@ -427,9 +426,9 @@ CNode* CMatcher::run(StringCharacterIterator& patternIt)
                     if (patternIt.current() != patternIt.DONE && patternIt.current() == L'}') {
                         patternIt.next();
                     } else {
-                        throw parsing_exception("MISSING_CURLY", patternIt.getIndex());
+						throw parsing_exception(ID_PARSINGERROR_MISSING_CURLY, patternIt.getIndex());
                     }
-                } catch (parsing_exception e) {
+                } catch (parsing_exception& e) {
                     CUtil::deleteVector<CNode>(*v);
                     delete v;
                     delete node;
@@ -474,10 +473,10 @@ CNode* CMatcher::run(StringCharacterIterator& patternIt)
         v->push_back(node);
         try {
             node = code(patternIt);
-        } catch (parsing_exception e) {
+        } catch (parsing_exception& e) {
             CUtil::deleteVector<CNode>(*v);
             delete v;
-            throw;
+            throw e;
         }
     }
     // (end of the run)
@@ -550,7 +549,7 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
         // it should not be at the end of the pattern
 		// '\'でパターンが終わっていればおかしいので例外を飛ばす
 		if (token == patternIt.DONE) 
-			throw parsing_exception("ESCAPE_AT_END", patternIt.getIndex());
+			throw parsing_exception(ID_PARSINGERROR_ESCAPE_AT_END, patternIt.getIndex());
 
         patternIt.next();
 
@@ -613,7 +612,7 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
             int rmin, rmax;
             readMinMax(patternIt, L':', rmin, rmax);
 			if (patternIt.hasNext() == false || patternIt.current() != L']')
-				throw parsing_exception("MISSING_CROCHET", patternIt.getIndex());
+				throw parsing_exception(ID_PARSINGERROR_MISSING_BRACKET, patternIt.getIndex());
             patternIt.next();
             // Rule: \n
             return new CNode_Range(rmin, rmax, allow);
@@ -715,7 +714,7 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
 			// ']'が来る前にパターンが終わったので例外を飛ばす
 			if (patternIt.getIndex() == patternIt.endIndex()) {
                 delete node;
-                throw parsing_exception("[]が閉じていません。", patternIt.getIndex());
+				throw parsing_exception(ID_PARSINGERROR_MISSING_BRACKET, patternIt.getIndex());
             }
 			patternIt.next();
             return node;
@@ -772,7 +771,7 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
                 // Command to set a variable
                 size_t eq = content.find(L'=');
                 if (eq == string::npos)
-                    throw parsing_exception("MISSING_EQUAL", 0);
+					throw parsing_exception(ID_PARSINGERROR_MISSING_EQUAL, 0);
                 std::wstring name = content.substr(0, eq);
                 std::wstring value = content.substr(eq + 1);
                 CUtil::trim(name);
@@ -833,7 +832,7 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
                 // Command to add a line to a list
                 size_t comma = content.find(L',');
                 if (comma == string::npos)
-                    throw parsing_exception("MISSING_COMMA", 0);
+					throw parsing_exception(ID_PARSINGERROR_MISSING_COMMA, 0);
                 std::wstring name = content.substr(0, comma);
                 std::wstring value = content.substr(comma + 1);
                 CUtil::trim(name);
@@ -844,7 +843,7 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
                 // Command to add a line to a list after user confirm & edit
                 size_t comma = content.find(L',');
                 if (comma == string::npos)
-                    throw parsing_exception("MISSING_COMMA", 0);
+					throw parsing_exception(ID_PARSINGERROR_MISSING_COMMA, 0);
                 std::wstring value = content.substr(comma + 1);
                 std::wstring name = content.substr(0, comma);
                 CUtil::trim(name);
@@ -867,7 +866,7 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
                 // Command to try and match an incoming header
                 size_t colon = content.find(':');
                 if (colon == string::npos)
-                    throw parsing_exception("MISSING_COLON", 0);
+					throw parsing_exception(ID_PARSINGERROR_MISSING_COLON, 0);
                 std::wstring name = content.substr(0, colon);
                 std::wstring value = content.substr(colon+1);
                 CUtil::trim(name);
@@ -879,7 +878,7 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
                 // Command to try and match an outgoing header
                 size_t colon = content.find(L':');
                 if (colon == string::npos)
-                    throw parsing_exception("MISSING_COLON", 0);
+					throw parsing_exception(ID_PARSINGERROR_MISSING_COLON, 0);
                 std::wstring name = content.substr(0, colon);
                 std::wstring value = content.substr(colon+1);
                 CUtil::trim(name);
@@ -912,7 +911,7 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
                 CUtil::trim(content);
                 CUtil::lower(content);
                 if (content != L"true" && content != L"false")
-                    throw parsing_exception("NEED_TRUE_FALSE", 0);
+					throw parsing_exception(ID_PARSINGERROR_NEED_TRUE_FALSE, 0);
                 return new CNode_Command(CMD_USEPROXY, L"", content/*, filter*/);
 
             } else if (command == L"SETPROXY") {
@@ -922,7 +921,7 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
                 // proxy is the settings.
                 CUtil::trim(content);
                 if (content.empty())
-                    throw parsing_exception("NEED_TEXT", 0);
+					throw parsing_exception(ID_PARSINGERROR_NEED_TEXT, 0);
                 return new CNode_Command(CMD_SETPROXY, L"", content/*, filter*/);
                 
             } else if (command == L"CON") {
@@ -982,7 +981,7 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
                 CUtil::trim(content);
                 CUtil::lower(content);
                 if (content != L"true" && content != L"false")
-                    throw parsing_exception("NEED_TRUE_FALSE", 0);
+					throw parsing_exception(ID_PARSINGERROR_NEED_TRUE_FALSE, 0);
                 return new CNode_Command(CMD_FILTER, L"", content/*, filter*/);
 
             } else if (command == L"LOCK") {
@@ -1007,7 +1006,7 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
                 // Command to match nested tags (with optional content)
                 size_t colon = findParamEnd(content, L',');
                 if (colon == string::npos)
-                    throw parsing_exception("MISSING_COMMA", 0);
+					throw parsing_exception(ID_PARSINGERROR_MISSING_COMMA, 0);
                 bool hasMiddle = false;
                 std::wstring text1 = content.substr(0, colon);
                 std::wstring text2;
@@ -1031,7 +1030,7 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
 					UnicodeString	patNest3(text3.c_str(), text3.length());
 					StringCharacterIterator	patNestIt3(patNest3);
                     right = expr(patNestIt3);
-                } catch (parsing_exception e) {
+                } catch (parsing_exception& e) {
                     if (left)   delete left;
                     if (middle) delete middle;
                     if (right)  delete right;
@@ -1044,17 +1043,17 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
                 // Command to automate the insertion of an item in one of 2 lists
                 size_t colon = content.find(L',');
                 if (colon == string::npos)
-                    throw parsing_exception("MISSING_COMMA", 0);
+					throw parsing_exception(ID_PARSINGERROR_MISSING_COMMA, 0);
                 std::wstring allowName = content.substr(0, colon);
                 content.erase(0, colon + 1);
                 colon = content.find(L',');
                 if (colon == string::npos)
-                    throw parsing_exception("MISSING_COMMA", 0);
+					throw parsing_exception(ID_PARSINGERROR_MISSING_COMMA, 0);
                 std::wstring denyName = content.substr(0, colon);
                 content.erase(0, colon + 1);
                 colon = findParamEnd(content, L',');
                 if (colon == string::npos)
-                    throw parsing_exception("MISSING_COMMA", 0);
+					throw parsing_exception(ID_PARSINGERROR_MISSING_COMMA, 0);
                 std::wstring question = content.substr(0, colon);
                 std::wstring item = content.substr(colon + 1);
                 std::wstring pattern = L"\\h\\p\\q\\a";
@@ -1073,9 +1072,9 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
             } else {
 
                 // Unknown command
-                throw parsing_exception("UNKNOWN_COMMAND", -1);
+				throw parsing_exception(ID_PARSINGERROR_UNKNOWN_COMMAND, -1);
             }
-        } catch (parsing_exception e) {
+        } catch (parsing_exception& e) {
             // Error: adjust errorPos and forward error
             e.position += startContent;
             throw e;
@@ -1099,7 +1098,7 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
 		// ')'がこない、もしくは 次のトークンに')'が来ないと例外を飛ばす
 		if (patternIt.hasNext() == false || patternIt.current() != L')') {
             delete node;
-			throw parsing_exception("MISSING_PARENTHESE", patternIt.getIndex());
+			throw parsing_exception(ID_PARSINGERROR_MISSING_PARENTHESIS, patternIt.getIndex());
         }
         patternIt.next();
 

@@ -41,9 +41,10 @@ using namespace icu;
  */
 class parsing_exception {
     public:
-        std::string message;
+		int parsingErrorID;
         int position;
-        parsing_exception(const std::string& msg, int pos) : message(msg), position(pos) { }
+
+		parsing_exception(int parsingErrorID, int pos) : parsingErrorID(parsingErrorID), position(pos) { }
 };
 
 
@@ -59,7 +60,7 @@ public:
 
 	/// pattern ‚©‚ç CMatcher‚ğì¬‚·‚é
 	static std::shared_ptr<CMatcher>	CreateMatcher(const std::wstring& pattern);
-	static std::shared_ptr<CMatcher>	CreateMatcher(const std::wstring& pattern, std::string& errmsg);
+	static std::shared_ptr<CMatcher>	CreateMatcher(const std::wstring& pattern, std::wstring& errmsg);
 
     void mayMatch(bool* tab);
 

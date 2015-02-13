@@ -29,8 +29,9 @@
 #include "Misc.h"
 #include "Settings.h"
 #include "CodeConvert.h"
-
 using namespace CodeConvert;
+#include "UITranslator.h"
+using namespace UITranslator;
 
 #define  LOG_COLOR_BACKGROUND  RGB(255, 255, 255)
 #define  LOG_COLOR_DEFAULT     RGB(140, 140, 140)
@@ -74,27 +75,14 @@ void	CLogViewWindow::ShowWindow()
 
 void CLogViewWindow::ProxyEvent(LogProxyEvent Event, const IPv4Address& addr)
 {
-	CString msg;
-	msg.Format(_T(">>> ポート %d : "), addr.GetPortNumber());
+	CString msg = GetTranslateMessage(ID_PROXYEVENTHEADER, addr.GetPortNumber()).c_str();
 	switch (Event) {
 	case kLogProxyNewRequest:
-		msg	+= _T("新しいリクエストを受信しました\n");
-		{
-			CCritSecLock	lock(m_csActiveRequestLog);
-			m_vecActiveRequestLog.emplace_back(new EventLog(addr.GetPortNumber(), msg, LOG_COLOR_PROXY));
-		}
+		msg += GetTranslateMessage(ID_PROXYNEWREQUEST).c_str();
 		break;
 
 	case kLogProxyEndRequest:
-		msg += _T("リクエストが完了しました\n");
-		{
-			CCritSecLock	lock(m_csActiveRequestLog);
-			uint16_t port = addr.GetPortNumber();
-			auto result = std::remove_if(m_vecActiveRequestLog.begin(), m_vecActiveRequestLog.end(), 
-				[port](const std::unique_ptr<EventLog>& log) { return log->port == port; }
-			);
-			m_vecActiveRequestLog.erase(result, m_vecActiveRequestLog.end());
-		}
+		msg += GetTranslateMessage(ID_PROXYENDREQUEST).c_str();
 		break;
 
 	default:
@@ -102,9 +90,7 @@ void CLogViewWindow::ProxyEvent(LogProxyEvent Event, const IPv4Address& addr)
 		return ;
 	}
 
-	CString title;
-	title.Format(_T("ログ - Active[ %d ]"), CLog::GetActiveRequestCount());
-	SetWindowText(title);
+	SetWindowText(GetTranslateMessage(IDD_LOGVIEW, CLog::GetActiveRequestCount()).c_str());
 
 	if (m_bProxyEvent == false)
 		return;
@@ -114,23 +100,22 @@ void CLogViewWindow::ProxyEvent(LogProxyEvent Event, const IPv4Address& addr)
 
 void CLogViewWindow::HttpEvent(LogHttpEvent Event, const IPv4Address& addr, int RequestNumber, const std::string& text)
 {
-	CString msg;
-	msg.Format(_T(">>> ポート %d #%d : "), addr.GetPortNumber(), RequestNumber);
+	CString msg = GetTranslateMessage(ID_HTTPEVENTHEADER, addr.GetPortNumber(), RequestNumber).c_str();
 	switch (Event) {
 	case kLogHttpRecvOut:	if (!m_bBrowserToProxy)	return ;
-		msg += _T("ブラウザ → Proxy(this)");
+		msg += GetTranslateMessage(ID_HTTPRECVOUT).c_str();
 		break;
 
 	case kLogHttpSendOut:	if (!m_bProxyToWeb)	return ;
-		msg += _T("Proxy(this) → サイト");
+		msg += GetTranslateMessage(ID_HTTPSENDOUT).c_str();
 		break;
 
 	case kLogHttpRecvIn:	if (!m_bProxyFromWeb)	return ;
-		msg += _T("Proxy(this) ← サイト");
+		msg += GetTranslateMessage(ID_HTTPRECVIN).c_str();
 		break;
 
 	case kLogHttpSendIn:	if (!m_bBrowserFromProxy)	return ;
-		msg += _T("ブラウザ ← Proxy(this)");
+		msg += GetTranslateMessage(ID_HTTPSENDIN).c_str();
 		break;
 
 	default:
@@ -145,10 +130,6 @@ void CLogViewWindow::HttpEvent(LogHttpEvent Event, const IPv4Address& addr, int 
 	if (Event == kLogHttpRecvIn || Event == kLogHttpSendIn)
 		color = LOG_COLOR_RESPONSE;
 	
-	{
-		CCritSecLock	lock(m_csActiveRequestLog);
-		m_vecActiveRequestLog.emplace_back(new EventLog(addr.GetPortNumber(), msg, color));
-	}
 	{
 		CCritSecLock	lock(m_csRequestLog);
 		bool bFound = false;
@@ -214,21 +195,21 @@ void CLogViewWindow::FilterEvent(LogFilterEvent Event, int RequestNumber, const 
 	msg.Format(_T("#%d : "), RequestNumber);
 	switch (Event) {
 	case kLogFilterHeaderMatch:
-		msg	+= _T("HeaderMatch");
+		msg += GetTranslateMessage(ID_FILTERHEADERMATCH).c_str();
 		break;
 
 	case kLogFilterHeaderReplace:
 		return ;
-		msg += _T("HeaderReplace");
+		msg += GetTranslateMessage(ID_FILTERHEADERREPLACE).c_str();
 		break;
 
 	case kLogFilterTextMatch:
-		msg += _T("TextMatch");
+		msg += GetTranslateMessage(ID_FILTERTEXTMATCH).c_str();
 		break;
 
 	case kLogFilterTextReplace:
 		return ;
-		msg += _T("TextReplace");
+		msg += GetTranslateMessage(ID_FILTERTEXTRAPLCE).c_str();
 		break;
 
 	case kLogFilterLogCommand:
@@ -261,39 +242,33 @@ void CLogViewWindow::FilterEvent(LogFilterEvent Event, int RequestNumber, const 
 		break;
 
 	case kLogFilterJump:
-		msg += _T("JumpTo: ");
-		msg += text.c_str();
-		msg += _T("\n");
+		msg += GetTranslateMessage(ID_FILTERJUMPTO, UTF16fromUTF8(text)).c_str();
 		funcPartLog();
 		_AppendText(msg, LOG_COLOR_FILTER);
 		return ;
 		break;
 
 	case kLogFilterRdir:
-		msg += _T("RedirectTo: ");
-		msg += text.c_str();
-		msg += _T("\n");
+		msg += GetTranslateMessage(ID_FILTERRDIR, UTF16fromUTF8(text)).c_str();
 		funcPartLog();
 		_AppendText(msg, LOG_COLOR_FILTER);
 		return ;
 		break;
 
 	case kLogFilterListReload:
-		msg = _T("リストが再読み込みされました: ");
-		msg += UTF16fromUTF8(title).c_str();
-		msg += _T("\n");
+		msg = GetTranslateMessage(ID_FILTERLISTRELOAD, UTF16fromUTF8(title)).c_str();
 		_AppendText(msg, LOG_COLOR_FILTER);
 		return ;
 		break;
 
 	case kLogFilterListBadLine:
-		msg.Format(_T("リストのマッチングルールに異常があります: [%s] %d 行目\n"), UTF16fromUTF8(title).c_str(), RequestNumber);
+		msg = GetTranslateMessage(ID_FILTERLISTBADLINE, UTF16fromUTF8(title), RequestNumber).c_str();
 		_AppendText(msg, LOG_COLOR_FILTER);
 		return;
 		break;
 
 	case kLogFilterListMatch:
-		msg.Format(_T("#%d : ListMatch [%s] %s 行目\n"), RequestNumber, UTF16fromUTF8(title).c_str(), UTF16fromUTF8(text).c_str());
+		msg = GetTranslateMessage(ID_FILTERLISTMATCH, RequestNumber, UTF16fromUTF8(title), UTF16fromUTF8(text)).c_str();
 		funcPartLog();
 		_AppendText(msg, LOG_COLOR_FILTER);		
 		return;
@@ -350,6 +325,20 @@ void CLogViewWindow::AddNewRequest(long requestNumber)
 
 BOOL CLogViewWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 {
+	SetWindowText(GetTranslateMessage(IDD_LOGVIEW, 0).c_str());
+
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_CHECKBOX_STOPLOG);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_CHECKBOX_RECENTURLS);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_BUTTON_CLEAR);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_GROUP_HTTPEVENT);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_CHECKBOX_BROWSERTOPROXY);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_CHECKBOX_PROXYTOWEB);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_CHECKBOX_PROXYFROMWEB);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_CHECKBOX_BROWSERFROMPROXY);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_CHECKBOX_PROXYEVENT);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_CHECKBOX_FILTEREVENT);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_CHECKBOX_WEBFILTERDEBUG);
+
 	m_editLog = GetDlgItem(IDC_RICHEDIT_LOG);
 	m_editLog.SetBackgroundColor(LOG_COLOR_BACKGROUND);
 	m_editLog.SetTargetDevice(NULL, 0);
@@ -360,7 +349,7 @@ BOOL CLogViewWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 	m_editPartLog.ShowWindow(FALSE);
 
 	m_cmbRequest = GetDlgItem(IDC_COMBO_REQUEST);
-	m_cmbRequest.AddString(_T("すべてのログ"));
+	m_cmbRequest.AddString(GetTranslateMessage(ID_ALLLOG).c_str());
 	m_cmbRequest.SetCurSel(0);
 
 	m_listRequest.SubclassWindow(GetDlgItem(IDC_LIST_RECENTURLS));
@@ -454,11 +443,6 @@ void CLogViewWindow::OnCancel(UINT uNotifyCode, int nID, CWindow wndCtl)
 {
 	CLog::RemoveLogTrace(this);
 
-	{
-		CCritSecLock	lock(m_csActiveRequestLog);
-		m_vecActiveRequestLog.clear();
-	}
-
 	CSettings::s_WebFilterDebug = false;
 
 	__super::ShowWindow(FALSE);
@@ -483,7 +467,7 @@ void CLogViewWindow::OnClear(UINT uNotifyCode, int nID, CWindow wndCtl)
 		m_vecRquestLog.clear();
 
 		m_cmbRequest.ResetContent();
-		m_cmbRequest.AddString(_T("すべてのログ"));
+		m_cmbRequest.AddString(GetTranslateMessage(ID_ALLLOG).c_str());
 		m_cmbRequest.SetCurSel(0);
 
 		m_editPartLog.ShowWindow(FALSE);
@@ -519,21 +503,6 @@ void CLogViewWindow::OnComboRequestSelChange(UINT uNotifyCode, int nID, CWindow 
 
 }
 
-void CLogViewWindow::OnShowActiveRequestLog(UINT uNotifyCode, int nID, CWindow wndCtl)
-{
-	bool bPrev = m_bRecentURLs;
-	m_bRecentURLs = false;
-	OnClear(0, 0, NULL);
-	m_bRecentURLs = bPrev;
-
-	_RefreshTitle();
-
-	CCritSecLock	lock(m_csActiveRequestLog);
-	for (auto& log : m_vecActiveRequestLog) {
-		_AppendText(log->text, log->textColor);
-	}
-
-}
 
 /// URLをクリップボードにコピー
 LRESULT CLogViewWindow::OnRecentURLListRClick(LPNMHDR pnmh)
@@ -660,9 +629,7 @@ void	CLogViewWindow::_AppendRequestLogText(const CString& text, COLORREF textCol
 
 void	CLogViewWindow::_RefreshTitle()
 {
-	CString title;
-	title.Format(_T("ログ - Active[ %d ]"), CLog::GetActiveRequestCount());
-	SetWindowText(title);
+	SetWindowText(GetTranslateMessage(IDD_LOGVIEW, CLog::GetActiveRequestCount()).c_str());
 }
 
 

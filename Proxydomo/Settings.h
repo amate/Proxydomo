@@ -118,6 +118,8 @@ public:
 
 	static std::string	s_urlCommandPrefix;
 
+	static std::wstring	s_language;
+
 	static std::thread	s_threadSaveFilter;
 	
 	static void	LoadSettings();

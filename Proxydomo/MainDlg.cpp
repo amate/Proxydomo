@@ -28,6 +28,8 @@
 #include "AboutDlg.h"
 #include "OptionDialog.h"
 #include "Misc.h"
+#include "UITranslator.h"
+using namespace UITranslator;
 
 using namespace boost::property_tree;
 
@@ -38,9 +40,7 @@ CMainDlg::CMainDlg() : m_listChangeWatcher(FILE_NOTIFY_CHANGE_LAST_WRITE), m_bVi
 // ILogTrace
 void CMainDlg::ProxyEvent(LogProxyEvent Event, const IPv4Address& addr)
 {
-	CString text;
-	text.Format(_T("アクティブな接続数: %02d"), CLog::GetActiveRequestCount());
-	GetDlgItem(IDC_STATIC_ACTIVEREQUESTCOUNT).SetWindowText(text);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_STATIC_ACTIVEREQUESTCOUNT, CLog::GetActiveRequestCount());
 }
 
 void CMainDlg::FilterEvent(LogFilterEvent Event, int RequestNumber, const std::string& title, const std::string& text)
@@ -62,6 +62,19 @@ LRESULT CMainDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam
 	SetIcon(hIcon, TRUE);
 	HICON hIconSmall = AtlLoadIconImage(IDR_MAINFRAME, LR_DEFAULTCOLOR, ::GetSystemMetrics(SM_CXSMICON), ::GetSystemMetrics(SM_CYSMICON));
 	SetIcon(hIconSmall, FALSE);
+
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_BUTTON_SHOWFILTERMANAGE);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_BUTTON_SHOWLOGWINDOW);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_BUTTON_SHOWOPTION);
+	ChangeControlTextForTranslateMessage(m_hWnd, ID_APP_ABOUT);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_GROUPBOX_ACTIVEFILTER);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_CHECKBOX_WEBPAGE);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_CHECKBOX_OUTHEADER);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_CHECKBOX_INHEADER);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_CHECKBOX_USEREMOTEPROXY);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_CHECK_BYPASS);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_STATIC_ACTIVEREQUESTCOUNT, 0);
+
 
 	// register object for message filtering and idle updates
 	CMessageLoop* pLoop = _Module.GetMessageLoop();
@@ -210,28 +223,37 @@ LRESULT CMainDlg::OnTrayIconNotify(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, 
 		SetForegroundWindow(m_hWnd);
 	} else if (lParam == WM_RBUTTONUP) {
 		enum {
-			kProxydomoOpen = 100,
-			kWebPageFilter,
-			kOutHeaderFilter,
-			kInHeaderFileter,
-			kBypass,
-			kUseRemoteProxy,
-			kBlockListBegin,
+			kProxydomoOpen		= ID_TASKTRAYMENUBEGIN,
+			kWebPageFilter		= ID_TASKTRAYMENUBEGIN + 1,
+			kOutHeaderFilter	= ID_TASKTRAYMENUBEGIN + 2,
+			kInHeaderFileter	= ID_TASKTRAYMENUBEGIN + 3,
+			kBypass				= ID_TASKTRAYMENUBEGIN + 4,
+			kUseRemoteProxy		= ID_TASKTRAYMENUBEGIN + 5,
+			kExit				= ID_TASKTRAYMENUBEGIN + 6,
+
+			kBlockListNone = ID_TASKTRAYMENUBEGIN + 100,
+			kBlockListEdit = ID_TASKTRAYMENUBEGIN + 101,
+			kBlockListBegin = ID_TASKTRAYMENUBEGIN + 110,
 			kBlockListEnd = kBlockListBegin + 500,
-			kExit,
 		};
+		
 		CMenu menu;
 		menu.CreatePopupMenu();
-		menu.AppendMenu(MF_STRING, kProxydomoOpen, _T("Proxydomoを開く(&P)"));
+		menu.AppendMenu(MF_STRING, kProxydomoOpen, GetTranslateMessage(kProxydomoOpen).c_str());
 		menu.SetMenuDefaultItem(kProxydomoOpen);
 		menu.AppendMenu(MF_SEPARATOR);
 
-		menu.AppendMenu(CSettings::s_filterText ? MF_CHECKED : MF_STRING, kWebPageFilter, _T("Webページフィルター(&W)"));
-		menu.AppendMenu(CSettings::s_filterOut ? MF_CHECKED : MF_STRING, kOutHeaderFilter, _T("送信ヘッダフィルター(&O)"));
-		menu.AppendMenu(CSettings::s_filterIn ? MF_CHECKED : MF_STRING, kInHeaderFileter, _T("受信ヘッダフィルター(&I)"));
-		menu.AppendMenu(CSettings::s_bypass ? MF_CHECKED : MF_STRING, kBypass, _T("バイパス(&B)"));
+		menu.AppendMenu(CSettings::s_filterText ? MF_CHECKED : MF_STRING, kWebPageFilter, 
+			GetTranslateMessage(kWebPageFilter).c_str());
+		menu.AppendMenu(CSettings::s_filterOut ? MF_CHECKED : MF_STRING, kOutHeaderFilter, 
+			GetTranslateMessage(kOutHeaderFilter).c_str());
+		menu.AppendMenu(CSettings::s_filterIn ? MF_CHECKED : MF_STRING, kInHeaderFileter, 
+			GetTranslateMessage(kInHeaderFileter).c_str());
+		menu.AppendMenu(CSettings::s_bypass ? MF_CHECKED : MF_STRING, kBypass, 
+			GetTranslateMessage(kBypass).c_str());
 		menu.AppendMenu(MF_SEPARATOR);
-		menu.AppendMenu(CSettings::s_useRemoteProxy ? MF_CHECKED : MF_STRING, kUseRemoteProxy, _T("リモートプロクシを使用(&R)"));
+		menu.AppendMenu(CSettings::s_useRemoteProxy ? MF_CHECKED : MF_STRING, kUseRemoteProxy, 
+			GetTranslateMessage(kUseRemoteProxy).c_str());
 		menu.AppendMenu(MF_SEPARATOR);
 
 		CMenuHandle menuBlockList;
@@ -253,12 +275,12 @@ LRESULT CMainDlg::OnTrayIconNotify(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, 
 			menuBlockList.AppendMenu(bExist ? MF_STRING : MF_GRAYED, kBlockListBegin + i, listName);
 		}
 		if (count == 0) {
-			menuBlockList.AppendMenu(MF_STRING | MF_GRAYED, (UINT_PTR)0, _T("(なし)"));
+			menuBlockList.AppendMenu(MF_STRING | MF_GRAYED, (UINT_PTR)0, GetTranslateMessage(kBlockListNone).c_str());
 		}
-		menu.AppendMenu(MF_POPUP, menuBlockList, _T("ブロックリストの編集(&E)"));
+		menu.AppendMenu(MF_POPUP, menuBlockList, GetTranslateMessage(kBlockListEdit).c_str());
 		menu.AppendMenu(MF_SEPARATOR);
 
-		menu.AppendMenu(MF_STRING, kExit, _T("プログラムの終了(&X)"));
+		menu.AppendMenu(MF_STRING, kExit, GetTranslateMessage(kExit).c_str());
 		CPoint pt;
 		::GetCursorPos(&pt);
 		::SetForegroundWindow(m_hWnd);
@@ -342,8 +364,9 @@ LRESULT CMainDlg::OnFilterButtonCheck(WORD /*wNotifyCode*/, WORD wID, HWND /*hWn
 void CMainDlg::CloseDialog(int nVal)
 {
 	if (CLog::GetActiveRequestCount() > 0) {
-		int ret = MessageBox(_T("まだ接続中のリクエストがあります。\r\n終了してもよろしいですか？"), 
-								_T("確認 - ") APP_NAME, MB_ICONWARNING | MB_OKCANCEL | MB_DEFBUTTON2);
+		int ret = MessageBox(
+			GetTranslateMessage(ID_MAINDLGCLOSECONFIRMMESSAGE).c_str(),
+			GetTranslateMessage(ID_TRANS_CONFIRM).c_str(), MB_ICONWARNING | MB_OKCANCEL | MB_DEFBUTTON2);
 		if (ret == IDCANCEL)
 			return ;
 	}

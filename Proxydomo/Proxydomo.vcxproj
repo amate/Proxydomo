@@ -490,6 +490,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="TextBuffer.cpp" />
+    <ClCompile Include="UITranslator.cpp" />
     <ClCompile Include="VersionControl.cpp" />
     <ClCompile Include="WinHTTPWrapper.cpp" />
   </ItemGroup>
@@ -504,6 +505,7 @@
     <ClInclude Include="FilterEditWindow.h" />
     <ClInclude Include="FilterManageWindow.h" />
     <ClInclude Include="FilterOwner.h" />
+    <ClInclude Include="format.h" />
     <ClInclude Include="Log.h" />
     <ClInclude Include="Logger.h" />
     <ClInclude Include="LogViewWindow.h" />
@@ -733,6 +735,7 @@
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="TextBuffer.h" />
     <ClInclude Include="ThreadPool.h" />
+    <ClInclude Include="UITranslator.h" />
     <ClInclude Include="VersionControl.h" />
     <ClInclude Include="WinHTTPWrapper.h" />
   </ItemGroup>

@@ -34,7 +34,7 @@
 #include "VersionControl.h"
 #include "Logger.h"
 #include "ssl.h"
-
+#include "UITranslator.h"
 
 
 // ƒOƒ[ƒoƒ‹•Ï”
@@ -94,6 +94,7 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR lp
 	CVersionControl::Run();
 
 	CSettings::LoadSettings();
+	UITranslator::LoadUILanguage();
 
 	CSocket::Init();
 	

@@ -36,10 +36,13 @@
 #include "Settings.h"
 #include "Misc.h"
 #include "Matcher.h"
-#include "CodeConvert.h"
 #include "Log.h"
-
+#include "CodeConvert.h"
 using namespace CodeConvert;
+
+#include "UITranslator.h"
+using namespace UITranslator;
+
 using namespace boost::property_tree;
 
 CString MiscGetWindowText(HWND hWnd)
@@ -70,8 +73,8 @@ public:
 	void	SetURLPatternMode(bool b)
 	{
 		m_bTestURLPattern = b;
-		CString title = _T("フィルターテスト - ");
-		title += m_bTestURLPattern ? _T("URLパターンテスト") : _T("マッチングパターンテスト");
+		CString title = (GetTranslateMessage(IDD_FILTERTEST) + L" - ").c_str();
+		title += m_bTestURLPattern ? GetTranslateMessage(ID_URLPATTERNTEST).c_str() : GetTranslateMessage(ID_MATCHPATTERNTEST).c_str();
 		SetWindowText(title);
 	}
 
@@ -96,6 +99,10 @@ public:
 
 	BOOL OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 	{
+		ChangeControlTextForTranslateMessage(m_hWnd, IDC_BUTTON_TEST);
+		ChangeControlTextForTranslateMessage(m_hWnd, IDC_BUTTON_ANALYZE);
+		ChangeControlTextForTranslateMessage(m_hWnd, IDC_BUTTON_CLEAR);
+
 		HFONT hFont = GetDlgItem(IDC_STATIC_SPLITTER).GetFont();
 		CRect rcSplitter;
 		GetDlgItem(IDC_STATIC_SPLITTER).GetWindowRect(&rcSplitter);
@@ -181,8 +188,8 @@ public:
 
 		m_pFilter->TestValidity();
         // ensure there is no parsing error in this filter
-        if (!m_pFilter->errorMsg.empty()) {
-			MessageBox(CA2T(m_pFilter->errorMsg.c_str()));
+        if (m_pFilter->errorMsg.length()) {
+			MessageBox(m_pFilter->errorMsg.c_str());
             return;
         }
 
@@ -238,12 +245,12 @@ public:
 			CUrl	url;
 			url.parseUrl(text);
 			const char* end = nullptr;
-			CString result;
-			result.Format(_T("テスト文字列: %s\r\n\r\n"), (LPWSTR)CA2W(url.getFromHost().c_str()));
+			CString result = GetTranslateMessage(ID_TESTTEXT, (LPWSTR)CA2W(url.getFromHost().c_str())).c_str();
+			result += L"\r\n\r\n";
 			if (matcher.match(url.getFromHost(), &filter)) {
-				m_editResult.SetWindowText(result + _T("マッチしました！"));
+				m_editResult.SetWindowText(result + GetTranslateMessage(ID_MATCHSUCCEEDED).c_str());
 			} else {
-				m_editResult.SetWindowText(result + _T("マッチしませんでした..."));
+				m_editResult.SetWindowText(result + GetTranslateMessage(ID_MATCHFAILED).c_str());
 			}
 			return ;
 		}
@@ -315,7 +322,7 @@ public:
                     if (end == index) ++index; else index = end;
                 }
                 if (!owner.killed) result << std::wstring(done, (size_t)(bufTail-done));
-                if (!found) result.str(/*CSettings::ref().getMessage*/(L"TEST_NO_MATCH"));
+				if (!found) result.str(GetTranslateMessage(ID_TEST_NO_MATCH).c_str());
 
             // Test of a header filter. Much simpler...
             } else {
@@ -329,7 +336,7 @@ public:
                     result << CExpander::expand(m_pFilter->replacePattern, filter);
                     if (run == 0) numMatch++;
                 } else {
-                    result << /*CSettings::ref().getMessage*/("TEST_NO_MATCH");
+					result << GetTranslateMessage(ID_TEST_NO_MATCH);
                 }
                 filter.unlock();
             }
@@ -347,12 +354,7 @@ public:
 			if (totaltime > 0)
 				busytime = (((len * run) / 1000.0)/* byte -> Kbyte */ / (totaltime / 1000.0)/* milisec -> sec */);
 
-			CString text;
-			text.Format(
-				_T("分析結果...\r\n サンプルテキスト: %d バイト\r\n 一致回数: %d\r\n ")
-				_T("平均時間: %d ミリ秒\r\n 処理速度: %.2lf KB/s"), 
-				len, numMatch, (int)avarage, busytime);
-
+			CString text = GetTranslateMessage(ID_ANALYZERESULT, len, numMatch, (int)avarage, busytime).c_str();
 			m_editResult.SetWindowText(text);
         } else {
 			m_editResult.SetWindowText((result.str().c_str()));
@@ -413,10 +415,30 @@ CFilterEditWindow::~CFilterEditWindow()
 
 BOOL CFilterEditWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 {
+	SetWindowText(GetTranslateMessage(IDD_FILTEREDIT).c_str());
+
 	CComboBox cmb = GetDlgItem(IDC_COMBO_FILTERTYPE);
-	cmb.AddString(_T("ウェブページ"));
-	cmb.AddString(_T("送信ヘッダ"));
-	cmb.AddString(_T("受信ヘッダ"));
+	cmb.AddString(GetTranslateMessage(ID_TRANS_WEBPAGE).c_str());
+	cmb.AddString(GetTranslateMessage(ID_TRANS_OUTHEADER).c_str());
+	cmb.AddString(GetTranslateMessage(ID_TRANS_INHEADER).c_str());
+
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_STATIC_FILTERTITLE);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_STATIC_AUTHOR);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_EDIT_VERSION);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_STATIC_DESCRIPTION);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_STATIC_FILTERTYPE);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_STATIC_HEADERNAME);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_STATIC_BOUNDS);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_STATIC_URLPATTERN);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_CHECKBOX_MULTIPLEMUTCH);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_STATIC_BOUNDMATCH);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_STATIC_LIMIT);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_STATIC_MATCHPATTERN);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_STATIC_REPLACE);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_BUTTON_TEST);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_BUTTON_TEST_URLPATTERN);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDOK);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDCANCEL);
 
 	CComboBox	cmbHeaderName = GetDlgItem(IDC_COMBO_HEADERNAME);
 	if (m_filterType == CFilterDescriptor::kFilterText)
@@ -605,7 +627,7 @@ void CFilterEditWindow::OnOK(UINT uNotifyCode, int nID, CWindow wndCtl)
 
 	//m_pTempFilter->TestValidity();
 	if (m_pTempFilter->CreateMatcher() == false) {
-		MessageBox(CA2T(m_pTempFilter->errorMsg.c_str()), NULL, MB_ICONERROR);
+		MessageBox(m_pTempFilter->errorMsg.c_str(), NULL, MB_ICONERROR);
 		return ;
 	}
 

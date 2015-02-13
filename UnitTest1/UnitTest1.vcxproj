@@ -42,7 +42,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v110</PlatformToolset>
+    <PlatformToolset>v120</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <UseOfMfc>false</UseOfMfc>
   </PropertyGroup>
@@ -102,7 +102,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <LibraryPath>C:\Program\boost_1_54_0\lib\lib;$(VCInstallDir)lib;$(VCInstallDir)atlmfc\lib;$(WindowsSdkDir_71A)lib;$(WindowsSDK_LibraryPath_x86)</LibraryPath>
+    <LibraryPath>D:\Program\Proxydomo\zlib\x86\lib;D:\Program\Proxydomo\GnuTLS\x86\lib;$(SolutionDir)icu\Win32\lib;$(SolutionDir)Proxydomo\$(Configuration);$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)icu\Win32\include;D:\Program\boost_1_56_0;D:\Program\WTL90_4140_Final\Include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
@@ -129,11 +130,13 @@
       <AdditionalIncludeDirectories>$(VCInstallDir)UnitTest\include;$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <UseFullPaths>true</UseFullPaths>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(VCInstallDir)UnitTest\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>zlib.lib;icuuc.lib;libgnutls-28.lib;CodeConvert.obj;DebugWindow.obj;expander.obj;filter.obj;FilterDescriptor.obj;FilterEditWindow.obj;FilterManageWindow.obj;FilterOwner.obj;headerfilter.obj;Logger.obj;LogViewWindow.obj;MainDlg.obj;Matcher_.obj;Misc.obj;Nodes_.obj;Proxy.obj;Proxydomo.obj;RequestManager.obj;Settings.obj;Socket.obj;ssl.obj;stdafx.obj;TextBuffer.obj;textfilter.obj;url.obj;util.obj;VersionControl.obj;WinHTTPWrapper.obj;zlibbuffer.obj;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">

@@ -78,6 +78,6 @@ public:
     //int defaultFilter;
     
     // Check if all data is valid
-    std::string errorMsg;
+    std::wstring errorMsg;
 
 };

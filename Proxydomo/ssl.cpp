@@ -21,6 +21,8 @@
 #include "Misc.h"
 #include "Logger.h"
 #include "resource.h"
+#include "UITranslator.h"
+using namespace UITranslator;
 
 namespace {
 
@@ -66,12 +68,18 @@ public:
 
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
 	{
-		m_errorMsg.Insert(0, _T("è⁄ç◊:"));
-		GetDlgItem(IDC_STATIC_DETAIL).SetWindowText(m_errorMsg);
+		SetWindowText(GetTranslateMessage(IDD_CERTIFICATEERROR).c_str());
 
-		CString host;
-		host.Format(_T("Host: %s"), (LPWSTR)CA2W(m_host.c_str()));
-		GetDlgItem(IDC_STATIC_HOST).SetWindowText(host);
+		ChangeControlTextForTranslateMessage(m_hWnd, IDC_STATIC_WARNING);
+		ChangeControlTextForTranslateMessage(m_hWnd, IDC_STATIC_CONNECTIONCONTINUE);
+		ChangeControlTextForTranslateMessage(m_hWnd, IDC_BTN_PERMANENTDENY);
+		ChangeControlTextForTranslateMessage(m_hWnd, IDC_BTN_PERMANENTALLOW);
+		ChangeControlTextForTranslateMessage(m_hWnd, IDC_BTN_TEMPDENY);
+		ChangeControlTextForTranslateMessage(m_hWnd, IDC_BTN_TEMPALLOW);
+
+
+		GetDlgItem(IDC_STATIC_DETAIL).SetWindowText(GetTranslateMessage(IDC_STATIC_DETAIL, (LPCWSTR)m_errorMsg).c_str());
+		GetDlgItem(IDC_STATIC_HOST).SetWindowText(GetTranslateMessage(IDC_STATIC_HOST, (LPWSTR)CA2W(m_host.c_str())).c_str());
 		return TRUE;
 	}
 

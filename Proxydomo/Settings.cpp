@@ -44,40 +44,13 @@
 using namespace CodeConvert;
 using namespace boost::property_tree;
 
-template <class _Function>
-bool ForEachFile(const CString &strDirectoryPath, _Function __f)
-{
-	CString 		strPathFind = strDirectoryPath;
-
-	::PathAddBackslash(strPathFind.GetBuffer(MAX_PATH));
-	strPathFind.ReleaseBuffer();
-
-	CString 		strPath 	= strPathFind;
-	strPathFind += _T("*.*");
-
-	WIN32_FIND_DATA wfd;
-	HANDLE	h = ::FindFirstFile(strPathFind, &wfd);
-	if (h == INVALID_HANDLE_VALUE)
-		return false;
-
-	// Now scan the directory
-	do {
-		// it is a file
-		if ( ( wfd.dwFileAttributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM) ) == 0 ) {
-			__f(strPath + wfd.cFileName);
-		}
-	} while ( ::FindNextFile(h, &wfd) );
-
-	::FindClose(h);
-
-	return true;
-}
-
 
 ////////////////////////////////////////////////////////////
 // CSettings
 
 enum { DEFAULTPECA_PORT = 6060 };
+LPCWSTR kDefaultLanguage = L"English";
+
 uint16_t		CSettings::s_proxyPort	= DEFAULTPECA_PORT;
 bool			CSettings::s_filterText	= true;
 bool			CSettings::s_filterIn	= true;
@@ -91,6 +64,8 @@ std::string		CSettings::s_defaultRemoteProxy;
 std::set<std::string> CSettings::s_setRemoteProxy;
 
 std::string		CSettings::s_urlCommandPrefix;	
+
+std::wstring	CSettings::s_language = kDefaultLanguage;
 
 std::thread		CSettings::s_threadSaveFilter;
 
@@ -129,6 +104,23 @@ void	CSettings::LoadSettings()
 			std::string remoteproxy = pt.get(path, "");
 			if (remoteproxy.length())
 				s_setRemoteProxy.insert(remoteproxy);
+		}
+
+		if (auto value = pt.get_optional<std::string>("Setting.language")) {
+			s_language = UTF16fromUTF8(value.get());
+		} else {
+			CString language = kDefaultLanguage;
+			int len = GetLocaleInfoW(LOCALE_USER_DEFAULT, LOCALE_SENGLANGUAGE, nullptr, 0);
+			if (len) {			
+				GetLocaleInfoW(LOCALE_USER_DEFAULT, LOCALE_SENGLANGUAGE, language.GetBuffer(len + 1), len);
+				language.ReleaseBuffer();
+
+				CString traslateFilePath = Misc::GetExeDirectory() + L"lang\\" + language + L".lng";
+				if (::PathFileExists(traslateFilePath) == FALSE) {
+					s_language = kDefaultLanguage;
+				}
+			}
+			s_language = language;
 		}
 	}
 
@@ -177,6 +169,8 @@ void	CSettings::SaveSettings()
 		++i;
 		pt.put(path, remoteproxy);
 	}
+
+	pt.put("Setting.language", UTF8fromUTF16(s_language));
 
 	write_ini(settingsPath, pt);
 }

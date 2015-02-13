@@ -180,6 +180,9 @@
     <ClCompile Include="WinHTTPWrapper.cpp">
       <Filter>Header Files</Filter>
     </ClCompile>
+    <ClCompile Include="UITranslator.cpp">
+      <Filter>Header Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -378,6 +381,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ThreadPool.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UITranslator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="format.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
