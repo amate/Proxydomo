@@ -769,6 +769,7 @@ void CRequestManager::_ConnectWebsite()
 				//             filename);
 				_FakeResponse("404 Not Found");
 			}
+			while (_SendIn());	// ÅŒã‚Ü‚Å‘—M‚µ‚Ä‚µ‚Ü‚¤
 
 			m_filterOwner.rdirToHost.clear();
 			return;

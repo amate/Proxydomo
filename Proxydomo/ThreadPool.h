@@ -15,9 +15,28 @@
 class CThreadPool
 {
 public:
-	CThreadPool() {}
+	CThreadPool() 
+	{
+		::InitializeThreadpoolEnvironment(&m_CallBackEnviron);
+		m_pool = ::CreateThreadpool(NULL);
+		if (m_pool == NULL)
+			throw std::runtime_error("CreateThreadpool failed");
+
+		BOOL bRet = ::SetThreadpoolThreadMinimum(m_pool, 30);
+		if (bRet == FALSE) {
+			::CloseThreadpool(m_pool);
+			::DestroyThreadpoolEnvironment(&m_CallBackEnviron);
+			throw std::runtime_error("SetThreadpoolThreadMinimum failed");
+		}
+
+		::SetThreadpoolCallbackPool(&m_CallBackEnviron, m_pool);
+	}
+
 	~CThreadPool() {
 		CloseAllThread();
+
+		::CloseThreadpool(m_pool);
+		::DestroyThreadpoolEnvironment(&m_CallBackEnviron);
 	}
 
 	void	CreateThread(std::function<void()> func)
@@ -26,7 +45,7 @@ public:
 		m_threadDataList.emplace_front(&m_csThreadDataList, &m_threadDataList);
 		auto itThis = m_threadDataList.begin();
 
-		itThis->work = ::CreateThreadpoolWork(WorkCallback, (PVOID)&*itThis, NULL);
+		itThis->work = ::CreateThreadpoolWork(WorkCallback, (PVOID)&*itThis, &m_CallBackEnviron);
 		if (itThis->work == NULL) {
 			m_threadDataList.erase(itThis);
 			throw std::runtime_error("CreateThreadpoolWork failed");
@@ -74,6 +93,9 @@ private:
 			::CloseThreadpoolWork(Work);			
 		}
 	}
+
+	TP_CALLBACK_ENVIRON	m_CallBackEnviron;
+	PTP_POOL	m_pool;
 
 
 	struct ThreadData {
