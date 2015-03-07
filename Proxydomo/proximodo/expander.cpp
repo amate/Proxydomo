@@ -75,7 +75,7 @@ std::wstring CExpander::expand(const std::wstring& pattern, CFilter& filter) {
 
         // We can drop the pattern directly to the
         // output up to a special character
-        size_t pos = pattern.find_first_of( L"$\\" , index);
+        size_t pos = pattern.find_first_of( L"$\\\n" , index);
         if (pos == string::npos) {
             // No more special chars, drop the pattern to the end
             output << pattern.substr(index);
@@ -87,7 +87,11 @@ std::wstring CExpander::expand(const std::wstring& pattern, CFilter& filter) {
         output << pattern.substr(index, pos - index);
         index = pos;
 
-        if (pattern[pos] == L'\\') {
+		if (pattern[pos] == L'\n') {
+			index++;
+			continue;
+
+		} else if (pattern[pos] == L'\\') {
 
             // ensure there is something after the backslash
             if (pos == size-1) {
