@@ -23,9 +23,10 @@
 #pragma once
 
 #include <thread>
-#include <vector>
+#include <list>
 #include <atlsync.h>
 #include "Socket.h"
+#include "ThreadPool.h"
 
 class CRequestManager;
 
@@ -46,7 +47,10 @@ private:
 	std::thread	m_threadServer;
 	bool	m_bServerActive;
 
+#ifdef _WIN64
+	CThreadPool	m_threadPool;
+#endif
 	CCriticalSection	m_csRequestManager;
-	std::vector<std::unique_ptr<CRequestManager>>	m_vecpRequestManager;
+	std::list<std::unique_ptr<CRequestManager>>	m_requestManagerList;
 };
 

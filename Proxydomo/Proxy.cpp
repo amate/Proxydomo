@@ -29,6 +29,8 @@
 #include "Misc.h"
 #include "Logger.h"
 
+using namespace std::chrono;
+
 
 ///////////////////////////////////////////////////////////////////////
 // CProxy
@@ -57,18 +59,22 @@ void CProxy::CloseProxyPort()
 	if (m_threadServer.joinable()) {
 		m_bServerActive = false;
 		
-		{
-			CCritSecLock	lock(m_csRequestManager);
-			for (auto& manager : m_vecpRequestManager)
-				manager->SwitchToInvalid();
-		}
-
 		m_threadServer.join();
 
+		{
+			CCritSecLock	lock(m_csRequestManager);
+			for (auto& manager : m_requestManagerList)
+				manager->SwitchToInvalid();
+		}
+#ifdef _WIN64
+		m_threadPool.CloseAllThread();		
+
+#else
 		while (m_vecpRequestManager.size()) {
 			::Sleep(50);
 		}
-		m_vecpRequestManager.clear();
+#endif
+		m_requestManagerList.clear();
 	}
 }
 
@@ -77,13 +83,25 @@ void CProxy::_ServerThread()
 {
 	enum { kMaxActiveRequestThread = 100 };
 
-	auto funcCreateRequestManagerThread = [this](CRequestManager* manager) {
-		{
-			CCritSecLock	lock(m_csRequestManager);
-			m_vecpRequestManager.emplace_back(std::move(manager));
-		}
+	auto funcCreateRequestManagerThread = [this](CRequestManager* manager)
+	{
+		CCritSecLock	lock(m_csRequestManager);
+		m_requestManagerList.emplace_front(std::move(manager));
+		auto itThis = m_requestManagerList.begin();
+		lock.Unlock();
 
-		std::thread([this, manager]() {
+#ifdef _WIN64
+		m_threadPool.CreateThread([this, manager, itThis]() {
+			try {
+				manager->Manage();
+			}
+			catch (...) {
+			}
+			CCritSecLock	lock(m_csRequestManager);
+			m_requestManagerList.erase(itThis);
+		});
+#else
+		std::thread([this, manager, itThis]() {
 			try {
 				manager->Manage();
 			} catch (GeneralException& e) {
@@ -91,14 +109,9 @@ void CProxy::_ServerThread()
 			}
 
 			CCritSecLock	lock(m_csRequestManager);
-			for (auto it = m_vecpRequestManager.begin(); it != m_vecpRequestManager.end(); ++it) {
-				if (it->get() == manager) {
-					m_vecpRequestManager.erase(it);
-					break;
-				}
-			}
-			//delete manager;
+			m_requestManagerList.erase(itThis);
 		}).detach();
+#endif
 	};
 
 	while (m_bServerActive) {
@@ -109,14 +122,12 @@ void CProxy::_ServerThread()
 			// 最大接続数を超えた
 			// 最大接続数以下になるまでこのスレッドはロックしちゃってもよい
 			if (CLog::GetActiveRequestCount() > kMaxActiveRequestThread) {
-				while (m_bServerActive && CLog::GetActiveRequestCount() > kMaxActiveRequestThread) {
+				do {
 					::Sleep(50);
-				}
+				} while (m_bServerActive && CLog::GetActiveRequestCount() > kMaxActiveRequestThread);
 			}
 			funcCreateRequestManagerThread(manager);
-			continue;
 		}
-		::Sleep(50);
 	}
 }
 

@@ -117,7 +117,7 @@ void	CSettings::LoadSettings()
 
 				CString traslateFilePath = Misc::GetExeDirectory() + L"lang\\" + language + L".lng";
 				if (::PathFileExists(traslateFilePath) == FALSE) {
-					s_language = kDefaultLanguage;
+					language = kDefaultLanguage;
 				}
 			}
 			s_language = language;

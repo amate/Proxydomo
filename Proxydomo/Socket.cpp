@@ -200,6 +200,20 @@ void	CSocket::Bind(uint16_t port)
 // ƒ|[ƒg‚©‚ç‚Ì‰“š‚ğ‘Ò‚Â
 std::unique_ptr<CSocket>	CSocket::Accept()
 {
+	fd_set readfds;
+	FD_ZERO(&readfds);
+	FD_SET(m_sock, &readfds);
+
+	enum { kTimeout = 500 * 1000 };
+	timeval timeout = {};
+	timeout.tv_usec = kTimeout;
+	int ret = ::select(static_cast<int>(m_sock) + 1, &readfds, nullptr, nullptr, &timeout);
+	if (ret == SOCKET_ERROR)
+		throw SocketException("select failed");
+
+	if (FD_ISSET(m_sock, &readfds) == false)
+		return nullptr;
+
 	int fromSize = sizeof(sockaddr_in);
 	sockaddr_in from;
 	SOCKET conSock = ::accept(m_sock, (sockaddr *)&from, &fromSize);

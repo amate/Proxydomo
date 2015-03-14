@@ -81,6 +81,12 @@ b2.exe install -j 2 --prefix=lib64 toolset=msvc-12.0 runtime-link=static address
 http://www.devlog.alt-area.org/?p=2802
 このサイトを参考に MinGW64 + MSYS の環境を作る
 
+※注意
+Strawberry Perlのバージョンは"Strawberry Perl 5.18.4.1"をインストールしてください
+もしくは
+C:\Strawberry\perl\bin
+フォルダにある"pkg-config"、"pkg-config.bat"ファイルをリネームしてください
+
 // x64 ==============================================================
 #gmp6.0.0a build
 ./configure --build=x86_64-w64-mingw32 --enable-shared --disable-static
@@ -92,8 +98,8 @@ make install
 make
 make install
 
-#gnutls3.3.9 build
-./configure --build=x86_64-w64-mingw32 --disable-guile --disable-nls --without-zlib PKG_CONFIG_PATH=/local/lib/pkgconfig LDFLAGS=-L/local/lib --disable-cxx --disable-openssl-compatibility --disable-doc --disable-heartbeat-support
+#gnutls3.3.13 build
+./configure --build=x86_64-w64-mingw32 --disable-guile --disable-nls --without-zlib PKG_CONFIG_PATH=/local/lib/pkgconfig LDFLAGS=-L/local/lib --disable-cxx --disable-openssl-compatibility --disable-doc --disable-heartbeat-support --disable-rsa-export
 make
 make install
 
@@ -108,8 +114,8 @@ make install
 make
 make install
 
-#gnutls3.3.9 build
-./configure --build=i686-w64-mingw32 --disable-guile --disable-nls --without-zlib PKG_CONFIG_PATH=/local/lib/pkgconfig LDFLAGS=-L/local/lib --disable-cxx --disable-openssl-compatibility --disable-doc  --disable-heartbeat-support
+#gnutls3.3.13 build
+./configure --build=i686-w64-mingw32 --disable-guile --disable-nls --without-zlib PKG_CONFIG_PATH=/local/lib/pkgconfig LDFLAGS=-L/local/lib --disable-cxx --disable-openssl-compatibility --disable-doc --disable-heartbeat-support --disable-rsa-export
 make
 make install
 

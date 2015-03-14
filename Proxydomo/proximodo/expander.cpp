@@ -66,7 +66,7 @@ std::wstring CExpander::expand(const std::wstring& pattern, CFilter& filter) {
     std::wstring content;             // decoded command content
 
     // Iterator to stacked memories
-    vector<CMemory>::iterator stackedMem = filter.memoryStack.begin();
+    auto stackedMem = filter.memoryStack.begin();
 
     size_t size = pattern.size();
     size_t index = 0;
@@ -75,8 +75,8 @@ std::wstring CExpander::expand(const std::wstring& pattern, CFilter& filter) {
 
         // We can drop the pattern directly to the
         // output up to a special character
-        size_t pos = pattern.find_first_of( L"$\\\n" , index);
-        if (pos == string::npos) {
+        size_t pos = pattern.find_first_of( L"$\\\r" , index);
+        if (pos == std::wstring::npos) {
             // No more special chars, drop the pattern to the end
             output << pattern.substr(index);
             index = size;
@@ -87,8 +87,9 @@ std::wstring CExpander::expand(const std::wstring& pattern, CFilter& filter) {
         output << pattern.substr(index, pos - index);
         index = pos;
 
-		if (pattern[pos] == L'\n') {
-			index++;
+		if (pattern[pos] == L'\r') {
+			ATLASSERT(pattern[pos + 1] == '\n');
+			index += 2;
 			continue;
 
 		} else if (pattern[pos] == L'\\') {
