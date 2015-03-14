@@ -70,7 +70,7 @@ void CProxy::CloseProxyPort()
 		m_threadPool.CloseAllThread();		
 
 #else
-		while (m_vecpRequestManager.size()) {
+		while (m_requestManagerList.size()) {
 			::Sleep(50);
 		}
 #endif
