@@ -27,24 +27,24 @@
 #include <memory>
 #include <string>
 #include <boost\lexical_cast.hpp>
+#include <boost\format.hpp>
 
 
-class GeneralException
+class GeneralException : public std::runtime_error
 {
 public:
-	GeneralException(const char* errmsg, int e = 0) : err(e)
-	{
-		strcpy_s(msg, errmsg);
-	}
+	GeneralException(const char* errmsg, int e = 0) 
+		: runtime_error((boost::format("%1% : %2%") % errmsg % e).str()), err(e)
+	{ }
 
-	char	msg[128];
 	int		err;
 };
 
 class SocketException : public GeneralException
 {
 public:
-	SocketException(const char* errmsg = "socket error", int e = ::WSAGetLastError());
+	SocketException(const char* errmsg = "socket error", int e = ::WSAGetLastError()) : GeneralException(errmsg, e)
+	{ }
 };
 
 // 

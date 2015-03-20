@@ -90,29 +90,36 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR lp
 
 	hRes = _Module.Init(NULL, hInstance);
 	ATLASSERT(SUCCEEDED(hRes));
-
-	CVersionControl::Run();
-
-	CSettings::LoadSettings();
-	UITranslator::LoadUILanguage();
-
-	CSocket::Init();
 	
-	CSettings::s_SSLFilter = InitSSL();
+	int nRet = 0;
+	try {
 
-	CProxy	proxy;
-	proxy.OpenProxyPort(CSettings::s_proxyPort);
+		CVersionControl::Run();
 
-	int nRet = Run(lpstrCmdLine, nCmdShow);
+		CSettings::LoadSettings();
+		UITranslator::LoadUILanguage();
 
-	proxy.CloseProxyPort();
+		CSocket::Init();
 
-	if (CSettings::s_SSLFilter)
-		TermSSL();
+		CSettings::s_SSLFilter = InitSSL();
 
-	CSocket::Term();
+		CProxy	proxy;
+		proxy.OpenProxyPort(CSettings::s_proxyPort);
 
-	CSettings::SaveSettings();
+		nRet = Run(lpstrCmdLine, nCmdShow);
+
+		proxy.CloseProxyPort();
+
+		if (CSettings::s_SSLFilter)
+			TermSSL();
+
+		CSocket::Term();
+
+		CSettings::SaveSettings();
+	}
+	catch (std::exception& e) {
+		ERROR_LOG << e.what();
+	}
 
 	FreeLibrary(hRich);
 

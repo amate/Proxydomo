@@ -29,14 +29,6 @@
 #include "Logger.h"
 
 
-////////////////////////////////////////////////////////////////
-// SocketException
-
-SocketException::SocketException(const char* errmsg /*= "socket error"*/, int e /*= ::WSAGetLastError()*/) : GeneralException(errmsg, e)
-{
-	TRACEIN("SocketException (%d) : %s", e, errmsg);
-}
-
 ////////////////////////////////////////////////////////////////////
 // IPv4Address
 
@@ -265,7 +257,7 @@ void	CSocket::Close()
 					break;
 			}
 		} catch (SocketException& e) {
-			ATLTRACE( e.msg );
+			ATLTRACE( e.what() );
 		}
 		::shutdown(m_sock, SD_RECEIVE);
 		if (::closesocket(m_sock) == SOCKET_ERROR) {

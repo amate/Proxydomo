@@ -128,7 +128,7 @@ CRequestManager::~CRequestManager(void)
 		m_psockBrowser->Close();
 		m_psockWebsite->Close();
 	} catch (SocketException& e) {
-		ATLTRACE(e.msg);
+		ATLTRACE(e.what());
 	}
 }
 
@@ -225,7 +225,7 @@ void CRequestManager::Manage()
 		}
 	}	// while
 	} catch (SocketException& e) {
-		TRACEIN("例外が発生しました！ : ポート %d 例外:%s(%d)", m_ipFromAddress.GetPortNumber(), e.msg, e.err); 
+		TRACEIN("例外が発生しました！ : ポート %d 例外:%s", m_ipFromAddress.GetPortNumber(), e.what()); 
 	} catch (...) {
 		TRACEIN("例外が発生しました！ : ポート %d", m_ipFromAddress.GetPortNumber());
 	}

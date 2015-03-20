@@ -128,6 +128,9 @@ public:
 
 		m_editTest.SetWindowText(s_strLastTest);
 
+		m_wndTest.SubclassWindow(m_editTest);
+		m_wndResult.SubclassWindow(m_editResult);
+
 		// ダイアログリサイズ初期化
 		DlgResize_Init(true, true, WS_THICKFRAME | WS_CLIPCHILDREN | WS_MAXIMIZEBOX);
 
@@ -257,7 +260,7 @@ public:
 
         std::wstringstream result;
         std::wstring text;
-        int size = 0;
+        size_t size = 0;
         int run = 0;
         int numMatch = 0;
 		auto starttime = std::chrono::high_resolution_clock::now();
@@ -370,6 +373,9 @@ private:
 	// Data members
 	CFilterDescriptor*	m_pFilter;
 	std::function<bool ()>	m_funcSaveToTempFilter;
+
+	CEditSelAllHelper	m_wndTest;
+	CEditSelAllHelper	m_wndResult;
 
 	CHorSplitterWindow	m_wndSplitter;
 	CEdit	m_editTest;

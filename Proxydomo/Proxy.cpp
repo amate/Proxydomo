@@ -81,7 +81,7 @@ void CProxy::CloseProxyPort()
 
 void CProxy::_ServerThread()
 {
-	enum { kMaxActiveRequestThread = 100 };
+	enum { kMaxActiveRequestThread = 200 };
 
 	auto funcCreateRequestManagerThread = [this](CRequestManager* manager)
 	{
@@ -94,9 +94,10 @@ void CProxy::_ServerThread()
 		m_threadPool.CreateThread([this, manager, itThis]() {
 			try {
 				manager->Manage();
+			} catch (std::exception& e) {
+				ATLTRACE(e.what());
 			}
-			catch (...) {
-			}
+
 			CCritSecLock	lock(m_csRequestManager);
 			m_requestManagerList.erase(itThis);
 		});
@@ -104,8 +105,8 @@ void CProxy::_ServerThread()
 		std::thread([this, manager, itThis]() {
 			try {
 				manager->Manage();
-			} catch (GeneralException& e) {
-				ATLTRACE(e.msg);
+			} catch (std::exception& e) {
+				ATLTRACE(e.what());
 			}
 
 			CCritSecLock	lock(m_csRequestManager);

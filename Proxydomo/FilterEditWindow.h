@@ -29,6 +29,23 @@
 #include <atlmisc.h>
 #include "resource.h"
 
+
+class CEditSelAllHelper : public CWindowImpl<CEditSelAllHelper, CEdit>
+{
+public:
+	BEGIN_MSG_MAP_EX(CFilterEditWindow)
+		MSG_WM_KEYDOWN(OnKeyDown)
+	END_MSG_MAP()
+
+	void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
+	{
+		if (nChar == 'A' && GetKeyState(VK_CONTROL) < 0) {
+			SetSelAll(TRUE);
+		}
+		SetMsgHandled(FALSE);
+	}
+};
+
 class CFilterDescriptor;
 class CFilterTestWindow;
 
@@ -67,6 +84,9 @@ public:
 		DDX_TEXT(IDC_EDIT_MATCHPATTERN		,	m_matchPattern)
 		DDX_TEXT(IDC_EDIT_REPLACEPATTERN	,	m_replacePattern)
 
+		DDX_CONTROL(IDC_EDIT_FILTERDISCRIPTION, m_wndDisciption)
+		DDX_CONTROL(IDC_EDIT_MATCHPATTERN	, m_wndMatchPattern)
+		DDX_CONTROL(IDC_EDIT_REPLACEPATTERN, m_wndReplaceText)
 	END_DDX_MAP()
 
 	BEGIN_DLGRESIZE_MAP( CFilterEditWindow )
@@ -129,6 +149,10 @@ private:
 	CFilterDescriptor*	m_pFilter;
 	CFilterDescriptor*	m_pTempFilter;
 	CFilterTestWindow*	m_pTestWindow;
+
+	CEditSelAllHelper	m_wndDisciption;
+	CEditSelAllHelper	m_wndMatchPattern;
+	CEditSelAllHelper	m_wndReplaceText;
 
 	CString	m_title;
 	CString	m_auther;
