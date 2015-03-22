@@ -419,7 +419,7 @@ void CSettings::LoadList(const CString& filePath)
 
 		std::wstring pattern;
 		std::wstring strLine;
-		int nLineCount = 1;
+		int nLineCount = 0;
 		while (std::getline(fs, strLine)) {
 			if (strLine.length() && (strLine[0] == L' ' || strLine[0] == L'\t')) {
 				CUtil::trim(strLine);

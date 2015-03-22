@@ -191,7 +191,7 @@ void CRequestManager::Manage()
 				if (bRest) {
 					_JudgeManageContinue();
 
-					::Sleep(10);
+					::Sleep(50);
 				}
 			} while (m_psockWebsite->IsConnected() && m_psockBrowser->IsConnected());
 
@@ -1184,7 +1184,8 @@ void	CRequestManager::_ProcessIn()
 						m_decompressor->reset(false, false);
 						CFilterOwner::RemoveHeader(m_filterOwner.inHeadersFiltered, "Content-Encoding");
 
-					} else if (CUtil::noCaseContains("compress", contentEncoding)) {
+					} else if (contentEncoding.length() > 0) {	// ‰ğß‚Å‚«‚È‚¢ˆ³kŒ`®
+						m_useChain = false;
 						m_filterOwner.bypassBody = true;
 					}
 				}

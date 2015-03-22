@@ -22,12 +22,14 @@ public:
 		if (m_pool == NULL)
 			throw std::runtime_error("CreateThreadpool failed");
 
+#ifndef _DEBUG
 		BOOL bRet = ::SetThreadpoolThreadMinimum(m_pool, 30);
 		if (bRet == FALSE) {
 			::CloseThreadpool(m_pool);
 			::DestroyThreadpoolEnvironment(&m_CallBackEnviron);
 			throw std::runtime_error("SetThreadpoolThreadMinimum failed");
 		}
+#endif
 
 		::SetThreadpoolCallbackPool(&m_CallBackEnviron, m_pool);
 	}
