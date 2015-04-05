@@ -6,9 +6,6 @@
 #pragma once
 
 #include <memory>
-
-typedef LONG_PTR ssize_t;
-#include <gnutls\gnutls.h>
 #include "Socket.h"
 
 bool	InitSSL();
@@ -16,6 +13,10 @@ void	TermSSL();
 
 // CAèÿñæèëÇê∂ê¨Ç∑ÇÈ
 void	GenerateCACertificate();
+
+
+struct WOLFSSL;
+struct WOLFSSL_CTX;
 
 
 class CSSLSession
@@ -38,8 +39,9 @@ public:
 	void	Close();
 
 private:
-	CSocket*		m_sock;
-	gnutls_session_t m_session;
+	CSocket*	m_sock;
+	WOLFSSL_CTX*	m_ctx;
+	WOLFSSL*		m_ssl;
 	int		m_nLastReadCount;
 	int		m_nLastWriteCount;
 };

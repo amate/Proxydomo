@@ -46,11 +46,11 @@ http://site.icu-project.org/
 ◆WTL
 http://sourceforge.net/projects/wtl/
 
-◆GnuTLS
-http://www.gnutls.org/
+◆wolfSSL
+http://www.wolfssl.com/yaSSL/Home.html
 
 □コンパイル済みdll
-zlibとGnuTLSのコンパイル済みdllを下記のURLで公開しています
+zlibのコンパイル済みdllを下記のURLで公開しています
 http://1drv.ms/1vqvcaG
 
 
@@ -75,65 +75,3 @@ b2.exe install -j 2 --prefix=lib toolset=msvc-12.0 runtime-link=static --with-th
 // x64
 b2.exe install -j 2 --prefix=lib64 toolset=msvc-12.0 runtime-link=static address-model=64 --with-thread --with-date_time
 
-
-■GnuTLS (64bit版)dllの作り方
-
-http://www.devlog.alt-area.org/?p=2802
-このサイトを参考に MinGW64 + MSYS の環境を作る
-
-※注意
-Strawberry Perlのバージョンは"Strawberry Perl 5.18.4.1"をインストールしてください
-もしくは
-C:\Strawberry\perl\bin
-フォルダにある"pkg-config"、"pkg-config.bat"ファイルをリネームしてください
-
-// x64 ==============================================================
-#gmp6.0.0a build
-./configure --build=x86_64-w64-mingw32 --enable-shared --disable-static
-make
-make install
-
-#nettle2.7.1 build
-./configure --build=x86_64-w64-mingw32 --with-lib-path=/local/lib --with-include-path=/local/include
-make
-make install
-
-#gnutls3.3.13 build
-./configure --build=x86_64-w64-mingw32 --disable-guile --disable-nls --without-zlib PKG_CONFIG_PATH=/local/lib/pkgconfig LDFLAGS=-L/local/lib --disable-cxx --disable-openssl-compatibility --disable-doc --disable-heartbeat-support --disable-rsa-export
-make
-make install
-
-// x86 =================================================================
-#gmp6.0.0a build
-./configure --build=i686-w64-mingw32 --enable-shared --disable-static
-make
-make install
-
-#nettle2.7.1 build
-./configure --build=i686-w64-mingw32 --with-lib-path=/local/lib --with-include-path=/local/include --disable-openssl --disable-documentation
-make
-make install
-
-#gnutls3.3.13 build
-./configure --build=i686-w64-mingw32 --disable-guile --disable-nls --without-zlib PKG_CONFIG_PATH=/local/lib/pkgconfig LDFLAGS=-L/local/lib --disable-cxx --disable-openssl-compatibility --disable-doc --disable-heartbeat-support --disable-rsa-export
-make
-make install
-
-// ================================================================
-msys\local
-以下に生成物ができる
-
-http://einguste.hatenablog.com/entry/2014/01/29/002601
-lib/gnutls.pc(.in)の修正が必要かもしれない
-
-
-"VS2013 x64 Native Tools コマンド プロンプト"から
-lib /def:libgnutls-28.def
-で libgnutls-28.libを作成しリンクする必要があります
-
-そのままではリンクエラーが出るので
-gnutls.hの 1470行目
-extern   gnutls_free_function gnutls_free;
-を
-__declspec(dllimport)  gnutls_free_function gnutls_free;
-に変更する必要があります

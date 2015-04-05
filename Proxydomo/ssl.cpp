@@ -12,10 +12,12 @@
 #include <memory>
 #include <chrono>
 
-#pragma comment(lib, "libgnutls-28.lib")
-#include <gnutls\x509.h>
-#include <gnutls\abstract.h>
-#include <gnutls\crypto.h>
+#include <wolfssl\ssl.h>
+#include <wolfssl\wolfcrypt\asn_public.h>
+
+#include <wincrypt.h>
+#pragma comment (lib, "crypt32.lib")
+
 #include <atlbase.h>
 #include <atlsync.h>
 #include <atlwin.h>
@@ -30,23 +32,29 @@ namespace {
 LPCSTR	kCAFileName = "ca.pem.crt";
 LPCSTR	kCAKeyFileName = "ca-key.pem";
 
-gnutls_priority_t g_server_priority_cache = NULL;
-//gnutls_dh_params_t dh_params = NULL;
+enum { kBuffSize = 1024 * 4 };
 
-gnutls_x509_crt_t g_ca_crt = NULL;
-gnutls_privkey_t g_ca_key = NULL;
+WOLFSSL_CTX*	g_sslclientCtx = nullptr;
 
-gnutls_certificate_credentials_t	g_client_cred = NULL;
-gnutls_priority_t					g_client_priority_cache = NULL;
+std::vector<byte>	g_derCA;
+RsaKey				g_caKey;
 
 std::unordered_map<std::string, bool>	g_mapHostAllowOrDeny;
 CCriticalSection						g_csmapHost;
 
-#if 0
-std::unordered_map<std::string, std::shared_ptr<gnutls_datum_t>>	g_mapHostSessionData;
-CCriticalSection	g_csmapHostSessionData;
-#endif
+struct serverCertAndKey {
+	std::vector<byte>	derCert;
+	std::vector<byte>	derkey;
 
+	serverCertAndKey() : derCert(kBuffSize), derkey(kBuffSize) {}
+};
+
+std::unordered_map<std::string, std::unique_ptr<serverCertAndKey>>	g_mapHostServerCert;
+CCriticalSection	g_csmapHostServerCert;
+
+
+////////////////////////////////////////////////////////////////////////
+// CCertificateErrorDialog
 
 class CCertificateErrorDialog : public CDialogImpl<CCertificateErrorDialog>
 {
@@ -109,115 +117,15 @@ private:
 };
 
 
-/* This function will verify the peer's certificate, and check
-* if the hostname matches, as well as the activation, expiration dates.
-*/
-int verify_certificate_callback(gnutls_session_t session)
-{
-	unsigned int status;
-	int ret;
-	gnutls_certificate_type_t type;
-	const char* hostname = nullptr;
-	size_t data_length = 512;
-	gnutls_datum_t out;
-
-	/* read hostname */
-	//unsigned int typeName = GNUTLS_NAME_DNS;
-	//gnutls_server_name_get(session, (void*)hostname, &data_length, &typeName, 0);
-	hostname = (const char*)gnutls_session_get_ptr(session);
-
-	/* This verification function uses the trusted CAs in the credentials
-	* structure. So you must have installed one or more CA certificates.
-	*/
-
-	/* The following demonstrate two different verification functions,
-	* the more flexible gnutls_certificate_verify_peers(), as well
-	* as the old gnutls_certificate_verify_peers3(). */
-#if 0
-	{
-		gnutls_typed_vdata_st data[2];
-
-		memset(data, 0, sizeof(data));
-
-		data[0].type = GNUTLS_DT_DNS_HOSTNAME;
-		data[0].data = (void*)hostname;
-
-		data[1].type = GNUTLS_DT_KEY_PURPOSE_OID;
-		data[1].data = (void*)GNUTLS_KP_TLS_WWW_SERVER;
-
-		ret = gnutls_certificate_verify_peers(session, data, 2,
-			&status);
-	}
-#else
-	ret = gnutls_certificate_verify_peers3(session, hostname, &status);
-#endif
-	if (ret < 0) {
-		//printf("Error\n");
-		return GNUTLS_E_CERTIFICATE_ERROR;
-	}
-
-	type = gnutls_certificate_type_get(session);
-	ret = gnutls_certificate_verification_status_print(status, type, &out, 0);
-	if (ret < 0) {
-		//printf("Error\n");
-		return GNUTLS_E_CERTIFICATE_ERROR;
-	}
-
-	if (status == 66) {
-		ERROR_LOG << L"certificate verify error 66 [host: " << (LPWSTR)CA2W(hostname) << L"]";
-		status = 0;
-	}
-
-	if (status != 0 && status != 66) {
-		CCritSecLock lock(g_csmapHost);
-		std::string host = hostname;
-		auto itfound = g_mapHostAllowOrDeny.find(host);
-		if (itfound != g_mapHostAllowOrDeny.end()) {
-			gnutls_free(out.data);
-
-			if (itfound->second) {
-				return 0;
-			} else {
-				return GNUTLS_E_CERTIFICATE_ERROR;
-			}
-		}
-
-		CCertificateErrorDialog crtErrorDlg(host, out.data);
-		gnutls_free(out.data);
-
-		if (crtErrorDlg.DoModal() == IDOK) {
-			return 0;
-		} else {
-			return GNUTLS_E_CERTIFICATE_ERROR;
-		}
-	}
-
-	gnutls_free(out.data);
-
-	if (status != 0)        /* Certificate is not trusted */
-		return GNUTLS_E_CERTIFICATE_ERROR;
-
-	/* notify gnutls to continue handshake normally */
-	return 0;
-}
-
 
 // ===========================================================
 
-class CGnuTLSException : public std::exception
-{
-public:
-	CGnuTLSException(const char* msg, int errorno = 0) : std::exception(msg), m_errorno(errorno) {}
 
-private:
-	int		m_errorno;
-};
-
-std::vector<BYTE>	LoadBinaryFile(const std::string& filePath)
+std::vector<byte>	LoadBinaryFile(const std::wstring& filePath)
 {
 	std::ifstream fs(filePath, std::ios::in | std::ios::binary);
 	if (!fs)
-		return std::vector<BYTE>();
+		return std::vector<byte>();
 
 	fs.seekg(0, std::ios::end);
 	auto eofPos = fs.tellg();
@@ -225,510 +133,126 @@ std::vector<BYTE>	LoadBinaryFile(const std::string& filePath)
 	fs.seekg(0, std::ios::beg);
 	size_t fileSize = (size_t)eofPos.seekpos();
 
-	std::vector<BYTE> vec(fileSize);
+	std::vector<byte> vec(fileSize);
 	fs.read((char*)vec.data(), fileSize);
 
 	return vec;
 }
 
-
-gnutls_x509_privkey_t generate_private_key()
+void	SaveBinaryFile(const std::wstring& filePath, const std::vector<byte>& data)
 {
-	gnutls_x509_privkey_t key;
-
-	//key = generate_private_key_int(cinfo);
-	int ret = 0;
-	ret = gnutls_x509_privkey_init(&key);
-	if (ret < 0) {
-		throw CGnuTLSException("gnutls_x509_privkey_init failed", ret);
-	}
-
-	unsigned int bits = gnutls_sec_param_to_pk_bits(GNUTLS_PK_RSA, GNUTLS_SEC_PARAM_NORMAL);
-
-	//fprintf(stdlog, "Generating a %d bit %s private key...\n", bits, gnutls_pk_algorithm_get_name(key_type));
-
-	ret = gnutls_x509_privkey_generate(key, GNUTLS_PK_RSA, bits, 0);
-	if (ret < 0) {
-		throw CGnuTLSException("gnutls_x509_privkey_generate failed", ret);
-	}
-
-	ret = gnutls_x509_privkey_verify_params(key);
-	if (ret < 0) {
-		throw CGnuTLSException("gnutls_x509_privkey_verify_params failed", ret);
-	}
-
-	return key;
-}
-
-/* Load the private key.
-*/
-gnutls_privkey_t load_private_key(const std::string& privateKeyPath)
-{
-	gnutls_privkey_t key;
-	auto vecBinary = LoadBinaryFile(privateKeyPath);
-
-	if (vecBinary.empty()) {
-		throw CGnuTLSException("load_private_key fileLoad failed");
-	}
-
-	gnutls_datum_t dat;
-	dat.data = (unsigned char*)vecBinary.data();
-	dat.size = vecBinary.size();
-
-	//key = _load_privkey(&dat, info);
-	int ret;
-	ret = gnutls_privkey_init(&key);
-	if (ret < 0) {
-		throw CGnuTLSException("gnutls_privkey_init failed", ret);
-	}
-
-	ret = gnutls_privkey_import_x509_raw(key, &dat, GNUTLS_X509_FMT_PEM, NULL, 0);
-	if (ret < 0) {
-		throw CGnuTLSException("gnutls_privkey_import_x509_raw failed", ret);
-	}
-
-	return key;
-}
-
-/* Loads the CA's certificate
-*/
-gnutls_x509_crt_t load_ca_cert(const std::string& caFilePath)
-{
-	gnutls_x509_crt_t crt;
-	int ret;
-	ret = gnutls_x509_crt_init(&crt);
-	if (ret < 0) {
-		throw CGnuTLSException("gnutls_x509_crt_init", ret);
-	}
-
-	auto vecBinary = LoadBinaryFile(caFilePath);
-	if (vecBinary.empty()) {
-		throw CGnuTLSException("load_ca_cert fileLoad failed");
-	}
-	gnutls_datum_t dat;
-	dat.data = (unsigned char*)vecBinary.data();
-	dat.size = vecBinary.size();
-
-	ret = gnutls_x509_crt_import(crt, &dat, GNUTLS_X509_FMT_PEM);
-	if (ret < 0) {
-		throw CGnuTLSException("gnutls_x509_crt_import failed", ret);
-	}
-	return crt;
+	std::ofstream fs(filePath, std::ios::out | std::ios::binary | std::ios::trunc);
+	fs.write((const char*)data.data(), data.size());
+	fs.close();
 }
 
 
-gnutls_pubkey_t load_public_key_or_import(gnutls_privkey_t privkey)
+int myVerify(int preverify, WOLFSSL_X509_STORE_CTX* store)
 {
-	gnutls_pubkey_t pubkey;
-	int ret;
-	ret = gnutls_pubkey_init(&pubkey);
-	if (ret < 0) {
-		throw CGnuTLSException("gnutls_pubkey_init failed", ret);
-	}
+	(void)preverify;
+	char buffer[WOLFSSL_MAX_ERROR_SZ];
 
-	ret = gnutls_pubkey_import_privkey(pubkey, privkey, 0, 0);
-	if (ret < 0) {	/* could not get (e.g. on PKCS #11 */
-		gnutls_pubkey_deinit(pubkey);
-		throw CGnuTLSException("gnutls_pubkey_import_privkey failed", ret);
-		//return load_pubkey(mand, info);
-	}
-	return pubkey;
-}
+	printf("In verification callback, error = %d, %s\n", store->error,
+		wolfSSL_ERR_error_string(store->error, buffer));
 
-void get_serial(unsigned char* serial, size_t * size)
-{
-	gnutls_rnd(GNUTLS_RND_NONCE, (void*)serial, *size);
-}
-
-struct CertificateTemplate
-{
-	std::string cn;
-	bool	ca;
-	bool	cert_signing_key;
-
-	std::string	organization;
-	bool	tls_www_server;
-	bool	encryption_key;
-	bool	signing_key;
-
-	CertificateTemplate() : 
-		ca(false), cert_signing_key(false), 
-		tls_www_server(false), encryption_key(false), signing_key(false) {}
-
-	void	InitCACertificateTemplate(const std::string& cnName)
-	{
-		cn = cnName;
-		ca = true;
-		cert_signing_key = true;
-	}
-
-	void	InitSignedCertificateTemplate(const std::string& cnName, const std::string& organizationName)
-	{
-		cn = cnName;
-		organization =  organizationName;
-		tls_www_server = true;
-		encryption_key = true;
-		signing_key = true;
-	}
-
-};
-
-
-gnutls_x509_crt_t generate_certificate(	gnutls_privkey_t* ret_key, 
-										gnutls_x509_crt_t ca_crt, 
-										gnutls_x509_privkey_t privateKey, 
-										const CertificateTemplate& cfTemplate )
-{
-	gnutls_x509_crt_t crt;
-	gnutls_privkey_t key = NULL;
-	gnutls_pubkey_t pubkey;
-	size_t size;
-	int ret;
-	int client;
-	int result, ca_status = 0, is_ike = 0, path_len;
-	time_t secs;
-	int vers;
-	unsigned int usage = 0, server;
-	gnutls_x509_crq_t crq;	/* request */
-
-	ret = gnutls_x509_crt_init(&crt);
-	if (ret < 0) {
-		throw CGnuTLSException("gnutls_x509_crt_init failed", ret);
-	}
-	// 秘密鍵を設定
-	gnutls_privkey_init(&key);
-	gnutls_privkey_import_x509(key, privateKey, GNUTLS_PRIVKEY_IMPORT_COPY);
-
-	pubkey = load_public_key_or_import(key);
+	printf("Subject's domain name is %s\n", store->domain);
 
 	{
-		//get_dn_crt_set(crt);
-
-		//get_cn_crt_set(crt);
-		ret = gnutls_x509_crt_set_dn_by_oid(crt, GNUTLS_OID_X520_COMMON_NAME, 0, cfTemplate.cn.c_str(), cfTemplate.cn.length());
-		//get_uid_crt_set(crt);
-		//get_unit_crt_set(crt);
-		//get_organization_crt_set(crt);
-		if (cfTemplate.organization.length() > 0) {
-			ret = gnutls_x509_crt_set_dn_by_oid(crt,
-				GNUTLS_OID_X520_ORGANIZATION_NAME,
-				0, cfTemplate.organization.c_str(), cfTemplate.organization.length());
-		}
-		//get_locality_crt_set(crt);
-		//get_state_crt_set(crt);
-		//get_country_crt_set(crt);
-		//get_dc_set(TYPE_CRT, crt);
-
-		//get_oid_crt_set(crt);
-		//get_key_purpose_set(TYPE_CRT, crt);
-
-		//get_pkcs9_email_crt_set(crt);
-	}
-
-	ret = gnutls_x509_crt_set_pubkey(crt, pubkey);
-	if (ret < 0) {
-		throw CGnuTLSException("gnutls_x509_crt_set_pubkey failed", ret);
-	}
-
-	{
-		size_t serial_size;
-		unsigned char serial[16];
-		serial_size = sizeof(serial);
-
-		get_serial(serial, &serial_size);
-
-		ret = gnutls_x509_crt_set_serial(crt, serial, serial_size);
-		if (ret < 0) {
-			throw CGnuTLSException("gnutls_x509_crt_set_serial failed", ret);
-		}
-	}
-
-	secs = time(NULL);// get_activation_date();
-	ret = gnutls_x509_crt_set_activation_time(crt, secs);
-	if (ret < 0) {
-		throw CGnuTLSException("gnutls_x509_crt_set_activation_time failed", ret);
-	}
-
-	secs += 365 * 24*60*60;	// 1年間有効
-	ret = gnutls_x509_crt_set_expiration_time(crt, secs);
-	if (ret < 0) {
-		throw CGnuTLSException("gnutls_x509_crt_set_expiration_time failed", ret);
-	}
-
-	/* append additional extensions */
-	{
-
-		ca_status = cfTemplate.ca;// get_ca_status();
-		if (ca_status) {
-			path_len = -1;	// default //0; // get_path_len();
-		} else {
-			path_len = -1;
-		}
-
-		ret = gnutls_x509_crt_set_basic_constraints(crt, ca_status, path_len);
-		if (ret < 0) {
-			throw CGnuTLSException("gnutls_x509_crt_set_expiration_time failed", ret);
-		}
-
-		client = false; //get_tls_client_status();
-		if (client != 0) {
-			result = gnutls_x509_crt_set_key_purpose_oid(crt,
-				GNUTLS_KP_TLS_WWW_CLIENT,
-				0);
-			if (result < 0) {
-				fprintf(stderr, "key_kp: %s\n",
-					gnutls_strerror(result));
-				exit(1);
-			}
-		}
-
-		is_ike = false;// get_ipsec_ike_status();
-		server = cfTemplate.tls_www_server; // get_tls_server_status();
-
-		//get_dns_name_set(TYPE_CRT, crt);
-		//get_uri_set(TYPE_CRT, crt);
-		//get_ip_addr_set(TYPE_CRT, crt);
-		//get_policy_set(crt);
-
-		if (server != 0) {
-			ret = gnutls_x509_crt_set_key_purpose_oid(crt, GNUTLS_KP_TLS_WWW_SERVER, 0);
-			if (ret < 0) {
-				throw CGnuTLSException("gnutls_x509_crt_set_key_purpose_oid failed", ret);
-			}
-		}
-
-		if (!ca_status || server) {
-			int pk;
-			pk = gnutls_x509_crt_get_pk_algorithm(crt, NULL);
-			if (pk == GNUTLS_PK_RSA) {	/* DSA and ECDSA keys can only sign. */
-				ret = cfTemplate.signing_key; //get_sign_status(server);
-				if (ret) {
-					usage |= GNUTLS_KEY_DIGITAL_SIGNATURE;
-				}
-
-				ret = cfTemplate.encryption_key; // get_encrypt_status(server);
-				if (ret) {
-					usage |= GNUTLS_KEY_KEY_ENCIPHERMENT;
-				}
+		CCritSecLock lock(g_csmapHost);
+		std::string host = store->domain;
+		auto itfound = g_mapHostAllowOrDeny.find(host);
+		if (itfound != g_mapHostAllowOrDeny.end()) {
+			if (itfound->second) {
+				return 1;	// allow
 			} else {
-				usage |= GNUTLS_KEY_DIGITAL_SIGNATURE;
-			}
-
-			if (is_ike) {
-				result =
-					gnutls_x509_crt_set_key_purpose_oid
-					(crt, GNUTLS_KP_IPSEC_IKE, 0);
-				if (result < 0) {
-					throw CGnuTLSException("gnutls_x509_crt_set_key_purpose_oid failed", result);
-				}
+				return 0;	// deny
 			}
 		}
 
-
-		if (ca_status) {
-			result = cfTemplate.cert_signing_key;	// get_cert_sign_status();
-			if (result)
-				usage |= GNUTLS_KEY_KEY_CERT_SIGN;
-
-			result = false;	// get_crl_sign_status();
-			if (result)
-				usage |= GNUTLS_KEY_CRL_SIGN;
-
-			result = false;	// get_code_sign_status();
-			if (result) {
-				result = gnutls_x509_crt_set_key_purpose_oid(crt, GNUTLS_KP_CODE_SIGNING, 0);
-				if (result < 0) {
-					throw CGnuTLSException("gnutls_x509_crt_set_key_purpose_oid failed", result);
-				}
-			}
-
-			//crt_constraints_set(crt);
-
-			result = false;	// get_ocsp_sign_status();
-			if (result) {
-				result = gnutls_x509_crt_set_key_purpose_oid(crt, GNUTLS_KP_OCSP_SIGNING, 0);
-				if (result < 0) {
-					throw CGnuTLSException("gnutls_x509_crt_set_key_purpose_oid failed", result);
-				}
-			}
-
-			result = false;	// get_time_stamp_status();
-			if (result) {
-				result =
-					gnutls_x509_crt_set_key_purpose_oid(crt, GNUTLS_KP_TIME_STAMPING, 0);
-				if (result < 0) {
-					throw CGnuTLSException("gnutls_x509_crt_set_key_purpose_oid failed", result);
-				}
-			}
-		}
-		//get_ocsp_issuer_set(crt);
-		//get_ca_issuers_set(crt);
-
-		if (usage != 0) {
-			/* http://tools.ietf.org/html/rfc4945#section-5.1.3.2: if any KU is
-			set, then either digitalSignature or the nonRepudiation bits in the
-			KeyUsage extension MUST for all IKE certs */
-			if (is_ike && cfTemplate.signing_key)
-				usage |= GNUTLS_KEY_NON_REPUDIATION;
-			ret = gnutls_x509_crt_set_key_usage(crt, usage);
-			if (ret < 0) {
-				throw CGnuTLSException("gnutls_x509_crt_set_key_usage failed", ret);
-			}
-		}
-
-		/* Subject Key ID.
-		*/
-		enum { lbuffer_size = 128 };
-		unsigned char lbuffer[lbuffer_size];
-		size = lbuffer_size;
-		ret = gnutls_x509_crt_get_key_id(crt, 0, lbuffer, &size);
-		if (ret >= 0) {
-			ret = gnutls_x509_crt_set_subject_key_id(crt, lbuffer, size);
-			if (ret < 0) {
-				throw CGnuTLSException("gnutls_x509_crt_set_subject_key_id failed", ret);
-			}
-		}
-
-		/* Authority Key ID.
-		*/
-		if (ca_crt != NULL) {
-			size = lbuffer_size;
-			ret = gnutls_x509_crt_get_subject_key_id(ca_crt, lbuffer, &size, NULL);
-			if (ret < 0) {
-				size = lbuffer_size;
-				ret = gnutls_x509_crt_get_key_id(ca_crt, 0, lbuffer, &size);
-			}
-			if (ret >= 0) {
-				ret = gnutls_x509_crt_set_authority_key_id(crt, lbuffer, size);
-				if (ret < 0) {
-					throw CGnuTLSException("gnutls_x509_crt_set_authority_key_id failed", ret);
-				}
-			}
+		CCertificateErrorDialog crtErrorDlg(host, buffer);
+		if (crtErrorDlg.DoModal() == IDOK) {
+			return 1;	// allow
+		} else {
+			return 0;	// deny
 		}
 	}
 
-	/* Version.
-	*/
-	vers = 3;
-	ret = gnutls_x509_crt_set_version(crt, vers);
+	//printf("Allowing to continue anyway (shouldn't do this, EVER!!!)\n");
+	return 0;
+}
+
+bool	LoadSystemTrustCA(WOLFSSL_CTX* ctx)
+{
+	auto funcAddCA = [ctx](HCERTSTORE store) -> bool {
+		if (store == NULL)
+			return false;
+
+		PCCERT_CONTEXT crtcontext = CertEnumCertificatesInStore(store, NULL);
+		while (crtcontext) {
+			if (crtcontext->dwCertEncodingType == X509_ASN_ENCODING) {
+				int ret = wolfSSL_CTX_load_verify_buffer(ctx, crtcontext->pbCertEncoded, crtcontext->cbCertEncoded, SSL_FILETYPE_ASN1);
+				if (ret != SSL_SUCCESS) {
+					ATLTRACE("wolfSSL_CTX_load_verify_buffer failed\n");
+				}
+			}
+			crtcontext = CertEnumCertificatesInStore(store, crtcontext);
+		}
+		return true;
+	};
+
+	if (funcAddCA(CertOpenSystemStoreW(0, L"ROOT")) == false)
+		return false;
+	if (funcAddCA(CertOpenSystemStoreW(0, L"CA")) == false)
+		return false;
+
+	return true;
+}
+
+
+std::unique_ptr<serverCertAndKey>	CreateServerCert(const std::string& host)
+{
+	auto certAndKey = std::make_unique<serverCertAndKey>();
+
+	int ret = 0;
+
+	Cert serverCert = {};
+	wc_InitCert(&serverCert);
+	::strcpy_s(serverCert.subject.org, "Proxydomo TLS Server");
+	::strcpy_s(serverCert.subject.commonName, host.c_str());
+
+	ret = wc_SetIssuerBuffer(&serverCert, g_derCA.data(), (int)g_derCA.size());
+	ATLASSERT(ret == 0);
+
+	RsaKey	key;
+	wc_InitRsaKey(&key, 0);
+	RNG    rng;
+	wc_InitRng(&rng);
+	wc_MakeRsaKey(&key, 1024, 65537, &rng);
+
+	ret = wc_RsaKeyToDer(&key, certAndKey->derkey.data(), kBuffSize);
 	if (ret < 0) {
-		throw CGnuTLSException("gnutls_x509_crt_set_authority_key_id failed", ret);
+		wc_FreeRng(&rng);
+		wc_FreeRsaKey(&key);
+		throw std::runtime_error("wc_RsaKeyToDer failed");
+	}
+	certAndKey->derkey.resize(ret);
+
+	ret = wc_MakeCert(&serverCert, certAndKey->derCert.data(), kBuffSize, &key, nullptr, &rng);
+	if (ret < 0) {
+		wc_FreeRng(&rng);
+		wc_FreeRsaKey(&key);
+		throw std::runtime_error("wc_MakeCert failed");
 	}
 
-	*ret_key = key;
-	return crt;
-
-}
-
-gnutls_digest_algorithm_t get_dig_for_pub(gnutls_pubkey_t pubkey)
-{
-	gnutls_digest_algorithm_t dig;
-	int result;
-	unsigned int mand;
-
-	result = gnutls_pubkey_get_preferred_hash_algorithm(pubkey, &dig, &mand);
-	if (result < 0) {
-		throw CGnuTLSException("gnutls_pubkey_get_preferred_hash_algorithm failed", result);
+	ret = wc_SignCert(serverCert.bodySz, serverCert.sigType, certAndKey->derCert.data(), kBuffSize, &g_caKey, NULL, &rng);
+	if (ret < 0) {
+		wc_FreeRng(&rng);
+		wc_FreeRsaKey(&key);
+		throw std::runtime_error("wc_SignCert failed");
 	}
+	certAndKey->derCert.resize(ret);
 
-	/* if algorithm allows alternatives */
-	//if (mand == 0 && default_dig != GNUTLS_DIG_UNKNOWN)
-	//	dig = default_dig;
-
-	return dig;
-}
-
-gnutls_digest_algorithm_t get_dig(gnutls_x509_crt_t crt)
-{
-	gnutls_digest_algorithm_t dig;
-	gnutls_pubkey_t pubkey;
-	int result;
-
-	gnutls_pubkey_init(&pubkey);
-
-	result = gnutls_pubkey_import_x509(pubkey, crt, 0);
-	if (result < 0) {
-		throw CGnuTLSException("gnutls_pubkey_import_x509 failed", result);
-	}
-
-	dig = get_dig_for_pub(pubkey);
-
-	gnutls_pubkey_deinit(pubkey);
-
-	return dig;
-}
-
-
-// サーバー証明書を作成する
-gnutls_x509_crt_t generate_signed_certificate(gnutls_x509_privkey_t* serverKey, const std::string& host)
-{
-	gnutls_x509_crt_t crt;
-	gnutls_privkey_t key;
-	size_t size;
-	int result;
-	gnutls_privkey_t ca_key = g_ca_key;
-	gnutls_x509_crt_t ca_crt = g_ca_crt;
-
-	//fprintf(stdlog, "Generating a signed certificate...\n");
-
-	gnutls_x509_privkey_t x509serverKey = generate_private_key();	// server-key
-	*serverKey = x509serverKey;
-	CertificateTemplate cfTemplate;
-	cfTemplate.InitSignedCertificateTemplate(host, "Proxydomo TLS Server");
-	crt = generate_certificate(&key, ca_crt, x509serverKey, cfTemplate);
-
-	/* Copy the CRL distribution points.
-	*/
-	gnutls_x509_crt_cpy_crl_dist_points(crt, ca_crt);
-	/* it doesn't matter if we couldn't copy the CRL dist points.
-	*/
-
-	//print_certificate_info(crt, stdlog, 0);
-
-	//fprintf(stdlog, "\n\nSigning certificate...\n");
-
-	result = gnutls_x509_crt_privkey_sign(crt, ca_crt, ca_key, get_dig(ca_crt), 0);
-	if (result < 0) {
-		throw CGnuTLSException("gnutls_x509_crt_privkey_sign failed", result);
-	}
-#if 0
-	size = lbuffer_size;
-	result =
-		gnutls_x509_crt_export(crt, outcert_format, lbuffer, &size);
-	if (result < 0) {
-		fprintf(stderr, "crt_export: %s\n", gnutls_strerror(result));
-		exit(1);
-	}
-
-	fwrite(lbuffer, 1, size, outfile);
-#endif
-	gnutls_privkey_deinit(key);
-
-	return crt;
-}
-
-// CA証明書を作る
-gnutls_x509_crt_t generate_self_signed(gnutls_x509_privkey_t privateKey)
-{
-	gnutls_x509_crt_t crt;
-	gnutls_privkey_t key;
-	size_t size;
-	int result;
-
-	//fprintf(stdlog, "Generating a self signed certificate...\n");
-
-	CertificateTemplate cfTemplate;
-	cfTemplate.InitCACertificateTemplate("Proxydomo CA");
-	crt = generate_certificate(&key, NULL, privateKey, cfTemplate);
-
-	//fprintf(stdlog, "\n\nSigning certificate...\n");
-
-	result = gnutls_x509_crt_privkey_sign(crt, crt, key, get_dig(crt), 0);
-	if (result < 0) {
-		throw CGnuTLSException("gnutls_x509_crt_privkey_sign failed", result);
-	}
-	gnutls_privkey_deinit(key);
-	return crt;
+	return certAndKey;
 }
 
 
@@ -737,11 +261,6 @@ gnutls_x509_crt_t generate_self_signed(gnutls_x509_privkey_t privateKey)
 
 bool	InitSSL()
 {
-	int ret = gnutls_global_init();
-	ATLVERIFY(ret == GNUTLS_E_SUCCESS);
-	if (ret != GNUTLS_E_SUCCESS)
-		return false;
-
 	CString x509_cafile = Misc::GetExeDirectory() + kCAFileName;
 	CString x509_caKeyfile = Misc::GetExeDirectory() + kCAKeyFileName;
 	if (::PathFileExists(x509_cafile) == FALSE || ::PathFileExists(x509_caKeyfile) == FALSE) {
@@ -749,112 +268,136 @@ bool	InitSSL()
 		return false;
 	}
 
-	// server init
-	{
-		try {
-			g_ca_key = load_private_key((LPSTR)CT2A(x509_caKeyfile));
-			g_ca_crt = load_ca_cert((LPSTR)CT2A(x509_cafile));
-		} catch (CGnuTLSException& e) {
-			ERROR_LOG << L"証明書の読み込みに失敗。: " << (LPWSTR)CA2W(e.what());
+	int ret = wolfSSL_Init();
+	if (ret != SSL_SUCCESS) {
+		ERROR_LOG << L"wolfSSL_Init failed";
+		return false;
+	}
+
+	try {
+
+		{	// server init
+			auto pemCA = LoadBinaryFile((LPCWSTR)x509_cafile);
+			auto pemCAkey = LoadBinaryFile((LPCWSTR)x509_caKeyfile);
+
+			g_derCA.resize(kBuffSize);
+			ret = wolfSSL_CertPemToDer(pemCA.data(), (int)pemCA.size(), g_derCA.data(), kBuffSize, CA_TYPE);
+			if (ret < 0)
+				throw std::runtime_error("wolfSSL_CertPemToDer failed");
+			g_derCA.resize(ret);
+
+			std::vector<byte> derCAkey(kBuffSize);
+			ret = wolfSSL_KeyPemToDer(pemCAkey.data(), (int)pemCAkey.size(), derCAkey.data(), kBuffSize, nullptr);
+			if (ret < 0)
+				throw std::runtime_error("wolfSSL_KeyPemToDer failed");
+			derCAkey.resize(ret);
+
+			wc_InitRsaKey(&g_caKey, 0);
+			word32 idx = 0;
+			ret = wc_RsaPrivateKeyDecode(derCAkey.data(), &idx, &g_caKey, (word32)derCAkey.size());
+			ATLASSERT(ret == 0);
+			if (ret != 0) {
+				wc_FreeRsaKey(&g_caKey);
+				throw std::runtime_error("wc_RsaPrivateKeyDecode failed");
+			}
 		}
 
-		// generate_dh_params(void)
-		//unsigned int bits = gnutls_sec_param_to_pk_bits(GNUTLS_PK_DH, GNUTLS_SEC_PARAM_LEGACY);
+		{	// client init
+			WOLFSSL_METHOD* method = wolfSSLv23_client_method();
+			if (method == nullptr) {
+				throw std::runtime_error("wolfSSLv23_client_method failed");
+			}
+			g_sslclientCtx = wolfSSL_CTX_new(method);
+			if (g_sslclientCtx == nullptr) {
+				throw std::runtime_error("wolfSSL_CTX_new failed");
+			}
 
-		/* Generate Diffie-Hellman parameters - for use with DHE
-		* kx algorithms. When short bit length is used, it might
-		* be wise to regenerate parameters often.
-		*/
-		//gnutls_dh_params_t dh_params = NULL;
-		//gnutls_dh_params_init(&dh_params);
-		//gnutls_dh_params_generate2(dh_params, bits);
+			wolfSSL_CTX_set_verify(g_sslclientCtx, SSL_VERIFY_PEER, myVerify);
 
-		// 暗号の優先度を設定
-		ret = gnutls_priority_init(&g_server_priority_cache, 
-			"PERFORMANCE:%SERVER_PRECEDENCE:-VERS-SSL3.0", NULL);
-		ATLASSERT(ret == GNUTLS_E_SUCCESS);
-	}
+			if (LoadSystemTrustCA(g_sslclientCtx) == false) {
+				throw std::runtime_error("LoadSystemTrustCA failed");
+			}
 
-	// client init
-	{
-		ret = gnutls_certificate_allocate_credentials(&g_client_cred);
-		ATLASSERT(ret == GNUTLS_E_SUCCESS);
+			ret = wolfSSL_CTX_UseSessionTicket(g_sslclientCtx);
+			ATLASSERT(ret == SSL_SUCCESS);
+		}
+		return true;
 
-		// OSから証明書読み込み
-		ret = gnutls_certificate_set_x509_system_trust(g_client_cred);
-		ATLASSERT(ret > 0);
+	} catch (std::exception& e) {
+		if (g_sslclientCtx) {
+			wolfSSL_CTX_free(g_sslclientCtx);
+			g_sslclientCtx = nullptr;
+		}
+		wolfSSL_Cleanup();
 
-		gnutls_certificate_set_verify_function(g_client_cred, verify_certificate_callback);
-
-		// 暗号の優先度を設定 : SSL3.0を無効化
-		ret = gnutls_priority_init(&g_client_priority_cache, 
-			"NORMAL:%LATEST_RECORD_VERSION:-VERS-SSL3.0", NULL);
-		ATLASSERT(ret == GNUTLS_E_SUCCESS);
-	}
-	return true;
+		ERROR_LOG << L"InitSSL failed : " << (LPWSTR)CA2W(e.what());
+		return false;
+	}	
 }
 
 void	TermSSL()
 {
-	gnutls_priority_deinit(g_server_priority_cache);
-	g_server_priority_cache = NULL;
-
-	gnutls_x509_crt_deinit(g_ca_crt);
-	g_ca_crt = NULL;
-	gnutls_privkey_deinit(g_ca_key);
-	g_ca_key = NULL;
-
-	gnutls_certificate_free_credentials(g_client_cred);
-	g_client_cred = NULL;
-
-	gnutls_priority_deinit(g_client_priority_cache);
-	g_client_priority_cache = NULL;
-
-	gnutls_global_deinit();
+	if (g_sslclientCtx) {
+		wolfSSL_CTX_free(g_sslclientCtx);
+		g_sslclientCtx = nullptr;
+	}
+	wolfSSL_Cleanup();
 }
 
 
 // CA証明書を生成する
 void	GenerateCACertificate()
 {
-	gnutls_x509_privkey_t privateKey = generate_private_key();
-	gnutls_x509_crt_t cacrt = generate_self_signed(privateKey);
+	Cert caCert = {};
+	wc_InitCert(&caCert);
+	::strcpy_s(caCert.subject.commonName, "Proxydomo CA");
+	caCert.daysValid = 365;
+	caCert.isCA = 1;
 
-	enum { kBuffSize = 12 * 1024 };
-	std::unique_ptr<char[]>	buff(new char[kBuffSize]);
-	size_t size = kBuffSize;
-	int result = gnutls_x509_crt_export(cacrt, GNUTLS_X509_FMT_PEM, (void*)buff.get(), &size);
-	if (result < 0) {
-		throw CGnuTLSException("gnutls_x509_crt_export failed", result);
+	RsaKey	cakey;
+	wc_InitRsaKey(&cakey, 0);
+	RNG    rng;
+	wc_InitRng(&rng);
+	wc_MakeRsaKey(&cakey, 1024, 65537, &rng);
+
+	std::vector<byte> derCA(kBuffSize);
+	int ret = wc_MakeSelfCert(&caCert, derCA.data(), kBuffSize, &cakey, &rng);
+	if (ret < 0) {
+		wc_FreeRng(&rng);
+		wc_FreeRsaKey(&cakey);
+		throw std::runtime_error("wc_MakeSelfCert failed");
 	}
+	derCA.resize(ret);
 
-	{
-		std::string caFilePath = CT2A(Misc::GetExeDirectory());
-		caFilePath += kCAFileName;
-		std::ofstream cafs(caFilePath, std::ios::out | std::ios::binary);
-		if (!cafs)
-			throw std::exception("cafs file open error");
-
-		cafs.write(buff.get(), size);
-		cafs.close();
+	std::vector<byte> pemCA(kBuffSize);
+	ret = wc_DerToPem(derCA.data(), (word32)derCA.size(), pemCA.data(), kBuffSize, CERT_TYPE);
+	if (ret < 0) {
+		wc_FreeRng(&rng);
+		wc_FreeRsaKey(&cakey);
+		throw std::runtime_error("wc_DerToPem failed");
 	}
+	pemCA.resize(ret);
 
-	size = kBuffSize;
-	result = gnutls_x509_privkey_export(privateKey, GNUTLS_X509_FMT_PEM, (void*)buff.get(), &size);
-	if (result < 0) {
-		throw CGnuTLSException("gnutls_x509_privkey_export failed", result);
+	std::vector<byte> derkey(kBuffSize);
+	ret = wc_RsaKeyToDer(&cakey, derkey.data(), kBuffSize);
+	if (ret < 0) {
+		wc_FreeRng(&rng);
+		wc_FreeRsaKey(&cakey);
+		throw std::runtime_error("wc_RsaKeyToDer failed");
 	}
+	derkey.resize(ret);
 
-	{
-		std::string caKeyFilePath = CT2A(Misc::GetExeDirectory());
-		caKeyFilePath += kCAKeyFileName;
-		std::ofstream cakeyfs(caKeyFilePath, std::ios::out | std::ios::binary);
-		if (!cakeyfs)
-			throw std::exception("cakeyfs file open error");
-
-		cakeyfs.write(buff.get(), size);
-		cakeyfs.close();
+	std::vector<byte> pemkey(kBuffSize);
+	ret = wc_DerToPem(derkey.data(), (word32)derkey.size(), pemkey.data(), kBuffSize, PRIVATEKEY_TYPE);
+	if (ret < 0) {
+		wc_FreeRng(&rng);
+		wc_FreeRsaKey(&cakey);
+		throw std::runtime_error("wc_DerToPem failed");
 	}
+	pemkey.resize(ret);
+
+	SaveBinaryFile(static_cast<LPCWSTR>(Misc::GetExeDirectory() + kCAFileName), pemCA);
+	SaveBinaryFile(static_cast<LPCWSTR>(Misc::GetExeDirectory() + kCAKeyFileName), pemkey);
 }
 
 
@@ -862,7 +405,7 @@ void	GenerateCACertificate()
 // CSSLSession
 
 CSSLSession::CSSLSession() : 
-	m_sock(nullptr), m_session(NULL),
+	m_sock(nullptr), m_ctx(nullptr), m_ssl(nullptr),
 	m_nLastReadCount(0), m_nLastWriteCount(0)
 {
 }
@@ -878,80 +421,36 @@ std::unique_ptr<CSSLSession>	CSSLSession::InitClientSession(CSocket* sock, const
 	auto session = std::make_unique<CSSLSession>();
 	int ret = 0;
 
-	ret = gnutls_init(&session->m_session, GNUTLS_CLIENT);
+	session->m_ssl = wolfSSL_new(g_sslclientCtx);
+	if (session->m_ssl == nullptr)
+		throw std::runtime_error("wolfSSL_new failed");
 
-	gnutls_session_set_ptr(session->m_session, (void *)host.c_str());
+	wolfSSL_set_fd(session->m_ssl, (int)sock->GetSocket());
 
-	ret = gnutls_server_name_set(session->m_session, GNUTLS_NAME_DNS, (const void*)host.c_str(), host.length());
+	ret = wolfSSL_UseSNI(session->m_ssl, WOLFSSL_SNI_HOST_NAME, (const void*)host.c_str(), (unsigned short)host.length());
+	ATLASSERT(ret == SSL_SUCCESS);
 
-	ret = gnutls_priority_set(session->m_session, g_client_priority_cache);
-	ATLASSERT(ret == GNUTLS_E_SUCCESS);
+	ret = wolfSSL_UseSecureRenegotiation(session->m_ssl);
+	ATLASSERT(ret == SSL_SUCCESS);
 
-	/* put the x509 credentials to the current session
-	*/
-	ret = gnutls_credentials_set(session->m_session, GNUTLS_CRD_CERTIFICATE, g_client_cred);
-	ATLASSERT(ret == GNUTLS_E_SUCCESS);
+	ret = wolfSSL_check_domain_name(session->m_ssl, host.c_str());
+	ATLASSERT(ret == SSL_SUCCESS);
 
-	sock->SetBlocking(false);
-	gnutls_transport_set_int(session->m_session, sock->GetSocket());
-	gnutls_handshake_set_timeout(session->m_session, GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT);
+	ret = wolfSSL_connect(session->m_ssl);
+	if (ret != SSL_SUCCESS) {
+		int err = wolfSSL_get_error(session->m_ssl, 0);
+		char buffer[WOLFSSL_MAX_ERROR_SZ];
+		ATLTRACE("error = %d, %s\n", err, wolfSSL_ERR_error_string(err, buffer));
 
-#if 0
-	std::shared_ptr<gnutls_datum_t>	psessionCache;
-	{
-		CCritSecLock lock(g_csmapHostSessionData);
-		auto itfound = g_mapHostSessionData.find(host);
-		if (itfound != g_mapHostSessionData.end()) {
-			psessionCache = itfound->second;
-			//ret = gnutls_session_set_data(session->m_session, psessionCache->data, psessionCache->size);
-		}
-	}
-#endif
-
-	// Perform the TLS handshake
-	do {
-		ret = gnutls_handshake(session->m_session);
-	} while (ret < 0 && gnutls_error_is_fatal(ret) == 0);
-
-	if (ret < 0) {
-		//fprintf(stderr, "*** Handshake failed\n");
-		gnutls_deinit(session->m_session);
-		session->m_session = NULL;
-		CString error = gnutls_strerror(ret);
-		//gnutls_perror(ret);
-		//goto end;
+		wolfSSL_free(session->m_ssl);
+		session->m_ssl = nullptr;
 		return nullptr;
-	} else {
-#if 0
-		/* get the session data size */
-		std::shared_ptr<gnutls_datum_t>	psessionData(new gnutls_datum_t, 
-			[](gnutls_datum_t* data) {
-			gnutls_free((void*)data->data);
-			delete data;
-		});
-		ret = gnutls_session_get_data2(session->m_session, psessionData.get());
-		ATLASSERT(ret == GNUTLS_E_SUCCESS);
-
-		{
-#if 0
-			if (psessionCache) {
-				if (gnutls_session_is_resumed(session->m_session)) {
-					ATLTRACE(_T("session resumed: %s\n"), (LPWSTR)CA2W(host.c_str()));
-				}
-			}
-#endif
-			CCritSecLock lock(g_csmapHostSessionData);
-			g_mapHostSessionData[host] = psessionData;
-		}
-#endif
-
-		char *desc;
-		desc = gnutls_session_get_desc(session->m_session);
-		//printf("- Session info: %s\n", desc);
-		gnutls_free(desc);
 	}
+
+	wolfSSL_set_using_nonblock(session->m_ssl, 1);
+	sock->SetBlocking(false);
+
 	session->m_sock = sock;
-	//session->m_sock->SetBlocking(false);
 	return session;
 }
 
@@ -960,117 +459,120 @@ std::unique_ptr<CSSLSession> CSSLSession::InitServerSession(CSocket* sock, const
 	auto session = std::make_unique<CSSLSession>();
 	int ret = 0;
 
-	gnutls_certificate_credentials_t server_cred;
-
-	static std::unordered_map<std::string, gnutls_certificate_credentials_t>	s_mapHostServerCred;
-	static CCriticalSection	s_cs;
+	serverCertAndKey* certAndKey = nullptr;
 	{
-		CCritSecLock lock(s_cs);
-		auto itfound = s_mapHostServerCred.find(host);
-		if (itfound != s_mapHostServerCred.end()) {
-			server_cred = itfound->second;
-
+		CCritSecLock lock(g_csmapHostServerCert);
+		auto itfound = g_mapHostServerCert.find(host);
+		if (itfound != g_mapHostServerCert.end()) {
+			certAndKey = itfound->second.get();
 		} else {
-			ATLVERIFY(gnutls_certificate_allocate_credentials(&server_cred) == GNUTLS_E_SUCCESS);
-
-			// サーバー証明書生成/登録
-			gnutls_x509_privkey_t x509serverKey;
-			gnutls_x509_crt_t crt = generate_signed_certificate(&x509serverKey, host);
-			ret = gnutls_certificate_set_x509_key(server_cred, &crt, 1, x509serverKey);
-			gnutls_x509_privkey_deinit(x509serverKey);
-			//ATLASSERT(ret == GNUTLS_E_SUCCESS);
-
-			//gnutls_certificate_set_dh_params(server_cred, dh_params);
-			s_mapHostServerCred[host] = server_cred;
+			auto serverCertAndKey = CreateServerCert(host);
+			certAndKey = serverCertAndKey.get();
+			g_mapHostServerCert[host] = std::move(serverCertAndKey);
 		}
+
 	}
 
-	// 暗号の優先度を設定
-	gnutls_init(&session->m_session, GNUTLS_SERVER);
-	gnutls_priority_set(session->m_session, g_server_priority_cache);
-	gnutls_credentials_set(session->m_session, GNUTLS_CRD_CERTIFICATE, server_cred);
+	WOLFSSL_METHOD* method = wolfTLSv1_2_server_method();
+	if (method == nullptr) {
+		throw std::runtime_error("wolfTLSv1_2_server_method failed");
+	}
+	session->m_ctx = wolfSSL_CTX_new(method);
+	if (session->m_ctx == nullptr) {
+		throw std::runtime_error("wolfSSL_CTX_new failed");
+	}
+#if 0
+	wolfSSL_CTX_set_verify(g_sslserverCtx, SSL_VERIFY_PEER, 0);
+	ret = wolfSSL_CTX_load_verify_locations(g_sslserverCtx, (LPSTR)CT2A(x509_cafile), 0);
+	if (ret != SSL_SUCCESS) {
+		throw std::runtime_error("wolfSSL_CTX_load_verify_locations failed");
+	}
+#endif
 
-	/* We don't request any certificate from the client.
-	* If we did we would need to verify it. One way of
-	* doing that is shown in the "Verifying a certificate"
-	* example.
-	*/
-	gnutls_certificate_server_set_request(session->m_session, GNUTLS_CERT_IGNORE);
+	ret = wolfSSL_CTX_use_certificate_buffer(session->m_ctx, certAndKey->derCert.data(), (long)certAndKey->derCert.size(), SSL_FILETYPE_ASN1);
+	ATLASSERT(ret == SSL_SUCCESS);
 
-	sock->SetBlocking(false);
-	gnutls_transport_set_int(session->m_session, sock->GetSocket());
+	ret = wolfSSL_CTX_use_PrivateKey_buffer(session->m_ctx, certAndKey->derkey.data(), (long)certAndKey->derkey.size(), SSL_FILETYPE_ASN1);
+	ATLASSERT(ret == SSL_SUCCESS);
 
-	do {
-		ret = gnutls_handshake(session->m_session);
-	} while (ret < 0 && gnutls_error_is_fatal(ret) == 0);
+	session->m_ssl = wolfSSL_new(session->m_ctx);
+	if (session->m_ssl == nullptr)
+		throw std::runtime_error("wolfSSL_new failed");
 
-	if (ret < 0) {
-		gnutls_deinit(session->m_session);
-		session->m_session = NULL;
-		CString error = gnutls_strerror(ret);
+	wolfSSL_set_fd(session->m_ssl, (int)sock->GetSocket());
+
+	ret = wolfSSL_accept(session->m_ssl);
+	if (ret != SSL_SUCCESS) {
+		int err = wolfSSL_get_error(session->m_ssl, 0);
+		char buffer[WOLFSSL_MAX_ERROR_SZ];
+		ATLTRACE("error = %d, %s\n", err, wolfSSL_ERR_error_string(err, buffer));
+
+		wolfSSL_free(session->m_ssl);
+		session->m_ssl = nullptr;
+		wolfSSL_CTX_free(session->m_ctx);
+		session->m_ctx = nullptr;
 		return nullptr;
-
 	}
+
+	wolfSSL_set_using_nonblock(session->m_ssl, 1);
+	sock->SetBlocking(false);
 
 	session->m_sock = sock;
-	//session->m_sock->SetBlocking(false);
 	return session;
 }
 
 
 bool	CSSLSession::Read(char* buffer, int length)
 {
-	if (m_session == NULL)
+	if (m_ssl == nullptr)
 		return false;
 
 	m_nLastReadCount = 0;
-	ssize_t ret = gnutls_record_recv(m_session, buffer, length);
+	int ret = wolfSSL_read(m_ssl, (void*)buffer, length);
 	if (ret == 0) {
-		//printf("\n- Peer has closed the GnuTLS connection\n");
 		Close();
 		return true;
-
-	} else if (ret < 0 && gnutls_error_is_fatal(ret) == 0) {
-		//fprintf(stderr, "*** Warning: %s\n", gnutls_strerror(ret));
-		return false;
-
-	} else if (ret < 0) {
-		//fprintf(stderr, "\n*** Received corrupted "
-		//	"data(%d). Closing the connection.\n\n", ret);
-		Close();
-		return false;
 
 	} else {
-		ATLASSERT(ret > 0);
-		m_nLastReadCount = (int)ret;
-		return true;
+		int error = wolfSSL_get_error(m_ssl, 0);
+		if (ret == SSL_FATAL_ERROR && error == SSL_ERROR_WANT_READ) {
+			return false;	// pending
+		}
+		if (ret < 0) {
+			Close();
+			return false;
+
+		} else {
+			m_nLastReadCount = ret;
+			return true;
+		}
 	}
 }
 
 bool	CSSLSession::Write(const char* buffer, int length)
 {
-	if (m_session == NULL)
+	if (m_ssl == nullptr)
 		return false;
 
 	m_nLastWriteCount = 0;
-	ssize_t ret = 0;
+	int ret = 0;
+	int error = 0;
 	for (;;) {
-		ret = gnutls_record_send(m_session, buffer, length);
-		if (ret == GNUTLS_E_AGAIN || ret == GNUTLS_E_INTERRUPTED) {
-			::Sleep(10);
+		ret = wolfSSL_write(m_ssl, (const void*)buffer, length);
+		error = wolfSSL_get_error(m_ssl, 0);
+		if (ret == SSL_FATAL_ERROR && error == SSL_ERROR_WANT_WRITE) {
+			::Sleep(50);
 		} else {
 			break;
 		}
-	};
+	}
 
-	if (ret < 0 && gnutls_error_is_fatal(ret) == 0) {
-		//fprintf(stderr, "*** Warning: %s\n", gnutls_strerror(ret));
-		return false;
-	} else if (ret < 0) {
+	if (ret != length) {
 		Close();
 		return false;
+
 	} else {
-		m_nLastWriteCount = (int)ret;
+		m_nLastWriteCount = ret;
 		return true;
 	}
 }
@@ -1078,20 +580,24 @@ bool	CSSLSession::Write(const char* buffer, int length)
 
 void	CSSLSession::Close()
 {
-	if (m_session == NULL || m_sock == nullptr)
+	if (m_ssl == nullptr || m_sock == nullptr)
 		return;
 
-	int ret = gnutls_bye(m_session, GNUTLS_SHUT_RDWR);
-
+	int ret = wolfSSL_shutdown(m_ssl);
 	try {
 		m_sock->Close();
-	} catch (SocketException& e) {
+	}
+	catch (SocketException& e) {
 		e;
 	}
 	m_sock = nullptr;
 
-	gnutls_deinit(m_session);
-	m_session = NULL;
+	wolfSSL_free(m_ssl);
+	m_ssl = nullptr;
+	if (m_ctx) {
+		wolfSSL_CTX_free(m_ctx);
+		m_ctx = nullptr;
+	}
 }
 
 

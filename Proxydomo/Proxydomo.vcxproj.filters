@@ -159,9 +159,6 @@
     <ClCompile Include="Logger.cpp">
       <Filter>Header Files</Filter>
     </ClCompile>
-    <ClCompile Include="ssl.cpp">
-      <Filter>Header Files</Filter>
-    </ClCompile>
     <ClCompile Include="DebugWindow.cpp">
       <Filter>Header Files\Window</Filter>
     </ClCompile>
@@ -181,6 +178,9 @@
       <Filter>Header Files</Filter>
     </ClCompile>
     <ClCompile Include="UITranslator.cpp">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ssl.cpp">
       <Filter>Header Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -353,9 +353,6 @@
     <ClInclude Include="Logger.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ssl.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="AboutDlg.h">
       <Filter>Header Files\Window</Filter>
     </ClInclude>
@@ -389,6 +386,9 @@
     <ClInclude Include="format.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ssl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Proxydomo.rc">
@@ -414,5 +414,9 @@
     <Image Include="res\WebFilter.ico">
       <Filter>Resource Files</Filter>
     </Image>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\wolfssl\wolfssl.vcproj" />
+    <None Include="..\..\wolfssl\wolfssl.vcxproj" />
   </ItemGroup>
 </Project>

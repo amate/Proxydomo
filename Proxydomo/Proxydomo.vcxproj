@@ -66,29 +66,29 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <LibraryPath>D:\Program\Proxydomo\GnuTLS\x86\lib;$(SolutionDir)icu\Win32\lib;$(SolutionDir)zlib\x86\lib;D:\Program\boost_1_56_0\lib\lib;$(LibraryPath)</LibraryPath>
-    <IncludePath>D:\Program\Proxydomo\GnuTLS\x86\include;$(SolutionDir)icu\Win32\include;$(SolutionDir)zlib\x86\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)icu\Win32\lib;$(SolutionDir)zlib\x86\lib;D:\Program\boost_1_56_0\lib\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>D:\Program\wolfssl;$(SolutionDir)icu\Win32\include;$(SolutionDir)zlib\x86\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>D:\Program\Proxydomo\GnuTLS\x64\include;$(SolutionDir)icu\Win64\include;D:\Program\WTL81_12085\Include;$(SolutionDir)zlib\x64\include;$(IncludePath)</IncludePath>
+    <IncludePath>D:\Program\wolfssl;$(SolutionDir)icu\Win64\include;D:\Program\WTL81_12085\Include;$(SolutionDir)zlib\x64\include;$(IncludePath)</IncludePath>
     <OutDir>$(SolutionDir)$(Configuration)$(Platform)\</OutDir>
     <IntDir>$(Configuration)$(Platform)\</IntDir>
     <TargetName>$(ProjectName)64</TargetName>
-    <LibraryPath>D:\Program\Proxydomo\GnuTLS\x64\lib;$(SolutionDir)icu\Win64\lib64;$(SolutionDir)zlib\x64\lib;$(VCInstallDir)lib\amd64;$(VCInstallDir)atlmfc\lib\amd64;$(WindowsSDK_LibraryPath_x64);$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(SolutionDir)icu\Win64\lib64;$(SolutionDir)zlib\x64\lib;$(VCInstallDir)lib\amd64;$(VCInstallDir)atlmfc\lib\amd64;$(WindowsSDK_LibraryPath_x64);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <LibraryPath>D:\Program\Proxydomo\GnuTLS\x86\lib;$(SolutionDir)icu\Win32\lib;$(SolutionDir)zlib\x86\lib;D:\Program\boost_1_56_0\lib\lib;$(LibraryPath)</LibraryPath>
-    <IncludePath>D:\Program\Proxydomo\GnuTLS\x86\include;$(SolutionDir)icu\Win32\include;$(SolutionDir)zlib\x86\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)icu\Win32\lib;$(SolutionDir)zlib\x86\lib;D:\Program\boost_1_56_0\lib\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>D:\Program\wolfssl;$(SolutionDir)icu\Win32\include;$(SolutionDir)zlib\x86\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)$(Configuration)$(Platform)\</OutDir>
     <IntDir>$(Configuration)$(Platform)\</IntDir>
     <TargetName>$(ProjectName)64</TargetName>
-    <LibraryPath>D:\Program\Proxydomo\GnuTLS\x64\lib;$(SolutionDir)icu\Win64\lib64;$(SolutionDir)zlib\x64\lib;$(VCInstallDir)lib\amd64;$(VCInstallDir)atlmfc\lib\amd64;$(WindowsSDK_LibraryPath_x64);$(LibraryPath)</LibraryPath>
-    <IncludePath>D:\Program\Proxydomo\GnuTLS\x64\include;$(SolutionDir)icu\Win64\include;D:\Program\WTL81_12085\Include;$(SolutionDir)zlib\x64\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)icu\Win64\lib64;$(SolutionDir)zlib\x64\lib;$(VCInstallDir)lib\amd64;$(VCInstallDir)atlmfc\lib\amd64;$(WindowsSDK_LibraryPath_x64);$(LibraryPath)</LibraryPath>
+    <IncludePath>D:\Program\wolfssl;$(SolutionDir)icu\Win64\include;D:\Program\WTL81_12085\Include;$(SolutionDir)zlib\x64\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -98,7 +98,7 @@
       <MinimalRebuild>false</MinimalRebuild>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;STRICT;NOMINMAX;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WOLFSSL_CERT_GEN;WOLFSSL_KEY_GEN;HAVE_AESGCM;HAVE_AESCCM;HAVE_CAMELLIA;HAVE_ECC;HAVE_CRL;WOLFSSL_AESNI;HAVE_TLS_EXTENSIONS;HAVE_SESSION_TICKET;HAVE_SNI;HAVE_SECURE_RENEGOTIATION;WOLFSSL_RIPEMD;WOLFSSL_SHA512;NO_PSK;WIN32;_WINDOWS;STRICT;NOMINMAX;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
@@ -133,7 +133,7 @@
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;STRICT;NOMINMAX;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WOLFSSL_CERT_GEN;WOLFSSL_KEY_GEN;HAVE_AESGCM;HAVE_AESCCM;HAVE_CAMELLIA;HAVE_ECC;HAVE_CRL;WOLFSSL_AESNI;HAVE_TLS_EXTENSIONS;HAVE_SESSION_TICKET;HAVE_SNI;HAVE_SECURE_RENEGOTIATION;WOLFSSL_RIPEMD;WOLFSSL_SHA512;NO_PSK;WIN32;_WINDOWS;STRICT;NOMINMAX;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
@@ -168,7 +168,7 @@
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <ExceptionHandling>Sync</ExceptionHandling>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;STRICT;NOMINMAX;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WOLFSSL_CERT_GEN;WOLFSSL_KEY_GEN;HAVE_AESGCM;HAVE_AESCCM;HAVE_CAMELLIA;HAVE_ECC;HAVE_CRL;WOLFSSL_AESNI;HAVE_TLS_EXTENSIONS;HAVE_SESSION_TICKET;HAVE_SNI;HAVE_SECURE_RENEGOTIATION;WOLFSSL_RIPEMD;WOLFSSL_SHA512;NO_PSK;WIN32;_WINDOWS;STRICT;NOMINMAX;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -206,7 +206,7 @@
       <ExceptionHandling>Sync</ExceptionHandling>
       <DebugInformationFormat>
       </DebugInformationFormat>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;STRICT;NOMINMAX;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WOLFSSL_CERT_GEN;WOLFSSL_KEY_GEN;HAVE_AESGCM;HAVE_AESCCM;HAVE_CAMELLIA;HAVE_ECC;HAVE_CRL;WOLFSSL_AESNI;HAVE_TLS_EXTENSIONS;HAVE_SESSION_TICKET;HAVE_SNI;HAVE_SECURE_RENEGOTIATION;WOLFSSL_RIPEMD;WOLFSSL_SHA512;NO_PSK;WIN32;_WINDOWS;STRICT;NOMINMAX;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -749,6 +749,15 @@
     <Image Include="res\HeaderFilter.ico" />
     <Image Include="res\Proxydomo.ico" />
     <Image Include="res\WebFilter.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\wolfssl\wolfssl.vcproj" />
+    <None Include="..\..\wolfssl\wolfssl.vcxproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\wolfssl-3.4.6\wolfssl.vcxproj">
+      <Project>{73973223-5ee8-41ca-8e88-1d60e89a237b}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
