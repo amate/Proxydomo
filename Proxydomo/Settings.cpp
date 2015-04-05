@@ -544,6 +544,9 @@ bool CSettings::_CreatePattern(std::wstring& pattern, HashedListCollection& list
 				for (; it != urlHost.cend(); ++it) {
 					if (*it == L'.') {
 						std::wstring firstWildcard(urlHost.cbegin(), it);
+						if (Proxydomo::CMatcher::CreateMatcher(firstWildcard) == nullptr) {
+							return L"";
+						}
 						++it;
 						return firstWildcard;
 					}

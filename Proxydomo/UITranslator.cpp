@@ -15,6 +15,7 @@
 namespace {
 
 	std::unordered_map<int, std::wstring> g_mapTranslateFormat;
+	CFont	g_fontJapanese;
 
 }	// namespace
 
@@ -55,6 +56,14 @@ namespace UITranslator {
 			if (fs.eof())
 				break;
 		}
+
+		if (::_wcsicmp(CSettings::s_language.c_str(), L"Japanese") == 0) {
+			CLogFont lf;
+			lf.SetMenuFont();
+			::wcscpy_s(lf.lfFaceName, L"Meiryo UI");
+			lf.SetHeight(9);
+			g_fontJapanese = lf.CreateFontIndirect();
+		}
 	}
 
 	std::wstring	getTranslateFormat(int translateId)
@@ -65,6 +74,10 @@ namespace UITranslator {
 		return shand::format(L"%1% : No translateMessage", translateId).str();
 	}
 
+	CFontHandle		getFont()
+	{
+		return (HFONT)g_fontJapanese;
+	}
 
 
 }	// namespace UITranslator

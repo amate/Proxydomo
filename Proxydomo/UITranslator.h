@@ -6,6 +6,8 @@
 
 #include <string>
 #include <atlwin.h>
+#include <atlapp.h>
+#include <atlgdi.h>
 #include "format.h"
 
 namespace UITranslator {
@@ -14,7 +16,7 @@ namespace UITranslator {
 	void LoadUILanguage();
 
 	std::wstring	getTranslateFormat(int translateId);
-
+	CFontHandle		getFont();
 
 	inline std::wstring GetTranslateMessage(int translateId)
 	{
@@ -40,6 +42,10 @@ namespace UITranslator {
 		if (ctrlItem.IsWindow() == FALSE)
 			return;
 		ctrlItem.SetWindowTextW(GetTranslateMessage(ctrlID).c_str());
+
+		CFontHandle font = getFont();
+		if (font)
+			ctrlItem.SetFont(font);
 	}
 
 	template <class... Args>
@@ -50,6 +56,10 @@ namespace UITranslator {
 		if (ctrlItem.IsWindow() == FALSE)
 			return;
 		ctrlItem.SetWindowTextW(GetTranslateMessage(ctrlID, args...).c_str());
+
+		CFontHandle font = getFont();
+		if (font)
+			ctrlItem.SetFont(font);
 	}
 
 }	// namespace UITranslator

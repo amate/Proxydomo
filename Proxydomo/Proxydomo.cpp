@@ -43,10 +43,13 @@ CAppModule _Module;
 
 int Run(LPTSTR /*lpstrCmdLine*/ = NULL, int nCmdShow = SW_SHOWDEFAULT)
 {
+	CProxy	proxy;
+	proxy.OpenProxyPort(CSettings::s_proxyPort);
+
 	CMessageLoop theLoop;
 	_Module.AddMessageLoop(&theLoop);
 
-	CMainDlg dlgMain;
+	CMainDlg dlgMain(&proxy);
 
 	if(dlgMain.Create(NULL) == NULL)
 	{
@@ -59,6 +62,8 @@ int Run(LPTSTR /*lpstrCmdLine*/ = NULL, int nCmdShow = SW_SHOWDEFAULT)
 	int nRet = theLoop.Run();
 
 	_Module.RemoveMessageLoop();
+
+	proxy.CloseProxyPort();
 	return nRet;
 }
 
@@ -103,12 +108,7 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR lp
 
 		CSettings::s_SSLFilter = InitSSL();
 
-		CProxy	proxy;
-		proxy.OpenProxyPort(CSettings::s_proxyPort);
-
 		nRet = Run(lpstrCmdLine, nCmdShow);
-
-		proxy.CloseProxyPort();
 
 		if (CSettings::s_SSLFilter)
 			TermSSL();

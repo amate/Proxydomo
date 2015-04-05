@@ -78,6 +78,12 @@ void CProxy::CloseProxyPort()
 	}
 }
 
+void	CProxy::AbortAllConnection()
+{
+	CCritSecLock	lock(m_csRequestManager);
+	for (auto& manager : m_requestManagerList)
+		manager->SwitchToInvalid();
+}
 
 void CProxy::_ServerThread()
 {

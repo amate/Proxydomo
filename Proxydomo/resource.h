@@ -111,6 +111,7 @@
 #define IDC_GROUP_LANGSETTING           1090
 #define IDC_COMBO_LANG                  1091
 #define IDC_STATIC_ENABLEONREBOOT2      1092
+#define IDC_BUTTON_ABORT                1093
 #define ID_TRANS_NEWFOLDER              40000
 #define ID_TRANS_CONFIRM                40001
 #define ID_TRANS_NEWFILTER              40002
@@ -182,7 +183,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        251
 #define _APS_NEXT_COMMAND_VALUE         32775
-#define _APS_NEXT_CONTROL_VALUE         1093
+#define _APS_NEXT_CONTROL_VALUE         1094
 #define _APS_NEXT_SYMED_VALUE           140
 #endif
 #endif

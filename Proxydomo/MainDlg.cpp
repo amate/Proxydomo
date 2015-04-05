@@ -28,12 +28,13 @@
 #include "AboutDlg.h"
 #include "OptionDialog.h"
 #include "Misc.h"
+#include "Proxy.h"
 #include "UITranslator.h"
 using namespace UITranslator;
 
 using namespace boost::property_tree;
 
-CMainDlg::CMainDlg() : m_listChangeWatcher(FILE_NOTIFY_CHANGE_LAST_WRITE), m_bVisibleOnDestroy(true)
+CMainDlg::CMainDlg(CProxy* proxy) : m_proxy(proxy), m_listChangeWatcher(FILE_NOTIFY_CHANGE_LAST_WRITE), m_bVisibleOnDestroy(true)
 {
 }
 
@@ -73,6 +74,7 @@ LRESULT CMainDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam
 	ChangeControlTextForTranslateMessage(m_hWnd, IDC_CHECKBOX_INHEADER);
 	ChangeControlTextForTranslateMessage(m_hWnd, IDC_CHECKBOX_USEREMOTEPROXY);
 	ChangeControlTextForTranslateMessage(m_hWnd, IDC_CHECK_BYPASS);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_BUTTON_ABORT);	
 	ChangeControlTextForTranslateMessage(m_hWnd, IDC_STATIC_ACTIVEREQUESTCOUNT, 0);
 
 
@@ -357,6 +359,12 @@ LRESULT CMainDlg::OnShowOption(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/,
 LRESULT CMainDlg::OnFilterButtonCheck(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
 	DoDataExchange(DDX_SAVE, wID);
+	return 0;
+}
+
+LRESULT CMainDlg::OnAbort(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+{
+	m_proxy->AbortAllConnection();
 	return 0;
 }
 

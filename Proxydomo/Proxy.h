@@ -39,6 +39,8 @@ public:
 	bool	OpenProxyPort(uint16_t port);
 	void	CloseProxyPort();
 
+	void	AbortAllConnection();
+
 private:
 	void	_ServerThread();
 

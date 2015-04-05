@@ -28,6 +28,8 @@
 #include "Settings.h"
 #include "DirectoryWatcher.h"
 
+class CProxy;
+
 class CMainDlg : 
 	public CDialogImpl<CMainDlg>, 
 	public CUpdateUI<CMainDlg>,
@@ -44,7 +46,7 @@ public:
 		WM_TRAYICONNOTIFY	= WM_APP + 1,
 	};
 
-	CMainDlg();
+	CMainDlg(CProxy* proxy);
 
 	virtual BOOL PreTranslateMessage(MSG* pMsg)
 	{
@@ -89,6 +91,7 @@ public:
 		COMMAND_ID_HANDLER( IDC_CHECKBOX_INHEADER	, OnFilterButtonCheck )
 		COMMAND_ID_HANDLER( IDC_CHECKBOX_USEREMOTEPROXY, OnFilterButtonCheck)
 		COMMAND_ID_HANDLER( IDC_CHECK_BYPASS, OnFilterButtonCheck)
+		COMMAND_ID_HANDLER( IDC_BUTTON_ABORT, OnAbort)
 	END_MSG_MAP()
 
 // Handler prototypes (uncomment arguments if needed):
@@ -109,6 +112,7 @@ public:
 	LRESULT OnShowFilterManageWindow(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnShowOption(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnFilterButtonCheck(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnAbort(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 
 	void CloseDialog(int nVal);
 
@@ -116,6 +120,7 @@ private:
 	void	_SaveMainDlgWindowPos();
 
 	// Data members
+	CProxy*			m_proxy;
 	CLogViewWindow	m_logView;
 	CFilterManageWindow	m_filterManagerWindow;
 	bool		m_bVisibleOnDestroy;
