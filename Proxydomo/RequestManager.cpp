@@ -24,6 +24,7 @@
 #include "stdafx.h"
 #include "RequestManager.h"
 #include <sstream>
+#include <limits>
 #include <boost\lexical_cast.hpp>
 #include "DebugWindow.h"
 #include "Log.h"
@@ -299,7 +300,7 @@ bool CRequestManager::_SendOut()
 	bool ret = false;
 	if (m_pSSLServerSession) {
 		if (m_sendOutBuf.size() > 0) {
-			if (m_pSSLServerSession->Write(m_sendOutBuf.c_str(), m_sendOutBuf.size())) {
+			if (m_pSSLServerSession->Write(m_sendOutBuf.c_str(), (int)m_sendOutBuf.size())) {
 				m_sendOutBuf.erase(0, m_pSSLServerSession->GetLastWriteCount());
 				ret = true;
 			}
@@ -309,7 +310,7 @@ bool CRequestManager::_SendOut()
 		if (m_sendOutBuf.size() > 0 && m_psockWebsite->IsConnected()) {
 			ret = true;
 			m_psockWebsite->SetBlocking(true);
-			if (m_psockWebsite->Write(m_sendOutBuf.c_str(), m_sendOutBuf.size()) == false)
+			if (m_psockWebsite->Write(m_sendOutBuf.c_str(), (int)m_sendOutBuf.size()) == false)
 				m_psockWebsite->Close();	// Trouble with browser's socket, end of all things
 			else
 				m_sendOutBuf.erase(0, m_psockWebsite->GetLastWriteCount());
@@ -433,7 +434,7 @@ void CRequestManager::_ProcessOut()
 
 				std::string contentLength = m_filterOwner.GetOutHeader("Content-Length");
 				if (contentLength.size() > 0)
-					m_outSize = boost::lexical_cast<int>(contentLength);
+					m_outSize = boost::lexical_cast<int64_t>(contentLength);
 
 				// We'll work on a copy, since we don't want to alter
 				// the real headers that $IHDR and $OHDR may access
@@ -616,9 +617,9 @@ void CRequestManager::_ProcessOut()
 		case STEP_RAW:
 			{
 				TRACEIN(_T("ProcessOut #%d : STEP_RAW"), m_filterOwner.requestNumber);
-				int copySize = m_recvOutBuf.size();
+				int copySize = (int)m_recvOutBuf.size();
 				if (copySize > m_outSize)
-					copySize = m_outSize;
+					copySize = (int)m_outSize;
 				if (copySize == 0 && m_outSize)
 					return ;
 
@@ -1089,13 +1090,13 @@ void	CRequestManager::_ProcessIn()
 
 				std::string contentLength = m_filterOwner.GetInHeader("Content-Length");
 				if (contentLength.size() > 0 && m_requestLine.method != "HEAD") 
-					m_inSize = boost::lexical_cast<int>(contentLength);
+					m_inSize = boost::lexical_cast<int64_t>(contentLength);
 
 				std::string contentType = m_filterOwner.GetInHeader("Content-Type");
 				if (contentType.size() > 0) {
 					// If size is not given, we'll read body until connection closes
-					if (contentLength.empty() && m_requestLine.method != "HEAD") 
-						m_inSize = /*BIG_NUMBER*/ 0x7FFFFFFF;
+					if (contentLength.empty() && m_requestLine.method != "HEAD")
+						m_inSize = std::numeric_limits<int64_t>::max();
 
 					// Check for filterable MIME types
 					if (_VerifyContentType(contentType) == false && m_filterOwner.bypassBodyForced == false)
@@ -1283,9 +1284,9 @@ void	CRequestManager::_ProcessIn()
 		// The next inSize bytes are left untouched
 		case STEP_RAW:
 			{
-				int copySize = m_recvInBuf.size();
+				int copySize = (int)m_recvInBuf.size();
 				if (copySize > m_inSize)
-					copySize = m_inSize;
+					copySize = (int)m_inSize;
 				if (copySize == 0 && m_inSize) 
 					return ;	// ˆ—‚·‚éƒf[ƒ^‚ª‚È‚­‚È‚Á‚½‚Ì‚Å
 
@@ -1380,7 +1381,7 @@ bool	CRequestManager::_SendIn()
 	bool ret = false;
 	if (m_pSSLClientSession) {
 		if (m_sendInBuf.size() > 0) {
-			if (m_pSSLClientSession->Write(m_sendInBuf.c_str(), m_sendInBuf.size())) {
+			if (m_pSSLClientSession->Write(m_sendInBuf.c_str(), (int)m_sendInBuf.size())) {
 				m_sendInBuf.erase(0, m_pSSLClientSession->GetLastWriteCount());
 				ret = true;
 			}
@@ -1390,7 +1391,7 @@ bool	CRequestManager::_SendIn()
 		if (m_sendInBuf.size() > 0 && m_psockBrowser->IsConnected()) {
 			ret = true;
 			m_psockBrowser->SetBlocking(true);
-			if (m_psockBrowser->Write(m_sendInBuf.c_str(), m_sendInBuf.size()) == false)
+			if (m_psockBrowser->Write(m_sendInBuf.c_str(), (int)m_sendInBuf.size()) == false)
 				m_psockBrowser->Close();	// Trouble with browser's socket, end of all things
 			else
 				m_sendInBuf.erase(0, m_psockBrowser->GetLastWriteCount());
@@ -1455,7 +1456,7 @@ void	CRequestManager::DataFeed(const std::string& data)
     size_t size = data.size();
 	if (size) {
 		if (m_useChain || m_inChunked) {
-			m_sendInBuf += CUtil::makeHex(size) + CRLF + data + CRLF;
+			m_sendInBuf += CUtil::makeHex((unsigned int)size) + CRLF + data + CRLF;
 
 		} else {
 			// Send a chunk of uncompressed/unchanged data

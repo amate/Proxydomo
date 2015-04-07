@@ -22,6 +22,7 @@
 */
 #pragma once
 
+#include <cstdint>
 #include <string>
 #include <memory>
 #include <vector>
@@ -138,7 +139,7 @@ private:
 
     // Variables and functions for outgoing processing
     STEP	m_outStep;	// ブラウザ ⇒ Proxy(this) ⇒ サイト 間の処理の状態を示す
-	int		m_outSize;
+	int64_t	m_outSize;
 	bool	m_outChunked;
 	struct { 
 		std::string method, url, ver; 
@@ -146,7 +147,7 @@ private:
 
 	// Variables and functions for incoming processing
 	STEP	m_inStep;	// サイト ⇒ Proxy(this) ⇒ ブラウザ 間の処理の状態を示す
-	int		m_inSize;
+	int64_t	m_inSize;
 	bool	m_inChunked;
 
 	CFilterOwner	m_filterOwner;

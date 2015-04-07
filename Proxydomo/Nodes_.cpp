@@ -1403,8 +1403,9 @@ const UChar* CNode_Test::match(const UChar* start, const UChar* stop, MatchData*
     } else {
         str = filter.owner.variables[m_name];
     }
-    int size = str.size();
-    if (!size) return NULL;
+    size_t size = str.size();
+    if (size == 0)
+		return NULL;
 
     const UChar* ptr = str.c_str();
     const UChar* max = (stop < start+size ? stop : start+size);

@@ -32,7 +32,7 @@ Copyright (C) 2013 amate
  画像の一部に「VS2010ImageLibrary」の一部を使用しています。
  
 ■ビルドについて
-ビルドには boost(1.54~)と zlib と WTL と ICU と GnuTLS が必要なのでそれぞれ用意してください。
+ビルドには boost(1.54~)と zlib と WTL と ICU と wolfSSL が必要なのでそれぞれ用意してください。
 
 ◆boost
 http://www.boost.org/
