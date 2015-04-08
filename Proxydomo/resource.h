@@ -91,7 +91,6 @@
 #define IDC_STATIC_TESTREMOTEPROXY      1071
 #define IDC_STATIC_EDITAREA             1072
 #define IDC_STATIC_SPLITTER             1073
-#define IDC_CHECK1                      1074
 #define IDC_CHECK_BYPASS                1074
 #define IDC_GROUPBOX_ACTIVEFILTER       1075
 #define IDC_STATIC_FILTERTITLE          1076
@@ -112,6 +111,7 @@
 #define IDC_COMBO_LANG                  1091
 #define IDC_STATIC_ENABLEONREBOOT2      1092
 #define IDC_BUTTON_ABORT                1093
+#define IDC_CHECK_TASKTRAYONCLOSEBOTTON 1094
 #define ID_TRANS_NEWFOLDER              40000
 #define ID_TRANS_CONFIRM                40001
 #define ID_TRANS_NEWFILTER              40002
@@ -183,7 +183,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        251
 #define _APS_NEXT_COMMAND_VALUE         32775
-#define _APS_NEXT_CONTROL_VALUE         1094
+#define _APS_NEXT_CONTROL_VALUE         1095
 #define _APS_NEXT_SYMED_VALUE           140
 #endif
 #endif

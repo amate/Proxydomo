@@ -219,6 +219,7 @@ std::unique_ptr<serverCertAndKey>	CreateServerCert(const std::string& host)
 	wc_InitCert(&serverCert);
 	::strcpy_s(serverCert.subject.org, "Proxydomo TLS Server");
 	::strcpy_s(serverCert.subject.commonName, host.c_str());
+	serverCert.sigType = CTC_SHA256wRSA;
 
 	ret = wc_SetIssuerBuffer(&serverCert, g_derCA.data(), (int)g_derCA.size());
 	ATLASSERT(ret == 0);
@@ -227,7 +228,7 @@ std::unique_ptr<serverCertAndKey>	CreateServerCert(const std::string& host)
 	wc_InitRsaKey(&key, 0);
 	RNG    rng;
 	wc_InitRng(&rng);
-	wc_MakeRsaKey(&key, 1024, 65537, &rng);
+	wc_MakeRsaKey(&key, 2048, 65537, &rng);
 
 	ret = wc_RsaKeyToDer(&key, certAndKey->derkey.data(), kBuffSize);
 	if (ret < 0) {
@@ -320,6 +321,14 @@ bool	InitSSL()
 
 			ret = wolfSSL_CTX_UseSessionTicket(g_sslclientCtx);
 			ATLASSERT(ret == SSL_SUCCESS);
+
+			ret = wolfSSL_CTX_UseSupportedCurve(g_sslclientCtx, WOLFSSL_ECC_SECP256R1);
+			ATLASSERT(ret == SSL_SUCCESS);
+			ret = wolfSSL_CTX_UseSupportedCurve(g_sslclientCtx, WOLFSSL_ECC_SECP384R1);
+			ATLASSERT(ret == SSL_SUCCESS);
+			ret = wolfSSL_CTX_UseSupportedCurve(g_sslclientCtx, WOLFSSL_ECC_SECP521R1);
+			ATLASSERT(ret == SSL_SUCCESS);
+
 		}
 		return true;
 
@@ -351,6 +360,7 @@ void	GenerateCACertificate()
 	Cert caCert = {};
 	wc_InitCert(&caCert);
 	::strcpy_s(caCert.subject.commonName, "Proxydomo CA");
+	caCert.sigType = CTC_SHA256wRSA;
 	caCert.daysValid = 365;
 	caCert.isCA = 1;
 
@@ -358,7 +368,7 @@ void	GenerateCACertificate()
 	wc_InitRsaKey(&cakey, 0);
 	RNG    rng;
 	wc_InitRng(&rng);
-	wc_MakeRsaKey(&cakey, 1024, 65537, &rng);
+	wc_MakeRsaKey(&cakey, 2048, 65537, &rng);
 
 	std::vector<byte> derCA(kBuffSize);
 	int ret = wc_MakeSelfCert(&caCert, derCA.data(), kBuffSize, &cakey, &rng);
@@ -473,21 +483,14 @@ std::unique_ptr<CSSLSession> CSSLSession::InitServerSession(CSocket* sock, const
 
 	}
 
-	WOLFSSL_METHOD* method = wolfTLSv1_2_server_method();
+	WOLFSSL_METHOD* method = wolfSSLv23_server_method();
 	if (method == nullptr) {
-		throw std::runtime_error("wolfTLSv1_2_server_method failed");
+		throw std::runtime_error("wolfSSLv23_server_method failed");
 	}
 	session->m_ctx = wolfSSL_CTX_new(method);
 	if (session->m_ctx == nullptr) {
 		throw std::runtime_error("wolfSSL_CTX_new failed");
 	}
-#if 0
-	wolfSSL_CTX_set_verify(g_sslserverCtx, SSL_VERIFY_PEER, 0);
-	ret = wolfSSL_CTX_load_verify_locations(g_sslserverCtx, (LPSTR)CT2A(x509_cafile), 0);
-	if (ret != SSL_SUCCESS) {
-		throw std::runtime_error("wolfSSL_CTX_load_verify_locations failed");
-	}
-#endif
 
 	ret = wolfSSL_CTX_use_certificate_buffer(session->m_ctx, certAndKey->derCert.data(), (long)certAndKey->derCert.size(), SSL_FILETYPE_ASN1);
 	ATLASSERT(ret == SSL_SUCCESS);
@@ -496,8 +499,11 @@ std::unique_ptr<CSSLSession> CSSLSession::InitServerSession(CSocket* sock, const
 	ATLASSERT(ret == SSL_SUCCESS);
 
 	session->m_ssl = wolfSSL_new(session->m_ctx);
-	if (session->m_ssl == nullptr)
+	if (session->m_ssl == nullptr) {
+		wolfSSL_CTX_free(session->m_ctx);
+		session->m_ctx = nullptr;
 		throw std::runtime_error("wolfSSL_new failed");
+	}
 
 	wolfSSL_set_fd(session->m_ssl, (int)sock->GetSocket());
 
@@ -506,6 +512,7 @@ std::unique_ptr<CSSLSession> CSSLSession::InitServerSession(CSocket* sock, const
 		int err = wolfSSL_get_error(session->m_ssl, 0);
 		char buffer[WOLFSSL_MAX_ERROR_SZ];
 		ATLTRACE("error = %d, %s\n", err, wolfSSL_ERR_error_string(err, buffer));
+		INFO_LOG << L"wolfSSL_accept failed [" << err << L"] : " << (LPWSTR)CA2W(buffer);
 
 		wolfSSL_free(session->m_ssl);
 		session->m_ssl = nullptr;

@@ -120,6 +120,8 @@ public:
 
 	static std::wstring	s_language;
 
+	static bool			s_tasktrayOnCloseBotton;
+
 	static std::thread	s_threadSaveFilter;
 	
 	static void	LoadSettings();

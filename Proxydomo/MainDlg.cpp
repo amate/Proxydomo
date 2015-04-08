@@ -218,6 +218,15 @@ void CMainDlg::OnSize(UINT nType, CSize size)
 	}
 }
 
+void CMainDlg::OnSysCommand(UINT nID, CPoint point)
+{
+	if (nID == SC_CLOSE && CSettings::s_tasktrayOnCloseBotton) {
+		ShowWindow(FALSE);
+	} else {
+		SetMsgHandled(FALSE);
+	}
+}
+
 LRESULT CMainDlg::OnTrayIconNotify(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/)
 {
 	if (lParam == WM_LBUTTONDOWN) {

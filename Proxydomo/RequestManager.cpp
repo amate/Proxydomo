@@ -225,7 +225,7 @@ void CRequestManager::Manage()
 			::Sleep(10);
 		}
 	}	// while
-	} catch (SocketException& e) {
+	} catch (std::exception& e) {
 		TRACEIN("例外が発生しました！ : ポート %d 例外:%s", m_ipFromAddress.GetPortNumber(), e.what()); 
 	} catch (...) {
 		TRACEIN("例外が発生しました！ : ポート %d", m_ipFromAddress.GetPortNumber());

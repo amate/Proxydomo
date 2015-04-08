@@ -67,6 +67,8 @@ std::string		CSettings::s_urlCommandPrefix;
 
 std::wstring	CSettings::s_language = kDefaultLanguage;
 
+bool			CSettings::s_tasktrayOnCloseBotton = false;
+
 std::thread		CSettings::s_threadSaveFilter;
 
 std::vector<std::unique_ptr<FilterItem>>	CSettings::s_vecpFilters;
@@ -122,6 +124,9 @@ void	CSettings::LoadSettings()
 			}
 			s_language = language;
 		}
+
+		if (auto value = pt.get_optional<bool>("Setting.tasktrayOnCloseBotton"))
+			s_tasktrayOnCloseBotton = value.get();
 	}
 
 	// prefixÇê›íË
@@ -171,6 +176,8 @@ void	CSettings::SaveSettings()
 	}
 
 	pt.put("Setting.language", UTF8fromUTF16(s_language));
+
+	pt.put<bool>("Setting.tasktrayOnCloseBotton", s_tasktrayOnCloseBotton);
 
 	write_ini(settingsPath, pt);
 }

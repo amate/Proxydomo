@@ -29,6 +29,8 @@ public:
 
 		DDX_CONTROL_HANDLE(IDC_COMBO_REMOTEPROXY, m_cmbRemoteProxy)
 		DDX_CONTROL_HANDLE(IDC_COMBO_LANG, m_cmbLang)
+
+		DDX_CHECK(IDC_CHECK_TASKTRAYONCLOSEBOTTON, CSettings::s_tasktrayOnCloseBotton)
 	END_DDX_MAP()
 
 	BEGIN_MSG_MAP(CAboutDlg)
@@ -62,6 +64,7 @@ public:
 		UITranslator::ChangeControlTextForTranslateMessage(m_hWnd, IDC_STATIC_TESTREMOTEPROXY);
 		UITranslator::ChangeControlTextForTranslateMessage(m_hWnd, IDC_GROUP_LANGSETTING);
 		UITranslator::ChangeControlTextForTranslateMessage(m_hWnd, IDC_STATIC_ENABLEONREBOOT2);
+		UITranslator::ChangeControlTextForTranslateMessage(m_hWnd, IDC_CHECK_TASKTRAYONCLOSEBOTTON);		
 		UITranslator::ChangeControlTextForTranslateMessage(m_hWnd, IDOK);
 		UITranslator::ChangeControlTextForTranslateMessage(m_hWnd, IDCANCEL);
 

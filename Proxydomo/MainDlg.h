@@ -81,6 +81,7 @@ public:
 		COMMAND_ID_HANDLER(ID_APP_ABOUT, OnAppAbout)
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
 		MSG_WM_SIZE( OnSize )
+		MSG_WM_SYSCOMMAND( OnSysCommand )
 		MESSAGE_HANDLER( WM_TRAYICONNOTIFY, OnTrayIconNotify )
 
 		COMMAND_ID_HANDLER(IDC_BUTTON_SHOWLOGWINDOW, OnShowLogWindow )
@@ -106,6 +107,7 @@ public:
 
 	LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	void OnSize(UINT nType, CSize size);
+	void OnSysCommand(UINT nID, CPoint point);
 	LRESULT OnTrayIconNotify(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 
 	LRESULT OnShowLogWindow(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
