@@ -506,18 +506,24 @@ void CRequestManager::_ProcessOut()
 				if (m_pSSLServerSession && m_filterOwner.killed == false) {
 					m_inStep = STEP_START;
 
-					// $RDIR
-					if (m_filterOwner.rdirToHost.size() > 0 && m_filterOwner.rdirMode == 1) {
-						CUrl rdirURL(m_filterOwner.rdirToHost);
-						if (m_filterOwner.url.getHost() != rdirURL.getHost()) {
-							ERROR_LOG << L"#" << m_ipFromAddress.GetPortNumber()
-								<< L" SSLで違うホストにリダイレクトしようとしています。"
-								<< L" nowHost: " << (LPWSTR)CA2W(m_filterOwner.url.getHost().c_str())
-								<< L" -> rdirHost: " << (LPWSTR)CA2W(rdirURL.getHost().c_str());
-							throw GeneralException("SSL invalid Redirect Error");
-						} else {
-							m_filterOwner.url.parseUrl(m_filterOwner.rdirToHost);
-							m_filterOwner.rdirToHost.clear();
+					
+					if (m_filterOwner.rdirToHost.size() > 0) {
+						// $RDIR
+						if (m_filterOwner.rdirMode == 1) {
+							CUrl rdirURL(m_filterOwner.rdirToHost);
+							if (m_filterOwner.url.getHost() != rdirURL.getHost()) {
+								ERROR_LOG << L"#" << m_ipFromAddress.GetPortNumber()
+									<< L" SSLで違うホストにリダイレクトしようとしています。"
+									<< L" nowHost: " << (LPWSTR)CA2W(m_filterOwner.url.getHost().c_str())
+									<< L" -> rdirHost: " << (LPWSTR)CA2W(rdirURL.getHost().c_str());
+								throw GeneralException("SSL invalid Redirect Error");
+							} else {
+								m_filterOwner.url.parseUrl(m_filterOwner.rdirToHost);
+								m_filterOwner.rdirToHost.clear();
+							}
+						// $JUMP
+						} else if (m_filterOwner.rdirMode == 0) {
+							_ConnectWebsite();
 						}
 					}
 				} else {

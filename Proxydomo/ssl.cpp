@@ -31,13 +31,25 @@ namespace {
 
 LPCSTR	kCAFileName = "ca.pem.crt";
 LPCSTR	kCAKeyFileName = "ca-key.pem";
+LPCSTR	kCAEccKeyFileName = "ca-ecckey.pem";
 
 enum { kBuffSize = 1024 * 4 };
 
 WOLFSSL_CTX*	g_sslclientCtx = nullptr;
 
 std::vector<byte>	g_derCA;
-RsaKey				g_caKey;
+struct CAKey {
+	enum {
+		kRsaKey,
+		kEccKey,
+	} keyType;
+
+	union {
+		RsaKey	rsaKey;
+		ecc_key	eccKey;
+	} key;
+};
+CAKey				g_caKey;
 
 std::unordered_map<std::string, bool>	g_mapHostAllowOrDeny;
 CCriticalSection						g_csmapHost;
@@ -215,6 +227,7 @@ std::unique_ptr<serverCertAndKey>	CreateServerCert(const std::string& host)
 
 	int ret = 0;
 
+#if 0
 	Cert serverCert = {};
 	wc_InitCert(&serverCert);
 	::strcpy_s(serverCert.subject.org, "Proxydomo TLS Server");
@@ -253,6 +266,55 @@ std::unique_ptr<serverCertAndKey>	CreateServerCert(const std::string& host)
 	}
 	certAndKey->derCert.resize(ret);
 
+#else
+	Cert serverCert = {};
+	wc_InitCert(&serverCert);
+	::strcpy_s(serverCert.subject.org, "Proxydomo TLS Server");
+	::strcpy_s(serverCert.subject.commonName, host.c_str());
+	serverCert.sigType = CTC_SHA256wECDSA;
+
+	ret = wc_SetIssuerBuffer(&serverCert, g_derCA.data(), (int)g_derCA.size());
+	ATLASSERT(ret == 0);
+	
+	ecc_key	key;
+	wc_ecc_init(&key);
+	RNG    rng;
+	wc_InitRng(&rng);
+	ret = wc_ecc_make_key(&rng, 32, &key);
+	ATLASSERT(ret == MP_OKAY);
+
+	ret = wc_EccKeyToDer(&key, certAndKey->derkey.data(), kBuffSize);
+	if (ret < 0) {
+		wc_FreeRng(&rng);
+		wc_ecc_free(&key);
+		throw std::runtime_error("wc_RsaKeyToDer failed");
+	}
+	certAndKey->derkey.resize(ret);
+
+	ret = wc_MakeCert(&serverCert, certAndKey->derCert.data(), kBuffSize, nullptr, &key, &rng);
+	if (ret < 0) {
+		wc_FreeRng(&rng);
+		wc_ecc_free(&key);
+		throw std::runtime_error("wc_MakeCert failed");
+	}
+
+	if (g_caKey.keyType == CAKey::kRsaKey) {
+		ret = wc_SignCert(serverCert.bodySz, CTC_SHA256wRSA, certAndKey->derCert.data(), kBuffSize, &g_caKey.key.rsaKey, nullptr, &rng);
+	} else {
+		ret = wc_SignCert(serverCert.bodySz, CTC_SHA256wECDSA, certAndKey->derCert.data(), kBuffSize, nullptr, &g_caKey.key.eccKey, &rng);
+	}
+	if (ret < 0) {
+		wc_FreeRng(&rng);
+		wc_ecc_free(&key);
+		throw std::runtime_error("wc_SignCert failed");
+	}
+	certAndKey->derCert.resize(ret);
+
+	wc_FreeRng(&rng);
+	wc_ecc_free(&key);
+
+#endif
+
 	return certAndKey;
 }
 
@@ -262,9 +324,11 @@ std::unique_ptr<serverCertAndKey>	CreateServerCert(const std::string& host)
 
 bool	InitSSL()
 {
-	CString x509_cafile = Misc::GetExeDirectory() + kCAFileName;
-	CString x509_caKeyfile = Misc::GetExeDirectory() + kCAKeyFileName;
-	if (::PathFileExists(x509_cafile) == FALSE || ::PathFileExists(x509_caKeyfile) == FALSE) {
+	CString cafile = Misc::GetExeDirectory() + kCAFileName;
+	CString rsacaKeyfile = Misc::GetExeDirectory() + kCAKeyFileName;
+	CString ecccaKeyfile = Misc::GetExeDirectory() + kCAEccKeyFileName;
+	if ( ::PathFileExists(cafile) == FALSE || 
+		(::PathFileExists(rsacaKeyfile) == FALSE && ::PathFileExists(ecccaKeyfile) == FALSE)) {
 		INFO_LOG << L"CA証明書がないのでSSLはフィルタリングできません。";
 		return false;
 	}
@@ -278,8 +342,14 @@ bool	InitSSL()
 	try {
 
 		{	// server init
-			auto pemCA = LoadBinaryFile((LPCWSTR)x509_cafile);
-			auto pemCAkey = LoadBinaryFile((LPCWSTR)x509_caKeyfile);
+			auto pemCA = LoadBinaryFile((LPCWSTR)cafile);
+			auto pemCAkey = LoadBinaryFile((LPCWSTR)rsacaKeyfile);
+			if (pemCAkey.size()) {
+				g_caKey.keyType = CAKey::kRsaKey;
+			} else {
+				g_caKey.keyType = CAKey::kEccKey;
+				pemCAkey = LoadBinaryFile((LPCWSTR)ecccaKeyfile);
+			}
 
 			g_derCA.resize(kBuffSize);
 			ret = wolfSSL_CertPemToDer(pemCA.data(), (int)pemCA.size(), g_derCA.data(), kBuffSize, CA_TYPE);
@@ -293,13 +363,24 @@ bool	InitSSL()
 				throw std::runtime_error("wolfSSL_KeyPemToDer failed");
 			derCAkey.resize(ret);
 
-			wc_InitRsaKey(&g_caKey, 0);
-			word32 idx = 0;
-			ret = wc_RsaPrivateKeyDecode(derCAkey.data(), &idx, &g_caKey, (word32)derCAkey.size());
-			ATLASSERT(ret == 0);
-			if (ret != 0) {
-				wc_FreeRsaKey(&g_caKey);
-				throw std::runtime_error("wc_RsaPrivateKeyDecode failed");
+			if (g_caKey.keyType == CAKey::kRsaKey) {
+				wc_InitRsaKey(&g_caKey.key.rsaKey, 0);
+				word32 idx = 0;
+				ret = wc_RsaPrivateKeyDecode(derCAkey.data(), &idx, &g_caKey.key.rsaKey, (word32)derCAkey.size());
+				ATLASSERT(ret == 0);
+				if (ret != 0) {
+					wc_FreeRsaKey(&g_caKey.key.rsaKey);
+					throw std::runtime_error("wc_RsaPrivateKeyDecode failed");
+				}
+			} else {
+				wc_ecc_init(&g_caKey.key.eccKey);
+				word32 idx = 0;
+				ret = wc_EccPrivateKeyDecode(derCAkey.data(), &idx, &g_caKey.key.eccKey, (word32)derCAkey.size());
+				ATLASSERT(ret == 0);
+				if (ret != 0) {
+					wc_ecc_free(&g_caKey.key.eccKey);
+					throw std::runtime_error("wc_EccPrivateKeyDecode failed");
+				}				
 			}
 		}
 
@@ -357,6 +438,7 @@ void	TermSSL()
 // CA証明書を生成する
 void	GenerateCACertificate()
 {
+#if 0
 	Cert caCert = {};
 	wc_InitCert(&caCert);
 	::strcpy_s(caCert.subject.commonName, "Proxydomo CA");
@@ -406,8 +488,76 @@ void	GenerateCACertificate()
 	}
 	pemkey.resize(ret);
 
+	wc_FreeRng(&rng);
+	wc_FreeRsaKey(&cakey);
+
 	SaveBinaryFile(static_cast<LPCWSTR>(Misc::GetExeDirectory() + kCAFileName), pemCA);
 	SaveBinaryFile(static_cast<LPCWSTR>(Misc::GetExeDirectory() + kCAKeyFileName), pemkey);
+
+#else
+	Cert caCert = {};
+	wc_InitCert(&caCert);
+	::strcpy_s(caCert.subject.commonName, "Proxydomo CA");
+	caCert.sigType = CTC_SHA256wECDSA;
+	caCert.daysValid = 365;
+	caCert.isCA = 1;
+
+	ecc_key	cakey;
+	wc_ecc_init(&cakey);
+	RNG    rng;
+	wc_InitRng(&rng);
+	wc_ecc_make_key(&rng, 32, &cakey);
+
+	std::vector<byte> derCA(kBuffSize);
+	int ret = wc_MakeCert(&caCert, derCA.data(), kBuffSize, nullptr, &cakey, &rng);
+	if (ret < 0) {
+		wc_FreeRng(&rng);
+		wc_ecc_free(&cakey);
+		throw std::runtime_error("wc_MakeCert failed");
+	}
+	ret = wc_SignCert(caCert.bodySz, caCert.sigType, derCA.data(), kBuffSize, nullptr, &cakey, &rng);
+	if (ret < 0) {
+		wc_FreeRng(&rng);
+		wc_ecc_free(&cakey);
+		throw std::runtime_error("wc_SignCert failed");
+	}
+	derCA.resize(ret);
+
+	std::vector<byte> pemCA(kBuffSize);
+	ret = wc_DerToPem(derCA.data(), (word32)derCA.size(), pemCA.data(), kBuffSize, CERT_TYPE);
+	if (ret < 0) {
+		wc_FreeRng(&rng);
+		wc_ecc_free(&cakey);
+		throw std::runtime_error("wc_DerToPem failed");
+	}
+	pemCA.resize(ret);
+
+	std::vector<byte> derkey(kBuffSize);
+	ret = wc_EccKeyToDer(&cakey, derkey.data(), kBuffSize);
+	if (ret < 0) {
+		wc_FreeRng(&rng);
+		wc_ecc_free(&cakey);
+		throw std::runtime_error("wc_EccKeyToDer failed");
+	}
+	derkey.resize(ret);
+
+	std::vector<byte> pemkey(kBuffSize);
+	ret = wc_DerToPem(derkey.data(), (word32)derkey.size(), pemkey.data(), kBuffSize, ECC_PRIVATEKEY_TYPE);
+	if (ret < 0) {
+		wc_FreeRng(&rng);
+		wc_ecc_free(&cakey);
+		throw std::runtime_error("wc_DerToPem failed");
+	}
+	pemkey.resize(ret);
+
+	wc_FreeRng(&rng);
+	wc_ecc_free(&cakey);
+
+	DeleteFileW(static_cast<LPCWSTR>(Misc::GetExeDirectory() + kCAKeyFileName));
+
+	SaveBinaryFile(static_cast<LPCWSTR>(Misc::GetExeDirectory() + kCAFileName), pemCA);
+	SaveBinaryFile(static_cast<LPCWSTR>(Misc::GetExeDirectory() + kCAEccKeyFileName), pemkey);
+#endif
 }
 
 
