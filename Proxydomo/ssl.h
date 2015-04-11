@@ -12,7 +12,7 @@ bool	InitSSL();
 void	TermSSL();
 
 // CAØ–¾‘‚ğ¶¬‚·‚é
-void	GenerateCACertificate();
+void	GenerateCACertificate(bool rsa);
 
 
 struct WOLFSSL;

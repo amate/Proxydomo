@@ -129,8 +129,13 @@ public:
 		if (ret == IDCANCEL)
 			return 0;
 
+		ret = MessageBox(UITranslator::GetTranslateMessage(ID_CHOICEPRIVATEKEYMESSAGE).c_str(), UITranslator::GetTranslateMessage(ID_TRANS_CONFIRM).c_str(), MB_YESNOCANCEL);
+		if (ret == IDCANCEL)
+			return 0;
+
+		bool rsa = (ret != IDYES);
 		try {
-			GenerateCACertificate();
+			GenerateCACertificate(rsa);
 		} catch (std::exception& e) {
 			CString errormsg = UITranslator::GetTranslateMessage(ID_CREATECAFAILEDMESSAGE).c_str();
 			errormsg += e.what();
