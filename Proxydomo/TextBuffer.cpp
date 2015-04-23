@@ -121,13 +121,13 @@ int CTextBuffer::_findEndPoint(const char* start, const char*& end)
 	return -1;
 }
 
-inline size_t CharCount(const wchar_t* end, const wchar_t* begin)
+inline int CharCount(const wchar_t* end, const wchar_t* begin)
 {
 #ifdef _DEBUG
 	size_t count = (end - begin);
-	return count;
+	return (int32_t)count;
 #else
-	return (end - begin);
+	return static_cast<int>(end - begin);
 #endif
 }
 
@@ -142,7 +142,7 @@ static std::pair<int32_t, std::string> GetCharaCode(const std::string& data)
 		if (err != UErrorCode::U_ZERO_ERROR)
 			throw err;
 
-		ucsdet_setText(pDectator, data.c_str(), data.length(), &err);
+		ucsdet_setText(pDectator, data.c_str(), (int32_t)data.length(), &err);
 		ATLASSERT( U_SUCCESS( err ) );
 		if (err != UErrorCode::U_ZERO_ERROR)
 			throw err;
@@ -214,6 +214,7 @@ static std::pair<int32_t, std::string> GetCharaCode(const std::string& data)
 		return std::pair<int32_t, std::string>(confidence, charaCode);
 
 	} catch (UErrorCode err) {
+		err;
 		ATLASSERT( FALSE );
 		if (pDectator)
 			ucsdet_close(pDectator);
@@ -277,7 +278,7 @@ void CTextBuffer::DataFeed(const std::string& data)
 			std::string contentType = m_owner.GetInHeader("Content-Type");
 			if (contentType.size() > 0) {
 				CUtil::lower(contentType);
-				int nPos = contentType.find("charset=");
+				size_t nPos = contentType.find("charset=");
 				if (nPos != std::string::npos) {
 					charaCode = contentType.substr(nPos + 8);
 					CUtil::upper(charaCode);
@@ -341,17 +342,17 @@ void CTextBuffer::DataFeed(const std::string& data)
 		}
 		// ‚ ‚Ü‚è‚ð•Û‘¶‚µ‚Ä‚¨‚­
 		m_tailBuffer.assign(endPoint, decrimentCount);
-		int validBufferSize = endPoint - m_buffer.c_str();
+		auto validBufferSize = endPoint - m_buffer.c_str();
 		if (validBufferSize > 0) {
 			UErrorCode	err = U_ZERO_ERROR;
-			UnicodeString	appendBuff(m_buffer.c_str(), validBufferSize, m_pConverter, err);
+			UnicodeString	appendBuff(m_buffer.c_str(), (int32_t)validBufferSize, m_pConverter, err);
 			ATLASSERT( U_SUCCESS(err) );
 			m_buffer.clear();	 // ‚ ‚Ü‚è‚Í•Û‘¶‚µ‚½‚Ì‚Åclear‚µ‚Ä‘åä•v
 			m_unicodeBuffer.append(appendBuff);
 		}
 	} else {	// DataDumpŽž
 		UErrorCode	err = U_ZERO_ERROR;
-		UnicodeString	appendBuff(m_buffer.c_str(), m_buffer.length(), m_pConverter, err);
+		UnicodeString	appendBuff(m_buffer.c_str(), (int32_t)m_buffer.length(), m_pConverter, err);
 		ATLASSERT( U_SUCCESS(err) );
 		m_buffer.clear();
 		m_unicodeBuffer.append(appendBuff);
@@ -441,7 +442,7 @@ void CTextBuffer::DataFeed(const std::string& data)
 						//bufStart = m_buffer.data();
 						m_unicodeBuffer.replace(0,
 							CharCount((*m_currentFilter)->endOfMatched, bufStart),
-							replaceText.c_str(), replaceText.length());
+							replaceText.c_str(), (int32_t)replaceText.length());
 						bufStart = m_unicodeBuffer.getBuffer();
 						bufEnd = bufStart + m_unicodeBuffer.length();
 						index = bufStart;
@@ -504,7 +505,7 @@ void CTextBuffer::escapeOutput(std::stringstream& out, const UChar *data, size_t
 		std::wstring buf = CUtil::htmlEscape(data, len);
 		out << ConvertFromUTF16(buf, m_pConverter);
     } else {
-		out << ConvertFromUTF16(data, len, m_pConverter);
+		out << ConvertFromUTF16(data, (int)len, m_pConverter);
     }
 }
 

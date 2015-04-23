@@ -26,6 +26,7 @@ public:
 
 	BEGIN_DDX_MAP(CMainDlg)
 		DDX_UINT_RANGE(IDC_EDIT_PROXYPORT, CSettings::s_proxyPort, (uint16_t)1024, (uint16_t)65535)
+		DDX_CHECK(IDC_CHECK_PRIVATECONNECTION, CSettings::s_privateConnection)
 
 		DDX_CONTROL_HANDLE(IDC_COMBO_REMOTEPROXY, m_cmbRemoteProxy)
 		DDX_CONTROL_HANDLE(IDC_COMBO_LANG, m_cmbLang)
@@ -54,6 +55,7 @@ public:
 		SetWindowText(UITranslator::GetTranslateMessage(IDD_OPTION).c_str());
 
 		UITranslator::ChangeControlTextForTranslateMessage(m_hWnd, IDC_GROUP_PROXYPORT);
+		UITranslator::ChangeControlTextForTranslateMessage(m_hWnd, IDC_CHECK_PRIVATECONNECTION);
 		UITranslator::ChangeControlTextForTranslateMessage(m_hWnd, IDC_STATIC_ENABLEONREBOOT);
 		UITranslator::ChangeControlTextForTranslateMessage(m_hWnd, IDC_GROUP_SSLFILTERING);
 		UITranslator::ChangeControlTextForTranslateMessage(m_hWnd, IDC_GENERATE_CACERTIFICATE);
@@ -67,7 +69,7 @@ public:
 		UITranslator::ChangeControlTextForTranslateMessage(m_hWnd, IDC_CHECK_TASKTRAYONCLOSEBOTTON);		
 		UITranslator::ChangeControlTextForTranslateMessage(m_hWnd, IDOK);
 		UITranslator::ChangeControlTextForTranslateMessage(m_hWnd, IDCANCEL);
-
+		
 		CenterWindow(GetParent());
 
 		DoDataExchange(DDX_LOAD);

@@ -48,7 +48,7 @@ public:
 	void	Manage();
 
 	bool	IsValid() const { return m_valid; }
-	void	SwitchToInvalid() { m_valid = false; }
+	void	SwitchToInvalid();
 
 private:
 
@@ -87,7 +87,8 @@ private:
 	void	_JudgeManageContinue();
 
 	// Constants
-	enum { kReadBuffSize = 10240 };
+	enum { kReadBuffSize = 64 * 1024 };
+	char m_readBuffer[kReadBuffSize];
 
     // Processing steps (incoming or outgoing)
     enum STEP { 

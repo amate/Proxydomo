@@ -594,6 +594,7 @@ CSSLSession::CSSLSession() :
 	m_sock(nullptr), m_ctx(nullptr), m_ssl(nullptr),
 	m_nLastReadCount(0), m_nLastWriteCount(0)
 {
+	m_writeStop = false;
 }
 
 CSSLSession::~CSSLSession()
@@ -622,6 +623,7 @@ std::unique_ptr<CSSLSession>	CSSLSession::InitClientSession(CSocket* sock, const
 	ret = wolfSSL_check_domain_name(session->m_ssl, host.c_str());
 	ATLASSERT(ret == SSL_SUCCESS);
 
+	sock->SetBlocking(true);
 	ret = wolfSSL_connect(session->m_ssl);
 	if (ret != SSL_SUCCESS) {
 		int err = wolfSSL_get_error(session->m_ssl, 0);
@@ -688,6 +690,7 @@ std::unique_ptr<CSSLSession> CSSLSession::InitServerSession(CSocket* sock, const
 
 	wolfSSL_set_fd(session->m_ssl, (int)sock->GetSocket());
 
+	sock->SetBlocking(true);
 	ret = wolfSSL_accept(session->m_ssl);
 	if (ret != SSL_SUCCESS) {
 		int err = wolfSSL_get_error(session->m_ssl, 0);
@@ -748,7 +751,7 @@ bool	CSSLSession::Write(const char* buffer, int length)
 	for (;;) {
 		ret = wolfSSL_write(m_ssl, (const void*)buffer, length);
 		error = wolfSSL_get_error(m_ssl, 0);
-		if (ret == SSL_FATAL_ERROR && error == SSL_ERROR_WANT_WRITE) {
+		if (ret == SSL_FATAL_ERROR && error == SSL_ERROR_WANT_WRITE && m_writeStop == false) {
 			::Sleep(50);
 		} else {
 			break;

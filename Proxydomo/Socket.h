@@ -26,6 +26,7 @@
 #include <ws2tcpip.h>
 #include <memory>
 #include <string>
+#include <atomic>
 #include <boost\lexical_cast.hpp>
 #include <boost\format.hpp>
 
@@ -94,8 +95,7 @@ public:
 
 	void	Close();
 
-	/// ‘—M‚ğ~‚ß‚é (Write‚ª‚Å‚«‚È‚­‚È‚è‚Ü‚·)
-	void	SendStop();
+	void	WriteStop() { m_writeStop = true;  }
 
 	bool	IsDataAvailable();
 	bool	Read(char* buffer, int length);
@@ -115,6 +115,7 @@ private:
 	IPv4Address	m_addrFrom;
 	int		m_nLastReadCount;
 	int		m_nLastWriteCount;
+	std::atomic_bool	m_writeStop;
 };
 
 

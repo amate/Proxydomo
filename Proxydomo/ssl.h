@@ -6,6 +6,7 @@
 #pragma once
 
 #include <memory>
+#include <atomic>
 #include "Socket.h"
 
 bool	InitSSL();
@@ -30,6 +31,8 @@ public:
 
 	bool	IsConnected() const { return m_sock ? m_sock->IsConnected() : false; }
 
+	void	WriteStop() { m_writeStop = true; }
+
 	bool	Read(char* buffer, int length);
 	int		GetLastReadCount() const { return m_nLastReadCount; }
 
@@ -44,6 +47,7 @@ private:
 	WOLFSSL*		m_ssl;
 	int		m_nLastReadCount;
 	int		m_nLastWriteCount;
+	std::atomic_bool	m_writeStop;
 };
 
 

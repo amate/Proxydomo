@@ -106,7 +106,7 @@ bool CHeaderFilter::filter(string& content) {
     size_t index = 0;
     while ((index = content.find_first_of("\r\n", index)) != string::npos) {
         // Multiligne must be formatted as CR LF SPACE
-        int pos = index+1;
+        size_t pos = index + 1;
         while (string(" \t\r\n").find(content[pos])) ++pos;
         content.replace(index, pos-index, "\r\n ");
         index += 3;

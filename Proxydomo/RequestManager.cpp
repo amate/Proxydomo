@@ -138,6 +138,7 @@ void CRequestManager::Manage()
 	m_outStep = STEP_START;
 	m_inStep = STEP_START;
 	m_ipFromAddress = m_psockBrowser->GetFromAddress();
+	m_psockBrowser->SetBlocking(false);
 	m_psockWebsite.reset(new CSocket);
 
 	TRACEIN(_T("Manage start : ポート %d"), m_ipFromAddress.GetPortNumber());
@@ -192,7 +193,7 @@ void CRequestManager::Manage()
 				if (bRest) {
 					_JudgeManageContinue();
 
-					::Sleep(50);
+					::Sleep(10);	// 増やすな！
 				}
 			} while (m_psockWebsite->IsConnected() && m_psockBrowser->IsConnected());
 
@@ -233,6 +234,23 @@ void CRequestManager::Manage()
 	TRACEIN(_T("Manage finish : ポート %d"), m_ipFromAddress.GetPortNumber());
 }
 
+
+void	CRequestManager::SwitchToInvalid() 
+{
+	m_valid = false;
+	if (m_outStep != STEP_START) {
+		if (m_psockWebsite)
+			m_psockWebsite->WriteStop();
+		if (m_psockBrowser)
+			m_psockBrowser->WriteStop();
+		if (m_pSSLServerSession)
+			m_pSSLServerSession->WriteStop();
+		if (m_pSSLClientSession)
+			m_pSSLClientSession->WriteStop();
+	}
+}
+
+
 void	CRequestManager::_JudgeManageContinue()
 {
 	if (m_valid == false) {	// 接続を強制終了させる
@@ -272,22 +290,21 @@ void	CRequestManager::_JudgeManageContinue()
 
 bool CRequestManager::_ReceiveOut()
 {
-	char buf[kReadBuffSize + 1];
 	bool bDataReceived = false;
 	if (m_pSSLClientSession) {
-		while (m_pSSLClientSession->Read(buf, kReadBuffSize)) {
+		while (m_pSSLClientSession->Read(m_readBuffer, kReadBuffSize)) {
 			int count = m_pSSLClientSession->GetLastReadCount();
 			if (count == 0)
 				break;
-			m_recvOutBuf.append(buf, count);
+			m_recvOutBuf.append(m_readBuffer, count);
 			bDataReceived = true;
 		}
 	} else {
-		while (m_psockBrowser->IsDataAvailable() && m_psockBrowser->Read(buf, kReadBuffSize)) {
+		while (m_psockBrowser->IsDataAvailable() && m_psockBrowser->Read(m_readBuffer, kReadBuffSize)) {
 			int count = m_psockBrowser->GetLastReadCount();
 			if (count == 0)
 				break;
-			m_recvOutBuf.append(buf, count);
+			m_recvOutBuf.append(m_readBuffer, count);
 			bDataReceived = true;
 		}
 	}
@@ -297,23 +314,22 @@ bool CRequestManager::_ReceiveOut()
 /// Send outgoing data to website
 bool CRequestManager::_SendOut()
 {
+	if (m_sendOutBuf.empty())
+		return false;
+
 	bool ret = false;
 	if (m_pSSLServerSession) {
-		if (m_sendOutBuf.size() > 0) {
-			if (m_pSSLServerSession->Write(m_sendOutBuf.c_str(), (int)m_sendOutBuf.size())) {
-				m_sendOutBuf.erase(0, m_pSSLServerSession->GetLastWriteCount());
-				ret = true;
-			}
+		if (m_pSSLServerSession->Write(m_sendOutBuf.c_str(), (int)m_sendOutBuf.size())) {
+			m_sendOutBuf.erase(0, m_pSSLServerSession->GetLastWriteCount());
+			ret = true;
 		}
 	} else {
 		// Send everything to website, if connected
-		if (m_sendOutBuf.size() > 0 && m_psockWebsite->IsConnected()) {
-			ret = true;
-			m_psockWebsite->SetBlocking(true);
-			if (m_psockWebsite->Write(m_sendOutBuf.c_str(), (int)m_sendOutBuf.size()) == false)
-				m_psockWebsite->Close();	// Trouble with browser's socket, end of all things
-			else
+		if (m_psockWebsite->IsConnected()) {			
+			if (m_psockWebsite->Write(m_sendOutBuf.c_str(), (int)m_sendOutBuf.size())) {
 				m_sendOutBuf.erase(0, m_psockWebsite->GetLastWriteCount());
+				ret = true;
+			}
 		}
 	}
 	return ret;
@@ -607,7 +623,7 @@ void CRequestManager::_ProcessOut()
 					m_sendOutBuf += m_recvOutBuf.substr(0, pos) + CRLF CRLF;
 					m_recvOutBuf.erase(0, pos + len);
 
-					CLog::HttpEvent(kLogHttpPostOut, m_ipFromAddress, m_filterOwner.requestNumber, m_logPostData);
+					//CLog::HttpEvent(kLogHttpPostOut, m_ipFromAddress, m_filterOwner.requestNumber, m_logPostData);
 
 					m_outStep = STEP_FINISH;
 
@@ -629,10 +645,16 @@ void CRequestManager::_ProcessOut()
 				if (copySize == 0 && m_outSize)
 					return ;
 
-				std::string postData = m_recvOutBuf.substr(0, copySize);
-				m_sendOutBuf += postData;
-				m_logPostData += postData;
-				m_recvOutBuf.erase(0, copySize);
+				if (copySize == m_recvOutBuf.size() && m_sendOutBuf.empty()) {
+					m_sendOutBuf = std::move(m_recvOutBuf);
+					m_recvOutBuf.reserve(m_sendOutBuf.capacity());
+				} else {
+					m_sendOutBuf.append(m_recvOutBuf.c_str(), copySize);
+					m_recvOutBuf.erase(0, copySize);
+				}
+				//std::string postData = m_recvOutBuf.substr(0, copySize);
+				//m_sendOutBuf += postData;
+				//m_logPostData += postData;
 				m_outSize -= copySize;
 
 				// If we finished reading as mush raw data as was expected,
@@ -641,7 +663,7 @@ void CRequestManager::_ProcessOut()
 					if (m_outChunked) {
 						m_outStep = STEP_CHUNK;
 					} else {
-						CLog::HttpEvent(kLogHttpPostOut, m_ipFromAddress, m_filterOwner.requestNumber, m_logPostData);
+						//CLog::HttpEvent(kLogHttpPostOut, m_ipFromAddress, m_filterOwner.requestNumber, m_logPostData);
 
 						m_outStep = STEP_FINISH;
 					}
@@ -888,6 +910,7 @@ void CRequestManager::_ConnectWebsite()
             //             contactHost);
             return ;
         }
+
         if (m_requestLine.method == "CONNECT") {
             // for CONNECT method, incoming data is encrypted from start
             m_sendInBuf = "HTTP/1.0 200 Connection established" CRLF
@@ -945,7 +968,9 @@ void CRequestManager::_ConnectWebsite()
 					}
 				}
 			}
-        }
+		} else {
+			m_psockWebsite->SetBlocking(false);	// not CONNECT
+		}
     }
 
     // Prepare and send a simple request, if we did a transparent redirection
@@ -972,22 +997,21 @@ void CRequestManager::_ConnectWebsite()
 /// サイト ⇒ Proxy(this)
 bool	CRequestManager::_ReceiveIn()
 {
-	char buf[kReadBuffSize + 1];
 	bool bDataReceived = false;
 	if (m_pSSLServerSession) {
-		while (m_pSSLServerSession->Read(buf, kReadBuffSize)) {
+		while (m_pSSLServerSession->Read(m_readBuffer, kReadBuffSize)) {
 			int count = m_pSSLServerSession->GetLastReadCount();
 			if (count == 0)
 				break;
-			m_recvInBuf.append(buf, count);
+			m_recvInBuf.append(m_readBuffer, count);
 			bDataReceived = true;
 		}
 	} else {
-		while (m_psockWebsite->IsDataAvailable() && m_psockWebsite->Read(buf, kReadBuffSize)) {
+		while (m_psockWebsite->IsDataAvailable() && m_psockWebsite->Read(m_readBuffer, kReadBuffSize)) {
 			int count = m_psockWebsite->GetLastReadCount();
 			if (count == 0)
 				break;
-			m_recvInBuf.append(buf, count);
+			m_recvInBuf.append(m_readBuffer, count);
 			bDataReceived = true;
 		}
 	}
@@ -1296,8 +1320,14 @@ void	CRequestManager::_ProcessIn()
 				if (copySize == 0 && m_inSize) 
 					return ;	// 処理するデータがなくなったので
 
-				std::string data = m_recvInBuf.substr(0, copySize);
-				m_recvInBuf.erase(0, copySize);
+				std::string data;
+				if (copySize == m_recvInBuf.size()) {
+					data = std::move(m_recvInBuf);
+					m_recvInBuf.reserve(data.capacity());
+				} else {
+					data = m_recvInBuf.substr(0, copySize);
+					m_recvInBuf.erase(0, copySize);
+				}
 				m_inSize -= copySize;
 
 				// We must decompress compressed data,
@@ -1384,23 +1414,23 @@ void	CRequestManager::_ProcessIn()
 /// ブラウザへレスポンスを送信
 bool	CRequestManager::_SendIn()
 {
+	if (m_sendInBuf.empty())
+		return false;
+
 	bool ret = false;
 	if (m_pSSLClientSession) {
-		if (m_sendInBuf.size() > 0) {
-			if (m_pSSLClientSession->Write(m_sendInBuf.c_str(), (int)m_sendInBuf.size())) {
-				m_sendInBuf.erase(0, m_pSSLClientSession->GetLastWriteCount());
-				ret = true;
-			}
+		if (m_pSSLClientSession->Write(m_sendInBuf.c_str(), (int)m_sendInBuf.size())) {
+			m_sendInBuf.erase(0, m_pSSLClientSession->GetLastWriteCount());
+			ret = true;
 		}
 	} else {
 		// Send everything to browser, if connected
-		if (m_sendInBuf.size() > 0 && m_psockBrowser->IsConnected()) {
-			ret = true;
-			m_psockBrowser->SetBlocking(true);
-			if (m_psockBrowser->Write(m_sendInBuf.c_str(), (int)m_sendInBuf.size()) == false)
-				m_psockBrowser->Close();	// Trouble with browser's socket, end of all things
-			else
+		if (m_psockBrowser->IsConnected()) {			
+			// Trouble with browser's socket, end of all things
+			if (m_psockBrowser->Write(m_sendInBuf.c_str(), (int)m_sendInBuf.size())) {	
 				m_sendInBuf.erase(0, m_psockBrowser->GetLastWriteCount());
+				ret = true;
+			}
 		}
 	}
 	return ret;

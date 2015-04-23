@@ -52,6 +52,7 @@ enum { DEFAULTPECA_PORT = 6060 };
 LPCWSTR kDefaultLanguage = L"English";
 
 uint16_t		CSettings::s_proxyPort	= DEFAULTPECA_PORT;
+bool			CSettings::s_privateConnection = true;
 bool			CSettings::s_filterText	= true;
 bool			CSettings::s_filterIn	= true;
 bool			CSettings::s_filterOut	= true;
@@ -89,6 +90,8 @@ void	CSettings::LoadSettings()
 		read_ini(fs, pt);
 		if (auto value = pt.get_optional<uint16_t>("Setting.ProxyPort"))
 			s_proxyPort	= value.get();
+		if (auto value = pt.get_optional<bool>("Setting.privateConnection"))
+			s_privateConnection = value.get();
 		if (auto value = pt.get_optional<bool>("Setting.filterText"))
 			s_filterText	= value.get();
 		if (auto value = pt.get_optional<bool>("Setting.filterIn"))
@@ -158,6 +161,7 @@ void	CSettings::SaveSettings()
 	}
 
 	pt.put("Setting.ProxyPort", s_proxyPort);
+	pt.put("Setting.privateConnection", s_privateConnection);
 	pt.put("Setting.filterText"	, s_filterText);
 	pt.put("Setting.filterIn"	, s_filterIn);
 	pt.put("Setting.filterOut"	, s_filterOut);
@@ -484,7 +488,7 @@ bool CSettings::_CreatePattern(std::wstring& pattern, HashedListCollection& list
 		if (Proxydomo::CMatcher::CreateMatcher(pattern) == nullptr)
 			return false;
 
-		UnicodeString pat(pattern.c_str(), pattern.length());
+		UnicodeString pat(pattern.c_str(), (int32_t)pattern.length());
 		StringCharacterIterator patternIt(pat);
 		for (; patternIt.current() != patternIt.DONE && patternIt.getIndex() < kMaxPreHashWordLength; patternIt.next()) {
 			auto& pmapChildHashWord = (*pmapPreHashWord)[towlower(patternIt.current())];
@@ -645,9 +649,9 @@ bool CSettings::_CreatePattern(std::wstring& pattern, HashedListCollection& list
 						pURLHash.reset(new HashedListCollection::URLHash);
 
 					if (std::next(it) == deqDomain.rend()) {
-						UnicodeString patfirst(firstWildcard.c_str(), firstWildcard.length());
+						UnicodeString patfirst(firstWildcard.c_str(), (int32_t)firstWildcard.length());
 						StringCharacterIterator patternfirstIt(patfirst);
-						UnicodeString patlast(lastWildcard.c_str(), lastWildcard.length());
+						UnicodeString patlast(lastWildcard.c_str(), (int32_t)lastWildcard.length());
 						StringCharacterIterator patternlastIt(patlast);
 						pURLHash->vecpairNode.emplace_back(
 							std::shared_ptr<Proxydomo::CNode>(Proxydomo::CMatcher::expr(patternfirstIt)),
@@ -666,7 +670,7 @@ bool CSettings::_CreatePattern(std::wstring& pattern, HashedListCollection& list
 
     // parse the pattern
 	try {
-		UnicodeString pat(pattern.c_str(), pattern.length());
+		UnicodeString pat(pattern.c_str(), (int32_t)pattern.length());
 		StringCharacterIterator patternIt(pat);
 		listCollection.deqNormalNode.emplace_back(std::shared_ptr<Proxydomo::CNode>(Proxydomo::CMatcher::expr(patternIt)), listLine);
 	} catch (...) {

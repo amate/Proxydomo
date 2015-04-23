@@ -105,6 +105,7 @@ class CSettings
 {
 public:
 	static uint16_t		s_proxyPort;
+	static bool			s_privateConnection;
 	static bool			s_filterText;
 	static bool			s_filterIn;
 	static bool			s_filterOut;

@@ -27,6 +27,7 @@
 
 #include "DebugWindow.h"
 #include "Logger.h"
+#include "Settings.h"
 
 
 ////////////////////////////////////////////////////////////////////
@@ -140,6 +141,7 @@ bool IPv4Address::SetNextHost()
 
 CSocket::CSocket() : m_sock(0), m_nLastReadCount(0), m_nLastWriteCount(0)
 {
+	m_writeStop = false;
 }
 
 
@@ -181,7 +183,11 @@ void	CSocket::Bind(uint16_t port)
 	sockaddr_in localAddr = { 0 };
 	localAddr.sin_family = AF_INET;
 	localAddr.sin_port = htons(port);
-	localAddr.sin_addr.s_addr = INADDR_ANY;
+	if (CSettings::s_privateConnection) {
+		localAddr.sin_addr.s_addr = ::inet_addr("127.0.0.1");
+	} else {
+		localAddr.sin_addr.s_addr = INADDR_ANY;
+	}
 	if( ::bind(m_sock, (sockaddr *)&localAddr, sizeof(localAddr)) == SOCKET_ERROR)
 		throw SocketException("Can`t bind socket");
 
@@ -270,11 +276,6 @@ void	CSocket::Close()
 	}
 }
 
-void	CSocket::SendStop()
-{
-	if (m_sock)
-		::shutdown(m_sock, SD_SEND);
-}
 
 bool	CSocket::IsDataAvailable()
 {
@@ -322,23 +323,28 @@ bool	 CSocket::Read(char* buffer, int length)
 	if (m_sock == 0)
 		return false;
 
-	ATLASSERT( length > 0 );
-	int nLen = ::recv(m_sock, buffer, length, 0);
-	m_nLastReadCount = nLen;
-	if (nLen == SOCKET_ERROR) {
-		m_nLastReadCount = 0;
+	ATLASSERT(length > 0);
+	m_nLastReadCount = 0;
+	int ret = ::recv(m_sock, buffer, length, 0);
+	if (ret == 0) {
+		Close();
+		return true;
+
+	} else {
 		int wsaError = ::WSAGetLastError();
-		if (wsaError == WSAEWOULDBLOCK)
+		if (ret == SOCKET_ERROR && wsaError == WSAEWOULDBLOCK) {
+			return false;	// pending
+		}
+		if (ret < 0) {
+			Close();
+			return false;
+
+		} else {
+			m_nLastReadCount = ret;
 			return true;
 
-		throw SocketException("CSocket::Read failed");		// ‘ŠŽè‚©‚çÚ‘±‚ªØ’f‚³‚ê‚½
-		//Close();
-		return false;
+		}
 	}
-	if (nLen == 0) {
-		Close();
-	}
-	return true;
 }
 
 
@@ -347,21 +353,28 @@ bool	CSocket::Write(const char* buffer, int length)
 	if (m_sock == 0)
 		return false;
 
+	m_nLastWriteCount = 0;
 	ATLASSERT( length > 0 );
-	int nLen = ::send(m_sock, buffer, length, 0);
-	if (nLen == SOCKET_ERROR) {
-		m_nLastWriteCount = 0;
-		int wsaError = ::WSAGetLastError();
-		if (wsaError == WSAEWOULDBLOCK)
-			return true;
+	int ret = 0;
 
-		//throw SocketException("CSocket::Write failed");
-		//Close();
-		return false;
+	for (;;) {
+		ret = ::send(m_sock, buffer, length, 0);
+		int wsaError = ::WSAGetLastError();
+		if (ret == SOCKET_ERROR && wsaError == WSAEWOULDBLOCK && m_writeStop == false) {
+			::Sleep(10);
+		} else {
+			break;
+		}
 	}
-	ATLASSERT( nLen == length );
-	m_nLastWriteCount = nLen;
-	return true;
+
+	if (ret != length) {
+		Close();
+		return false;
+
+	} else {
+		m_nLastWriteCount = ret;
+		return true;
+	}
 }
 
 
