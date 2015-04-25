@@ -298,8 +298,8 @@ private:
 class CNode_And : public CNode
 {
 public:
-	CNode_And(CNode* L, CNode* R, bool force = false) : 
-		CNode(AND), m_nodeL(L), m_nodeR(R), m_force(force) { }
+	CNode_And(CNode* L, CNode* R) : 
+		CNode(AND), m_nodeL(L), m_nodeR(R) { }
     ~CNode_And();
 
 	// CNode
@@ -310,9 +310,30 @@ public:
 private:
     CNode* m_nodeL;
 	CNode* m_nodeR;
-    bool m_force;
 };
 
+/* class CNode_AndAnd
+* Try and match left node then right node (returns max length of both)
+* Stop is for "&&", limiting right to matching exactly what left matched
+*/
+
+class CNode_AndAnd : public CNode
+{
+public:
+	CNode_AndAnd(CNode* L, CNode* R);
+	~CNode_AndAnd();
+
+	// CNode
+	bool mayMatch(bool* tab) override;
+	void setNextNode(CNode* node) override;
+	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override;
+
+private:
+	CNode* m_nodeL;
+	CNode* m_nodeR;
+	class CNode_nodeLReachedRecoder;
+	CNode_nodeLReachedRecoder*	m_recorder;
+};
 
 /* class CNode_Repeat
  * Try and match a pattern several times

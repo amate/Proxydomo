@@ -656,7 +656,7 @@ void CFilterEditWindow::OnTest(UINT uNotifyCode, int nID, CWindow wndCtl)
 		return;
 
 	if (m_pTestWindow->IsWindow() == FALSE) {
-		m_pTestWindow->Create(m_hWnd);
+		m_pTestWindow->Create(GetParent());
 	}
 	m_pTestWindow->SetURLPatternMode(nID == IDC_BUTTON_TEST_URLPATTERN);
 	m_pTestWindow->ShowWindow(TRUE);

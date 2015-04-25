@@ -30,6 +30,7 @@
 #include <boost\property_tree\ini_parser.hpp>
 #include <boost\property_tree\xml_parser.hpp>
 #include <boost\format.hpp>
+#include <boost\algorithm\string\predicate.hpp>
 #include <Shlwapi.h>
 #pragma comment(lib, "Shlwapi.lib")
 #include "Misc.h"
@@ -40,6 +41,7 @@
 #include "CodeConvert.h"
 #include "Logger.h"
 #include "Matcher.h"
+#include "DirectoryWatcher.h"
 
 using namespace CodeConvert;
 using namespace boost::property_tree;
@@ -80,6 +82,8 @@ std::shared_ptr<Proxydomo::CMatcher>	CSettings::s_pBypassMatcher;
 std::recursive_mutex						CSettings::s_mutexHashedLists;
 std::unordered_map<std::string, std::unique_ptr<HashedListCollection>>	CSettings::s_mapHashedLists;
 
+CDirectoryWatcher	g_listChangeWatcher(FILE_NOTIFY_CHANGE_LAST_WRITE);
+CCriticalSection	g_csListChangeWatcher;
 
 
 void	CSettings::LoadSettings()
@@ -146,9 +150,36 @@ void	CSettings::LoadSettings()
 
 	CSettings::LoadFilter();
 
-	ForEachFile(Misc::GetExeDirectory() + _T("lists\\"), [](const CString& filePath) {
-		LoadList(filePath);
+	// lists フォルダからブロックリストを読み込む
+	std::function<void(const CString&, bool)> funcForEach;
+	funcForEach = [&funcForEach](const CString& path, bool bFolder) {
+		if (bFolder) {
+			ForEachFileFolder(path, funcForEach);
+		} else {
+			LoadList(path);
+		}
+	};
+	ForEachFileFolder(Misc::GetExeDirectory() + _T("lists\\"), funcForEach);
+
+	g_listChangeWatcher.SetCallbackFunction([](const CString& filePath) {
+		enum { kMaxRetry = 30, kSleepTime = 100 };
+		for (int i = 0; i < kMaxRetry; ++i) {
+			HANDLE hTestOpen = CreateFile(filePath, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+			if (hTestOpen == INVALID_HANDLE_VALUE) {
+				::Sleep(kSleepTime);
+				continue;
+			}
+			CloseHandle(hTestOpen);
+			break;
+		}
+		CSettings::LoadList(filePath);
 	});
+	g_listChangeWatcher.WatchDirectory(Misc::GetExeDirectory() + _T("lists\\"));
+}
+
+void CSettings::StopWatchDirectory()
+{
+	g_listChangeWatcher.StopWatchDirectory();
 }
 
 void	CSettings::SaveSettings()
@@ -387,17 +418,12 @@ void CSettings::EnumActiveFilter(std::function<void (CFilterDescriptor*)> func)
 	ActiveFilterCallFunc(s_vecpFilters, func);
 }
 
-void CSettings::LoadList(const CString& filePath)
+/// 最終書き込み時刻を取得
+static uint64_t GetFileLastWriteTime(const CString& filePath)
 {
-	CString ext = Misc::GetFileExt(filePath);
-	ext.MakeLower();
-	if (ext != _T("txt"))
-		return;
-
-	// 最終書き込み時刻を取得
 	HANDLE hFile = CreateFile(filePath, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-	if (hFile == INVALID_HANDLE_VALUE) 
-		return ;
+	if (hFile == INVALID_HANDLE_VALUE)
+		return 0;
 
 	FILETIME lastWriteTime = {};
 	::GetFileTime(hFile, NULL, NULL, &lastWriteTime);
@@ -405,25 +431,45 @@ void CSettings::LoadList(const CString& filePath)
 	time <<= 32;
 	time |= lastWriteTime.dwLowDateTime;
 	::CloseHandle(hFile);
+	return time;
+}
 
-	std::string filename = CT2A(Misc::GetFileBaseNoExt(filePath));
-	static std::unordered_map<std::string, uint64_t> s_mapFileLastWriteTime;
-	uint64_t& prevLastWriteTime = s_mapFileLastWriteTime[filename];
-	if (prevLastWriteTime == time)
+void CSettings::LoadList(const CString& filePath)
+{
+	CString ext = Misc::GetFileExt(filePath);
+	ext.MakeLower();
+	if (ext != _T("txt"))
+		return;
+
+	std::string filename = UTF8fromUTF16((LPCWSTR)Misc::GetFileBaseNoExt(filePath));
+	std::unique_lock<std::recursive_mutex> lock(s_mutexHashedLists);
+	auto& hashedLists = s_mapHashedLists[filename];
+	if (hashedLists == nullptr) {
+		hashedLists.reset(new HashedListCollection);
+	}
+	lock.unlock();
+
+	boost::unique_lock<boost::shared_mutex>	lock2(hashedLists->mutex);
+	if (hashedLists->filePath.empty()) {
+		hashedLists->filePath = (LPCWSTR)filePath;
+	} else {
+		if (hashedLists->filePath != (LPCWSTR)filePath) {
+			return;		// 同じファイル名では登録できないので
+
+		} else if (hashedLists->bLogFile)
+			return;		// ログファイルは何もしない
+	}
+
+	uint64_t lastWriteTime = GetFileLastWriteTime(filePath);
+	if (hashedLists->prevLastWriteTime == lastWriteTime)
 		return ;	// 更新されていなかったら帰る
-	prevLastWriteTime = time;
+	hashedLists->prevLastWriteTime = lastWriteTime;
 
 	std::wifstream fs(filePath, std::ios::in | std::ios::binary);
 	if (!fs)
 		return ;
 	fs.imbue(std::locale(std::locale(), new std::codecvt_utf8_utf16<wchar_t, 0x10ffff, std::codecvt_mode::consume_header>));
 	{
-		s_mutexHashedLists.lock();
-		auto& hashedLists = s_mapHashedLists[filename];
-		if (hashedLists == nullptr) {
-			hashedLists.reset(new HashedListCollection);
-		}
-		boost::unique_lock<boost::shared_mutex>	lock(hashedLists->mutex);
 		hashedLists->PreHashWordList.clear();
 		hashedLists->URLHashList.clear();
 		hashedLists->deqNormalNode.clear();
@@ -431,7 +477,15 @@ void CSettings::LoadList(const CString& filePath)
 		std::wstring pattern;
 		std::wstring strLine;
 		int nLineCount = 0;
+		bool	bAddPattern = false;
 		while (std::getline(fs, strLine)) {
+			if (bAddPattern == false && nLineCount < 6 && strLine.length() && strLine[0] == L'#') {
+				if (boost::algorithm::contains(strLine, L"LOGFILE")) {
+					hashedLists->bLogFile = true;
+					break;	// LogFile
+				}
+			}
+
 			if (strLine.length() && (strLine[0] == L' ' || strLine[0] == L'\t')) {
 				CUtil::trim(strLine);
 				pattern += strLine;
@@ -439,6 +493,7 @@ void CSettings::LoadList(const CString& filePath)
 			} else {
 				CUtil::trim(strLine);
 				if (pattern.length()) {
+					bAddPattern = true;
 					bool bSuccess = _CreatePattern(pattern, *hashedLists, nLineCount);
 					if (bSuccess == false)
 						CLog::FilterEvent(kLogFilterListBadLine, nLineCount, filename, "");
@@ -459,9 +514,53 @@ void CSettings::LoadList(const CString& filePath)
 			if (bSuccess == false)
 				CLog::FilterEvent(kLogFilterListBadLine, nLineCount, filename, "");
 		}
-		s_mutexHashedLists.unlock();
+		hashedLists->lineCount = nLineCount;
 	}
 	CLog::FilterEvent(kLogFilterListReload, -1, filename, "");
+}
+
+void	CSettings::AddListLine(const std::string& name, const std::wstring& addLine)
+{
+	if (addLine.empty())
+		return;
+
+	std::unique_lock<std::recursive_mutex> lock(s_mutexHashedLists);
+	auto& hashedLists = s_mapHashedLists[name];
+	if (hashedLists == nullptr) {
+		hashedLists.reset(new HashedListCollection);
+	}
+	lock.unlock();
+
+	boost::unique_lock<boost::shared_mutex>	lock2(hashedLists->mutex);
+	if (hashedLists->bLogFile == false) {
+		std::wstring pattern = addLine;
+		bool bSuccess = _CreatePattern(pattern, *hashedLists, hashedLists->lineCount + 1);
+		if (bSuccess == false) {
+			CLog::FilterEvent(kLogFilterListBadLine, hashedLists->lineCount + 1, name, "");
+			return;
+		}
+	}
+
+	if (hashedLists->filePath.empty())
+		return;
+
+	++hashedLists->lineCount;
+	std::wstring filePath = hashedLists->filePath;
+
+	std::thread([filePath, addLine]() {
+		std::wofstream fs(filePath, std::ios::out | std::ios::app | std::ios::binary);
+		if (!fs)
+			return;
+
+		CCritSecLock	lock(g_csListChangeWatcher);
+		g_listChangeWatcher.StopWatchDirectory();
+
+		fs.imbue(std::locale(std::locale(), new std::codecvt_utf8_utf16<wchar_t, 0x10ffff, std::codecvt_mode::consume_header>));
+		fs << addLine << L"\r\n";
+		fs.close();
+
+		g_listChangeWatcher.WatchDirectory(Misc::GetExeDirectory() + _T("lists\\"));
+	}).detach();
 }
 
 static inline bool isNonWildWord(wchar_t c) {

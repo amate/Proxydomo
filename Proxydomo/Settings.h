@@ -44,6 +44,10 @@ namespace Proxydomo {
 /// １つのリストにあるすべてのパターンを持っている
 struct HashedListCollection {
 	boost::shared_mutex	mutex;
+	std::wstring	filePath;
+	bool			bLogFile;
+	uint64_t		prevLastWriteTime;
+	int				lineCount;
 
 	struct NodeData {
 		std::shared_ptr<Proxydomo::CNode> node;
@@ -77,6 +81,8 @@ struct HashedListCollection {
 
 	// Normalリスト
 	std::deque<NodeData>	deqNormalNode;
+
+	HashedListCollection() : bLogFile(false), prevLastWriteTime(0), lineCount(0) {}
 };
 
 struct FilterItem
@@ -128,6 +134,8 @@ public:
 	static void	LoadSettings();
 	static void	SaveSettings();
 
+	static void StopWatchDirectory();
+
 	// CCritSecLock	lock(CSettings::s_csFilters);
 	static CCriticalSection		s_csFilters;
 	// 全所有フィルター
@@ -147,6 +155,7 @@ public:
 	static void SaveFilter();
 
 	static void LoadList(const CString& filePath);
+	static void	AddListLine(const std::string& name, const std::wstring& addLine);
 private:
 	static bool _CreatePattern(std::wstring& pattern, HashedListCollection& listCollection, int listLine);
 

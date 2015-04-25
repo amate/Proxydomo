@@ -47,6 +47,7 @@
 #include "..\CodeConvert.h"
 #include "..\Settings.h"
 #include "..\AppConst.h"
+#include "..\Misc.h"
 
 using namespace std;
 using namespace Proxydomo;
@@ -140,9 +141,7 @@ std::wstring CExpander::expand(const std::wstring& pattern, CFilter& filter) {
             case L'p': output << UTF16fromUTF8(filter.owner.url.getPath()); break;
             case L'q': output << UTF16fromUTF8(filter.owner.url.getQuery()); break;
             case L'a': output << UTF16fromUTF8(filter.owner.url.getAnchor()); break;
-            //case 'd': output << wxT("file:///");
-            //          output << CUtil::replaceAll(W2S(wxGetCwd()), "\\", "/");
-                  break;
+			case L'd': output << L"file:///" << CUtil::replaceAll((LPCWSTR)Misc::GetExeDirectory(), L"\\", L"/"); break;
 
 			case L'x':
 				output << UTF16fromUTF8(CSettings::s_urlCommandPrefix);
@@ -328,6 +327,7 @@ std::wstring CExpander::expand(const std::wstring& pattern, CFilter& filter) {
                         std::wstring name = content.substr(0, comma);
                         std::wstring value = content.substr(comma + 1);
                         CUtil::trim(name);
+						CSettings::AddListLine(UTF8fromUTF16(name), expand(value, filter));
                         //CSettings::ref().addListLine(name, expand(value, filter));
                     }
 
@@ -446,6 +446,8 @@ std::wstring CExpander::expand(const std::wstring& pattern, CFilter& filter) {
                         index = size;
 
                 } else if (command == L"DTM") {
+					//time_t time = std::time(nullptr);
+					//tm* tm = std::localtime(&time);
 #if 0
                     string day[7] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
                     stringstream ss;

@@ -118,7 +118,7 @@ private:
 			DWORD dwBytesReturned = 0;
 			OVERLAPPED overLapped = { 0 };
 			overLapped.hEvent = hEvent;
-			if (!ReadDirectoryChangesW(m_hDir, static_cast<LPVOID>(tempBuff), kTempBuffSize, FALSE, 
+			if (!ReadDirectoryChangesW(m_hDir, static_cast<LPVOID>(tempBuff), kTempBuffSize, TRUE, 
 				m_dwNotifyFilter, nullptr, &overLapped, nullptr))
 				return ;
 

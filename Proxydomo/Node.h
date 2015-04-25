@@ -26,6 +26,7 @@
 
 #include <map>
 #include <vector>
+#include <tuple>
 #include "proximodo\url.h"
 #include <unicode\schriter.h>
 
@@ -39,6 +40,7 @@ struct MatchData
 	CFilter*		pFilter;
 
 	std::map<void*, const UChar*>	mapRecordPos;	// for CNode_Memory
+	std::map<void*, std::tuple<const UChar*, const UChar*>>	mapReached;		// for CNode_AndAnd
 
 	std::vector<std::pair<std::string, int>> matchListLog;
 
@@ -102,7 +104,7 @@ public:
 
     // Enumeration for id()
     enum type { 
-		AND,      ANY,      ASK,      AV,       CHAR,     CHARS,
+		AND,	  ANDAND,   ANY,      ASK,      AV,       CHAR,     CHARS,
 		CNX,      COMMAND,  EMPTY,    EQUAL,    LIST,     MEMORY,
 		MEMSTAR,  NEGATE,   NEST,     OR,       QUOTE,    RANGE,
 		REPEAT,   RUN,      SPACE,    STAR,     STRING,   TEST,

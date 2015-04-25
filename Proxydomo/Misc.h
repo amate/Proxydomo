@@ -28,6 +28,8 @@
 #include <stdarg.h>
 #include <io.h>
 #include <vector>
+#include <list>
+#include <algorithm>
 
 #include <atlstr.h>
 #include <atlapp.h>
@@ -62,6 +64,45 @@ bool ForEachFile(const CString &strDirectoryPath, _Function __f)
 
 	return true;
 }
+
+template <class _Function>
+bool ForEachFileFolder(const CString &strDirectoryPath, _Function __f)
+{
+	CString 		strPathFind = strDirectoryPath;
+
+	::PathAddBackslash(strPathFind.GetBuffer(MAX_PATH));
+	strPathFind.ReleaseBuffer();
+
+	CString 		strPath = strPathFind;
+	strPathFind += _T("*.*");
+
+	WIN32_FIND_DATA wfd;
+	HANDLE	h = ::FindFirstFile(strPathFind, &wfd);
+	if (h == INVALID_HANDLE_VALUE)
+		return false;
+	
+	std::list<std::pair<std::wstring, bool>> vecFileFolder;
+	// Now scan the directory
+	do {
+		if (::lstrcmp(wfd.cFileName, _T(".")) == 0 || ::lstrcmp(wfd.cFileName, _T("..")) == 0)
+			continue;
+
+		if ((wfd.dwFileAttributes & (FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM)) == 0) {
+			vecFileFolder.emplace_back(wfd.cFileName, (wfd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0);
+		}
+	} while (::FindNextFile(h, &wfd));
+
+	::FindClose(h);
+
+	vecFileFolder.sort([](const std::pair<std::wstring, bool>& first, const std::pair<std::wstring, bool>& second) -> bool {
+		return ::StrCmpLogicalW(first.first.c_str(), second.first.c_str()) < 0;
+	});
+	for (auto& pair : vecFileFolder)
+		__f(strPath + pair.first.c_str(), pair.second);
+
+	return true;
+}
+
 
 namespace Misc {
 

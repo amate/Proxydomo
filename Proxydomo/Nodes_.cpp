@@ -579,29 +579,18 @@ const UChar* CNode_And::match(const UChar* start, const UChar* stop, MatchData* 
 	pMatch->reached = start;
 
     // Ask right node for the first match
-	if (m_force) {	// &&
-		const UChar* posR = m_nodeR->match(start, reachedL, pMatch);
-		// && の右側のパターンがマッチなし、もしくはパターンがreachedLまで消費しなかったらマッチなし
-		if (posR == nullptr || posR != reachedL) {	
-			pMatch->reached = reachedOrigin;
-			return nullptr;
-		}
+	const UChar* posR = m_nodeR->match(start, stop, pMatch);
+	if (posR == nullptr) {
+		pMatch->reached = reachedOrigin;
+		return nullptr;
+	}
+	const UChar* reachedR = pMatch->reached;
+	if (reachedR < reachedL)
+		pMatch->reached = reachedL;
+	if (posR < posL) {
+		return posL;
+	} else {
 		return posR;
-
-	} else {	// &
-		const UChar* posR = m_nodeR->match(start, stop, pMatch);
-		if (posR == nullptr) {
-			pMatch->reached = reachedOrigin;
-			return nullptr;
-		}
-		const UChar* reachedR = pMatch->reached;
-		if (reachedR < reachedL)
-			pMatch->reached = reachedL;
-		if (posR < posL) {
-			return posL;
-		} else {
-			return posR;
-		}
 	}
 }
 
@@ -628,10 +617,114 @@ void CNode_And::setNextNode(CNode* node)
 {
     m_nextNode = nullptr;
     m_nodeL->setNextNode(node);
-    m_nodeR->setNextNode(m_force ? nullptr : node);
+    m_nodeR->setNextNode(node);
 }
 
 
+/* class CNode_AndAnd
+* Try and match left node then right node (returns max length of both)
+* Stop is for "&&", limiting right to matching exactly what left matched
+*/
+
+class CNode_AndAnd::CNode_nodeLReachedRecoder : public CNode
+{
+public:
+	CNode_nodeLReachedRecoder(CNode_AndAnd* parent) : CNode(ANDAND), m_pParentNode(parent) {}
+
+	// CNode
+	bool mayMatch(bool* tab) override
+	{
+		return m_nextNode == nullptr || m_nextNode->mayMatch(tab);
+	}
+
+	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override
+	{
+		const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
+		if (ret) {
+			auto it = pMatch->mapReached.find((void*)m_pParentNode);
+			ATLASSERT(it != pMatch->mapReached.end());
+			it->second = std::make_tuple(start, ret);
+		}
+		return ret;
+	}
+
+private:
+	CNode_AndAnd*	m_pParentNode;
+
+};
+
+CNode_AndAnd::CNode_AndAnd(CNode* L, CNode* R) : CNode(ANDAND), m_nodeL(L), m_nodeR(R), m_recorder(new CNode_nodeLReachedRecoder(this))
+{
+}
+
+CNode_AndAnd::~CNode_AndAnd()
+{
+	delete m_nodeL;
+	delete m_nodeR;
+	delete m_recorder;
+}
+
+const UChar* CNode_AndAnd::match(const UChar* start, const UChar* stop, MatchData* pMatch)
+{
+	// Ask left node for the first match
+	const UChar* reachedOrigin = pMatch->reached;
+	pMatch->reached = start;
+	pMatch->mapReached.emplace((void*)this, std::make_tuple(start, (const UChar*)nullptr));
+
+	const UChar* posL = m_nodeL->match(start, stop, pMatch);
+
+	auto it = pMatch->mapReached.find((void*)this);
+	ATLASSERT(it != pMatch->mapReached.end());
+	const UChar* reachedL = std::get<0>(it->second);
+	const UChar* ret = std::get<1>(it->second);
+	pMatch->mapReached.erase(it);
+
+	if (posL == nullptr) {
+		pMatch->reached = reachedOrigin;
+		return nullptr;
+	}
+
+	const UChar* reachedNext = pMatch->reached;
+	pMatch->reached = start;
+
+	const UChar* posR = m_nodeR->match(start, reachedL, pMatch);
+	// && の右側のパターンがマッチなし、もしくはパターンがreachedLまで消費しなかったらマッチなし
+	if (posR == nullptr || posR != reachedL) {
+		pMatch->reached = reachedOrigin;
+		return nullptr;
+	}
+
+	if (ret)
+		pMatch->reached = reachedNext;
+	return ret;
+}
+
+bool CNode_AndAnd::mayMatch(bool* tab)
+{
+	bool tabL[256], tabR[256];
+	for (int i = 0; i<256; i++) tabL[i] = tabR[i] = false;
+
+	bool retL = m_nodeL->mayMatch(tabL);
+	bool retR = m_nodeR->mayMatch(tabR);
+	if (tab) {
+		if (!retL && !retR) {
+			for (int i = 0; i<256; i++)
+				if (tabL[i] && tabR[i]) tab[i] = true;
+		} else {
+			for (int i = 0; i<256; i++)
+				if ((retR && tabL[i]) || (retL && tabR[i])) tab[i] = true;
+		}
+	}
+	return retL && retR;
+}
+
+void CNode_AndAnd::setNextNode(CNode* node)
+{
+	m_nextNode = nullptr;
+	m_recorder->setNextNode(node);
+	m_nodeL->setNextNode(m_recorder);
+	m_nodeR->setNextNode(nullptr);
+}
 
 
 /* class CNode_Repeat
@@ -655,8 +748,10 @@ const UChar* CNode_Repeat::match(const UChar* start, const UChar* stop, MatchDat
             checked = true;
         }
         const UChar* ret = m_node->match(start, stop, pMatch);
-        if (ret == nullptr) 
+		if (ret == nullptr) {
+			pMatch->reached = start;	// マッチしなかったら元に戻しておく
 			break;
+		}
 
         checked = false;
         if (ret == start) {
@@ -1047,13 +1142,14 @@ const UChar* CNode_Command::match(const UChar* start, const UChar* stop, MatchDa
 	const UChar *tStop = nullptr;
 	const UChar *tEnd = nullptr;
 	std::wstring toMatch;
+	const UChar*	reachedOrigin = pMatch->reached;
 
 	CFilter& filter = *pMatch->pFilter;
 	CFilterOwner& owner = filter.owner;
 
     switch (m_num) {
 
-    case CMD_TSTSHARP:
+    case CMD_TSTSHARP:	// $TST(\#=Matching expression)
         if (filter.memoryStack.empty()) return NULL;
         toMatch = filter.memoryStack.back().getValue();
         tStart = toMatch.c_str();
@@ -1061,42 +1157,50 @@ const UChar* CNode_Command::match(const UChar* start, const UChar* stop, MatchDa
         if (toMatch.empty()
                || !m_matcher->match(tStart, tStop, tEnd, pMatch)
                || tEnd != tStop ) {
-            return NULL;
+			pMatch->reached = reachedOrigin;
+			return NULL;
         }
-        break;
+		pMatch->reached = reachedOrigin;
+		break;
 
-    case CMD_TSTEXPAND:
+    case CMD_TSTEXPAND:	// $TST((VariableName or \# or \0-\9)=Matching expression)
         toMatch = CExpander::expand(m_name, filter);
         tStart = toMatch.c_str();
         tStop = tStart + toMatch.size();
         if (toMatch.empty()
                || !m_matcher->match(tStart, tStop, tEnd, pMatch)
                || tEnd != tStop ) {
+			pMatch->reached = reachedOrigin;
             return NULL;
         }
+		pMatch->reached = reachedOrigin;
         break;
 
-    case CMD_TSTDIGIT:
+    case CMD_TSTDIGIT:	// // $TST(\0-\9=Matching expression)
         toMatch = filter.memoryTable[m_name[0] - L'0'].getValue();
         tStart = toMatch.c_str();
         tStop = tStart + toMatch.size();
         if (toMatch.empty()
                || !m_matcher->match(tStart, tStop, tEnd, pMatch)
                || tEnd != tStop ) {
-            return NULL;
+			pMatch->reached = reachedOrigin;
+			return NULL;
         }
-        break;
+		pMatch->reached = reachedOrigin;
+		break;
 
-    case CMD_TSTVAR:
+    case CMD_TSTVAR:	// $TST(VariableName=Matching expression)
         toMatch = owner.variables[m_name];
         tStart = toMatch.c_str();
         tStop = tStart + toMatch.size();
         if (toMatch.empty()
                || !m_matcher->match(tStart, tStop, tEnd, pMatch)
                || tEnd != tStop ) {
-            return NULL;
+			pMatch->reached = reachedOrigin;
+			return NULL;
         }
-        break;
+		pMatch->reached = reachedOrigin;
+		break;
 
     case CMD_URL:
         toMatch = UTF16fromUTF8(owner.url.getUrl());
@@ -1150,6 +1254,7 @@ const UChar* CNode_Command::match(const UChar* start, const UChar* stop, MatchDa
 
     case CMD_ADDLST:
         //CSettings::ref().addListLine(name, CExpander::expand(content, filter));
+		CSettings::AddListLine(UTF8fromUTF16(m_name), CExpander::expand(m_content, filter));
         break;
         
     case CMD_ADDLSTBOX:

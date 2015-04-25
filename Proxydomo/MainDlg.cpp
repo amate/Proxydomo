@@ -34,7 +34,7 @@ using namespace UITranslator;
 
 using namespace boost::property_tree;
 
-CMainDlg::CMainDlg(CProxy* proxy) : m_proxy(proxy), m_listChangeWatcher(FILE_NOTIFY_CHANGE_LAST_WRITE), m_bVisibleOnDestroy(true)
+CMainDlg::CMainDlg(CProxy* proxy) : m_proxy(proxy), m_bVisibleOnDestroy(true)
 {
 }
 
@@ -88,22 +88,6 @@ LRESULT CMainDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam
 
 	CLog::RegisterLogTrace(this);
 
-	m_listChangeWatcher.SetCallbackFunction([](const CString& filePath) {
-		enum { kMaxRetry = 30, kSleepTime = 100 };
-		for (int i = 0; i < kMaxRetry; ++i) {
-			HANDLE hTestOpen = CreateFile(filePath, GENERIC_READ, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-			if (hTestOpen == INVALID_HANDLE_VALUE) {
-				::Sleep(kSleepTime);
-				continue;
-			}
-			CloseHandle(hTestOpen);
-			break;
-		}
-		CSettings::LoadList(filePath);
-	});
-
-	m_listChangeWatcher.WatchDirectory(Misc::GetExeDirectory() + _T("lists\\"));
-
 	DoDataExchange(DDX_LOAD);
 
 	{	// トレイアイコンを作成
@@ -149,7 +133,7 @@ LRESULT CMainDlg::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/,
 
 	CLog::RemoveLogTrace(this);
 
-	m_listChangeWatcher.StopWatchDirectory();
+	CSettings::StopWatchDirectory();
 
 	DoDataExchange(DDX_SAVE);
 
@@ -269,21 +253,19 @@ LRESULT CMainDlg::OnTrayIconNotify(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, 
 
 		CMenuHandle menuBlockList;
 		menuBlockList.CreatePopupMenu();
-		std::vector<std::wstring> vecBlockListName;
+		std::vector<std::tuple<std::wstring, std::wstring>> vecBlockListName;
 		{
 			std::lock_guard<std::recursive_mutex> lock(CSettings::s_mutexHashedLists);
 			for (auto& list : CSettings::s_mapHashedLists) {
 				std::wstring name = (LPWSTR)CA2W((list.first + ".txt").c_str());
-				vecBlockListName.emplace_back(name);
+				vecBlockListName.emplace_back(name, list.second->filePath);
 			}
 		}
 		std::sort(vecBlockListName.begin(), vecBlockListName.end());
 		const size_t count = vecBlockListName.size();
 		for (size_t i = 0; i < count; ++i) {
-			CString listName = vecBlockListName[i].c_str();
-			CString filePath = Misc::GetExeDirectory() + _T("lists\\") + (LPCTSTR)listName;
-			BOOL bExist = ::PathFileExists(filePath);
-			menuBlockList.AppendMenu(bExist ? MF_STRING : MF_GRAYED, kBlockListBegin + i, listName);
+			BOOL bExist = ::PathFileExists(std::get<1>(vecBlockListName[i]).c_str());
+			menuBlockList.AppendMenu(bExist ? MF_STRING : MF_GRAYED, kBlockListBegin + i, std::get<0>(vecBlockListName[i]).c_str());
 		}
 		if (count == 0) {
 			menuBlockList.AppendMenu(MF_STRING | MF_GRAYED, (UINT_PTR)0, GetTranslateMessage(kBlockListNone).c_str());
@@ -334,7 +316,7 @@ LRESULT CMainDlg::OnTrayIconNotify(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, 
 		default:
 			if (kBlockListBegin <= bRet && bRet <= kBlockListEnd) {
 				size_t index = bRet - kBlockListBegin;
-				CString filePath = Misc::GetExeDirectory() + _T("lists\\") + vecBlockListName[index].c_str();
+				CString filePath = std::get<1>(vecBlockListName[index]).c_str();
 				::ShellExecute(NULL, NULL, filePath, NULL, NULL, SW_NORMAL);
 			}
 			break;

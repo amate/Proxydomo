@@ -26,7 +26,6 @@
 #include "LogViewWindow.h"
 #include "FilterManageWindow.h"
 #include "Settings.h"
-#include "DirectoryWatcher.h"
 
 class CProxy;
 
@@ -126,5 +125,4 @@ private:
 	CLogViewWindow	m_logView;
 	CFilterManageWindow	m_filterManagerWindow;
 	bool		m_bVisibleOnDestroy;
-	CDirectoryWatcher	m_listChangeWatcher;
 };

@@ -29,6 +29,7 @@
 #include <stdarg.h>
 #include <io.h>
 #include <winerror.h>
+#include "CodeConvert.h"
 
 
 namespace Misc {
@@ -39,6 +40,27 @@ CString GetClipboardText(bool bUseOLE /*= false*/)
 {
 	CString strText;
 	if (bUseOLE == false) {
+		if (::IsClipboardFormatAvailable(CF_TEXT) && ::OpenClipboard(NULL)) {
+			HGLOBAL hText = ::GetClipboardData(CF_TEXT);
+			if (hText) {
+				LPSTR text = reinterpret_cast<LPSTR>(::GlobalLock(hText));
+				int textLen = (int)::strlen(text);
+				int ret = ::MultiByteToWideChar(CP_THREAD_ACP, MB_ERR_INVALID_CHARS, text, textLen, 
+												strText.GetBuffer((textLen * 2) + 1), (textLen * 2) + 1);
+				strText.ReleaseBuffer(ret);
+				if (ret == 0) {
+					UErrorCode err = UErrorCode::U_ZERO_ERROR;
+					UConverter* pConverter = ucnv_open("ISO-8859-1", &err);
+					ATLASSERT(pConverter);
+					strText = CodeConvert::UTF16fromConverter(text, pConverter).c_str();
+					ucnv_close(pConverter);
+				}
+				//strText = reinterpret_cast<LPSTR>(::GlobalLock(hText));		//+++ UNICODEèCê≥
+				::GlobalUnlock(hText);
+			}
+			::CloseClipboard();
+		}
+#if 0
 		if ( ::IsClipboardFormatAvailable(CF_UNICODETEXT) && ::OpenClipboard(NULL) ) {
 			HGLOBAL hText = ::GetClipboardData(CF_UNICODETEXT);
 			if (hText) {
@@ -47,6 +69,7 @@ CString GetClipboardText(bool bUseOLE /*= false*/)
 			}
 			::CloseClipboard();
 		}
+#endif
 	} else {
 		CComPtr<IDataObject> spDataObject;
 		HRESULT hr = ::OleGetClipboard(&spDataObject);

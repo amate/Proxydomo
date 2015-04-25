@@ -22,6 +22,7 @@
 */
 
 #include "Matcher.h"
+#include <boost\algorithm\string\predicate.hpp>
 #include "Nodes.h"
 #include "proximodo\util.h"
 #include "proximodo\const.h"	// for BIGNUMBER
@@ -373,7 +374,11 @@ CNode* CMatcher::expr(StringCharacterIterator& patternIt, int level)
 			try {
 				CNode *node2 = expr(patternIt, level + 1); // &'s right run
 				// Build the CNode_And with left and right runs.
-				node = new CNode_And(node, node2, (level == 0));
+				if (level == 0) {
+					node = new CNode_AndAnd(node, node2);
+				} else {
+					node = new CNode_And(node, node2);
+				}
 			} catch (parsing_exception& e) {
 				delete node;
 				throw e;
@@ -778,9 +783,13 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
                 CUtil::lower(name);
                 if (name[0] == L'\\') name.erase(0,1);
                 if (name == L"#") {	// #=value
+					if (boost::algorithm::contains(value, L"\\#") || boost::algorithm::contains(value, L"\\@"))
+						throw parsing_exception(ID_PARSINGERROR_FORBITNEST, 0);
                     return new CNode_Command(CMD_SETSHARP, L"", value);
 
 				} else if (name.length() == 1 && iswdigit(name[0])) {	// \0-9=value
+					if (boost::algorithm::contains(value, L"\\" + name))
+						throw parsing_exception(ID_PARSINGERROR_FORBITNEST, 0);
                     return new CNode_Command(CMD_SETDIGIT, name, value);
 
                 } else {	// globalName=value
@@ -805,7 +814,7 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
                     CUtil::trim(content);
                     if (content[0] != L'(') CUtil::lower(content);
                     if (content[0] == L'\\') content.erase(0,1);
-                    return new CNode_Test(content/*, filter*/);
+                    return new CNode_Test(content/*, filter*/);		// $TST(VariableName or \# or \0-\9) 
                 }
                 startContent += eq + 1;
                 std::wstring name = content.substr(0, eq);
@@ -814,17 +823,17 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
                 if (name[0] != L'(') CUtil::lower(name);
                 if (name[0] == L'\\') name.erase(0,1);
                 if (name == L"#") {
-                    return new CNode_Command(CMD_TSTSHARP, L"", value);
+                    return new CNode_Command(CMD_TSTSHARP, L"", value);		// $TST(\#=Matching expression)
 
 				} else if (name.length() == 1 && iswdigit(name[0])) {
-                    return new CNode_Command(CMD_TSTDIGIT, name, value);
+                    return new CNode_Command(CMD_TSTDIGIT, name, value);	// $TST(\0-\9=Matching expression)
 
-                } else if (name[0] == L'(' && name[name.size()-1] == L')') {
+                } else if (name[0] == L'(' && name[name.size()-1] == L')') {	// $TST((VariableName or \# or \0-\9)=Matching expression)
                     name = name.substr(1, name.size()-2);
                     return new CNode_Command(CMD_TSTEXPAND, name, value);
 
                 } else {
-                    return new CNode_Command(CMD_TSTVAR, name, value);
+                    return new CNode_Command(CMD_TSTVAR, name, value);	// $TST(VariableName=Matching expression)
                 }
 
             } else if (command == L"ADDLST") {
