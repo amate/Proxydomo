@@ -154,7 +154,8 @@ void	CSettings::LoadSettings()
 	std::function<void(const CString&, bool)> funcForEach;
 	funcForEach = [&funcForEach](const CString& path, bool bFolder) {
 		if (bFolder) {
-			ForEachFileFolder(path, funcForEach);
+			if (Misc::GetFileBaseName(path).Left(1) != L"#")
+				ForEachFileFolder(path, funcForEach);
 		} else {
 			LoadList(path);
 		}

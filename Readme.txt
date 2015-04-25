@@ -15,7 +15,7 @@ $LSTの指定方法は listsフォルダ以下にあるテキストから拡張子を消したものです
 ※例: lists\Kill.txt -> $LST(Kill)
 
 ■既知のバグ
-・一部実装していないコマンドがあります($ADDLISTなど)
+・一部実装していないコマンドがあります($ADDLSTBOXなど)
 
 ■免責
 作者(原著者＆改変者)は、このソフトによって生じた如何なる損害にも、
@@ -74,4 +74,22 @@ boost::shared_mutexを使用するのでboost::threadのライブラリが必要になります
 b2.exe install -j 2 --prefix=lib toolset=msvc-12.0 runtime-link=static --with-thread --with-date_time
 // x64
 b2.exe install -j 2 --prefix=lib64 toolset=msvc-12.0 runtime-link=static address-model=64 --with-thread --with-date_time
+
+
+v1.55の以下の修正はwolfSSL側のソースを修正する必要があります
+・サーバーから送られてくるルートCA証明書がおかしいとき"ASN no signer error to confirm failure"の警告が出るのを修正
+internal.cの 3990行目あたりを
+
+// before
+WOLFSSL_MSG("Failed to verify CA from chain");
+
+// after
+WOLFSSL_MSG("Failed to verify CA from chain");
+
+if (count == totalCerts && count > 2) {
+	if (ret == ASN_NO_SIGNER_E) {
+		ret = 0;	// 最上位のみ見逃す
+	}
+}
+// ==============================================
 
