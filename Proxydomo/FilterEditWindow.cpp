@@ -204,8 +204,8 @@ public:
         // world this only happens when Proximodo starts up and
         // processes the first few pages.
         CFilterOwner owner;
-		owner.SetInHeader("Host", "www.host.org");
-        std::string url = "http://www.host.org/path/page.html?query=true#anchor";
+		owner.SetInHeader(L"Host", L"www.host.org");
+        std::wstring url = L"http://www.host.org/path/page.html?query=true#anchor";
         owner.url.parseUrl(url);
         //owner.cnxNumber = 1;
 		owner.fileType	= "htm";
@@ -240,17 +240,18 @@ public:
 				return;
 			}
 		} else {
-			std::string text = CT2A(MiscGetWindowText(m_editTest));
-			auto brpos = text.find_first_of("\r\n");
-			if (brpos != std::string::npos) 
+			std::wstring text = (LPCWSTR)MiscGetWindowText(m_editTest);
+			auto brpos = text.find_first_of(L"\r\n");
+			if (brpos != std::wstring::npos) 
 				text = text.substr(0, brpos);
 			
 			CUrl	url;
 			url.parseUrl(text);
 			const char* end = nullptr;
-			CString result = GetTranslateMessage(ID_TESTTEXT, (LPWSTR)CA2W(url.getFromHost().c_str())).c_str();
+			std::wstring urlFromHost = url.getFromHost();
+			CString result = GetTranslateMessage(ID_TESTTEXT, urlFromHost.c_str()).c_str();
 			result += L"\r\n\r\n";
-			if (matcher.match(url.getFromHost(), &filter)) {
+			if (matcher.match(urlFromHost, &filter)) {
 				m_editResult.SetWindowText(result + GetTranslateMessage(ID_MATCHSUCCEEDED).c_str());
 			} else {
 				m_editResult.SetWindowText(result + GetTranslateMessage(ID_MATCHFAILED).c_str());
@@ -259,15 +260,13 @@ public:
 		}
 
         std::wstringstream result;
-        std::wstring text;
-        size_t size = 0;
+		const std::wstring text = MiscGetWindowText(m_editTest);
+		const size_t size = text.size();
         int run = 0;
         int numMatch = 0;
 		auto starttime = std::chrono::high_resolution_clock::now();
             
         do {
-            text = MiscGetWindowText(m_editTest);
-            size = text.size();
             result.str(L"");
             owner.killed = false;
             filter.bypassed = false;
@@ -318,13 +317,13 @@ public:
 					}
 
                     if (run == 0) numMatch++;
-                    result << std::wstring(done, (size_t)(index-done));
+                    result << std::wstring(done, (size_t)(index - done));
                     result << CExpander::expand(m_pFilter->replacePattern, filter);
                     filter.unlock();
                     done = end;
                     if (end == index) ++index; else index = end;
                 }
-                if (!owner.killed) result << std::wstring(done, (size_t)(bufTail-done));
+                if (!owner.killed) result << std::wstring(done, (size_t)(bufTail - done));
 				if (!found) result.str(GetTranslateMessage(ID_TEST_NO_MATCH).c_str());
 
             // Test of a header filter. Much simpler...
@@ -402,7 +401,7 @@ CFilterEditWindow::CFilterEditWindow(CFilterDescriptor* pfd) :
 	m_version		= UTF16fromUTF8(m_pFilter->version).c_str();
 	m_description	= UTF16fromUTF8(m_pFilter->comment).c_str();
 	m_filterType	= m_pFilter->filterType;
-	m_headerName	= UTF16fromUTF8(m_pFilter->headerName).c_str();
+	m_headerName	= m_pFilter->headerName.c_str();
 	m_multipleMatch	= m_pFilter->multipleMatches;
 	m_urlPattern	= (m_pFilter->urlPattern).c_str();
 	m_boundesMatch	= (m_pFilter->boundsPattern).c_str();
@@ -703,7 +702,7 @@ bool	CFilterEditWindow::_SaveToTempFilter()
 	m_pTempFilter->comment		= UTF8fromUTF16(m_description.GetBuffer());
 	m_pTempFilter->filterType	= static_cast<CFilterDescriptor::FilterType>(m_filterType);
 	if (m_pTempFilter->filterType != CFilterDescriptor::kFilterText) {
-		m_pTempFilter->headerName = UTF8fromUTF16(m_headerName.GetBuffer());
+		m_pTempFilter->headerName = m_headerName.GetBuffer();
 	} else {
 		m_pTempFilter->headerName.clear();
 	}

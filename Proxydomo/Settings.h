@@ -123,7 +123,7 @@ public:
 	static std::string	s_defaultRemoteProxy;
 	static std::set<std::string> s_setRemoteProxy;
 
-	static std::string	s_urlCommandPrefix;
+	static std::wstring	s_urlCommandPrefix;
 
 	static std::wstring	s_language;
 

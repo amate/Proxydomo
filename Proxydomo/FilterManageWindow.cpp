@@ -104,7 +104,7 @@ std::vector<std::unique_ptr<CFilterDescriptor>> GetFilterDescriptorFromClipboard
 			} else if (label == L"KEY") {
 				size_t colon = value.find(':');
 				if (colon != string::npos) {
-					d.headerName = UTF8fromUTF16(value.substr(0, colon));
+					d.headerName = value.substr(0, colon);
 					d.title = value.substr(colon + 1);
 					CUtil::trim(d.headerName);
 					CUtil::trim(d.title);
@@ -150,7 +150,7 @@ void	OutputFilterClipboardFormat(std::wstringstream& out, CFilterDescriptor* fil
 		out << L"Name = \"" << filter->title << L"\"\r\n";
 	} else {
 		out << L"[HTTP headers]\r\n";
-		out << L"Key = \"" << UTF16fromUTF8(filter->headerName) << L": " << filter->title << L"\"\r\n";
+		out << L"Key = \"" << filter->headerName << L": " << filter->title << L"\"\r\n";
 		out << L"In = " <<
 			(filter->filterType == CFilterDescriptor::kFilterHeadIn ? L"TRUE" : L"FALSE") << L"\r\n";
 		out << L"Out = " <<

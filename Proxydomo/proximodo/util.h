@@ -54,12 +54,15 @@ public:
 
     // Case-insensitive compare
     static bool noCaseEqual(const string& s1, const string& s2);
+	static bool noCaseEqual(const wstring& s1, const wstring& s2);
 
     // Returns true if s2 begins with s1
     static bool noCaseBeginsWith(const string& s1, const string& s2);
+	static bool	noCaseBeginsWith(const wstring& s1, const wstring& s2);
 
     // Returns true if s2 contains s1
     static bool noCaseContains(const string& s1, const string& s2);
+	static bool noCaseContains(const wstring& s1, const wstring& s2);
 
     // Trim string
     static string& trim(string& s, string list = string(" \t\r\n"));
@@ -135,6 +138,7 @@ public:
 
     // Get the content of a binary file
     static string getFile(string filename);
+	static string getFile(wstring filename);
 
     // Get MIME type of a file
     static string getMimeType(string filename);
@@ -172,7 +176,8 @@ public:
 
     // Converts / to the platform's path separator
     static string makePath(const string& str);
-    
+	static wstring makePath(const wstring& str);
+
     // Converts platform's path separators to /
     static string unmakePath(const string& str);
     

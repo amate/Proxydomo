@@ -43,10 +43,19 @@ bool CUtil::noCaseEqual(const string& s1, const string& s2) {
     return equal(s1.begin(), s1.end(), s2.begin(), insensitive_compare());
 }
 
+bool CUtil::noCaseEqual(const wstring& s1, const wstring& s2) {
+	if (s1.size() != s2.size()) return false;
+	return ::_wcsicmp(s1.c_str(), s2.c_str()) == 0;
+}
+
 // Returns true if s2 begins with s1
 bool CUtil::noCaseBeginsWith(const string& s1, const string& s2) {
 	return ::_strnicmp(s1.c_str(), s2.c_str(), s1.size()) == 0;
     //return equal(s1.begin(), s1.end(), s2.begin(), insensitive_compare());
+}
+
+bool CUtil::noCaseBeginsWith(const wstring& s1, const wstring& s2) {
+	return ::_wcsnicmp(s1.c_str(), s2.c_str(), s1.size()) == 0;
 }
 
 // Returns true if s2 contains s1
@@ -55,6 +64,13 @@ bool CUtil::noCaseContains(const string& s1, const string& s2) {
     CUtil::lower(nc1);
     CUtil::lower(nc2);
     return (nc2.find(nc1) != string::npos);
+}
+
+bool CUtil::noCaseContains(const wstring& s1, const wstring& s2) {
+	wstring nc1 = s1, nc2 = s2;
+	CUtil::lower(nc1);
+	CUtil::lower(nc2);
+	return (nc2.find(nc1) != wstring::npos);
 }
 
 // Trim string
@@ -506,7 +522,6 @@ wstring CUtil::replaceAll(const wstring& str, wstring s1, wstring s2) {
 // Get the content of a binary file
 string CUtil::getFile(string filename) {
 
-    trim(filename);
     replaceAll(filename, "\\\\", "/");  // for correctly decoding $FILE()
     filename = CUtil::makePath(filename);
 	CString filepath = Misc::GetExeDirectory() + CA2T(filename.c_str());
@@ -514,13 +529,36 @@ string CUtil::getFile(string filename) {
 	if (!fs)
 		return "";
 
+	fs.seekg(0, std::ios::end);
+	auto eofPos = fs.tellg();
+	fs.clear();
+	fs.seekg(0, std::ios::beg);
+	size_t fileSize = (size_t)eofPos.seekpos();
+
 	std::string content;
-	while (fs && fs.eof() == false) {
-		enum { kBuffSize = 512 };
-		char buf[kBuffSize + 1];
-		fs.read(buf, kBuffSize);
-		content.append(buf, (size_t)fs.gcount());
-	}
+	content.resize(fileSize);
+	fs.read(const_cast<char*>(content.data()), fileSize);
+	return content;
+}
+
+string CUtil::getFile(wstring filename) {
+
+	replaceAll(filename, L"\\\\", L"/");  // for correctly decoding $FILE()
+	filename = CUtil::makePath(filename);
+	CString filepath = Misc::GetExeDirectory() + filename.c_str();
+	std::ifstream fs(filepath, ios::in | ios::binary);
+	if (!fs)
+		return "";
+
+	fs.seekg(0, std::ios::end);
+	auto eofPos = fs.tellg();
+	fs.clear();
+	fs.seekg(0, std::ios::beg);
+	size_t fileSize = (size_t)eofPos.seekpos();
+
+	std::string content;
+	content.resize(fileSize);
+	fs.read(const_cast<char*>(content.data()), fileSize);
 	return content;
 }
 
@@ -742,6 +780,14 @@ string CUtil::makePath(const string& str) {
     sep << W2S(pathSep);
 #endif
     return replaceAll(str, "/", "\\");
+}
+
+wstring CUtil::makePath(const wstring& str) {
+	size_t len = str.length();
+	if (len == 0) 
+		return str;
+
+	return replaceAll(str, L"/", L"\\");
 }
 
 // Converts platform's path separators to /

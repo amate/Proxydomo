@@ -136,15 +136,15 @@ std::wstring CExpander::expand(const std::wstring& pattern, CFilter& filter) {
             case L't': output << L'\t'; break;
             case L'r': output << L'\r'; break;
             case L'n': output << L'\n'; break;
-            case L'u': output << UTF16fromUTF8(filter.owner.url.getUrl()); break;
-            case L'h': output << UTF16fromUTF8(filter.owner.url.getHost()); break;
-            case L'p': output << UTF16fromUTF8(filter.owner.url.getPath()); break;
-            case L'q': output << UTF16fromUTF8(filter.owner.url.getQuery()); break;
-            case L'a': output << UTF16fromUTF8(filter.owner.url.getAnchor()); break;
+			case L'u': output << filter.owner.url.getUrl(); break;
+            case L'h': output << filter.owner.url.getHost(); break;
+            case L'p': output << filter.owner.url.getPath(); break;
+            case L'q': output << filter.owner.url.getQuery(); break;
+            case L'a': output << filter.owner.url.getAnchor(); break;
 			case L'd': output << L"file:///" << CUtil::replaceAll((LPCWSTR)Misc::GetExeDirectory(), L"\\", L"/"); break;
 
 			case L'x':
-				output << UTF16fromUTF8(CSettings::s_urlCommandPrefix);
+				output << CSettings::s_urlCommandPrefix;
 				break;
 
             default :
@@ -228,7 +228,7 @@ std::wstring CExpander::expand(const std::wstring& pattern, CFilter& filter) {
                     CUtil::trim(content);
 					auto it = CSettings::s_setRemoteProxy.find(UTF8fromUTF16(content));
 					if (it != CSettings::s_setRemoteProxy.end()) {
-						filter.owner.contactHost = *it;
+						filter.owner.contactHost = UTF16fromUTF8(*it);
 						filter.owner.useSettingsProxy = false;
 					}
                 } else if (command == L"USEPROXY") {
@@ -271,13 +271,13 @@ std::wstring CExpander::expand(const std::wstring& pattern, CFilter& filter) {
 
                 } else if (command == L"JUMP") {
 
-                    filter.owner.rdirToHost = UTF8fromUTF16(expand(content, filter));
+                    filter.owner.rdirToHost = expand(content, filter);
                     CUtil::trim(filter.owner.rdirToHost);
                     filter.owner.rdirMode = 0;
 
                 } else if (command == L"RDIR") {
 
-                    filter.owner.rdirToHost = UTF8fromUTF16(expand(content, filter));
+                    filter.owner.rdirToHost = expand(content, filter);
                     CUtil::trim(filter.owner.rdirToHost);
                     filter.owner.rdirMode = 1;
 
@@ -355,7 +355,7 @@ std::wstring CExpander::expand(const std::wstring& pattern, CFilter& filter) {
                 } else if (command == L"URL") {
 
                     const wchar_t *tStart, *tStop, *tEnd, *tReached;
-                    const std::wstring url = UTF16fromUTF8(filter.owner.url.getUrl());
+                    const std::wstring& url = filter.owner.url.getUrl();
                     tStart = url.c_str();
                     tStop = tStart + url.size();
                     // Here we use the static matching function
@@ -422,7 +422,7 @@ std::wstring CExpander::expand(const std::wstring& pattern, CFilter& filter) {
                     std::wstring name = content.substr(0, colon);
                     CUtil::trim(name);
                     CUtil::lower(name);
-					std::wstring value = UTF16fromUTF8(filter.owner.GetInHeader(UTF8fromUTF16(name)));
+					std::wstring value = filter.owner.GetInHeader(name);
                     tStart = value.c_str();
                     tStop = tStart + value.size();
                     if (!CMatcher::match(pattern, filter,
@@ -438,7 +438,7 @@ std::wstring CExpander::expand(const std::wstring& pattern, CFilter& filter) {
                     std::wstring name = content.substr(0, colon);
                     CUtil::trim(name);
                     CUtil::lower(name);
-					std::wstring value = UTF16fromUTF8(filter.owner.GetOutHeader(UTF8fromUTF16(name)));
+					std::wstring value = filter.owner.GetOutHeader(name);
                     tStart = value.c_str();
                     tStop = tStart + value.size();
                     if (!CMatcher::match(pattern, filter,

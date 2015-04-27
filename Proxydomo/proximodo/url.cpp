@@ -35,7 +35,7 @@ using namespace std;
 
 /* Constructor with parsing
  */
-CUrl::CUrl(const string& str) {
+CUrl::CUrl(const wstring& str) {
     parseUrl(str);
 }
 
@@ -43,15 +43,15 @@ CUrl::CUrl(const string& str) {
 /* Parses the URL string and stores the URL and each part in
  * different strings
  */
-void CUrl::parseUrl(const string& str) {
+void CUrl::parseUrl(const wstring& str) {
 
-    size_t pos1 = str.find("://");
-    if (pos1 == string::npos) 
+    size_t pos1 = str.find(L"://");
+    if (pos1 == wstring::npos) 
 		pos1 = 0;
 	else
 		pos1 += 3;
     url       = str;
-    protocol  = (pos1 ? str.substr(0, pos1-3) : string("http"));
+    protocol  = (pos1 ? str.substr(0, pos1-3) : wstring(L"http"));
 
     bypassIn = bypassOut = bypassText = debug = source = false;
 
@@ -61,23 +61,23 @@ void CUrl::parseUrl(const string& str) {
 			if (str.length() <= pos1 + CSettings::s_urlCommandPrefix.length())
 				break;
 			pos1 += CSettings::s_urlCommandPrefix.length();
-            string begin = str.substr(pos1);
-            if (CUtil::noCaseBeginsWith("bin.", begin)) {
+            wstring begin = str.substr(pos1);
+            if (CUtil::noCaseBeginsWith(L"bin.", begin)) {
                 bypassIn = true;
                 pos1 += 4;
-            } else if (CUtil::noCaseBeginsWith("bout.", begin)) {
+            } else if (CUtil::noCaseBeginsWith(L"bout.", begin)) {
                 bypassOut = true;
                 pos1 += 5;
-            } else if (CUtil::noCaseBeginsWith("bweb.", begin)) {
+            } else if (CUtil::noCaseBeginsWith(L"bweb.", begin)) {
                 bypassText = true;
                 pos1 += 5;
-            } else if (CUtil::noCaseBeginsWith("bypass.", begin)) {
+            } else if (CUtil::noCaseBeginsWith(L"bypass.", begin)) {
                 bypassIn = bypassOut = bypassText = true;
                 pos1 += 7;
-            } else if (CUtil::noCaseBeginsWith("dbug.", begin)) {
+            } else if (CUtil::noCaseBeginsWith(L"dbug.", begin)) {
                 debug = true;
                 pos1 += 5;
-            } else if (CUtil::noCaseBeginsWith("src.", begin)) {
+            } else if (CUtil::noCaseBeginsWith(L"src.", begin)) {
                 source = true;
                 pos1 += 4;
             } else {
@@ -92,25 +92,25 @@ void CUrl::parseUrl(const string& str) {
     }
 	debug	|= CSettings::s_WebFilterDebug;
 
-    size_t pos2 = str.find_first_of("/?#", pos1);
+    size_t pos2 = str.find_first_of(L"/?#", pos1);
     if (pos2 == string::npos) pos2 = str.length();
-    size_t pos3 = str.find_first_of("?#", pos2);
+    size_t pos3 = str.find_first_of(L"?#", pos2);
     if (pos3 == string::npos) pos3 = str.length();
-    size_t pos4 = str.find_first_of("#", pos3);
+    size_t pos4 = str.find_first_of(L"#", pos3);
     if (pos4 == string::npos) pos4 = str.length();
 
     fromhost  = str.substr(pos1);
     afterhost = str.substr(pos2);
     host      = str.substr(pos1, pos2 - pos1);
 	hostport = host;
-	if (hostport.find(":") == string::npos)
-		hostport += ':' + protocol;
-	size_t pos5 = host.find(':');
+	if (hostport.find(L":") == string::npos)
+		hostport += L':' + protocol;
+	size_t pos5 = host.find(L':');
 	if (pos5 != string::npos) {
-		string port = host.substr(pos5 + 1);
-		const char* kHttpPort = "80";
-		const char* kHttpsPort = "443";
-		if ((protocol == "http" && port == kHttpPort) || (protocol == "https" && port == kHttpsPort)) {
+		wstring port = host.substr(pos5 + 1);
+		const wchar_t* kHttpPort = L"80";
+		const wchar_t* kHttpsPort = L"443";
+		if ((protocol == L"http" && port == kHttpPort) || (protocol == L"https" && port == kHttpsPort)) {
 			host = host.substr(0, pos5);
 		}
 	}

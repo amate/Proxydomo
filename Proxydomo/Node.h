@@ -27,6 +27,8 @@
 #include <map>
 #include <vector>
 #include <tuple>
+#include <stack>
+#include <cassert>
 #include "proximodo\url.h"
 #include <unicode\schriter.h>
 
@@ -39,12 +41,24 @@ struct MatchData
 	const UChar*	reached;
 	CFilter*		pFilter;
 
+	std::stack<bool>	stackSaveMemory;	// for CMemory
 	std::map<void*, const UChar*>	mapRecordPos;	// for CNode_Memory
 	std::map<void*, std::tuple<const UChar*, const UChar*>>	mapReached;		// for CNode_AndAnd
 
 	std::vector<std::pair<std::string, int>> matchListLog;
 
-	MatchData(CFilter* filter) : reached(nullptr), pFilter(filter) { }
+	MatchData(CFilter* filter) : reached(nullptr), pFilter(filter) 
+	{
+		stackSaveMemory.push(false);
+	}
+
+	~MatchData()
+	{
+		stackSaveMemory.pop();
+		assert(stackSaveMemory.empty());
+	}
+
+	bool	IsSaveMemory() const { return stackSaveMemory.top(); }
 };
 
 

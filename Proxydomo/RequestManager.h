@@ -82,7 +82,7 @@ private:
 
 	void	_EndFeeding();
 
-	void	_FakeResponse(const std::string& code, const std::string& filename = "");
+	void	_FakeResponse(const std::string& code, const std::wstring& filename = L"");
 
 	void	_JudgeManageContinue();
 
@@ -114,7 +114,7 @@ private:
 	// Sockets
 	std::unique_ptr<CSocket>	m_psockBrowser;
 	std::unique_ptr<CSocket>	m_psockWebsite;
-	std::string	m_previousHost;
+	std::wstring	m_previousHost;
 	std::unique_ptr<CSSLSession>	m_pSSLClientSession;
 	std::unique_ptr<CSSLSession>	m_pSSLServerSession;
 

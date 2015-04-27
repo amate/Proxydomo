@@ -275,12 +275,12 @@ void CTextBuffer::DataFeed(const std::string& data)
 		
 		// 2:レスポンスヘッダのContent-Typeに書いてあるcharset
 		if (charaCode.empty()) {
-			std::string contentType = m_owner.GetInHeader("Content-Type");
+			std::wstring contentType = m_owner.GetInHeader(L"Content-Type");
 			if (contentType.size() > 0) {
 				CUtil::lower(contentType);
-				size_t nPos = contentType.find("charset=");
-				if (nPos != std::string::npos) {
-					charaCode = contentType.substr(nPos + 8);
+				size_t nPos = contentType.find(L"charset=");
+				if (nPos != std::wstring::npos) {
+					charaCode = UTF8fromUTF16(contentType.substr(nPos + 8));
 					CUtil::upper(charaCode);
 					if (charaCode == "NONE")
 						charaCode.clear();
@@ -517,11 +517,11 @@ void CTextBuffer::_firstDebugOutput(const std::string& charaCode)
 		"<html>\n<head>\n";
 	buf += "<meta charset=\"" + charaCode + "\">\n";
 	buf += "<title>Source of ";
-	CUtil::htmlEscape(buf, m_owner.url.getProtocol() + "://" + m_owner.url.getFromHost());
+	CUtil::htmlEscape(buf, UTF8fromUTF16(m_owner.url.getProtocol()) + "://" + UTF8fromUTF16(m_owner.url.getFromHost()));
 	buf += "</title>\n"
 		"<link rel=\"stylesheet\" media=\"all\" "
 		"href=\"";
-	buf += m_owner.url.getProtocol() + "://local.ptron/ViewSource.css";
+	buf += "//local.ptron/ViewSource.css";
 	buf += "\" />\n"
 		"</head>\n\n<body>\n";
 	
@@ -538,9 +538,9 @@ void CTextBuffer::_firstDebugOutput(const std::string& charaCode)
 	buf += "[raw data]";
 	for (auto& pair : m_owner.inHeaders) {
 		buf += "<div class=\"hdr\">";
-		CUtil::htmlEscape(buf, pair.first);
+		CUtil::htmlEscape(buf, UTF8fromUTF16(pair.first));
 		buf += ": <span class=\"val\">";
-		CUtil::htmlEscape(buf, pair.second);
+		CUtil::htmlEscape(buf, UTF8fromUTF16(pair.second));
 		buf += "</span></div>\n";
 	}
 	buf += "</div>";
@@ -549,9 +549,9 @@ void CTextBuffer::_firstDebugOutput(const std::string& charaCode)
 	buf += "[filtered data]";
 	for (auto& pair : m_owner.inHeadersFiltered) {
 		buf += "<div class=\"hdr\">";
-		CUtil::htmlEscape(buf, pair.first);
+		CUtil::htmlEscape(buf, UTF8fromUTF16(pair.first));
 		buf += ": <span class=\"val\">";
-		CUtil::htmlEscape(buf, pair.second);
+		CUtil::htmlEscape(buf, UTF8fromUTF16(pair.second));
 		buf += "</span></div>\n";
 	}
 	buf += "</div>";

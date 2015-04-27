@@ -33,7 +33,7 @@
  * URL and variables are such common members.
  */
 
-typedef std::vector<std::pair<std::string, std::string>> HeadPairList;		// first:name  second:value
+typedef std::vector<std::pair<std::wstring, std::wstring>> HeadPairList;		// first:name  second:value
 
 class CFilterOwner
 {
@@ -53,8 +53,8 @@ public:
 
 	bool		useSettingsProxy;			 // can be overridden by $USEPROXY
 	
-	std::string contactHost;				 // can be overridden by $SETPROXY
-    std::string	rdirToHost;                  // set by $RDIR and $JUMP
+	std::wstring contactHost;				 // can be overridden by $SETPROXY
+    std::wstring rdirToHost;                 // set by $RDIR and $JUMP
     int			rdirMode;                    // 0: 302 response, 1: transparent
 
 	bool		bypassIn;                    // tells if we can filter incoming headers
@@ -73,16 +73,16 @@ public:
 	std::string		fileType;           // useable by $TYPE
 
 	// Header operation
-	std::string		GetOutHeader(const std::string& name) { return GetHeader(outHeaders, name); }
-	std::string		GetInHeader(const std::string& name) { return GetHeader(inHeaders, name); }
-	void			SetOutHeader(const std::string& name, const std::string& value) { SetHeader(outHeaders, name, value); }
-	void			SetInHeader(const std::string& name, const std::string& value) { SetHeader(inHeaders, name, value); }
-	void			RemoveOutHeader(const std::string& name) { RemoveHeader(outHeaders, name); }
-	void			RemoveInHeader(const std::string& name) { RemoveHeader(inHeaders, name); }
+	std::wstring	GetOutHeader(const std::wstring& name) { return GetHeader(outHeaders, name); }
+	std::wstring	GetInHeader(const std::wstring& name) { return GetHeader(inHeaders, name); }
+	void			SetOutHeader(const std::wstring& name, const std::wstring& value) { SetHeader(outHeaders, name, value); }
+	void			SetInHeader(const std::wstring& name, const std::wstring& value) { SetHeader(inHeaders, name, value); }
+	void			RemoveOutHeader(const std::wstring& name) { RemoveHeader(outHeaders, name); }
+	void			RemoveInHeader(const std::wstring& name) { RemoveHeader(inHeaders, name); }
 
-	static std::string	GetHeader(const HeadPairList& headers, const std::string& name);
-	static void			SetHeader(HeadPairList& headers, const std::string& name, const std::string& value);
-	static void			RemoveHeader(HeadPairList& headers, const std::string& name);
+	static std::wstring	GetHeader(const HeadPairList& headers, const std::wstring& name);
+	static void			SetHeader(HeadPairList& headers, const std::wstring& name, const std::wstring& value);
+	static void			RemoveHeader(HeadPairList& headers, const std::wstring& name);
 	static void			CleanHeader(HeadPairList& headers);
 };
 

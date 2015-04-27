@@ -35,7 +35,8 @@
 #include "Matcher.h"
 #include "proximodo\filter.h"
 #include "Logger.h"
-
+#include "CodeConvert.h"
+using namespace CodeConvert;
 
 #define CR	'\r'
 #define LF	'\n'
@@ -75,10 +76,10 @@ bool	GetHeaders(std::string& buf, HeadPairList& headers, std::string& log)
 		// Record header
 		size_t colon = buf.find(':');
 		if (colon != std::string::npos) {
-			std::string name = buf.substr(0, colon);
-			std::string value = buf.substr(colon + 1, pos - colon - 1);
+			std::wstring name = UTF16fromUTF8(buf.substr(0, colon));
+			std::wstring value = UTF16fromUTF8(buf.substr(colon + 1, pos - colon - 1));
 			CUtil::trim(value);
-			headers.emplace_back(name, value);
+			headers.emplace_back(std::move(name), std::move(value));
 		}
 		log += buf.substr(0, pos + len);
 		buf.erase(0, pos + len);
@@ -414,14 +415,12 @@ void CRequestManager::_ProcessOut()
 
 				// Get the URL and the host to contact (unless we use a proxy)
 				if (m_pSSLServerSession) {
-					std::string sslurl = "https://" 
-										+ CFilterOwner::GetHeader(m_filterOwner.outHeaders, "Host") 
-										+ m_requestLine.url;
+					std::wstring sslurl = L"https://" + m_filterOwner.url.getHost()	+ UTF16fromUTF8(m_requestLine.url);
 					m_filterOwner.url.parseUrl(sslurl);
 				} else if (m_requestLine.method == "CONNECT") {
-					m_filterOwner.url.parseUrl("https://" + m_requestLine.url);
+					m_filterOwner.url.parseUrl(L"https://" + UTF16fromUTF8(m_requestLine.url));
 				} else {
-					m_filterOwner.url.parseUrl(m_requestLine.url);
+					m_filterOwner.url.parseUrl(UTF16fromUTF8(m_requestLine.url));
 				}
 
 				if (m_filterOwner.url.getBypassIn())
@@ -437,18 +436,17 @@ void CRequestManager::_ProcessOut()
 				// Test URL with bypass-URL matcher, if matches we'll bypass all
 				{
 					CFilter filter(m_filterOwner);
-					const std::string& url = m_filterOwner.url.getFromHost();
-					const char* end = nullptr;
-					if (CSettings::s_pBypassMatcher->match(url, &filter))
+					std::wstring urlFromHost = m_filterOwner.url.getFromHost();
+					if (CSettings::s_pBypassMatcher->match(urlFromHost, &filter))
 						m_filterOwner.bypassOut = m_filterOwner.bypassIn = m_filterOwner.bypassBody = true;
 				}
 
 				// We must read the Content-Length and Transfer-Encoding
 				// headers to know if thre is POSTed data
-				if (CUtil::noCaseContains("chunked", m_filterOwner.GetOutHeader("Transfer-Encoding")))
+				if (CUtil::noCaseContains(L"chunked", m_filterOwner.GetOutHeader(L"Transfer-Encoding")))
 					m_outChunked = true;
 
-				std::string contentLength = m_filterOwner.GetOutHeader("Content-Length");
+				std::wstring contentLength = m_filterOwner.GetOutHeader(L"Content-Length");
 				if (contentLength.size() > 0)
 					m_outSize = boost::lexical_cast<int64_t>(contentLength);
 
@@ -458,17 +456,17 @@ void CRequestManager::_ProcessOut()
 
 				// Filter outgoing headers
 				if (m_filterOwner.bypassOut == false && CSettings::s_filterOut &&
-					m_filterOwner.url.getHost() != "local.ptron") {
+					m_filterOwner.url.getHost() != L"local.ptron") {
 					// Apply filters one by one
 					for (auto& headerfilter : m_vecpOutFilter) {
 						headerfilter->bypassed = false;
-						string name = headerfilter->headerName;
+						const wstring& name = headerfilter->headerName;
 
-						if (CUtil::noCaseBeginsWith("url", name) == false) {
+						if (CUtil::noCaseBeginsWith(L"url", name) == false) {
 
 							// If header is absent, temporarily create one
 							if (CFilterOwner::GetHeader(m_filterOwner.outHeadersFiltered, name).empty())
-								CFilterOwner::SetHeader(m_filterOwner.outHeadersFiltered, name, "");
+								CFilterOwner::SetHeader(m_filterOwner.outHeadersFiltered, name, L"");
 							// Test headers one by one
 							for (auto& pair : m_filterOwner.outHeadersFiltered) {
 								if (CUtil::noCaseEqual(name, pair.first))
@@ -480,7 +478,7 @@ void CRequestManager::_ProcessOut()
 						} else {
 
 							// filter works on a copy of the URL
-							string test = m_filterOwner.url.getUrl();
+							std::wstring test = m_filterOwner.url.getUrl();
 							headerfilter->filter(test);
 							CUtil::trim(test);
 							// if filter changed the url, update variables
@@ -504,10 +502,10 @@ void CRequestManager::_ProcessOut()
 						if (m_filterOwner.killed) {
 							// There has been a \k in a header filter, so we
 							// redirect to an empty file and stop processing headers
-							if (m_filterOwner.url.getPath().find(".gif") != string::npos)
-								m_filterOwner.rdirToHost = "http://file//./html/killed.gif";
+							if (m_filterOwner.url.getPath().find(L".gif") != wstring::npos)
+								m_filterOwner.rdirToHost = L"http://file//./html/killed.gif";
 							else
-								m_filterOwner.rdirToHost = "http://file//./html/killed.html";
+								m_filterOwner.rdirToHost = L"http://file//./html/killed.html";
 							break;
 						}
 					}
@@ -530,8 +528,8 @@ void CRequestManager::_ProcessOut()
 							if (m_filterOwner.url.getHost() != rdirURL.getHost()) {
 								ERROR_LOG << L"#" << m_ipFromAddress.GetPortNumber()
 									<< L" SSLで違うホストにリダイレクトしようとしています。"
-									<< L" nowHost: " << (LPWSTR)CA2W(m_filterOwner.url.getHost().c_str())
-									<< L" -> rdirHost: " << (LPWSTR)CA2W(rdirURL.getHost().c_str());
+									<< L" nowHost: " << m_filterOwner.url.getHost()
+									<< L" -> rdirHost: " << rdirURL.getHost();
 								throw GeneralException("SSL invalid Redirect Error");
 							} else {
 								m_filterOwner.url.parseUrl(m_filterOwner.rdirToHost);
@@ -550,18 +548,18 @@ void CRequestManager::_ProcessOut()
 
 					// Update URL within request
 					if (m_pSSLServerSession == nullptr) {
-						CFilterOwner::SetHeader(m_filterOwner.outHeadersFiltered, "Host", m_filterOwner.url.getHost());
+						CFilterOwner::SetHeader(m_filterOwner.outHeadersFiltered, L"Host", m_filterOwner.url.getHost());
 					}
 
-					if (CUtil::noCaseContains("Keep-Alive", CFilterOwner::GetHeader(m_filterOwner.outHeadersFiltered, "Proxy-Connection"))) {
-						CFilterOwner::RemoveHeader(m_filterOwner.outHeadersFiltered, "Proxy-Connection");
-						CFilterOwner::SetHeader(m_filterOwner.outHeadersFiltered, "Connection", "Keep-Alive");
+					if (CUtil::noCaseContains(L"Keep-Alive", CFilterOwner::GetHeader(m_filterOwner.outHeadersFiltered, L"Proxy-Connection"))) {
+						CFilterOwner::RemoveHeader(m_filterOwner.outHeadersFiltered, L"Proxy-Connection");
+						CFilterOwner::SetHeader(m_filterOwner.outHeadersFiltered, L"Connection", L"Keep-Alive");
 					}
 				
 					if (m_filterOwner.contactHost == m_filterOwner.url.getHostPort()) {
-						m_requestLine.url = m_filterOwner.url.getAfterHost();
+						m_requestLine.url = UTF8fromUTF16(m_filterOwner.url.getAfterHost());
 					} else {
-						m_requestLine.url = m_filterOwner.url.getUrl();
+						m_requestLine.url = UTF8fromUTF16(m_filterOwner.url.getUrl());
 					}
 					if (m_requestLine.url.empty())
 						m_requestLine.url = "/";
@@ -571,12 +569,12 @@ void CRequestManager::_ProcessOut()
 					
 					// デバッグ有効時、"304 Not Modified"が帰ってこないようにする
 					if (m_filterOwner.url.getDebug()) {
-						CFilterOwner::RemoveHeader(m_filterOwner.outHeadersFiltered, "If-Modified-Since");
-						CFilterOwner::RemoveHeader(m_filterOwner.outHeadersFiltered, "If-None-Match");
+						CFilterOwner::RemoveHeader(m_filterOwner.outHeadersFiltered, L"If-Modified-Since");
+						CFilterOwner::RemoveHeader(m_filterOwner.outHeadersFiltered, L"If-None-Match");
 					}
 
 					for (auto& pair : m_filterOwner.outHeadersFiltered)
-						m_sendOutBuf += pair.first + ": " + pair.second + CRLF;
+						m_sendOutBuf += UTF8fromUTF16(pair.first) + ": " + UTF8fromUTF16(pair.second) + CRLF;
 
 					// Log outgoing headers
 					CLog::HttpEvent(kLogHttpSendOut, m_ipFromAddress, m_filterOwner.requestNumber, m_sendOutBuf);
@@ -742,18 +740,19 @@ void CRequestManager::_ConnectWebsite()
     m_sendInBuf.clear();
 
     // Test for "local.ptron" host
-    if (m_filterOwner.url.getHost() == "local.ptron") {
+    if (m_filterOwner.url.getHost() == L"local.ptron") {
         m_filterOwner.rdirToHost = m_filterOwner.url.getUrl();
     }
-    if (CUtil::noCaseBeginsWith("http://local.ptron", m_filterOwner.rdirToHost)) {
-        m_filterOwner.rdirToHost = "http://file//./html" + CUrl(m_filterOwner.rdirToHost).getPath();
+    if (CUtil::noCaseBeginsWith(L"http://local.ptron", m_filterOwner.rdirToHost)) {
+        m_filterOwner.rdirToHost = L"http://file//./html" + CUrl(m_filterOwner.rdirToHost).getPath();
     }
 
+	// https://local.ptron/ への接続
 	if (CSettings::s_SSLFilter) {
-		if (m_filterOwner.url.getHost() == "local.ptron:443") {
+		if (m_filterOwner.url.getHost() == L"local.ptron:443") {
 			m_filterOwner.rdirToHost = m_filterOwner.url.getUrl();
 		}
-		if (CUtil::noCaseBeginsWith("https://local.ptron", m_filterOwner.rdirToHost)) {
+		if (CUtil::noCaseBeginsWith(L"https://local.ptron", m_filterOwner.rdirToHost)) {
 			m_sendInBuf = "HTTP/1.0 200 Connection established" CRLF
 				"Proxy-agent: " "Proxydomo/1.0"/*APP_NAME " " APP_VERSION*/ CRLF CRLF;
 			CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_filterOwner.requestNumber, m_sendInBuf);
@@ -788,14 +787,11 @@ void CRequestManager::_ConnectWebsite()
 			}
 			m_recvOutBuf.clear();
 
-			string subpath = "./html" + CUrl(m_requestLine.url).getPath();
-			string filename = CUtil::makePath(subpath);
+			wstring subpath = L"./html" + CUrl(UTF16fromUTF8(m_requestLine.url)).getPath();
+			wstring filename = CUtil::makePath(subpath);
 			if (::PathFileExists(Misc::GetFullPath_ForExe(filename.c_str()))) {
 				_FakeResponse("200 OK", filename);
 			} else {
-				//fakeResponse("404 Not Found", "./html/error.html", true,
-				//             CSettings::ref().getMessage("404_NOT_FOUND"),
-				//             filename);
 				_FakeResponse("404 Not Found");
 			}
 			while (_SendIn());	// 最後まで送信してしまう
@@ -808,15 +804,12 @@ void CRequestManager::_ConnectWebsite()
     // Test for redirection __to file__
     // ($JUMP to file will behave like a transparent redirection,
     // since the browser may not be on the same file system)
-    if (CUtil::noCaseBeginsWith("http://file//", m_filterOwner.rdirToHost)) {
+    if (CUtil::noCaseBeginsWith(L"http://file//", m_filterOwner.rdirToHost)) {
 
-        string filename = CUtil::makePath(m_filterOwner.rdirToHost.substr(13));
+        wstring filename = CUtil::makePath(m_filterOwner.rdirToHost.substr(13));
 		if (::PathFileExists(Misc::GetFullPath_ForExe(filename.c_str()))) {
 			_FakeResponse("200 OK", filename);
 		} else {
-            //fakeResponse("404 Not Found", "./html/error.html", true,
-            //             CSettings::ref().getMessage("404_NOT_FOUND"),
-            //             filename);
 			_FakeResponse("404 Not Found");
 		}
 
@@ -832,7 +825,7 @@ void CRequestManager::_ConnectWebsite()
         m_inStep = STEP_FINISH;
         m_sendInBuf =
             "HTTP/1.0 302 Found" CRLF
-            "Location: " + m_filterOwner.rdirToHost + CRLF;
+            "Location: " + UTF8fromUTF16(m_filterOwner.rdirToHost) + CRLF;
 
 		CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_filterOwner.requestNumber, m_sendInBuf);
 
@@ -854,7 +847,7 @@ void CRequestManager::_ConnectWebsite()
         if (m_filterOwner.url.getBypassText())  m_filterOwner.bypassBody = true;
 		m_filterOwner.useSettingsProxy = CSettings::s_useRemoteProxy;
         m_filterOwner.contactHost = m_filterOwner.url.getHostPort();
-		m_filterOwner.SetOutHeader("Host", m_filterOwner.url.getHost());
+		m_filterOwner.SetOutHeader(L"Host", m_filterOwner.url.getHost());
 
         m_filterOwner.rdirToHost.clear();
     }
@@ -862,11 +855,11 @@ void CRequestManager::_ConnectWebsite()
     // If we must contact the host via the settings' proxy,
     // we now override the contactHost
 	if (m_filterOwner.useSettingsProxy && CSettings::s_defaultRemoteProxy.length() > 0) {
-		m_filterOwner.contactHost = CSettings::s_defaultRemoteProxy;
+		m_filterOwner.contactHost = UTF16fromUTF8(CSettings::s_defaultRemoteProxy);
     }
 
 	// The host string is composed of host and port
-	std::string name = m_filterOwner.contactHost;
+	std::string name = UTF8fromUTF16(m_filterOwner.contactHost);
 	std::string port;
 	size_t colon = name.find(':');
 	if (colon != std::string::npos) {    // (this should always happen)
@@ -889,10 +882,7 @@ void CRequestManager::_ConnectWebsite()
 		if (name.empty() || host.SetService(port) == false || host.SetHostName(name) == false) {
             // The host address is invalid (or unknown by DNS)
             // so we won't try a connection.
-			_FakeResponse("502 Bad Gateway", "./html/error.html");
-            //fakeResponse("502 Bad Gateway", "./html/error.html", true,
-            //             CSettings::ref().getMessage("502_BAD_GATEWAY"),
-            //             name);
+			_FakeResponse("502 Bad Gateway", L"./html/error.html");
             return ;
 		}
 
@@ -904,10 +894,7 @@ void CRequestManager::_ConnectWebsite()
 
 		if (m_psockWebsite->IsConnected() == false) {
             // Connection failed, warn the browser
-			_FakeResponse("503 Service Unavailable", "./html/error.html");
-            //fakeResponse("503 Service Unavailable", "./html/error.html", true,
-            //             CSettings::ref().getMessage("503_UNAVAILABLE"),
-            //             contactHost);
+			_FakeResponse("503 Service Unavailable", L"./html/error.html");
             return ;
         }
 
@@ -921,7 +908,7 @@ void CRequestManager::_ConnectWebsite()
 
 			// remote proxy
 			if (m_filterOwner.contactHost != m_filterOwner.url.getHostPort()) {
-				name = m_filterOwner.url.getHost();
+				name = UTF8fromUTF16(m_filterOwner.url.getHost());
 				size_t colon = name.find(':');
 				if (colon != std::string::npos) {    // (this should always happen)
 					name = name.substr(0, colon);
@@ -976,14 +963,14 @@ void CRequestManager::_ConnectWebsite()
     // Prepare and send a simple request, if we did a transparent redirection
     if (m_outStep != STEP_DECODE && m_inStep == STEP_START) {
         if (m_filterOwner.contactHost == m_filterOwner.url.getHostPort())
-            m_requestLine.url = m_filterOwner.url.getAfterHost();
+            m_requestLine.url = UTF8fromUTF16(m_filterOwner.url.getAfterHost());
         else
-            m_requestLine.url = m_filterOwner.url.getUrl();
+			m_requestLine.url = UTF8fromUTF16(m_filterOwner.url.getUrl());
         if (m_requestLine.url.empty()) 
 			m_requestLine.url = "/";
-        m_sendOutBuf =
-            m_requestLine.method + " " + m_requestLine.url + " HTTP/1.1" CRLF
-            "Host: " + m_filterOwner.url.getHost() + CRLF;
+
+        m_sendOutBuf = m_requestLine.method + " " + m_requestLine.url + " HTTP/1.1" CRLF
+					   "Host: " + UTF8fromUTF16(m_filterOwner.url.getHost()) + CRLF;
 
 		CLog::HttpEvent(kLogHttpSendOut, m_ipFromAddress, m_filterOwner.requestNumber, m_sendOutBuf);
 
@@ -1114,15 +1101,15 @@ void	CRequestManager::_ProcessIn()
 
 				// We must read the Content-Length and Transfer-Encoding
 				// headers to know body length
-				if (CUtil::noCaseContains("chunked", m_filterOwner.GetInHeader("Transfer-Encoding")) &&
+				if (CUtil::noCaseContains(L"chunked", m_filterOwner.GetInHeader(L"Transfer-Encoding")) &&
 					m_requestLine.method != "HEAD")
 					m_inChunked = true;
 
-				std::string contentLength = m_filterOwner.GetInHeader("Content-Length");
+				std::string contentLength = UTF8fromUTF16(m_filterOwner.GetInHeader(L"Content-Length"));
 				if (contentLength.size() > 0 && m_requestLine.method != "HEAD") 
 					m_inSize = boost::lexical_cast<int64_t>(contentLength);
 
-				std::string contentType = m_filterOwner.GetInHeader("Content-Type");
+				std::string contentType = UTF8fromUTF16(m_filterOwner.GetInHeader(L"Content-Type"));
 				if (contentType.size() > 0) {
 					// If size is not given, we'll read body until connection closes
 					if (contentLength.empty() && m_requestLine.method != "HEAD")
@@ -1136,9 +1123,9 @@ void	CRequestManager::_ProcessIn()
 					m_filterOwner.bypassBody = true;
 				}
 
-				if (   CUtil::noCaseContains("close", m_filterOwner.GetInHeader("Connection"))
+				if (   CUtil::noCaseContains(L"close", m_filterOwner.GetInHeader(L"Connection"))
 					|| (CUtil::noCaseBeginsWith("HTTP/1.0", m_filterOwner.responseLine.ver) &&
-					    CUtil::noCaseContains("Keep-Alive", m_filterOwner.GetInHeader("Connection")) == false) ) {
+					    CUtil::noCaseContains(L"Keep-Alive", m_filterOwner.GetInHeader(L"Connection")) == false) ) {
 						m_recvConnectionClose = true;
 				}
 
@@ -1152,14 +1139,14 @@ void	CRequestManager::_ProcessIn()
 					// Apply filters one by one
 					for (auto& headerfilter : m_vecpInFilter) {
 						headerfilter->bypassed = false;
-						string name = headerfilter->headerName;
+						const wstring& name = headerfilter->headerName;
 
 						// If header is absent, temporarily create one
 						if (CFilterOwner::GetHeader(m_filterOwner.inHeadersFiltered, name).empty()) {
-							if (CUtil::noCaseBeginsWith("url", name)) {
+							if (CUtil::noCaseBeginsWith(L"url", name)) {
 								CFilterOwner::SetHeader(m_filterOwner.inHeadersFiltered, name, m_filterOwner.url.getUrl());
 							} else {
-								CFilterOwner::SetHeader(m_filterOwner.inHeadersFiltered, name, "");
+								CFilterOwner::SetHeader(m_filterOwner.inHeadersFiltered, name, L"");
 							}
 						}
 						// Test headers one by one
@@ -1173,10 +1160,10 @@ void	CRequestManager::_ProcessIn()
 						if (m_filterOwner.killed) {
 							// There has been a \k in a header filter, so we
 							// redirect to an empty file and stop processing headers
-							if (m_filterOwner.url.getPath().find(".gif") != string::npos)
-								m_filterOwner.rdirToHost = "http://file//./html/killed.gif";
+							if (m_filterOwner.url.getPath().find(L".gif") != wstring::npos)
+								m_filterOwner.rdirToHost = L"http://file//./html/killed.gif";
 							else
-								m_filterOwner.rdirToHost = "http://file//./html/killed.html";
+								m_filterOwner.rdirToHost = L"http://file//./html/killed.html";
 							m_filterOwner.rdirMode = 0;   // (to use non-transp code below)
 							break;
 						}
@@ -1200,20 +1187,20 @@ void	CRequestManager::_ProcessIn()
 				}
 
 				if (m_useChain) {
-					std::string contentEncoding = m_filterOwner.GetInHeader("Content-Encoding");
-					if (CUtil::noCaseContains("gzip", contentEncoding)) {
+					std::wstring contentEncoding = m_filterOwner.GetInHeader(L"Content-Encoding");
+					if (CUtil::noCaseContains(L"gzip", contentEncoding)) {
 						m_recvContentCoding = 1;
 						if (m_decompressor == nullptr)
 							m_decompressor.reset(new CZlibBuffer());
 						m_decompressor->reset(false, true);
-						CFilterOwner::RemoveHeader(m_filterOwner.inHeadersFiltered, "Content-Encoding");
+						CFilterOwner::RemoveHeader(m_filterOwner.inHeadersFiltered, L"Content-Encoding");
 
-					} else if (CUtil::noCaseContains("deflate", contentEncoding)) {
+					} else if (CUtil::noCaseContains(L"deflate", contentEncoding)) {
 						m_recvContentCoding = 2;
 						if (m_decompressor == nullptr)
 							m_decompressor.reset(new CZlibBuffer());
 						m_decompressor->reset(false, false);
-						CFilterOwner::RemoveHeader(m_filterOwner.inHeadersFiltered, "Content-Encoding");
+						CFilterOwner::RemoveHeader(m_filterOwner.inHeadersFiltered, L"Content-Encoding");
 
 					} else if (contentEncoding.length() > 0) {	// 解釈できない圧縮形式
 						m_useChain = false;
@@ -1222,15 +1209,15 @@ void	CRequestManager::_ProcessIn()
 				}
 
 				// Decode new headers to control browser-side beehaviour
-				if (CUtil::noCaseContains("close", CFilterOwner::GetHeader(m_filterOwner.inHeadersFiltered, "Connection")))
+				if (CUtil::noCaseContains(L"close", CFilterOwner::GetHeader(m_filterOwner.inHeadersFiltered, L"Connection")))
 					m_sendConnectionClose = true;
 
 				if (m_useChain && (m_inChunked || m_inSize)) {
 					// Our output will always be chunked: filtering can
 					// change body size. So let's force this header.
-					CFilterOwner::SetHeader(m_filterOwner.inHeadersFiltered, "Transfer-Encoding", "chunked");
+					CFilterOwner::SetHeader(m_filterOwner.inHeadersFiltered, L"Transfer-Encoding", L"chunked");
 					// Content-Lengthを消さないとおかしい
-					CFilterOwner::RemoveHeader(m_filterOwner.inHeadersFiltered, "Content-Length");
+					CFilterOwner::RemoveHeader(m_filterOwner.inHeadersFiltered, L"Content-Length");
 				}
 
 				// Now we can put everything in the filtered buffer
@@ -1253,7 +1240,7 @@ void	CRequestManager::_ProcessIn()
 					m_sendInBuf = "HTTP/1.1 " + m_filterOwner.responseLine.code + " " + m_filterOwner.responseLine.msg + CRLF;
 					std::string name;
 					for (auto& pair : m_filterOwner.inHeadersFiltered)
-						m_sendInBuf += pair.first + ": " + pair.second + CRLF;
+						m_sendInBuf += UTF8fromUTF16(pair.first) + ": " + UTF8fromUTF16(pair.second) + CRLF;
 					
 					CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_filterOwner.requestNumber, m_sendInBuf);
 
@@ -1269,7 +1256,7 @@ void	CRequestManager::_ProcessIn()
 					//m_filterOwner.fileType.clear();	// ここでは消さない
 				}
 
-				CLog::AddNewRequest(m_filterOwner.requestNumber, m_filterOwner.responseLine.code, contentType, m_inChunked ? std::string("-1") : contentLength, m_filterOwner.url.getUrl());
+				CLog::AddNewRequest(m_filterOwner.requestNumber, m_filterOwner.responseLine.code, contentType, m_inChunked ? std::string("-1") : contentLength, UTF8fromUTF16(m_filterOwner.url.getUrl()));
 
 				// Decide what to do next
 				if (m_filterOwner.responseLine.code == "101") {
@@ -1550,9 +1537,9 @@ void	CRequestManager::_EndFeeding() {
 	}
 }
 
-void	CRequestManager::_FakeResponse(const std::string& code, const std::string& filename /*= ""*/)
+void	CRequestManager::_FakeResponse(const std::string& code, const std::wstring& filename /*= L""*/)
 {
-	std::string contentType = filename.empty() ? std::string("text/plain") : CUtil::getMimeType(filename);
+	std::string contentType = filename.empty() ? std::string("text/plain") : CUtil::getMimeType(UTF8fromUTF16(filename));
 	std::string content;
 	if (filename.size() > 0)
 		content = CUtil::getFile(filename);

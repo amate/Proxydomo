@@ -24,6 +24,9 @@
 
 
 #include "textfilter.h"
+#include <vector>
+#include <map>
+#include <sstream>
 #include "url.h"
 #include "expander.h"
 #include "const.h"
@@ -33,9 +36,6 @@
 //#include "matcher.h"
 #include "..\Node.h"
 #include "..\Matcher.h"
-#include <vector>
-#include <map>
-#include <sstream>
 
 using namespace std;
 
@@ -104,8 +104,8 @@ void CTextFilter::reset() {
 
     if (urlMatcher) {
         // The filter will be inactive if the URL does not match
-        bypassed = !urlMatcher->match(owner.url.getFromHost(), this);
-        unlock();
+		bypassed = !urlMatcher->match(const_cast<std::wstring&>(owner.url.getFromHost()), this);
+		unlock();
     }
 }
 

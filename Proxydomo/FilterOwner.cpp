@@ -58,16 +58,16 @@ void	CFilterOwner::Reset()
 }
 
 
-std::string	CFilterOwner::GetHeader(const HeadPairList& headers, const std::string& name)
+std::wstring	CFilterOwner::GetHeader(const HeadPairList& headers, const std::wstring& name)
 {
     for (auto it = headers.cbegin(); it != headers.cend(); it++) {
 		if (CUtil::noCaseEqual(name, it->first)) 
 			return it->second;
     }
-    return "";
+    return L"";
 }
 
-void		CFilterOwner::SetHeader(HeadPairList& headers, const std::string& name, const std::string& value)
+void		CFilterOwner::SetHeader(HeadPairList& headers, const std::wstring& name, const std::wstring& value)
 {
 	auto it = headers.begin();
     for (; it != headers.end(); it++) {
@@ -92,7 +92,7 @@ void		CFilterOwner::SetHeader(HeadPairList& headers, const std::string& name, co
     }
 }
 
-void		CFilterOwner::RemoveHeader(HeadPairList& headers, const std::string& name)
+void		CFilterOwner::RemoveHeader(HeadPairList& headers, const std::wstring& name)
 {
 	for (auto it = headers.begin(); it != headers.end(); ++it) {
         if (CUtil::noCaseEqual(name, it->first)) {

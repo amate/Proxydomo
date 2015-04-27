@@ -96,28 +96,21 @@ void CProxy::_ServerThread()
 		auto itThis = m_requestManagerList.begin();
 		lock.Unlock();
 
+		auto funcLaunch = [this, manager, itThis]() {
+			try {
+				manager->Manage();
+			}
+			catch (std::exception& e) {
+				ATLTRACE(e.what());
+			}
+
+			CCritSecLock	lock(m_csRequestManager);
+			m_requestManagerList.erase(itThis);
+		};
 #ifdef _WIN64
-		m_threadPool.CreateThread([this, manager, itThis]() {
-			try {
-				manager->Manage();
-			} catch (std::exception& e) {
-				ATLTRACE(e.what());
-			}
-
-			CCritSecLock	lock(m_csRequestManager);
-			m_requestManagerList.erase(itThis);
-		});
+		m_threadPool.CreateThread(funcLaunch);
 #else
-		std::thread([this, manager, itThis]() {
-			try {
-				manager->Manage();
-			} catch (std::exception& e) {
-				ATLTRACE(e.what());
-			}
-
-			CCritSecLock	lock(m_csRequestManager);
-			m_requestManagerList.erase(itThis);
-		}).detach();
+		std::thread(funcLaunch).detach();
 #endif
 	};
 

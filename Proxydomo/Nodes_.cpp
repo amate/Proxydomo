@@ -53,7 +53,7 @@ inline void UpdateReached(const UChar* p, MatchData* pMatch)
 const UChar* CNode_Star::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
     //  if desired, try first by consuming everything
-    if (m_maxFirst) {
+    if (m_maxFirst) {	// 後ろにマッチングパターンがないので全部消費してしまう
         if (m_nextNode == nullptr || m_nextNode->match(stop, stop, pMatch)) {
 			UpdateReached(stop, pMatch);
 			return stop;
@@ -111,13 +111,13 @@ const UChar* CNode_MemStar::match(const UChar* start, const UChar* stop, MatchDa
     // Backup memory and replace by a new one, or push new one on stack
     if (m_memoryPos != -1) {		
         backup = pMatch->pFilter->memoryTable[m_memoryPos];
-        pMatch->pFilter->memoryTable[m_memoryPos](left, stop);
+		pMatch->pFilter->memoryTable[m_memoryPos](left, stop, pMatch->IsSaveMemory());
     } else {
-		pMatch->pFilter->memoryStack.push_back(CMemory(left, stop));
+		pMatch->pFilter->memoryStack.emplace_back(left, stop, pMatch->IsSaveMemory());
     }
 
     //  if desired, try first by consuming everything
-    if (m_maxFirst) {
+    if (m_maxFirst) {	// 後ろにマッチングパターンがないので全部消費してしまう
         if (m_nextNode == nullptr || m_nextNode->match(stop, stop, pMatch)) {
 			UpdateReached(stop, pMatch);
 			return stop;
@@ -133,9 +133,9 @@ const UChar* CNode_MemStar::match(const UChar* start, const UChar* stop, MatchDa
 #endif
         // Change stored/pushed memory
         if (m_memoryPos != -1) {
-            pMatch->pFilter->memoryTable[m_memoryPos](left, start);
+			pMatch->pFilter->memoryTable[m_memoryPos](left, start, pMatch->IsSaveMemory());
         } else {
-            pMatch->pFilter->memoryStack.back()(left, start);
+			pMatch->pFilter->memoryStack.back()(left, start, pMatch->IsSaveMemory());
         }
         const UChar* ret = m_nextNode->match(start, stop, pMatch);
         if (ret) {
@@ -740,7 +740,7 @@ const UChar* CNode_Repeat::match(const UChar* start, const UChar* stop, MatchDat
     int rcount = 0;
     bool checked = false;
     while (rcount < m_rmax) {
-        if (m_iterate && m_nextNode && rcount >= m_rmin) {
+        if (m_iterate && m_nextNode && rcount >= m_rmin) {	// 後ろを見る検索 : ++
             const UChar* ret = m_nextNode->match(start, stop, pMatch);
             if (ret) {
                 return ret;
@@ -749,7 +749,6 @@ const UChar* CNode_Repeat::match(const UChar* start, const UChar* stop, MatchDat
         }
         const UChar* ret = m_node->match(start, stop, pMatch);
 		if (ret == nullptr) {
-			pMatch->reached = start;	// マッチしなかったら元に戻しておく
 			break;
 		}
 
@@ -806,6 +805,7 @@ const UChar* CNode_Memory::match(const UChar* start, const UChar* stop, MatchDat
         const UChar* ret = m_node->match(start, stop, pMatch);
 		pMatch->mapRecordPos.erase((void*)m_memorizer);
         return ret;
+
     } else {	// setNextNodeで次のマッチの前にmemorizer(this)がよばれるようになっている
 		ATLASSERT(pMatch->mapRecordPos.size() > 0);
 
@@ -816,9 +816,9 @@ const UChar* CNode_Memory::match(const UChar* start, const UChar* stop, MatchDat
         // Backup memory and replace by a new one, or push new one on stack
         if (m_memoryPos != -1) {
 			backup = pMatch->pFilter->memoryTable[m_memoryPos];
-			pMatch->pFilter->memoryTable[m_memoryPos](begin, start);
+			pMatch->pFilter->memoryTable[m_memoryPos](begin, start, pMatch->IsSaveMemory());
         } else {
-			pMatch->pFilter->memoryStack.push_back(CMemory(begin, start));
+			pMatch->pFilter->memoryStack.emplace_back(begin, start, pMatch->IsSaveMemory());
         }
 
         // Ask next node
@@ -950,19 +950,19 @@ const UChar* CNode_Url::match(const UChar* start, const UChar* stop, MatchData* 
 {
 	const CUrl& url = pMatch->pFilter->owner.url;
     const UChar* ptr = nullptr;
-	std::wstring ptrBuffer;
     switch (m_token) {
-        case L'u': ptrBuffer = UTF16fromUTF8(url.getUrl());     break;
-        case L'h': ptrBuffer = UTF16fromUTF8(url.getHost());    break;
-        case L'p': ptrBuffer = UTF16fromUTF8(url.getPath());    break;
-        case L'q': ptrBuffer = UTF16fromUTF8(url.getQuery());   break;
-        case L'a': ptrBuffer = UTF16fromUTF8(url.getAnchor());  break;
+        case L'u': ptr = url.getUrl().c_str();     break;
+		case L'h': ptr = url.getHost().c_str();    break;
+		case L'p': ptr = url.getPath().c_str();    break;
+		case L'q': ptr = url.getQuery().c_str();   break;
+		case L'a': ptr = url.getAnchor().c_str();  break;
+		default:
+			ATLASSERT(FALSE);
     }
-	ptr = ptrBuffer.data();
-    if (*ptr == L'\0') 
+	if (ptr == nullptr || *ptr == L'\0')
 		return nullptr;
 	
-    while (start < stop && *ptr != '\0' && towlower(*ptr) == towlower(*start)) {
+    while (start < stop && *ptr != L'\0' && towlower(*ptr) == towlower(*start)) {
         ptr++; start++;
     }
 	// 全部消費しなかった
@@ -1151,87 +1151,115 @@ const UChar* CNode_Command::match(const UChar* start, const UChar* stop, MatchDa
 
     case CMD_TSTSHARP:	// $TST(\#=Matching expression)
         if (filter.memoryStack.empty()) return NULL;
+		pMatch->stackSaveMemory.push(true);
         toMatch = filter.memoryStack.back().getValue();
         tStart = toMatch.c_str();
         tStop = tStart + toMatch.size();
         if (toMatch.empty()
                || !m_matcher->match(tStart, tStop, tEnd, pMatch)
                || tEnd != tStop ) {
+			pMatch->stackSaveMemory.pop();
 			pMatch->reached = reachedOrigin;
 			return NULL;
         }
+		pMatch->stackSaveMemory.pop();
 		pMatch->reached = reachedOrigin;
 		break;
 
     case CMD_TSTEXPAND:	// $TST((VariableName or \# or \0-\9)=Matching expression)
-        toMatch = CExpander::expand(m_name, filter);
+		pMatch->stackSaveMemory.push(true);
+		toMatch = CExpander::expand(m_name, filter);
         tStart = toMatch.c_str();
         tStop = tStart + toMatch.size();
         if (toMatch.empty()
                || !m_matcher->match(tStart, tStop, tEnd, pMatch)
                || tEnd != tStop ) {
+			pMatch->stackSaveMemory.pop();
 			pMatch->reached = reachedOrigin;
             return NULL;
         }
+		pMatch->stackSaveMemory.pop();
 		pMatch->reached = reachedOrigin;
         break;
 
     case CMD_TSTDIGIT:	// // $TST(\0-\9=Matching expression)
-        toMatch = filter.memoryTable[m_name[0] - L'0'].getValue();
+		pMatch->stackSaveMemory.push(true);
+		toMatch = filter.memoryTable[m_name[0] - L'0'].getValue();
         tStart = toMatch.c_str();
         tStop = tStart + toMatch.size();
         if (toMatch.empty()
                || !m_matcher->match(tStart, tStop, tEnd, pMatch)
                || tEnd != tStop ) {
+			pMatch->stackSaveMemory.pop();
 			pMatch->reached = reachedOrigin;
 			return NULL;
         }
+		pMatch->stackSaveMemory.pop();
 		pMatch->reached = reachedOrigin;
 		break;
 
     case CMD_TSTVAR:	// $TST(VariableName=Matching expression)
-        toMatch = owner.variables[m_name];
+		pMatch->stackSaveMemory.push(true);
+		toMatch = owner.variables[m_name];
         tStart = toMatch.c_str();
         tStop = tStart + toMatch.size();
         if (toMatch.empty()
                || !m_matcher->match(tStart, tStop, tEnd, pMatch)
                || tEnd != tStop ) {
+			pMatch->stackSaveMemory.pop();
 			pMatch->reached = reachedOrigin;
 			return NULL;
         }
+		pMatch->stackSaveMemory.pop();
 		pMatch->reached = reachedOrigin;
 		break;
 
     case CMD_URL:
-        toMatch = UTF16fromUTF8(owner.url.getUrl());
-        tStart = toMatch.c_str();
-        tStop = tStart + toMatch.size();
-        if (!m_matcher->match(tStart, tStop, tEnd, pMatch)) return NULL;
+		tStart = owner.url.getUrl().c_str();
+		tStop = tStart + owner.url.getUrl().size();
+		if (!m_matcher->match(tStart, tStop, tEnd, pMatch)) {
+			return NULL;
+		}
         break;
 
     case CMD_IHDR:
-        toMatch = UTF16fromUTF8(CFilterOwner::GetHeader(owner.inHeaders, UTF8fromUTF16(m_name)));
+		pMatch->stackSaveMemory.push(true);
+		toMatch = CFilterOwner::GetHeader(owner.inHeaders, m_name);
         tStart = toMatch.c_str();
         tStop = tStart + toMatch.size();
-        if (!m_matcher->match(tStart, tStop, tEnd, pMatch)) return NULL;
+		if (!m_matcher->match(tStart, tStop, tEnd, pMatch)) {
+			pMatch->stackSaveMemory.pop();
+			return NULL;
+		}
+		pMatch->stackSaveMemory.pop();
         break;
 
     case CMD_OHDR:
-        toMatch = UTF16fromUTF8(CFilterOwner::GetHeader(owner.outHeaders, UTF8fromUTF16(m_name)));
+		pMatch->stackSaveMemory.push(true);
+		toMatch = CFilterOwner::GetHeader(owner.outHeaders, m_name);
         tStart = toMatch.c_str();
         tStop = tStart + toMatch.size();
-        if (!m_matcher->match(tStart, tStop, tEnd, pMatch)) return NULL;
+		if (!m_matcher->match(tStart, tStop, tEnd, pMatch)) {
+			pMatch->stackSaveMemory.pop();
+			return NULL;
+		}
+		pMatch->stackSaveMemory.pop();
         break;
 
     case CMD_RESP:
-        toMatch = UTF16fromUTF8(owner.responseCode);
+		pMatch->stackSaveMemory.push(true);
+		toMatch = UTF16fromUTF8(owner.responseCode);
         tStart = toMatch.c_str();
         tStop = tStart + toMatch.size();
-        if (!m_matcher->match(tStart, tStop, tEnd, pMatch)) return NULL;
+		if (!m_matcher->match(tStart, tStop, tEnd, pMatch)) {
+			pMatch->stackSaveMemory.pop();
+			return NULL;
+		}
+		pMatch->stackSaveMemory.pop();
         break;
 
     case CMD_SETSHARP:
-        filter.memoryStack.push_back(CMemory(m_content));
+		filter.memoryStack.emplace_back(m_content);
         break;
 
     case CMD_SETDIGIT:
@@ -1302,7 +1330,7 @@ const UChar* CNode_Command::match(const UChar* start, const UChar* stop, MatchDa
 		{
 			auto it = CSettings::s_setRemoteProxy.find(UTF8fromUTF16(m_content));
 			if (it != CSettings::s_setRemoteProxy.end()) {
-				owner.contactHost = *it;
+				owner.contactHost = UTF16fromUTF8(*it);
 				owner.useSettingsProxy = false;	// デフォルトのリモートプロクシが使われないようにする
 			}
 		}
@@ -1316,17 +1344,17 @@ const UChar* CNode_Command::match(const UChar* start, const UChar* stop, MatchDa
         break;
 
     case CMD_JUMP:
-        owner.rdirToHost = UTF8fromUTF16(CExpander::expand(m_content, filter));
+        owner.rdirToHost = CExpander::expand(m_content, filter);
         CUtil::trim(owner.rdirToHost);
         owner.rdirMode = 0;
-		CLog::FilterEvent(kLogFilterJump, owner.requestNumber, UTF8fromUTF16(filter.title), owner.rdirToHost);
+		CLog::FilterEvent(kLogFilterJump, owner.requestNumber, UTF8fromUTF16(filter.title), UTF8fromUTF16(owner.rdirToHost));
         break;
 
     case CMD_RDIR:
-        owner.rdirToHost = UTF8fromUTF16(CExpander::expand(m_content, filter));
+        owner.rdirToHost = CExpander::expand(m_content, filter);
         CUtil::trim(owner.rdirToHost);
         owner.rdirMode = 1;
-		CLog::FilterEvent(kLogFilterRdir, owner.requestNumber, UTF8fromUTF16(filter.title), owner.rdirToHost);
+		CLog::FilterEvent(kLogFilterRdir, owner.requestNumber, UTF8fromUTF16(filter.title), UTF8fromUTF16(owner.rdirToHost));
         break;
 
     case CMD_FILTER:

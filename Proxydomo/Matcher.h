@@ -65,7 +65,7 @@ public:
     void mayMatch(bool* tab);
 
 	bool match(const UChar* start, const UChar* stop, const UChar*& end, MatchData* pMatch);
-	bool match(const std::string& text, CFilter* filter);
+	bool match(std::wstring& text, CFilter* filter);
 
     // Static version, that builds a search tree at each call
     static bool match(const std::wstring& pattern, CFilter& filter,

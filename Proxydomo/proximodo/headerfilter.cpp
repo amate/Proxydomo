@@ -67,7 +67,7 @@ CHeaderFilter::~CHeaderFilter() {
 
 /* Transform header according to filter description
  */
-bool CHeaderFilter::filter(string& content) {
+bool CHeaderFilter::filter(std::wstring& content) {
 
     if (bypassed || (content.empty() && textMatcher && textMatcher->isStar()))
         return false;
@@ -78,7 +78,7 @@ bool CHeaderFilter::filter(string& content) {
 	Proxydomo::MatchData matchData(this);
     // check if URL matches
     if (urlMatcher) {		
-		std::wstring url =  UTF16fromUTF8(owner.url.getFromHost());
+		const std::wstring& url =  owner.url.getFromHost();
 		const UChar* end = nullptr;
 		bool ret = urlMatcher->match(url.c_str(), url.c_str() + url.length(), end, &matchData);
         unlock();
@@ -87,33 +87,32 @@ bool CHeaderFilter::filter(string& content) {
 
     // Check if content matches
     if (textMatcher) {
-        this->content = content;
-        bool ret = textMatcher->match(content, this);
+		bool ret = textMatcher->match(content, this);
         unlock();
         if (!ret) return false;
     }
 
     // Log match event
-	CLog::FilterEvent(kLogFilterHeaderMatch, owner.requestNumber, UTF8fromUTF16(title), content);
+	CLog::FilterEvent(kLogFilterHeaderMatch, owner.requestNumber, UTF8fromUTF16(title), UTF8fromUTF16(content));
                                
     // Compute new header content
-    content = UTF8fromUTF16(CExpander::expand(replacePattern, *this));
+    content = CExpander::expand(replacePattern, *this);
     unlock();
     CUtil::trim(content);
 
     // Ensure the header is still standard compliant
     // PENDING: I only do the minimum amount of tests here...
     size_t index = 0;
-    while ((index = content.find_first_of("\r\n", index)) != string::npos) {
+    while ((index = content.find_first_of(L"\r\n", index)) != wstring::npos) {
         // Multiligne must be formatted as CR LF SPACE
         size_t pos = index + 1;
-        while (string(" \t\r\n").find(content[pos])) ++pos;
-        content.replace(index, pos-index, "\r\n ");
+        while (wstring(L" \t\r\n").find(content[pos])) ++pos;
+        content.replace(index, pos-index, L"\r\n ");
         index += 3;
     }
 
     // Log replace event
-	CLog::FilterEvent(kLogFilterHeaderReplace, owner.requestNumber, UTF8fromUTF16(title), content);
+	CLog::FilterEvent(kLogFilterHeaderReplace, owner.requestNumber, UTF8fromUTF16(title), UTF8fromUTF16(content));
 
 	for (auto& matchListLog : matchData.matchListLog) {
 		CLog::FilterEvent(kLogFilterListMatch, owner.requestNumber, matchListLog.first, std::to_string(matchListLog.second));

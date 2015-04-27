@@ -58,7 +58,7 @@ public:
     FilterType	filterType;
 
     // Data specific to header filters
-    std::string headerName;
+    std::wstring headerName;
 
     // Data specific to text filters
     bool   multipleMatches;

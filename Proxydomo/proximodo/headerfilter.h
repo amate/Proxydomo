@@ -34,8 +34,6 @@ class CFilterDescriptor;
 class CFilterOwner;
 namespace Proxydomo { class CMatcher; }
 
-using namespace std;
-
 /* class CHeaderFilter
  */
 class CHeaderFilter : public CFilter {
@@ -50,15 +48,12 @@ public:
     // Note that input should not include header-name: and
     // that there can be CRLF in input, and there may be
     // in output too (wrt HTTP standard).
-    bool filter(string& header);
+    bool filter(std::wstring& header);
 
     // Name of processed header (in lowercase)
-    string headerName;
+    std::wstring headerName;
 
 private:
-    // Content of header or URL
-    string content;
-
     // URL matcher
     std::shared_ptr<Proxydomo::CMatcher> urlMatcher;
 

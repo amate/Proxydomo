@@ -36,18 +36,18 @@ class CUrl
 public:
     CUrl() : bypassIn(false), bypassOut(false), bypassText(false),
              debug(false), source(false) { }
-    CUrl(const std::string& str);
-    void parseUrl(const std::string& str);
+    CUrl(const std::wstring& str);
+    void parseUrl(const std::wstring& str);
     
-    inline const std::string& getUrl()       const { return url;       }
-    inline const std::string& getProtocol()  const { return protocol;  }
-    inline const std::string& getFromHost()  const { return fromhost;  }
-    inline const std::string& getHost()      const { return host;      }
-    inline const std::string& getAfterHost() const { return afterhost; }
-    inline const std::string& getPath()      const { return path;      }
-    inline const std::string& getQuery()     const { return query;     }
-    inline const std::string& getAnchor()    const { return anchor;    }
-    inline const std::string& getHostPort()  const { return hostport;  }
+    inline const std::wstring& getUrl()       const { return url;       }
+    inline const std::wstring& getProtocol()  const { return protocol;  }
+    inline const std::wstring& getFromHost()  const { return fromhost;  }
+    inline const std::wstring& getHost()      const { return host;      }
+    inline const std::wstring& getAfterHost() const { return afterhost; }
+    inline const std::wstring& getPath()      const { return path;      }
+    inline const std::wstring& getQuery()     const { return query;     }
+    inline const std::wstring& getAnchor()    const { return anchor;    }
+    inline const std::wstring& getHostPort()  const { return hostport;  }
     inline bool getBypassIn()           const { return bypassIn;  }
     inline bool getBypassOut()          const { return bypassOut; }
     inline bool getBypassText()         const { return bypassText;}
@@ -57,7 +57,7 @@ public:
 private:
     // fromhost is the URL without http://
     // hostport is host:port
-    std::string url, protocol, fromhost, host, afterhost, path, query, anchor, hostport;
+    std::wstring url, protocol, fromhost, host, afterhost, path, query, anchor, hostport;
     bool bypassIn, bypassOut, bypassText, debug, source;
 };
 

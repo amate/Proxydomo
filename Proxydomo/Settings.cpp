@@ -66,7 +66,7 @@ bool			CSettings::s_useRemoteProxy	= false;
 std::string		CSettings::s_defaultRemoteProxy;
 std::set<std::string> CSettings::s_setRemoteProxy;
 
-std::string		CSettings::s_urlCommandPrefix;	
+std::wstring	CSettings::s_urlCommandPrefix;	
 
 std::wstring	CSettings::s_language = kDefaultLanguage;
 
@@ -138,12 +138,12 @@ void	CSettings::LoadSettings()
 
 	// prefixÇê›íË
 	enum { kPrefixSize = 8 };
-	static const char charactorSelection[] = "abcdefghijklmnopqrstuvqxyz0123456789";
+	const wchar_t charactorSelection[] = L"abcdefghijklmnopqrstuvqxyz0123456789";
 	std::random_device	randEngine;
 	std::uniform_int_distribution<int> dist(0, _countof(charactorSelection) - 2);
 	for (int i = 0; i < kPrefixSize; ++i)
 		s_urlCommandPrefix += charactorSelection[dist(randEngine)];
-	s_urlCommandPrefix += '_';
+	s_urlCommandPrefix += L'_';
 
 	// Bypass matcherÇçÏê¨
 	s_pBypassMatcher = Proxydomo::CMatcher::CreateMatcher(L"$LST(Bypass)");
@@ -233,7 +233,7 @@ void	LoadFilterItem(wptree& ptChild, std::vector<std::unique_ptr<FilterItem>>& v
 			pFilter->filterType	= 
 				static_cast<CFilterDescriptor::FilterType>(
 					ptFilter.get<int>(L"filterType", (int)CFilterDescriptor::kFilterText));
-			pFilter->headerName	= UTF8fromUTF16(ptFilter.get(L"headerName", L""));
+			pFilter->headerName	= ptFilter.get(L"headerName", L"");
 			pFilter->multipleMatches= ptFilter.get<bool>(L"multipleMatches", false);
 			pFilter->windowWidth	= ptFilter.get<int>(L"windowWidth", 128);
 			pFilter->boundsPattern	= (ptFilter.get(L"boundsPattern", L""));
@@ -303,7 +303,7 @@ void	SaveFilterItem(std::vector<std::unique_ptr<FilterItem>>& vecpFilter, wptree
 			ptFilter.put(L"author", UTF16fromUTF8(filter->author));
 			ptFilter.put(L"comment", UTF16fromUTF8(filter->comment));
 			ptFilter.put(L"filterType", (int)filter->filterType);
-			ptFilter.put(L"headerName", UTF16fromUTF8(filter->headerName));
+			ptFilter.put(L"headerName", filter->headerName);
 			ptFilter.put(L"multipleMatches", filter->multipleMatches);
 			ptFilter.put(L"windowWidth", filter->windowWidth);
 			ptFilter.put(L"boundsPattern", (filter->boundsPattern));

@@ -87,7 +87,7 @@ WOLFSSL_MSG("Failed to verify CA from chain");
 WOLFSSL_MSG("Failed to verify CA from chain");
 
 if (count == totalCerts && count > 2) {
-	if (ret == ASN_NO_SIGNER_E) {
+	if (ret == ASN_NO_SIGNER_E || ret == ASN_SIG_CONFIRM_E) {
 		ret = 0;	// ç≈è„à ÇÃÇ›å©ì¶Ç∑
 	}
 }

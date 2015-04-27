@@ -185,7 +185,7 @@ int decodeCommand(StringCharacterIterator& patternIt,
 /// pattern ‚ğŒŸõ–Ø‚É•ÏŠ·‚µ‚Ü‚·B pattern‚ª–³Œø‚È‚ç—áŠO‚ª”ò‚Ñ‚Ü‚·B
 CMatcher::CMatcher(const std::wstring& pattern)
 {
-	UnicodeString pat(pattern.c_str(), pattern.length());
+	UnicodeString pat(pattern.c_str(), (int32_t)pattern.length());
 	_CreatePattern(pat);
 }
 
@@ -265,13 +265,11 @@ bool CMatcher::match(const UChar* start, const UChar* stop, const UChar*& end, M
 }
 
 /// simple
-bool CMatcher::match(const std::string& text, CFilter* filter)
+bool CMatcher::match(std::wstring& text, CFilter* filter)
 {
-	std::wstring str = UTF16fromUTF8(text);
-	//UnicodeString str(text.c_str(), text.length());
 	MatchData	mdata(filter);
 	const UChar* end = nullptr;
-	return match(str.c_str(), str.c_str() + str.length(), end, &mdata);
+	return match(text.c_str(), text.c_str() + text.length(), end, &mdata);
 }
 
 
@@ -734,7 +732,7 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
 		patternIt.next();
 		std::wstring command, content;
         int endContent = decodeCommand(patternIt, command, content); // after )
-        int contentSize = content.size();
+        int contentSize = (int)content.size();
         int startContent = endContent - 1 - contentSize; // for exception info
         
         if (endContent < 0) {
@@ -746,7 +744,7 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
 
         // The pattern will continue after the closing )
         //pos = endContent;
-		UnicodeString	contentPattern(content.c_str(), content.length());
+		UnicodeString	contentPattern(content.c_str(), (int32_t)content.length());
 		StringCharacterIterator	contentIt(contentPattern);
 
         try {
@@ -1028,15 +1026,15 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
                 }
                 CNode *left = NULL, *middle = NULL, *right = NULL;
                 try {
-					UnicodeString	patNest1(text1.c_str(), text1.length());
+					UnicodeString	patNest1(text1.c_str(), (int32_t)text1.length());
 					StringCharacterIterator	patNestIt1(patNest1);
                     left = expr(patNestIt1);
                     if (hasMiddle) {
-						UnicodeString	patNest2(text2.c_str(), text2.length());
+						UnicodeString	patNest2(text2.c_str(), (int32_t)text2.length());
 						StringCharacterIterator	patNestIt2(patNest2);
 						middle = expr(patNestIt2);
 					}
-					UnicodeString	patNest3(text3.c_str(), text3.length());
+					UnicodeString	patNest3(text3.c_str(), (int32_t)text3.length());
 					StringCharacterIterator	patNestIt3(patNest3);
                     right = expr(patNestIt3);
                 } catch (parsing_exception& e) {
