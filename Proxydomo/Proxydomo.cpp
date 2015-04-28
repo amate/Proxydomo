@@ -102,7 +102,6 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR lp
 		CVersionControl::Run();
 
 		CSettings::LoadSettings();
-		UITranslator::LoadUILanguage();
 
 		CSocket::Init();
 

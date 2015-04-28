@@ -1027,9 +1027,10 @@ const UChar* CNode_List::match(const UChar* start, const UChar* stop, MatchData*
 			for (auto& node : itfound->second->vecNode) {
 				const UChar* ptr = node.node->match(start, stop, pMatch);
 				if (ptr) {
-					pMatch->matchListLog.emplace_back(m_name, node.listLine);
 					start = ptr;
 					const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
+					if (ret)
+						pMatch->matchListLog.emplace_back(m_name, node.listLine);
 					return ret;
 				}
 			}
@@ -1080,9 +1081,10 @@ const UChar* CNode_List::match(const UChar* start, const UChar* stop, MatchData*
 					if (pairNode.nodeFirst->match(urlHost.c_str(), it->second, pMatch)) {
 						const UChar* ptr = pairNode.nodeLast->match(slashPos + 1, stop, pMatch);
 						if (ptr) {
-							pMatch->matchListLog.emplace_back(m_name, pairNode.listLine);
 							start = ptr;
 							const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
+							if (ret)
+								pMatch->matchListLog.emplace_back(m_name, pairNode.listLine);
 							return ret;
 						}
 					}
@@ -1097,9 +1099,10 @@ const UChar* CNode_List::match(const UChar* start, const UChar* stop, MatchData*
 		for (auto& node : m_phashedCollection->deqNormalNode) {
 			const UChar* ptr = node.node->match(start, stop, pMatch);
 			if (ptr) {
-				pMatch->matchListLog.emplace_back(m_name, node.listLine);
 				start = ptr;
 				const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
+				if (ret)
+					pMatch->matchListLog.emplace_back(m_name, node.listLine);
 				return ret;
 			}
 		}

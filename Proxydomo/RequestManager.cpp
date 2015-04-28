@@ -157,7 +157,7 @@ void CRequestManager::Manage()
 			bRest = false;
 
 		if (m_psockWebsite->IsConnected()) {
-			TRACEIN("Manage ポート %d : サイトとつながりました！[%s]", 
+			TRACEIN(L"Manage ポート %d : サイトとつながりました！[%s]", 
 					m_ipFromAddress.GetPortNumber(), m_filterOwner.contactHost.c_str());
 			do {
 				// Full processing

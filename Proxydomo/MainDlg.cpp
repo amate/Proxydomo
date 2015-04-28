@@ -29,6 +29,7 @@
 #include "OptionDialog.h"
 #include "Misc.h"
 #include "Proxy.h"
+#include "Logger.h"
 #include "UITranslator.h"
 using namespace UITranslator;
 
@@ -103,15 +104,22 @@ LRESULT CMainDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam
 
 	std::ifstream fs(Misc::GetExeDirectory() + _T("settings.ini"));
 	if (fs) {
-		ptree pt;
-		read_ini(fs, pt);
-		int	top  = pt.get("MainWindow.top", -1);
-		int left = pt.get("MainWindow.left", -1);
-		if (top != -1 && left != -1) {
-			SetWindowPos(NULL, left, top, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+		try {
+			ptree pt;
+			read_ini(fs, pt);
+			int	top = pt.get("MainWindow.top", -1);
+			int left = pt.get("MainWindow.left", -1);
+			if (top != -1 && left != -1) {
+				SetWindowPos(NULL, left, top, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
+			}
+			if (pt.get("MainWindow.ShowWindow", true))
+				ShowWindow(TRUE);
 		}
-		if (pt.get("MainWindow.ShowWindow", true))
-			ShowWindow(TRUE);
+		catch (...) {
+			MessageBox(GetTranslateMessage(ID_LOADSETTINGFAILED).c_str(), GetTranslateMessage(ID_TRANS_ERROR).c_str(), MB_ICONERROR);
+			fs.close();
+			MoveFile(Misc::GetExeDirectory() + _T("settings.ini"), Misc::GetExeDirectory() + _T("settings_loadfailed.ini"));
+		}
 	} else {
 		ShowWindow(TRUE);
 		// center the dialog on the screen
@@ -159,7 +167,8 @@ void	CMainDlg::_SaveMainDlgWindowPos()
 	try {
 		read_ini(settingsPath, pt);
 	} catch (...) {
-
+		ERROR_LOG << L"CMainDlg::_SaveMainDlgWindowPos : settings.ini‚Ì“Ç‚Ýž‚Ý‚ÉŽ¸”s";
+		pt.clear();
 	}
 
 	pt.put("MainWindow.ShowWindow", m_bVisibleOnDestroy);

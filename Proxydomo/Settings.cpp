@@ -42,10 +42,11 @@
 #include "Logger.h"
 #include "Matcher.h"
 #include "DirectoryWatcher.h"
+#include "UITranslator.h"
 
 using namespace CodeConvert;
 using namespace boost::property_tree;
-
+using namespace UITranslator;
 
 ////////////////////////////////////////////////////////////
 // CSettings
@@ -91,50 +92,60 @@ void	CSettings::LoadSettings()
 	std::ifstream fs(Misc::GetExeDirectory() + _T("settings.ini"));
 	if (fs) {
 		ptree pt;
-		read_ini(fs, pt);
-		if (auto value = pt.get_optional<uint16_t>("Setting.ProxyPort"))
-			s_proxyPort	= value.get();
-		if (auto value = pt.get_optional<bool>("Setting.privateConnection"))
-			s_privateConnection = value.get();
-		if (auto value = pt.get_optional<bool>("Setting.filterText"))
-			s_filterText	= value.get();
-		if (auto value = pt.get_optional<bool>("Setting.filterIn"))
-			s_filterIn	= value.get();
-		if (auto value = pt.get_optional<bool>("Setting.filterOut"))
-			s_filterOut	= value.get();
-		if (auto value = pt.get_optional<bool>("Setting.bypass"))
-			s_bypass = value.get();
+		try {
+			read_ini(fs, pt);
 
-		s_useRemoteProxy = pt.get<bool>("RemoteProxy.UseRemoteProxy", s_useRemoteProxy);
-		s_defaultRemoteProxy = pt.get("RemoteProxy.defaultRemoteProxy", "");
-		const int remoteProxyCount = pt.get("RemoteProxy.Count", 0);
-		for (int i = 0; i < remoteProxyCount; ++i) {
-			std::string path = boost::io::str(boost::format("RemoteProxy.proxy%d") % i);
-			std::string remoteproxy = pt.get(path, "");
-			if (remoteproxy.length())
-				s_setRemoteProxy.insert(remoteproxy);
-		}
+			if (auto value = pt.get_optional<uint16_t>("Setting.ProxyPort"))
+				s_proxyPort	= value.get();
+			if (auto value = pt.get_optional<bool>("Setting.privateConnection"))
+				s_privateConnection = value.get();
+			if (auto value = pt.get_optional<bool>("Setting.filterText"))
+				s_filterText	= value.get();
+			if (auto value = pt.get_optional<bool>("Setting.filterIn"))
+				s_filterIn	= value.get();
+			if (auto value = pt.get_optional<bool>("Setting.filterOut"))
+				s_filterOut	= value.get();
+			if (auto value = pt.get_optional<bool>("Setting.bypass"))
+				s_bypass = value.get();
 
-		if (auto value = pt.get_optional<std::string>("Setting.language")) {
-			s_language = UTF16fromUTF8(value.get());
-		} else {
-			CString language = kDefaultLanguage;
-			int len = GetLocaleInfoW(LOCALE_USER_DEFAULT, LOCALE_SENGLANGUAGE, nullptr, 0);
-			if (len) {			
-				GetLocaleInfoW(LOCALE_USER_DEFAULT, LOCALE_SENGLANGUAGE, language.GetBuffer(len + 1), len);
-				language.ReleaseBuffer();
-
-				CString traslateFilePath = Misc::GetExeDirectory() + L"lang\\" + language + L".lng";
-				if (::PathFileExists(traslateFilePath) == FALSE) {
-					language = kDefaultLanguage;
-				}
+			s_useRemoteProxy = pt.get<bool>("RemoteProxy.UseRemoteProxy", s_useRemoteProxy);
+			s_defaultRemoteProxy = pt.get("RemoteProxy.defaultRemoteProxy", "");
+			const int remoteProxyCount = pt.get("RemoteProxy.Count", 0);
+			for (int i = 0; i < remoteProxyCount; ++i) {
+				std::string path = boost::io::str(boost::format("RemoteProxy.proxy%d") % i);
+				std::string remoteproxy = pt.get(path, "");
+				if (remoteproxy.length())
+					s_setRemoteProxy.insert(remoteproxy);
 			}
-			s_language = language;
-		}
 
-		if (auto value = pt.get_optional<bool>("Setting.tasktrayOnCloseBotton"))
-			s_tasktrayOnCloseBotton = value.get();
+			if (auto value = pt.get_optional<std::string>("Setting.language")) {
+				s_language = UTF16fromUTF8(value.get());
+			} else {
+				CString language = kDefaultLanguage;
+				int len = GetLocaleInfoW(LOCALE_USER_DEFAULT, LOCALE_SENGLANGUAGE, nullptr, 0);
+				if (len) {			
+					GetLocaleInfoW(LOCALE_USER_DEFAULT, LOCALE_SENGLANGUAGE, language.GetBuffer(len + 1), len);
+					language.ReleaseBuffer();
+
+					CString traslateFilePath = Misc::GetExeDirectory() + L"lang\\" + language + L".lng";
+					if (::PathFileExists(traslateFilePath) == FALSE) {
+						language = kDefaultLanguage;
+					}
+				}
+				s_language = language;
+			}
+
+			if (auto value = pt.get_optional<bool>("Setting.tasktrayOnCloseBotton"))
+				s_tasktrayOnCloseBotton = value.get();
+		}
+		catch (...) {
+			MessageBox(NULL, GetTranslateMessage(ID_LOADSETTINGFAILED).c_str(), GetTranslateMessage(ID_TRANS_ERROR).c_str(), MB_ICONERROR);
+			fs.close();
+			MoveFile(Misc::GetExeDirectory() + _T("settings.ini"), Misc::GetExeDirectory() + _T("settings_loadfailed.ini"));
+		}
 	}
+
+	UITranslator::LoadUILanguage();
 
 	// prefixÇê›íË
 	enum { kPrefixSize = 8 };
@@ -190,6 +201,8 @@ void	CSettings::SaveSettings()
 	try {
 		read_ini(settingsPath, pt);
 	} catch (...) {
+		ERROR_LOG << L"CSettings::SaveSettings : settings.iniÇÃì«Ç›çûÇ›Ç…é∏îs";
+		pt.clear();
 	}
 
 	pt.put("Setting.ProxyPort", s_proxyPort);
@@ -264,7 +277,7 @@ void CSettings::LoadFilter()
 
 	std::wifstream	fs(filterPath);
 	if (!fs) {
-		MessageBox(NULL, _T("filter.xmlÇÃÉIÅ[ÉvÉìÇ…é∏îs"), NULL, MB_ICONERROR);
+		MessageBox(NULL, GetTranslateMessage(ID_OPENFILTERXMLFAILED).c_str(), GetTranslateMessage(ID_TRANS_ERROR).c_str(), MB_ICONERROR);
 		return ;
 	}
 	fs.imbue(std::locale(std::locale(), new std::codecvt_utf8_utf16<wchar_t>));
@@ -273,6 +286,7 @@ void CSettings::LoadFilter()
 	try {
 		read_xml(fs, pt);
 	} catch (...) {
+		MessageBox(NULL, GetTranslateMessage(ID_LOADFILTERXMLFAILED).c_str(), GetTranslateMessage(ID_TRANS_ERROR).c_str(), MB_ICONERROR);
 		return ;
 	}
 	if (auto& opChild = pt.get_child_optional(L"ProxydomoFilter")) {
@@ -371,10 +385,9 @@ void CSettings::SaveFilter()
 					::MoveFileEx(tempPath, filterPath, MOVEFILE_REPLACE_EXISTING);
 
 				}
-				catch (const boost::property_tree::ptree_error& error) {
-					CString strError = _T("filter.xmlÇ÷ÇÃèëÇ´çûÇ›Ç…é∏îs\n");
-					strError += error.what();
-					MessageBox(NULL, strError, NULL, MB_ICONERROR);
+				catch (const boost::property_tree::ptree_error& error) {					
+					MessageBox(NULL, GetTranslateMessage(ID_SAVEFILTERXMLFAILED, (LPWSTR)CA2W(error.what())).c_str(), 
+								GetTranslateMessage(ID_TRANS_ERROR).c_str(), MB_ICONERROR);
 				}
 				s_cs.Leave();
 				s_bCancel.store(false);

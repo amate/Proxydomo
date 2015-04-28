@@ -9,6 +9,7 @@
 #include <atlapp.h>
 #include <atlgdi.h>
 #include "format.h"
+#include "resource.h"
 
 namespace UITranslator {
 
