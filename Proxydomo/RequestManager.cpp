@@ -36,6 +36,7 @@
 #include "proximodo\filter.h"
 #include "Logger.h"
 #include "CodeConvert.h"
+#include "ConnectionMonitor.h"
 using namespace CodeConvert;
 
 #define CR	'\r'
@@ -113,6 +114,8 @@ CRequestManager::CRequestManager(std::unique_ptr<CSocket>&& psockBrowser) :
 			// Invalid filters are just ignored
 		}
 	});
+
+	m_connectionData = CConnectionManager::CreateConnectionData();
 }
 
 
@@ -120,7 +123,7 @@ CRequestManager::~CRequestManager(void)
 {
     // If we were processing outgoing or incoming
     // data, we were an active request
-    if (m_outStep != STEP_START || m_inStep != STEP_START) {
+    if (m_outStep != STEP::STEP_START || m_inStep != STEP::STEP_START) {
 		CLog::DecrementActiveRequestCount();
 		CLog::ProxyEvent(kLogProxyEndRequest, m_ipFromAddress);
     }
@@ -132,12 +135,14 @@ CRequestManager::~CRequestManager(void)
 	} catch (SocketException& e) {
 		ATLTRACE(e.what());
 	}
+
+	CConnectionManager::RemoveConnectionData(m_connectionData);
 }
 
 void CRequestManager::Manage()
 {
-	m_outStep = STEP_START;
-	m_inStep = STEP_START;
+	m_outStep = STEP::STEP_START;
+	m_inStep = STEP::STEP_START;
 	m_ipFromAddress = m_psockBrowser->GetFromAddress();
 	m_psockBrowser->SetBlocking(false);
 	m_psockWebsite.reset(new CSocket);
@@ -178,7 +183,7 @@ void CRequestManager::Manage()
 				}
 
 				if (m_pSSLServerSession) {	// SSL
-					if ( m_outStep == STEP_START &&
+					if ( m_outStep == STEP::STEP_START &&
 						 (m_pSSLServerSession->IsConnected() == false ||
 						  m_pSSLClientSession->IsConnected() == false   ) )
 					{
@@ -204,13 +209,14 @@ void CRequestManager::Manage()
 			// Terminate feeding browser
 			_ReceiveIn();
 			_ProcessIn();
-			if (m_inStep == STEP_RAW || m_inStep == STEP_CHUNK) {
-				m_inStep = STEP_FINISH;
+			if (m_inStep == STEP::STEP_RAW || m_inStep == STEP::STEP_CHUNK) {
+				m_inStep = STEP::STEP_FINISH;
+				m_connectionData->SetInStep(m_inStep);
 				_EndFeeding();
 				_ProcessIn();
 			}
 			_SendIn();
-			if (m_outStep == STEP_FINISH) {
+			if (m_outStep == STEP::STEP_FINISH) {
 				// The website aborted connection before sending the body
 				m_sendInBuf = "HTTP/1.1 503 Service Unavailable" CRLF;
                 //CLog::ref().logHttpEvent(pmEVT_HTTP_TYPE_SENDIN, addr,
@@ -239,7 +245,7 @@ void CRequestManager::Manage()
 void	CRequestManager::SwitchToInvalid() 
 {
 	m_valid = false;
-	if (m_outStep != STEP_START) {
+	if (m_outStep != STEP::STEP_START) {
 		if (m_psockWebsite)
 			m_psockWebsite->WriteStop();
 		if (m_psockBrowser)
@@ -263,7 +269,7 @@ void	CRequestManager::_JudgeManageContinue()
 	if (m_pSSLServerSession && m_filterOwner.responseLine.code != "101")
 		return;
 
-	if (m_outStep == STEP_TUNNELING) {
+	if (m_outStep == STEP::STEP_TUNNELING) {
 		if (m_psockBrowser->IsConnected() == false || m_psockWebsite->IsConnected() == false) {
 			m_psockBrowser->Close();
 			m_psockWebsite->Close();
@@ -275,7 +281,7 @@ void	CRequestManager::_JudgeManageContinue()
 	typedef steady_clock::time_point time_point;
 
 	// 規定秒(10秒)処理の開始待ち時間が経過すると切断する
-	if (m_outStep != STEP_START) {
+	if (m_outStep != STEP::STEP_START) {
 		if (m_processIdleTime != time_point())
 			m_processIdleTime = time_point();		// 処理が行われてるので時間をリセットする
 
@@ -344,15 +350,16 @@ void CRequestManager::_ProcessOut()
 	for (;;) {
 		switch (m_outStep) {
 		// Marks the beginning of a request
-		case STEP_START:
+		case STEP::STEP_START:
 			{
 				if (m_recvOutBuf.empty())
 					return ;			// 処理するのに十分なデータがないので帰る
 			
-				m_outStep = STEP_FIRSTLINE;
+				m_outStep = STEP::STEP_FIRSTLINE;
+				m_connectionData->SetOutStep(m_outStep);
 
 				// Update active request stat, but if processIn() did it already
-				if (m_inStep == STEP_START) {
+				if (m_inStep == STEP::STEP_START) {
 					CLog::IncrementActiveRequestCount();
 					CLog::ProxyEvent(kLogProxyNewRequest, m_ipFromAddress);
 				}
@@ -365,6 +372,7 @@ void CRequestManager::_ProcessOut()
 				m_recvConnectionClose = false;
 				m_sendConnectionClose = false;
 				m_recvContentCoding = 0;
+				m_bPostData = false;
 				m_logPostData.clear();
 
 				++m_RequestCountFromBrowser;
@@ -372,7 +380,7 @@ void CRequestManager::_ProcessOut()
 			break;
 
 		// Read first HTTP request line
-		case STEP_FIRSTLINE:
+		case STEP::STEP_FIRSTLINE:
 			{
 				// Do we have the full first line yet?
 				size_t pos, len;
@@ -388,8 +396,11 @@ void CRequestManager::_ProcessOut()
 				m_logRequest = m_recvOutBuf.substr(0, pos + len);
 				m_recvOutBuf.erase(0, pos + len);
 
+				m_connectionData->SetVerb(UTF16fromUTF8(m_requestLine.method));
+
 				// Next step will be to read headers
-				m_outStep = STEP_HEADERS;
+				m_outStep = STEP::STEP_HEADERS;
+				m_connectionData->SetOutStep(m_outStep);
 
 				// Unless we have Content-Length or Transfer-Encoding headers,
 				// we won't expect anything after headers.
@@ -399,17 +410,18 @@ void CRequestManager::_ProcessOut()
 			break;
 
 		// Read and process headers, as long as there are any
-		case STEP_HEADERS:
+		case STEP::STEP_HEADERS:
 			{
 				if (GetHeaders(m_recvOutBuf, m_filterOwner.outHeaders, m_logRequest) == false)
 					return ;
 				
-				m_outStep = STEP_DECODE;
-			}
+				m_outStep = STEP::STEP_DECODE;
+				m_connectionData->SetOutStep(m_outStep);
+		}
 			break;
 
 		// Decode and process headers
-		case STEP_DECODE:
+		case STEP::STEP_DECODE:
 			{
 				CLog::HttpEvent(kLogHttpRecvOut, m_ipFromAddress, m_filterOwner.requestNumber, m_logRequest);
 
@@ -422,6 +434,7 @@ void CRequestManager::_ProcessOut()
 				} else {
 					m_filterOwner.url.parseUrl(UTF16fromUTF8(m_requestLine.url));
 				}
+				m_connectionData->SetUrl(m_filterOwner.url.getUrl());
 
 				if (m_filterOwner.url.getBypassIn())
 					m_filterOwner.bypassIn = true;
@@ -449,6 +462,9 @@ void CRequestManager::_ProcessOut()
 				std::wstring contentLength = m_filterOwner.GetOutHeader(L"Content-Length");
 				if (contentLength.size() > 0)
 					m_outSize = boost::lexical_cast<int64_t>(contentLength);
+
+				if (CUtil::noCaseContains(L"application/x-www-form-urlencoded", m_filterOwner.GetOutHeader(L"Content-Type")))
+					m_bPostData = true;
 
 				// We'll work on a copy, since we don't want to alter
 				// the real headers that $IHDR and $OHDR may access
@@ -518,8 +534,8 @@ void CRequestManager::_ProcessOut()
 				// the finish state, so that we can accept other requests
 				// on the same browser socket (persistent connection).
 				if (m_pSSLServerSession && m_filterOwner.killed == false) {
-					m_inStep = STEP_START;
-
+					m_inStep = STEP::STEP_START;
+					m_connectionData->SetInStep(m_inStep);
 					
 					if (m_filterOwner.rdirToHost.size() > 0) {
 						// $RDIR
@@ -533,6 +549,7 @@ void CRequestManager::_ProcessOut()
 								throw GeneralException("SSL invalid Redirect Error");
 							} else {
 								m_filterOwner.url.parseUrl(m_filterOwner.rdirToHost);
+								m_connectionData->SetUrl(m_filterOwner.url.getUrl());
 								m_filterOwner.rdirToHost.clear();
 							}
 						// $JUMP
@@ -544,7 +561,7 @@ void CRequestManager::_ProcessOut()
 					_ConnectWebsite();
 				}
 				// If website is read, send headers
-				if (m_inStep == STEP_START) {
+				if (m_inStep == STEP::STEP_START) {
 
 					// Update URL within request
 					if (m_pSSLServerSession == nullptr) {
@@ -585,23 +602,26 @@ void CRequestManager::_ProcessOut()
 				// Decide next step
 				if (m_requestLine.method == "HEAD") {
 					// HEAD requests have no body, even if a size is provided
-					m_outStep = STEP_FINISH;
+					m_outStep = STEP::STEP_FINISH;
+					m_connectionData->SetOutStep(m_outStep);
 				} else if (m_requestLine.method == "CONNECT") {
 					// SSL Tunneling (we won't process exchanged data)
-					m_outStep = STEP_TUNNELING;
+					m_outStep = STEP::STEP_TUNNELING;
+					m_connectionData->SetOutStep(m_outStep);
 					if (m_pSSLServerSession)
 						return;
 				} else {
-					m_outStep = (m_outChunked ? STEP_CHUNK : m_outSize ? STEP_RAW : STEP_FINISH);
+					m_outStep = (m_outChunked ? STEP::STEP_CHUNK : m_outSize ? STEP::STEP_RAW : STEP::STEP_FINISH);
+					m_connectionData->SetOutStep(m_outStep);
 				}
 			}
 			break;
 
 		// Read CRLF HexRawLength * CRLF before raw data
 		// or CRLF zero * CRLF CRLF
-		case STEP_CHUNK:
+		case STEP::STEP_CHUNK:
 			{
-				TRACEIN(_T("ProcessOut #%d : STEP_CHUNK"), m_filterOwner.requestNumber);
+				TRACEIN(_T("ProcessOut #%d : STEP::STEP_CHUNK"), m_filterOwner.requestNumber);
 				size_t pos, len;
 				while (CUtil::endOfLine(m_recvOutBuf, 0, pos, len) && pos == 0) {
 					m_sendOutBuf += CRLF;
@@ -614,29 +634,31 @@ void CRequestManager::_ProcessOut()
 				if (m_outSize > 0) {
 					m_sendOutBuf += m_recvOutBuf.substr(0, pos) + CRLF;
 					m_recvOutBuf.erase(0, pos + len);
-					m_outStep = STEP_RAW;
+					m_outStep = STEP::STEP_RAW;
+					m_connectionData->SetOutStep(m_outStep);
 				} else {
 					if (CUtil::endOfLine(m_recvOutBuf, 0, pos, len, 2) == false)
 						return ;
 					m_sendOutBuf += m_recvOutBuf.substr(0, pos) + CRLF CRLF;
 					m_recvOutBuf.erase(0, pos + len);
 
-					//CLog::HttpEvent(kLogHttpPostOut, m_ipFromAddress, m_filterOwner.requestNumber, m_logPostData);
+					CLog::HttpEvent(kLogHttpPostOut, m_ipFromAddress, m_filterOwner.requestNumber, m_logPostData);
 
-					m_outStep = STEP_FINISH;
+					m_outStep = STEP::STEP_FINISH;
+					m_connectionData->SetOutStep(m_outStep);
 
 					// We shouldn't send anything to website if it is not expecting data
 					// (i.e we obtained a faked response)
-					if (m_inStep == STEP_FINISH)
+					if (m_inStep == STEP::STEP_FINISH)
 						m_sendOutBuf.clear();
 				}
 			}
 			break;
 
 		// The next outSize bytes are left untouched
-		case STEP_RAW:
+		case STEP::STEP_RAW:
 			{
-				TRACEIN(_T("ProcessOut #%d : STEP_RAW"), m_filterOwner.requestNumber);
+				TRACEIN(_T("ProcessOut #%d : STEP::STEP_RAW"), m_filterOwner.requestNumber);
 				int copySize = (int)m_recvOutBuf.size();
 				if (copySize > m_outSize)
 					copySize = (int)m_outSize;
@@ -653,32 +675,38 @@ void CRequestManager::_ProcessOut()
 				//std::string postData = m_recvOutBuf.substr(0, copySize);
 				//m_sendOutBuf += postData;
 				//m_logPostData += postData;
+				if (m_bPostData) {
+					m_logPostData += m_sendOutBuf.substr(m_sendOutBuf.size() - copySize);
+				}
 				m_outSize -= copySize;
 
 				// If we finished reading as mush raw data as was expected,
 				// continue to next step (finish or next chunk)
 				if (m_outSize == 0) {
 					if (m_outChunked) {
-						m_outStep = STEP_CHUNK;
+						m_outStep = STEP::STEP_CHUNK;
+						m_connectionData->SetOutStep(m_outStep);
 					} else {
-						//CLog::HttpEvent(kLogHttpPostOut, m_ipFromAddress, m_filterOwner.requestNumber, m_logPostData);
+						CLog::HttpEvent(kLogHttpPostOut, m_ipFromAddress, m_filterOwner.requestNumber, m_logPostData);
 
-						m_outStep = STEP_FINISH;
+						m_outStep = STEP::STEP_FINISH;
+						m_connectionData->SetOutStep(m_outStep);
 					}
 				}
 
 				// We shouldn't send anything to website if it is not expecting data
 				// (i.e we obtained a faked response)
-				if (m_inStep == STEP_FINISH)
+				if (m_inStep == STEP::STEP_FINISH)
 					m_sendOutBuf.clear();
 			}
 			break;
 
 		// Foward outgoing data to website
-		case STEP_TUNNELING:
+		case STEP::STEP_TUNNELING:
 			{
 				if (m_pSSLClientSession && m_filterOwner.responseLine.code != "101") {
-					m_outStep = STEP_START;
+					m_outStep = STEP::STEP_START;
+					m_connectionData->SetOutStep(m_outStep);
 					continue;
 				}
 
@@ -689,15 +717,17 @@ void CRequestManager::_ProcessOut()
 			break;
 
 		// We'll wait for response completion
-		case STEP_FINISH:
+		case STEP::STEP_FINISH:
 			{
 				// サイトからのデータを処理中ならここでは終了処理を行わない
 				// _ProcessIn で終了処理が行われる
-				if (m_inStep != STEP_FINISH)
+				if (m_inStep != STEP::STEP_FINISH)
 					return ;
 
-				m_outStep = STEP_START;
-				m_inStep = STEP_START;
+				m_outStep = STEP::STEP_START;
+				m_connectionData->SetOutStep(m_outStep);
+				m_inStep = STEP::STEP_START;
+				m_connectionData->SetInStep(m_inStep);
 
 				// Update active request stat
 				CLog::DecrementActiveRequestCount();
@@ -725,13 +755,14 @@ void CRequestManager::_ConnectWebsite()
 {
 	// If download was on, disconnect (to avoid downloading genuine document)
 	// 受信ヘッダフィルターでリダイレクトを指示された場合
-	if (m_inStep == STEP_DECODE) {
+	if (m_inStep == STEP::STEP_DECODE) {
 		if (m_pSSLServerSession) {
 			m_pSSLServerSession->Close();
 		} else {
 			m_psockWebsite->Close();
 		}
-		m_inStep = STEP_START;
+		m_inStep = STEP::STEP_START;
+		m_connectionData->SetInStep(m_inStep);
 		m_filterOwner.bypassBody = m_filterOwner.bypassBodyForced = false;
 	}
 
@@ -822,8 +853,9 @@ void CRequestManager::_ConnectWebsite()
         // We'll keep browser's socket, for persistent connections, and
         // continue processing outgoing data (which will not be moved to
         // send buffer).
-        m_inStep = STEP_FINISH;
-        m_sendInBuf =
+        m_inStep = STEP::STEP_FINISH;
+		m_connectionData->SetInStep(m_inStep);
+		m_sendInBuf =
             "HTTP/1.0 302 Found" CRLF
             "Location: " + UTF8fromUTF16(m_filterOwner.rdirToHost) + CRLF;
 
@@ -903,7 +935,8 @@ void CRequestManager::_ConnectWebsite()
             m_sendInBuf = "HTTP/1.0 200 Connection established" CRLF
 						  "Proxy-agent: " "Proxydomo/1.0"/*APP_NAME " " APP_VERSION*/ CRLF CRLF;
 			CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_filterOwner.requestNumber, m_sendInBuf);
-            m_inStep = STEP_TUNNELING;
+            m_inStep = STEP::STEP_TUNNELING;
+			m_connectionData->SetInStep(m_inStep);
 			_SendIn();
 
 			// remote proxy
@@ -961,7 +994,7 @@ void CRequestManager::_ConnectWebsite()
     }
 
     // Prepare and send a simple request, if we did a transparent redirection
-    if (m_outStep != STEP_DECODE && m_inStep == STEP_START) {
+    if (m_outStep != STEP::STEP_DECODE && m_inStep == STEP::STEP_START) {
         if (m_filterOwner.contactHost == m_filterOwner.url.getHostPort())
             m_requestLine.url = UTF8fromUTF16(m_filterOwner.url.getAfterHost());
         else
@@ -1015,15 +1048,16 @@ void	CRequestManager::_ProcessIn()
 		switch (m_inStep) {
 
 		// Marks the beginning of a request
-		case STEP_START:
+		case STEP::STEP_START:
 			{
 				// We need something in the buffer
 				if (m_recvInBuf.empty())
 					return ;	// 処理するバッファが無いので帰る
 
-				m_inStep = STEP_FIRSTLINE;
+				m_inStep = STEP::STEP_FIRSTLINE;
+				m_connectionData->SetInStep(m_inStep);
 				// Update active request stat, but if processOut() did it already
-				if (m_outStep == STEP_START) {
+				if (m_outStep == STEP::STEP_START) {
 					CLog::IncrementActiveRequestCount();
 					CLog::ProxyEvent(kLogProxyNewRequest, m_ipFromAddress);
 				}
@@ -1031,7 +1065,7 @@ void	CRequestManager::_ProcessIn()
 			break;
 
 		// Read first HTTP response line
-		case STEP_FIRSTLINE:
+		case STEP::STEP_FIRSTLINE:
 			{
 				// Do we have the full first line yet?
 				if (m_recvInBuf.size() < 4)
@@ -1039,7 +1073,8 @@ void	CRequestManager::_ProcessIn()
 				// ゴミデータが詰まってるので終わる
 				if (::strncmp(m_recvInBuf.c_str(), "HTTP", 4) != 0) {
 					m_recvInBuf.clear();
-					m_inStep = STEP_FINISH;
+					m_inStep = STEP::STEP_FINISH;
+					m_connectionData->SetInStep(m_inStep);
 					break;
 				}
 
@@ -1062,7 +1097,8 @@ void	CRequestManager::_ProcessIn()
 				m_recvInBuf.erase(0, pos + len);
 
 				// Next step will be to read headers
-				m_inStep = STEP_HEADERS;
+				m_inStep = STEP::STEP_HEADERS;
+				m_connectionData->SetInStep(m_inStep);
 
 				// Unless we have Content-Length or Transfer-Encoding headers,
 				// we won't expect anything after headers.
@@ -1076,16 +1112,18 @@ void	CRequestManager::_ProcessIn()
 			break;
 
 		// Read and process headers, as long as there are any
-		case STEP_HEADERS:
+		case STEP::STEP_HEADERS:
 			{
 				if (GetHeaders(m_recvInBuf, m_filterOwner.inHeaders, m_logResponse) == false)
 					return ;
 
-				m_inStep = STEP_DECODE;
+				m_inStep = STEP::STEP_DECODE;
+				m_connectionData->SetInStep(m_inStep);
 				// In case of 'HTTP 100 Continue,' expect another set of
 				// response headers before the data
 				if (m_filterOwner.responseLine.code == "100") {
-					m_inStep = STEP_FIRSTLINE;
+					m_inStep = STEP::STEP_FIRSTLINE;
+					m_connectionData->SetInStep(m_inStep);
 					m_filterOwner.responseLine.ver.clear();
 					m_filterOwner.responseLine.code.clear();
 					m_filterOwner.responseLine.msg.clear();
@@ -1095,7 +1133,7 @@ void	CRequestManager::_ProcessIn()
 			break;
 
 		// Decode and process headers
-		case STEP_DECODE:
+		case STEP::STEP_DECODE:
 			{
 				CLog::HttpEvent(kLogHttpRecvIn, m_ipFromAddress, m_filterOwner.requestNumber, m_logResponse);
 
@@ -1260,22 +1298,26 @@ void	CRequestManager::_ProcessIn()
 
 				// Decide what to do next
 				if (m_filterOwner.responseLine.code == "101") {
-					m_inStep  = STEP_TUNNELING;
-					m_outStep = STEP_TUNNELING;
+					m_inStep  = STEP::STEP_TUNNELING;
+					m_connectionData->SetInStep(m_inStep);
+					m_outStep = STEP::STEP_TUNNELING;
+					m_connectionData->SetOutStep(m_outStep);
+
 				} else {
-					m_inStep = (m_filterOwner.responseLine.code == "204" ? STEP_FINISH :
-								m_filterOwner.responseLine.code == "304" ? STEP_FINISH :
-								m_filterOwner.responseLine.code[0] == '1' ? STEP_FINISH :
-								m_inChunked ? STEP_CHUNK :
-								m_inSize ? STEP_RAW :
-								STEP_FINISH);
+					m_inStep = (m_filterOwner.responseLine.code == "204" ? STEP::STEP_FINISH :
+								m_filterOwner.responseLine.code == "304" ? STEP::STEP_FINISH :
+								m_filterOwner.responseLine.code[0] == '1' ? STEP::STEP_FINISH :
+								m_inChunked ? STEP::STEP_CHUNK :
+								m_inSize ? STEP::STEP_RAW :
+								STEP::STEP_FINISH);
+					m_connectionData->SetInStep(m_inStep);
 				}
 			}
 			break;
 
 		// Read  (CRLF) HexRawLength * CRLF before raw data
 		// or    zero * CRLF CRLF
-		case STEP_CHUNK:
+		case STEP::STEP_CHUNK:
 			{
 				size_t pos, len;
 				while (CUtil::endOfLine(m_recvInBuf, 0, pos, len) && pos == 0)
@@ -1287,19 +1329,21 @@ void	CRequestManager::_ProcessIn()
 
 				if (m_inSize > 0) {
 					m_recvInBuf.erase(0, pos+len);
-					m_inStep = STEP_RAW;
+					m_inStep = STEP::STEP_RAW;
+					m_connectionData->SetInStep(m_inStep);
 				} else {
 					if (CUtil::endOfLine(m_recvInBuf, 0, pos, len, 2) == false)
 						return;
 					m_recvInBuf.erase(0, pos + len);
-					m_inStep = STEP_FINISH;
+					m_inStep = STEP::STEP_FINISH;
+					m_connectionData->SetInStep(m_inStep);
 					_EndFeeding();
 				}
 			}
 			break;
 
 		// The next inSize bytes are left untouched
-		case STEP_RAW:
+		case STEP::STEP_RAW:
 			{
 				int copySize = (int)m_recvInBuf.size();
 				if (copySize > m_inSize)
@@ -1338,9 +1382,11 @@ void	CRequestManager::_ProcessIn()
 				// continue to next step (finish or next chunk)
 				if (m_inSize == 0) {
 					if (m_inChunked) {
-						m_inStep = STEP_CHUNK;
+						m_inStep = STEP::STEP_CHUNK;
+						m_connectionData->SetInStep(m_inStep);
 					} else {
-						m_inStep = STEP_FINISH;
+						m_inStep = STEP::STEP_FINISH;
+						m_connectionData->SetInStep(m_inStep);
 						_EndFeeding();
 					}
 				}
@@ -1348,10 +1394,11 @@ void	CRequestManager::_ProcessIn()
 			break;
 
 		// Forward incoming data to browser
-		case STEP_TUNNELING:
+		case STEP::STEP_TUNNELING:
 			{
 				if (m_pSSLServerSession && m_filterOwner.responseLine.code != "101") {
-					m_inStep = STEP_START;
+					m_inStep = STEP::STEP_START;
+					m_connectionData->SetInStep(m_inStep);
 					continue;
 				}
 
@@ -1362,15 +1409,17 @@ void	CRequestManager::_ProcessIn()
 			break;
 
 			// A few things have to be done before we go back to start state...
-		case STEP_FINISH:
+		case STEP::STEP_FINISH:
 			{
 				// ブラウザからのデータを処理中ならここでは終了処理をしない
 				// 終了処理は _ProcessOut で行われる
-				if (m_outStep != STEP_START && m_outStep != STEP_FINISH)
+				if (m_outStep != STEP::STEP_START && m_outStep != STEP::STEP_FINISH)
 					return ;
 
-				m_outStep = STEP_START;
-				m_inStep = STEP_START;
+				m_outStep = STEP::STEP_START;
+				m_connectionData->SetOutStep(m_outStep);
+				m_inStep = STEP::STEP_START;
+				m_connectionData->SetInStep(m_inStep);
 
 				// Update active request stat
 				CLog::DecrementActiveRequestCount();
@@ -1496,7 +1545,7 @@ void	CRequestManager::DataDump()
 		return;
     m_dumped = true;
 
-    if (m_inStep != STEP_FINISH) {
+    if (m_inStep != STEP::STEP_FINISH) {
         // Data has been dumped by a filter, not by this request manager.
         // So we must disconnect the website to stop downloading.
         m_psockWebsite->Close();
@@ -1545,8 +1594,9 @@ void	CRequestManager::_FakeResponse(const std::string& code, const std::wstring&
 		content = CUtil::getFile(filename);
 	if (contentType == "text/html" && content.size() > 0)
 		content = CUtil::replaceAll(content, "%%1%%", code);
-	m_inStep = STEP_FINISH;
-	m_sendInBuf = 
+	m_inStep = STEP::STEP_FINISH;
+	m_connectionData->SetInStep(m_inStep);
+	m_sendInBuf =
 		"HTTP/1.1 " + code + CRLF
 		"Content-Type: " + contentType + CRLF
 		"Content-Length: " + boost::lexical_cast<std::string>(content.size()) + CRLF

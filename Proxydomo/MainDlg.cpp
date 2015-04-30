@@ -32,7 +32,6 @@
 #include "Logger.h"
 #include "UITranslator.h"
 using namespace UITranslator;
-
 using namespace boost::property_tree;
 
 CMainDlg::CMainDlg(CProxy* proxy) : m_proxy(proxy), m_bVisibleOnDestroy(true)

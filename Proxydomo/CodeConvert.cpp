@@ -5,6 +5,7 @@
 
 #include "stdafx.h"
 #include "CodeConvert.h"
+#include <unicode\ucsdet.h>
 
 #pragma comment(lib, "icuuc.lib")
 #pragma comment(lib, "icuin.lib")
@@ -79,6 +80,42 @@ std::string		ConvertFromUTF16(const std::wstring& text, UConverter* pConverter)
 	return ConvertFromUTF16(text.c_str(), text.length(), pConverter);
 }
 
+
+std::string		DetectCharaCode(const std::string& data)
+{
+	UCharsetDetector* pDectator = nullptr;
+	try {
+		UErrorCode err = UErrorCode::U_ZERO_ERROR;
+		pDectator = ucsdet_open(&err);
+		ATLASSERT(U_SUCCESS(err));
+		if (err != UErrorCode::U_ZERO_ERROR)
+			throw err;
+
+		ucsdet_setText(pDectator, data.c_str(), (int32_t)data.length(), &err);
+		ATLASSERT(U_SUCCESS(err));
+		if (err != UErrorCode::U_ZERO_ERROR)
+			throw err;
+
+		const UCharsetMatch* charaCodeMatch = ucsdet_detect(pDectator, &err);
+		ATLASSERT(charaCodeMatch);
+		ATLASSERT(U_SUCCESS(err));
+		if (err != UErrorCode::U_ZERO_ERROR)
+			throw err;
+
+		std::string charaCode = ucsdet_getName(charaCodeMatch, &err);
+		if (err != UErrorCode::U_ZERO_ERROR)
+			throw err;
+
+		ucsdet_close(pDectator);
+		return charaCode;
+	}
+	catch (UErrorCode err) {
+		ATLASSERT(FALSE);
+		if (pDectator)
+			ucsdet_close(pDectator);
+		return "";
+	}
+}
 
 }	// namespace CodeConvert
 

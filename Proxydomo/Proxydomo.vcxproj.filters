@@ -183,6 +183,9 @@
     <ClCompile Include="ssl.cpp">
       <Filter>Header Files</Filter>
     </ClCompile>
+    <ClCompile Include="ConnectionMonitor.cpp">
+      <Filter>Header Files\Window</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -388,6 +391,9 @@
     </ClInclude>
     <ClInclude Include="ssl.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ConnectionMonitor.h">
+      <Filter>Header Files\Window</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

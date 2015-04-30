@@ -238,6 +238,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="CodeConvert.cpp" />
+    <ClCompile Include="ConnectionMonitor.cpp" />
     <ClCompile Include="DebugWindow.cpp" />
     <ClCompile Include="FilterDescriptor.cpp" />
     <ClCompile Include="FilterEditWindow.cpp" />
@@ -498,6 +499,7 @@
     <ClInclude Include="AboutDlg.h" />
     <ClInclude Include="AppConst.h" />
     <ClInclude Include="CodeConvert.h" />
+    <ClInclude Include="ConnectionMonitor.h" />
     <ClInclude Include="DataReceptor.h" />
     <ClInclude Include="DebugWindow.h" />
     <ClInclude Include="DirectoryWatcher.h" />

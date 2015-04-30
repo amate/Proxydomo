@@ -29,6 +29,9 @@ std::string		ConvertFromUTF16(const UChar* text, int length, UConverter* pConver
 std::string		ConvertFromUTF16(const std::wstring& text, UConverter* pConverter);
 
 
+std::string		DetectCharaCode(const std::string& data);
+
+
 }	// namespace CodeConvert
 
 

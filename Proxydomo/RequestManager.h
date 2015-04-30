@@ -37,7 +37,20 @@
 #include "ssl.h"
 
 namespace Proxydomo { class CMatcher; }
+struct ConnectionData;
 
+// Processing steps (incoming or outgoing)
+enum class STEP {
+	STEP_START,     // marks the beginning of a request/response
+	STEP_FIRSTLINE, // read GET/POST line, or status line
+	STEP_HEADERS,   // read headers
+	STEP_DECODE,    // check and filter headers
+	STEP_CHUNK,     // read chunk size / trailers
+	STEP_RAW,       // read raw message body
+	STEP_TUNNELING, // read data until disconnection
+	STEP_FINISH,	// marks the end of a request/response
+};
+inline const wchar_t* STEPtoString(STEP step);
 
 class CRequestManager : public IDataReceptor
 {
@@ -90,19 +103,6 @@ private:
 	enum { kReadBuffSize = 64 * 1024 };
 	char m_readBuffer[kReadBuffSize];
 
-    // Processing steps (incoming or outgoing)
-    enum STEP { 
-		STEP_START,     // marks the beginning of a request/response
-        STEP_FIRSTLINE, // read GET/POST line, or status line
-        STEP_HEADERS,   // read headers
-        STEP_DECODE,    // check and filter headers
-        STEP_CHUNK,     // read chunk size / trailers
-        STEP_RAW,       // read raw message body
-        STEP_TUNNELING, // read data until disconnection
-        STEP_FINISH,	// marks the end of a request/response
-	};
-	inline const wchar_t* STEPtoString(STEP step);
-
 	// Data members
 
 	// Filter instances
@@ -130,6 +130,7 @@ private:
 	// for recv events only
 	std::string m_logRequest;
 	std::string m_logResponse;
+	bool		m_bPostData;
 	std::string	m_logPostData;
 
 	// for correct incoming body processing
@@ -155,20 +156,21 @@ private:
 
 	// for Debug
 	int		m_RequestCountFromBrowser;	// ブラウザからのリクエスト数(GET,HEADなどの要求数)
+	ConnectionData*	m_connectionData;
 };
 
 
-const wchar_t* CRequestManager::STEPtoString(CRequestManager::STEP step)
+const wchar_t* STEPtoString(STEP step)
 {
 	switch (step) {
-	case STEP_START:	return L"STEP_START";
-	case STEP_FIRSTLINE:return L"STEP_FIRSTLINE";
-	case STEP_HEADERS:	return L"STEP_HEADERS";
-	case STEP_DECODE:	return L"STEP_DECODE";
-	case STEP_CHUNK:	return L"STEP_CHUNK";
-	case STEP_RAW:		return L"STEP_RAW";
-	case STEP_TUNNELING:return L"STEP_TUNNELING";
-	case STEP_FINISH:	return L"STEP_FINISH";
+	case STEP::STEP_START:		return L"START";
+	case STEP::STEP_FIRSTLINE:	return L"FIRSTLINE";
+	case STEP::STEP_HEADERS:	return L"HEADERS";
+	case STEP::STEP_DECODE:		return L"DECODE";
+	case STEP::STEP_CHUNK:		return L"CHUNK";
+	case STEP::STEP_RAW:		return L"RAW";
+	case STEP::STEP_TUNNELING:	return L"TUNNELING";
+	case STEP::STEP_FINISH:		return L"FINISH";
 	default:	return L"err";
 	}
 }

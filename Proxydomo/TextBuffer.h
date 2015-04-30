@@ -80,5 +80,6 @@ private:
 	UConverter*	m_pConverter;
 	bool	m_bDataDump;
 	bool	m_bJISCode;
+	bool	m_bBinary;
 };
 

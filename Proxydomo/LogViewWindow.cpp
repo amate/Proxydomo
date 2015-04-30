@@ -28,6 +28,8 @@
 #include <boost\property_tree\ptree.hpp>
 #include "Misc.h"
 #include "Settings.h"
+#include "Logger.h"
+#include "proximodo\util.h"
 #include "CodeConvert.h"
 using namespace CodeConvert;
 #include "UITranslator.h"
@@ -51,6 +53,7 @@ CLogViewWindow::CLogViewWindow() :
 	
 	m_bProxyEvent(true),
 	m_bFilterEvent(true),
+	m_bViewPostData(false),
 	m_bWebFilterDebug(false)
 {
 }
@@ -118,17 +121,37 @@ void CLogViewWindow::HttpEvent(LogHttpEvent Event, const IPv4Address& addr, int 
 		msg += GetTranslateMessage(ID_HTTPSENDIN).c_str();
 		break;
 
+	case kLogHttpPostOut:	if (!m_bViewPostData)	return ;
+		msg += L"PostData";
+		break;
+
 	default:
 		return ;
 	}
 	msg += _T("\n");
-	msg += text.c_str();
+	msg += UTF16fromUTF8(text).c_str();
 	msg += _T("\n");
 
     // Colors depends on Outgoing or Incoming
 	COLORREF color = LOG_COLOR_REQUEST;
-	if (Event == kLogHttpRecvIn || Event == kLogHttpSendIn)
+	if (Event == kLogHttpRecvIn || Event == kLogHttpSendIn) {
 		color = LOG_COLOR_RESPONSE;
+	} else if (Event == kLogHttpPostOut) {
+		color = LOG_COLOR_DEFAULT;
+
+		std::string unescText = CUtil::UESC(text);
+		std::string charaCode = DetectCharaCode(unescText);
+		if (charaCode.length()) {
+			UErrorCode err = UErrorCode::U_ZERO_ERROR;
+			auto pConverter = ucnv_open(charaCode.c_str(), &err);
+			if (pConverter) {
+				std::wstring utf16PostData = UTF16fromConverter(unescText, pConverter);
+				msg.AppendFormat(_T(">> Decode Data [%s]\n%s\n"), UTF16fromUTF8(charaCode).c_str(), utf16PostData.c_str());
+				ucnv_close(pConverter);
+			}
+		}
+		msg += _T("\n");
+	}
 	
 	{
 		CCritSecLock	lock(m_csRequestLog);
@@ -330,6 +353,7 @@ BOOL CLogViewWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 	ChangeControlTextForTranslateMessage(m_hWnd, IDC_CHECKBOX_STOPLOG);
 	ChangeControlTextForTranslateMessage(m_hWnd, IDC_CHECKBOX_RECENTURLS);
 	ChangeControlTextForTranslateMessage(m_hWnd, IDC_BUTTON_CLEAR);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_BUTTON_VIEWCONNECTIONMONITOR);
 	ChangeControlTextForTranslateMessage(m_hWnd, IDC_GROUP_HTTPEVENT);
 	ChangeControlTextForTranslateMessage(m_hWnd, IDC_CHECKBOX_BROWSERTOPROXY);
 	ChangeControlTextForTranslateMessage(m_hWnd, IDC_CHECKBOX_PROXYTOWEB);
@@ -337,6 +361,7 @@ BOOL CLogViewWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 	ChangeControlTextForTranslateMessage(m_hWnd, IDC_CHECKBOX_BROWSERFROMPROXY);
 	ChangeControlTextForTranslateMessage(m_hWnd, IDC_CHECKBOX_PROXYEVENT);
 	ChangeControlTextForTranslateMessage(m_hWnd, IDC_CHECKBOX_FILTEREVENT);
+	ChangeControlTextForTranslateMessage(m_hWnd, IDC_CHECKBOX_VIEWPOSTDATA);
 	ChangeControlTextForTranslateMessage(m_hWnd, IDC_CHECKBOX_WEBFILTERDEBUG);
 
 	m_editLog = GetDlgItem(IDC_RICHEDIT_LOG);
@@ -352,8 +377,18 @@ BOOL CLogViewWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 	m_cmbRequest.AddString(GetTranslateMessage(ID_ALLLOG).c_str());
 	m_cmbRequest.SetCurSel(0);
 
+	if (auto font = UITranslator::getFont()) {
+		CLogFont lf;
+		font.GetLogFont(&lf);
+		lf.SetHeight(8);
+		CFont smallfont = lf.CreateFontIndirect();
+		m_editLog.SetFont(smallfont);
+		m_editPartLog.SetFont(smallfont);
+		m_cmbRequest.SetFont(font);
+	}
+
 	m_listRequest.SubclassWindow(GetDlgItem(IDC_LIST_RECENTURLS));
-	m_listRequest.SetExtendedListViewStyle(LVS_EX_FULLROWSELECT, LVS_EX_FULLROWSELECT);
+	m_listRequest.SetExtendedListViewStyle(LVS_EX_FULLROWSELECT | LVS_EX_HEADERDRAGDROP | LVS_EX_INFOTIP | LVS_EX_DOUBLEBUFFER);
 	m_listRequest.AddColumn(_T("Con"), 0, 
 							-1, LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM, LVCFMT_RIGHT);
 	m_listRequest.SetColumnSortType(0, LVCOLSORT_LONG);
@@ -366,6 +401,8 @@ BOOL CLogViewWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 	m_listRequest.AddColumn(_T("URL"), 4);
 	m_listRequest.SetColumnWidth(4, 400);
 
+	m_connectionMonitor.Create(GetParent());
+
     // ダイアログリサイズ初期化
     DlgResize_Init(true, true, WS_THICKFRAME | WS_MAXIMIZEBOX);
 
@@ -375,7 +412,13 @@ BOOL CLogViewWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 	std::ifstream fs(settingsPath);
 	if (fs) {
 		ptree pt;
-		read_ini(fs, pt);
+		try {
+			read_ini(fs, pt);
+		}
+		catch (...) {
+			ERROR_LOG << L"CLogViewWindow::OnInitDialog : settings.iniの読み込みに失敗";
+			pt.clear();
+		}
 		CRect rcWindow;
 		rcWindow.top	= pt.get("LogWindow.top", 0);
 		rcWindow.left	= pt.get("LogWindow.left", 0);
@@ -399,6 +442,8 @@ BOOL CLogViewWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 			m_bProxyEvent	= value.get();
 		if (auto value = pt.get_optional<bool>("LogWindow.FilterEvent"))
 			m_bFilterEvent	= value.get();
+		if (auto value = pt.get_optional<bool>("LogWindow.ViewPostData"))
+			m_bViewPostData = value.get();
 	}
 
 	DoDataExchange(DDX_LOAD);
@@ -410,6 +455,9 @@ void CLogViewWindow::OnDestroy()
 {
 	CLog::RemoveLogTrace(this);
 
+	if (m_connectionMonitor.IsWindow())
+		m_connectionMonitor.DestroyWindow();
+
 	using namespace boost::property_tree;
 	
 	std::string settingsPath = CT2A(Misc::GetExeDirectory() + _T("settings.ini"));
@@ -417,6 +465,8 @@ void CLogViewWindow::OnDestroy()
 	try {
 		read_ini(settingsPath, pt);
 	} catch (...) {
+		ERROR_LOG << L"CLogViewWindow::OnDestroy : settings.iniの読み込みに失敗";
+		pt.clear();
 	}
 
 	CRect rcWindow;
@@ -435,6 +485,7 @@ void CLogViewWindow::OnDestroy()
 	pt.put("LogWindow.BrowserFromProxy"	, m_bBrowserFromProxy);
 	pt.put("LogWindow.ProxyEvent"		, m_bProxyEvent);
 	pt.put("LogWindow.FilterEvent"		, m_bFilterEvent);
+	pt.put("LogWindow.ViewPostData"		, m_bViewPostData);
 
 	write_ini(settingsPath, pt);
 }
@@ -473,6 +524,11 @@ void CLogViewWindow::OnClear(UINT uNotifyCode, int nID, CWindow wndCtl)
 		m_editPartLog.ShowWindow(FALSE);
 		m_editLog.ShowWindow(TRUE);
 	}
+}
+
+void CLogViewWindow::OnViewConnectionMonitor(UINT uNotifyCode, int nID, CWindow wndCtl)
+{
+	m_connectionMonitor.ShowWindow();
 }
 
 void CLogViewWindow::OnComboRequestSelChange(UINT uNotifyCode, int nID, CWindow wndCtl)
