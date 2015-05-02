@@ -21,6 +21,7 @@ void	ConnectionData::SetVerb(const std::wstring& verb)
 {
 	CCritSecLock lock(cs);
 	this->verb = verb;
+	lock.Unlock();
 	CConnectionManager::UpdateNotify(this);
 }
 
@@ -28,19 +29,18 @@ void	ConnectionData::SetUrl(const std::wstring& url)
 {
 	CCritSecLock lock(cs);
 	this->url = url;
+	lock.Unlock();
 	CConnectionManager::UpdateNotify(this);
 }
 
 void	ConnectionData::SetInStep(STEP in)
 {
-	CCritSecLock lock(cs);
 	inStep = in;
 	CConnectionManager::UpdateNotify(this);
 }
 
 void	ConnectionData::SetOutStep(STEP out)
 {
-	CCritSecLock lock(cs);
 	outStep = out;
 	CConnectionManager::UpdateNotify(this);
 }
@@ -80,6 +80,7 @@ void CConnectionManager::RegisterCallback(std::function<void(ConnectionData*, Up
 	CCritSecLock lock(s_csList);
 	s_funcCallback = callback;
 	for (auto rit = s_connectionDataList.rbegin(); rit != s_connectionDataList.rend(); ++rit) {
+		CCritSecLock lock(rit->cs);
 		s_funcCallback(&*rit, kAddConnection);
 	}
 
@@ -189,6 +190,12 @@ void	CConnectionMonitorWindow::ShowWindow()
 			}
 		});
 	}
+
+	{
+		CCritSecLock lock(CConnectionManager::s_csList);
+		SetWindowText((boost::wformat(L"Connection Monitor - [%02d]")
+			% (int)CConnectionManager::s_connectionDataList.size()).str().c_str());
+	}
 	__super::ShowWindow(TRUE);
 }
 
@@ -274,6 +281,14 @@ void CConnectionMonitorWindow::OnCancel(UINT uNotifyCode, int nID, CWindow wndCt
 {
 	CConnectionManager::UnregisterCallback();
 	__super::ShowWindow(FALSE);
+
+	m_connectionListView.DeleteAllItems();
+
+	CCritSecLock lock(m_csConnectionCloseList);
+	for (auto& closeItem : m_connectionCloseList) {
+		KillTimer((UINT_PTR)&closeItem);
+	}
+	m_connectionCloseList.clear();
 }
 
 

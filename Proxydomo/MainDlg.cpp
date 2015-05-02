@@ -34,7 +34,7 @@
 using namespace UITranslator;
 using namespace boost::property_tree;
 
-CMainDlg::CMainDlg(CProxy* proxy) : m_proxy(proxy), m_bVisibleOnDestroy(true)
+CMainDlg::CMainDlg(CProxy* proxy) : m_proxy(proxy), m_wndLogButton(this, 1), m_bVisibleOnDestroy(true)
 {
 }
 
@@ -127,6 +127,8 @@ LRESULT CMainDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam
 
 	m_logView.Create(m_hWnd);
 
+	m_wndLogButton.SubclassWindow(GetDlgItem(IDC_BUTTON_SHOWLOGWINDOW));
+
 	return TRUE;
 }
 
@@ -143,6 +145,8 @@ LRESULT CMainDlg::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/,
 	CSettings::StopWatchDirectory();
 
 	DoDataExchange(DDX_SAVE);
+
+	m_wndLogButton.UnsubclassWindow();
 
 	if (m_filterManagerWindow.IsWindow())
 		m_filterManagerWindow.DestroyWindow();
@@ -339,6 +343,12 @@ LRESULT CMainDlg::OnShowLogWindow(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl
 	m_logView.ShowWindow();
 	return 0;
 }
+
+void CMainDlg::OnLogButtonRButtonUp(UINT nFlags, CPoint point)
+{
+	m_logView.OnViewConnectionMonitor(0, 0, NULL);
+}
+
 
 LRESULT CMainDlg::OnShowFilterManageWindow(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {

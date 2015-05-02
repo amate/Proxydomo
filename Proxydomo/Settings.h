@@ -144,6 +144,9 @@ public:
 	// Bypass フィルター
 	static std::shared_ptr<Proxydomo::CMatcher>	s_pBypassMatcher;
 
+	// 優先文字コード
+	static std::shared_ptr<Proxydomo::CMatcher> s_pPriorityCharsetMatcher;
+
 	/// アクティブなフィルターを返す (※ lockは必要ない)
 	static void EnumActiveFilter(std::function<void (CFilterDescriptor*)> func);
 

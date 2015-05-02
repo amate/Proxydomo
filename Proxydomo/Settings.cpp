@@ -80,6 +80,8 @@ CCriticalSection							CSettings::s_csFilters;
 
 std::shared_ptr<Proxydomo::CMatcher>	CSettings::s_pBypassMatcher;
 
+std::shared_ptr<Proxydomo::CMatcher>	CSettings::s_pPriorityCharsetMatcher;
+
 std::recursive_mutex						CSettings::s_mutexHashedLists;
 std::unordered_map<std::string, std::unique_ptr<HashedListCollection>>	CSettings::s_mapHashedLists;
 
@@ -158,6 +160,8 @@ void	CSettings::LoadSettings()
 
 	// Bypass matcher‚ğì¬
 	s_pBypassMatcher = Proxydomo::CMatcher::CreateMatcher(L"$LST(Bypass)");
+
+	s_pPriorityCharsetMatcher = Proxydomo::CMatcher::CreateMatcher(L"$LST(PriorityCharset)");
 
 	CSettings::LoadFilter();
 

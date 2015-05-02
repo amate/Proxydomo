@@ -70,6 +70,8 @@ private:
 
 	// EUC-JP, Shift-JIS, UTF-8, JIS ‚Ì––”ö‚ð’²‚×‚é
 	int	_findEndPoint(const char* start, const char*& end);
+
+	void _decideCharset();
     
     // the actual buffer
     std::string	m_buffer;

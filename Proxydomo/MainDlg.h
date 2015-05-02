@@ -73,7 +73,7 @@ public:
 		DDX_CHECK(IDC_CHECK_BYPASS, CSettings::s_bypass)
 	END_DDX_MAP()
 
-	BEGIN_MSG_MAP(CMainDlg)
+	BEGIN_MSG_MAP_EX(CMainDlg)
 		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		MSG_WM_ENDSESSION( OnEndSession	)
@@ -84,7 +84,7 @@ public:
 		MESSAGE_HANDLER( WM_TRAYICONNOTIFY, OnTrayIconNotify )
 
 		COMMAND_ID_HANDLER(IDC_BUTTON_SHOWLOGWINDOW, OnShowLogWindow )
-		COMMAND_ID_HANDLER(IDC_BUTTON_SHOWFILTERMANAGE, OnShowFilterManageWindow )
+		COMMAND_ID_HANDLER(IDC_BUTTON_SHOWFILTERMANAGE, OnShowFilterManageWindow)
 		COMMAND_ID_HANDLER(IDC_BUTTON_SHOWOPTION, OnShowOption)
 		COMMAND_ID_HANDLER( IDC_CHECKBOX_WEBPAGE	, OnFilterButtonCheck )
 		COMMAND_ID_HANDLER( IDC_CHECKBOX_OUTHEADER	, OnFilterButtonCheck )
@@ -92,6 +92,8 @@ public:
 		COMMAND_ID_HANDLER( IDC_CHECKBOX_USEREMOTEPROXY, OnFilterButtonCheck)
 		COMMAND_ID_HANDLER( IDC_CHECK_BYPASS, OnFilterButtonCheck)
 		COMMAND_ID_HANDLER( IDC_BUTTON_ABORT, OnAbort)
+	ALT_MSG_MAP(1)
+		MSG_WM_RBUTTONUP(OnLogButtonRButtonUp)
 	END_MSG_MAP()
 
 // Handler prototypes (uncomment arguments if needed):
@@ -115,6 +117,8 @@ public:
 	LRESULT OnFilterButtonCheck(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnAbort(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 
+	void OnLogButtonRButtonUp(UINT nFlags, CPoint point);
+
 	void CloseDialog(int nVal);
 
 private:
@@ -123,6 +127,8 @@ private:
 	// Data members
 	CProxy*			m_proxy;
 	CLogViewWindow	m_logView;
+	CContainedWindow m_wndLogButton;
 	CFilterManageWindow	m_filterManagerWindow;
 	bool		m_bVisibleOnDestroy;
+
 };

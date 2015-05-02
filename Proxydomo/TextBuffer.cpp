@@ -223,6 +223,147 @@ static std::pair<int32_t, std::string> GetCharaCode(const std::string& data)
 	}
 }
 
+void	CTextBuffer::_decideCharset()
+{
+	std::string charaCode;
+
+	auto funcPageCharset = [this]() -> std::string {
+		std::string charaCode;
+		if (m_owner.fileType == "htm") {
+			static std::regex rxMeta("(?:<meta ([^>]+)>|</head>)", std::regex_constants::icase);
+			auto begin = m_buffer.cbegin();
+			std::smatch result;
+			while (std::regex_search(begin, m_buffer.cend(), result, rxMeta)) {
+				std::string strAttribute = result.str(1);
+				if (strAttribute.length() == 0)	// </head>
+					break;
+				std::smatch attrResult;
+				static std::regex rx1("http-equiv=(?:\"|')?Content-Type(?:\"|')? [^>]*charset=(?:\"|')?([^\"' >]+)(?:\"|')?", std::regex_constants::icase);
+				static std::regex rx2("charset=(?:\"|')?([^\"' >]+)(?:\"|')? [^>]*http-equiv=(?:\"|')?Content-Type(?:\"|')?", std::regex_constants::icase);
+				static std::regex rx3("charset=(?:\"|')?([^\"' >]+)(?:\"|')?", std::regex_constants::icase);
+				if (std::regex_search(strAttribute, attrResult, rx1) ||
+					std::regex_search(strAttribute, attrResult, rx2) ||
+					std::regex_search(strAttribute, attrResult, rx3))
+				{
+					charaCode = attrResult.str(1);
+					CUtil::upper(charaCode);
+					if (charaCode == "NONE")
+						charaCode.clear();
+					break;
+				}
+				begin = result[0].second;
+			}
+		}
+		return charaCode;
+	};
+
+	auto funcInHeaderCharset = [this]() -> std::string {
+		std::string charaCode;
+		std::wstring contentType = m_owner.GetInHeader(L"Content-Type");
+		if (contentType.size() > 0) {
+			CUtil::lower(contentType);
+			size_t nPos = contentType.find(L"charset=");
+			if (nPos != std::wstring::npos) {
+				charaCode = UTF8fromUTF16(contentType.substr(nPos + 8));
+				CUtil::upper(charaCode);
+				if (charaCode == "NONE")
+					charaCode.clear();
+			}
+		}
+		return charaCode;
+	};
+
+	// 1:ページから文字コードを推定する
+	enum { kThreshold = 70 };
+	bool bGetCharaCodeFromBuffer = false;
+	auto supposeCharaCode = GetCharaCode(m_buffer);
+	if (kThreshold <= supposeCharaCode.first) {	// 推定が閾値を超えていれば判定を優先する
+		charaCode = supposeCharaCode.second;
+		bGetCharaCodeFromBuffer = true;
+	}
+
+	enum PriorityCharset {
+		kSupposeCharset = 1,
+		kPageCharset = 2,
+		kInHeaderCharset = 3,
+	};
+
+	CFilter filter(m_owner);
+	std::wstring urlFromHost = m_owner.url.getFromHost();
+	if (CSettings::s_pPriorityCharsetMatcher->match(urlFromHost, &filter)) {
+		try {
+			PriorityCharset priority = static_cast<PriorityCharset>(std::stoi(filter.memoryTable[0].getValue()));
+			switch (priority) {
+			case kSupposeCharset:
+				charaCode = supposeCharaCode.second;
+				bGetCharaCodeFromBuffer = true;
+				break;
+
+			case kPageCharset:
+				charaCode = funcPageCharset();
+				break;
+
+			case kInHeaderCharset:
+				charaCode = funcInHeaderCharset();
+				break;
+
+			default:
+				ATLASSERT(FALSE);
+			}
+		}
+		catch (...) {
+			ATLASSERT(FALSE);
+		}
+	}
+
+	// 2:ページ内の文字コード指定
+	if (charaCode.empty()) {
+		charaCode = funcPageCharset();
+	}
+
+	// 3:レスポンスヘッダのContent-Typeに書いてあるcharset
+	if (charaCode.empty()) {
+		charaCode = funcInHeaderCharset();
+	}
+
+	if (charaCode.empty()) {
+		charaCode = supposeCharaCode.second;	// ページ推定のcharaset
+		if (charaCode.empty()) {
+			charaCode = "UTF-8";	// ここまで何もなかったらUTF-8として解釈する
+		}
+	}
+
+	ATLASSERT(charaCode.length());
+
+	CCritSecLock lock(g_csMapConverter);
+	auto& pConverter = g_mapConverter[charaCode];
+	if (pConverter == nullptr) {
+		UErrorCode err = UErrorCode::U_ZERO_ERROR;
+		pConverter = ucnv_open(charaCode.c_str(), &err);
+		if (pConverter == nullptr && bGetCharaCodeFromBuffer == false) {
+			charaCode = supposeCharaCode.second;
+			auto& pConverter2 = g_mapConverter[charaCode];
+			if (pConverter2 == nullptr) {
+				err = UErrorCode::U_ZERO_ERROR;
+				pConverter2 = ucnv_open(charaCode.c_str(), &err);
+				ATLASSERT(pConverter2);
+			}
+			m_pConverter = pConverter2;
+			goto convert2;
+		}
+		ATLASSERT(pConverter);
+	}
+	m_pConverter = pConverter;
+convert2:
+	ATLASSERT(m_pConverter);
+
+	if (charaCode == "ISO-2022-JP" || charaCode == "JIS")
+		m_bJISCode = true;
+
+	if (m_owner.url.getDebug())
+		_firstDebugOutput(charaCode);
+}
+
 void CTextBuffer::DataFeed(const std::string& data)
 {
 	if (m_owner.killed)
@@ -246,97 +387,8 @@ void CTextBuffer::DataFeed(const std::string& data)
 		}
 
 		if (m_bBinary == false) {
-
-			std::string charaCode;
-
-			// 3:ページから文字コードを推定する
-			enum { kThreshold = 70 };
-			bool bGetCharaCodeFromBuffer = false;
-			auto supposeCharaCode = GetCharaCode(m_buffer);
-			if (kThreshold <= supposeCharaCode.first) {	// 推定が閾値を超えていれば判定を優先する
-				charaCode = supposeCharaCode.second;
-				bGetCharaCodeFromBuffer = true;
-			}
-
-			// 1:ページ内の文字コード指定
-			if (charaCode.empty() && m_owner.fileType == "htm") {
-				static std::regex rxMeta("(?:<meta ([^>]+)>|</head>)", std::regex_constants::icase);
-				auto begin = m_buffer.cbegin();
-				std::smatch result;
-				while (std::regex_search(begin, m_buffer.cend(), result, rxMeta)) {
-					std::string strAttribute = result.str(1);
-					if (strAttribute.length() == 0)	// </head>
-						break;
-					std::smatch attrResult;
-					static std::regex rx1("http-equiv=(?:\"|')?Content-Type(?:\"|')? [^>]*charset=(?:\"|')?([^\"' >]+)(?:\"|')?", std::regex_constants::icase);
-					static std::regex rx2("charset=(?:\"|')?([^\"' >]+)(?:\"|')? [^>]*http-equiv=(?:\"|')?Content-Type(?:\"|')?", std::regex_constants::icase);
-					static std::regex rx3("charset=(?:\"|')?([^\"' >]+)(?:\"|')?", std::regex_constants::icase);
-					if (std::regex_search(strAttribute, attrResult, rx1) ||
-						std::regex_search(strAttribute, attrResult, rx2) ||
-						std::regex_search(strAttribute, attrResult, rx3))
-					{
-						charaCode = attrResult.str(1);
-						CUtil::upper(charaCode);
-						if (charaCode == "NONE")
-							charaCode.clear();
-						break;
-					}
-					begin = result[0].second;
-				}
-			}
-
-			// 2:レスポンスヘッダのContent-Typeに書いてあるcharset
-			if (charaCode.empty()) {
-				std::wstring contentType = m_owner.GetInHeader(L"Content-Type");
-				if (contentType.size() > 0) {
-					CUtil::lower(contentType);
-					size_t nPos = contentType.find(L"charset=");
-					if (nPos != std::wstring::npos) {
-						charaCode = UTF8fromUTF16(contentType.substr(nPos + 8));
-						CUtil::upper(charaCode);
-						if (charaCode == "NONE")
-							charaCode.clear();
-					}
-				}
-			}
-
-			if (charaCode.empty()) {
-				charaCode = supposeCharaCode.second;
-				if (charaCode.empty()) {
-					charaCode = "UTF-8";	// ここまで何もなかったらUTF-8として解釈する
-				}
-			}
-
-			CCritSecLock lock(g_csMapConverter);
-			auto& pConverter = g_mapConverter[charaCode];
-			if (pConverter == nullptr) {
-				//if (charaCode == "ISO-20220-JP")
-				//	charaCode = "JIS";
-				UErrorCode err = UErrorCode::U_ZERO_ERROR;
-				pConverter = ucnv_open(charaCode.c_str(), &err);
-				if (pConverter == nullptr && bGetCharaCodeFromBuffer == false) {
-					charaCode = supposeCharaCode.second;
-					auto& pConverter2 = g_mapConverter[charaCode];
-					if (pConverter2 == nullptr) {
-						err = UErrorCode::U_ZERO_ERROR;
-						pConverter2 = ucnv_open(charaCode.c_str(), &err);
-						ATLASSERT(pConverter2);
-					}
-					m_pConverter = pConverter2;
-					goto convert2;
-				}
-				ATLASSERT(pConverter);
-			}
-			m_pConverter = pConverter;
-
-		convert2:
+			_decideCharset();
 			m_bCharaCodeDectated = true;
-			lock.Unlock();
-			if (charaCode == "ISO-2022-JP" || charaCode == "JIS")
-				m_bJISCode = true;
-
-			if (m_owner.url.getDebug())
-				_firstDebugOutput(charaCode);
 		}
 	} else {
 		m_buffer += m_tailBuffer;
