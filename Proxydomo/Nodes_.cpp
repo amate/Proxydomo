@@ -567,11 +567,9 @@ CNode_And::~CNode_And()
 const UChar* CNode_And::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
     // Ask left node for the first match
-	const UChar* reachedOrigin = pMatch->reached;
 	pMatch->reached = start;
     const UChar* posL = m_nodeL->match(start, stop, pMatch);
 	if (posL == nullptr) {
-		pMatch->reached = reachedOrigin;
 		return nullptr;
 	}
 
@@ -581,7 +579,6 @@ const UChar* CNode_And::match(const UChar* start, const UChar* stop, MatchData* 
     // Ask right node for the first match
 	const UChar* posR = m_nodeR->match(start, stop, pMatch);
 	if (posR == nullptr) {
-		pMatch->reached = reachedOrigin;
 		return nullptr;
 	}
 	const UChar* reachedR = pMatch->reached;
@@ -643,7 +640,11 @@ public:
 		if (ret) {
 			auto it = pMatch->mapReached.find((void*)m_pParentNode);
 			ATLASSERT(it != pMatch->mapReached.end());
-			it->second = std::make_tuple(start, ret);
+
+			const UChar* retLast = std::get<1>(it->second);
+			if (retLast < ret) {
+				it->second = std::make_tuple(start, ret);
+			}
 		}
 		return ret;
 	}
@@ -667,7 +668,6 @@ CNode_AndAnd::~CNode_AndAnd()
 const UChar* CNode_AndAnd::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
 	// Ask left node for the first match
-	const UChar* reachedOrigin = pMatch->reached;
 	pMatch->reached = start;
 	pMatch->mapReached.emplace((void*)this, std::make_tuple(start, (const UChar*)nullptr));
 
@@ -680,7 +680,6 @@ const UChar* CNode_AndAnd::match(const UChar* start, const UChar* stop, MatchDat
 	pMatch->mapReached.erase(it);
 
 	if (posL == nullptr) {
-		pMatch->reached = reachedOrigin;
 		return nullptr;
 	}
 
@@ -690,12 +689,8 @@ const UChar* CNode_AndAnd::match(const UChar* start, const UChar* stop, MatchDat
 	const UChar* posR = m_nodeR->match(start, reachedL, pMatch);
 	// && の右側のパターンがマッチなし、もしくはパターンがreachedLまで消費しなかったらマッチなし
 	if (posR == nullptr || posR != reachedL) {
-		pMatch->reached = reachedOrigin;
 		return nullptr;
 	}
-
-	if (ret)
-		pMatch->reached = reachedNext;
 	return ret;
 }
 

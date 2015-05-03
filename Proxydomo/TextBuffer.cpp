@@ -275,11 +275,9 @@ void	CTextBuffer::_decideCharset()
 
 	// 1:ページから文字コードを推定する
 	enum { kThreshold = 70 };
-	bool bGetCharaCodeFromBuffer = false;
 	auto supposeCharaCode = GetCharaCode(m_buffer);
 	if (kThreshold <= supposeCharaCode.first) {	// 推定が閾値を超えていれば判定を優先する
 		charaCode = supposeCharaCode.second;
-		bGetCharaCodeFromBuffer = true;
 	}
 
 	enum PriorityCharset {
@@ -296,7 +294,6 @@ void	CTextBuffer::_decideCharset()
 			switch (priority) {
 			case kSupposeCharset:
 				charaCode = supposeCharaCode.second;
-				bGetCharaCodeFromBuffer = true;
 				break;
 
 			case kPageCharset:
@@ -340,7 +337,9 @@ void	CTextBuffer::_decideCharset()
 	if (pConverter == nullptr) {
 		UErrorCode err = UErrorCode::U_ZERO_ERROR;
 		pConverter = ucnv_open(charaCode.c_str(), &err);
-		if (pConverter == nullptr && bGetCharaCodeFromBuffer == false) {
+
+		// Converterが取れなかったので supposeCharaCode.second から取得する
+		if (pConverter == nullptr && supposeCharaCode.second.length()) {
 			charaCode = supposeCharaCode.second;
 			auto& pConverter2 = g_mapConverter[charaCode];
 			if (pConverter2 == nullptr) {
