@@ -98,7 +98,13 @@ LRESULT CMainDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam
 		nid.uID		= kTrayIconId;
 		nid.uCallbackMessage	= WM_TRAYICONNOTIFY;
 		::_tcscpy_s(nid.szTip, APP_NAME);
-		::Shell_NotifyIcon(NIM_ADD, &nid);
+		if (::Shell_NotifyIcon(NIM_ADD, &nid) == FALSE && ::GetLastError() == ERROR_TIMEOUT) {
+			do {
+				::Sleep(1000);
+				if (::Shell_NotifyIcon(NIM_MODIFY, &nid))
+					break;	// success
+			} while (::Shell_NotifyIcon(NIM_ADD, &nid) == FALSE);
+		}
 	}
 
 	std::ifstream fs(Misc::GetExeDirectory() + _T("settings.ini"));
