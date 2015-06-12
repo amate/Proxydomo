@@ -232,15 +232,15 @@ bool	LoadSystemTrustCA(WOLFSSL_CTX* ctx)
 std::string CreateWildcardHost(const std::string& host)
 {
 	std::string wildcardHost;
-	auto dotPos = host.rfind('.');
-	if (dotPos == std::string::npos)
-		throw std::runtime_error("CreateWildcardHost failed");
-
-	dotPos = host.rfind('.', dotPos - 1);
+	auto dotPos = host.find('.');
 	if (dotPos == std::string::npos)
 		throw std::runtime_error("CreateWildcardHost failed");
 
 	wildcardHost = "*" + host.substr(dotPos);
+	if (wildcardHost.length() >= CTC_NAME_SIZE) {
+		ERROR_LOG << L"CreateWildcardHost : ワイルドカードホスト名の生成に失敗[" << host << L"]";
+		throw std::runtime_error("CreateWildcardHost failed");
+	}
 	return wildcardHost;
 }
 

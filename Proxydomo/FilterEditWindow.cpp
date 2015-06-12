@@ -332,9 +332,7 @@ public:
                 const wchar_t *index, *stop, *end;
                 index = text.c_str();
                 stop  = index + text.size();
-                if ((!text.empty() || m_pFilter->matchPattern.empty())
-                    && matcher.match(index, stop, end, &matchData)) {
-
+                if (matcher.match(index, stop, end, &matchData)) {
                     result << CExpander::expand(m_pFilter->replacePattern, filter);
                     if (run == 0) numMatch++;
                 } else {

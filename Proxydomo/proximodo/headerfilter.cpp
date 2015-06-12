@@ -82,14 +82,21 @@ bool CHeaderFilter::filter(std::wstring& content) {
 		const UChar* end = nullptr;
 		bool ret = urlMatcher->match(url.c_str(), url.c_str() + url.length(), end, &matchData);
         unlock();
-        if (!ret) return false;
+		if (!ret) {
+			return false;
+		}
     }
 
     // Check if content matches
     if (textMatcher) {
-		bool ret = textMatcher->match(content, this);
+		Proxydomo::MatchData	mdataContent(this);
+		const UChar* end = nullptr;
+		bool ret = textMatcher->match(content.c_str(), content.c_str() + content.length(), end, &mdataContent);
         unlock();
-        if (!ret) return false;
+		if (!ret) {
+			return false;
+		}
+		matchData.matchListLog.insert(matchData.matchListLog.end(), mdataContent.matchListLog.begin(), mdataContent.matchListLog.end());
     }
 
     // Log match event

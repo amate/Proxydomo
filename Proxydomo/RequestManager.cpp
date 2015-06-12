@@ -261,8 +261,13 @@ void	CRequestManager::SwitchToInvalid()
 void	CRequestManager::_JudgeManageContinue()
 {
 	if (m_valid == false) {	// Ú‘±‚ð‹­§I—¹‚³‚¹‚é
-		m_psockWebsite->Close();
-		m_psockBrowser->Close();
+		if (m_pSSLServerSession) {
+			m_pSSLServerSession->Close();
+			m_pSSLClientSession->Close();
+		} else {
+			m_psockWebsite->Close();
+			m_psockBrowser->Close();
+		}
 		return;
 	}
 

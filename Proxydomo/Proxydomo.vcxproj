@@ -197,6 +197,9 @@
       <TypeLibraryName>$(IntDir)/Proxydomo.tlb</TypeLibraryName>
       <DllDataFileName />
     </Midl>
+    <PostBuildEvent>
+      <Command>copy "$(TargetPath)" "$(SolutionDir)#Release\Proxydomo\"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -235,6 +238,9 @@
       <DllDataFileName>
       </DllDataFileName>
     </Midl>
+    <PostBuildEvent>
+      <Command>copy "$(TargetPath)" "$(SolutionDir)#Release\Proxydomo64\"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="CodeConvert.cpp" />

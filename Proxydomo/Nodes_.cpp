@@ -1007,7 +1007,7 @@ const UChar* CNode_List::match(const UChar* start, const UChar* stop, MatchData*
 {
 	ATLASSERT(m_phashedCollection);
 
-    if (start < stop) {
+    if (start <= stop) {
 		const UChar* startOrigin = start;
         // Check the hashed list corresponding to the first char
 		boost::shared_lock<boost::shared_mutex>	lock(m_phashedCollection->mutex);
