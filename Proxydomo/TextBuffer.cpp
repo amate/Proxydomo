@@ -448,7 +448,6 @@ void CTextBuffer::DataFeed(const std::string& data)
 
 				// try and match
 				int ret = (*m_currentFilter)->match(index, bufEnd);
-
 				if (ret < 0) {
 
 					if (m_owner.killed) {	// '\k'	?
@@ -470,7 +469,6 @@ void CTextBuffer::DataFeed(const std::string& data)
 					}
 
 				} else if (ret > 0) {
-
 					std::wstring replaceText = (*m_currentFilter)->getReplaceText();
 
 					// log match events                
@@ -513,8 +511,9 @@ void CTextBuffer::DataFeed(const std::string& data)
 						m_unicodeBuffer.replace(0,
 							CharCount((*m_currentFilter)->endOfMatched, bufStart),
 							replaceText.c_str(), (int32_t)replaceText.length());
+						len = m_unicodeBuffer.length();
 						bufStart = m_unicodeBuffer.getBuffer();
-						bufEnd = bufStart + m_unicodeBuffer.length();
+						bufEnd = bufStart + len;
 						index = bufStart;
 						done = bufStart;
 						continue;       // next filter, same position

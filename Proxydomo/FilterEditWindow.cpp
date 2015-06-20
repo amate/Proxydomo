@@ -304,6 +304,11 @@ public:
                     }
                     matched = matcher.match(index, stop, end, &matchData);
                     filter.unlock();
+					if (matched == false && matchData.reached == stop) {
+						// マッチを全部消費しなかった
+						int a = 0;
+					}
+
                     if (!matched || (boundsMatcher && end != stop)) {
                         ++index;
                         continue;

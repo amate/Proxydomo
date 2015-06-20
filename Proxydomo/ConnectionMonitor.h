@@ -7,6 +7,7 @@
 #include <list>
 #include <string>
 #include <functional>
+#include <atomic>
 #include <atlcrack.h>
 #include <atlctrls.h>
 #include <atlframe.h>
@@ -60,7 +61,7 @@ public:
 };
 
 
-class CConnectionMonitorWindow : 
+class CConnectionMonitorWindow :
 	public CDialogImpl<CConnectionMonitorWindow>,
 	public CDialogResize<CConnectionMonitorWindow>,
 	public CCustomDraw<CConnectionMonitorWindow>
@@ -86,23 +87,24 @@ public:
 
 		CHAIN_MSG_MAP(CDialogResize<CConnectionMonitorWindow>)
 		CHAIN_MSG_MAP(CCustomDraw<CConnectionMonitorWindow>)
-	END_MSG_MAP()
+		END_MSG_MAP()
 
-	BOOL OnInitDialog(CWindow wndFocus, LPARAM lInitParam);
-	void OnDestroy();
-	void OnCancel(UINT uNotifyCode, int nID, CWindow wndCtl);
-	void OnTimer(UINT_PTR nIDEvent);
-	LRESULT OnConnectionListRClick(LPNMHDR pnmh);
+		BOOL OnInitDialog(CWindow wndFocus, LPARAM lInitParam);
+		void OnDestroy();
+		void OnCancel(UINT uNotifyCode, int nID, CWindow wndCtl);
+		void OnTimer(UINT_PTR nIDEvent);
+		LRESULT OnConnectionListRClick(LPNMHDR pnmh);
 
-	// CCustomDraw
-	DWORD OnPrePaint(int nID, LPNMCUSTOMDRAW lpnmcd);
-	DWORD OnItemPrePaint(int nID, LPNMCUSTOMDRAW lpnmcd);
+		// CCustomDraw
+		DWORD OnPrePaint(int nID, LPNMCUSTOMDRAW lpnmcd);
+		DWORD OnItemPrePaint(int nID, LPNMCUSTOMDRAW lpnmcd);
 
 private:
 	CListViewCtrl	m_connectionListView;
 
 	CCriticalSection m_csConnectionCloseList;
 	std::list<int>	m_connectionCloseList;
+	std::atomic_bool	m_listActive;
 };
 
 

@@ -279,7 +279,7 @@ void CLogViewWindow::FilterEvent(LogFilterEvent Event, int RequestNumber, const 
 		break;
 
 	case kLogFilterListReload:
-		msg = GetTranslateMessage(ID_FILTERLISTRELOAD, UTF16fromUTF8(title)).c_str();
+		msg = GetTranslateMessage(ID_FILTERLISTRELOAD, UTF16fromUTF8(title), RequestNumber).c_str();
 		_AppendText(msg, LOG_COLOR_FILTER);
 		return ;
 		break;

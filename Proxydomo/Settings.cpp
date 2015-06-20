@@ -487,6 +487,7 @@ void CSettings::LoadList(const CString& filePath)
 	if (!fs)
 		return ;
 	fs.imbue(std::locale(std::locale(), new std::codecvt_utf8_utf16<wchar_t, 0x10ffff, std::codecvt_mode::consume_header>));
+	int successLoadLineCount = 0;
 	{
 		hashedLists->PreHashWordList.clear();
 		hashedLists->URLHashList.clear();
@@ -513,8 +514,11 @@ void CSettings::LoadList(const CString& filePath)
 				if (pattern.length()) {
 					bAddPattern = true;
 					bool bSuccess = _CreatePattern(pattern, *hashedLists, nLineCount);
-					if (bSuccess == false)
+					if (bSuccess == false) {
 						CLog::FilterEvent(kLogFilterListBadLine, nLineCount, filename, "");
+					} else {
+						++successLoadLineCount;
+					}
 				}
 
 				if (strLine.empty() || strLine[0] == L'#') {
@@ -529,12 +533,15 @@ void CSettings::LoadList(const CString& filePath)
 		}
 		if (pattern.length()) {
 			bool bSuccess = _CreatePattern(pattern, *hashedLists, nLineCount);
-			if (bSuccess == false)
+			if (bSuccess == false) {
 				CLog::FilterEvent(kLogFilterListBadLine, nLineCount, filename, "");
+			} else {
+				++successLoadLineCount;
+			}
 		}
 		hashedLists->lineCount = nLineCount;
 	}
-	CLog::FilterEvent(kLogFilterListReload, -1, filename, "");
+	CLog::FilterEvent(kLogFilterListReload, successLoadLineCount, filename, "");
 }
 
 void	CSettings::AddListLine(const std::string& name, const std::wstring& addLine)

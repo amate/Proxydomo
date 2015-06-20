@@ -4,6 +4,7 @@
 
 #include "stdafx.h"
 #include "ConnectionMonitor.h"
+#include <thread>
 #include <boost\property_tree\ini_parser.hpp>
 #include <boost\property_tree\ptree.hpp>
 #include "RequestManager.h"
@@ -71,7 +72,7 @@ void			CConnectionManager::RemoveConnectionData(ConnectionData* conData)
 		s_funcCallback(conData, kRemoveConnection);
 	}
 	s_connectionDataList.erase(conData->itThis);
-	
+
 }
 
 // for CConnectionManagerWindow
@@ -109,9 +110,13 @@ void CConnectionManager::UpdateNotify(ConnectionData* conData)
 void	CConnectionMonitorWindow::ShowWindow()
 {
 	if (IsWindowVisible() == FALSE) {
+		m_listActive = true;
 		CConnectionManager::RegisterCallback(
 			[this](ConnectionData* conData, CConnectionManager::UpdateCategory updateCategory)
 		{
+			if (m_listActive == false)
+				return;
+
 			auto funcSetItem = [this, conData](int iItem) {
 				LVITEM	Item = {};
 				Item.mask = LVIF_TEXT;
@@ -213,8 +218,8 @@ BOOL CConnectionMonitorWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 	Column	clm[] = {
 		{ _T("outStep"), LVCFMT_LEFT, 60 },
 		{ _T("InStep"), LVCFMT_LEFT, 60 },
-		{ _T("Verb"),  LVCFMT_LEFT, 50 },
-		{ _T("URL"),  LVCFMT_LEFT, 300 },
+		{ _T("Verb"), LVCFMT_LEFT, 50 },
+		{ _T("URL"), LVCFMT_LEFT, 300 },
 	};
 
 	int nCount = _countof(clm);
@@ -252,7 +257,10 @@ BOOL CConnectionMonitorWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 
 void CConnectionMonitorWindow::OnDestroy()
 {
-	CConnectionManager::UnregisterCallback();
+	m_listActive = false;
+	std::thread([](){
+		CConnectionManager::UnregisterCallback();
+	}).detach();
 
 	using namespace boost::property_tree;
 
@@ -279,7 +287,11 @@ void CConnectionMonitorWindow::OnDestroy()
 
 void CConnectionMonitorWindow::OnCancel(UINT uNotifyCode, int nID, CWindow wndCtl)
 {
-	CConnectionManager::UnregisterCallback();
+	m_listActive = false;
+	std::thread([](){
+		CConnectionManager::UnregisterCallback();
+	}).detach();
+	
 	__super::ShowWindow(FALSE);
 
 	m_connectionListView.DeleteAllItems();

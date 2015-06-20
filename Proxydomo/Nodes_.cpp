@@ -1140,6 +1140,7 @@ const UChar* CNode_Command::match(const UChar* start, const UChar* stop, MatchDa
 	const UChar *tStop = nullptr;
 	const UChar *tEnd = nullptr;
 	std::wstring toMatch;
+	bool match = false;
 	const UChar*	reachedOrigin = pMatch->reached;
 
 	CFilter& filter = *pMatch->pFilter;
@@ -1215,21 +1216,24 @@ const UChar* CNode_Command::match(const UChar* start, const UChar* stop, MatchDa
     case CMD_URL:
 		tStart = owner.url.getUrl().c_str();
 		tStop = tStart + owner.url.getUrl().size();
-		if (!m_matcher->match(tStart, tStop, tEnd, pMatch)) {
+		match = m_matcher->match(tStart, tStop, tEnd, pMatch);
+		pMatch->reached = reachedOrigin;
+		if (!match) {
 			return NULL;
 		}
-        break;
+		break;
 
     case CMD_IHDR:
 		pMatch->stackSaveMemory.push(true);
 		toMatch = CFilterOwner::GetHeader(owner.inHeaders, m_name);
         tStart = toMatch.c_str();
         tStop = tStart + toMatch.size();
-		if (!m_matcher->match(tStart, tStop, tEnd, pMatch)) {
-			pMatch->stackSaveMemory.pop();
+		match = m_matcher->match(tStart, tStop, tEnd, pMatch);
+		pMatch->stackSaveMemory.pop();
+		pMatch->reached = reachedOrigin;
+		if (!match) {
 			return NULL;
 		}
-		pMatch->stackSaveMemory.pop();
         break;
 
     case CMD_OHDR:
@@ -1237,11 +1241,12 @@ const UChar* CNode_Command::match(const UChar* start, const UChar* stop, MatchDa
 		toMatch = CFilterOwner::GetHeader(owner.outHeaders, m_name);
         tStart = toMatch.c_str();
         tStop = tStart + toMatch.size();
-		if (!m_matcher->match(tStart, tStop, tEnd, pMatch)) {
-			pMatch->stackSaveMemory.pop();
+		match = m_matcher->match(tStart, tStop, tEnd, pMatch);
+		pMatch->stackSaveMemory.pop();
+		pMatch->reached = reachedOrigin;
+		if (!match) {
 			return NULL;
 		}
-		pMatch->stackSaveMemory.pop();
         break;
 
     case CMD_RESP:
@@ -1249,11 +1254,12 @@ const UChar* CNode_Command::match(const UChar* start, const UChar* stop, MatchDa
 		toMatch = UTF16fromUTF8(owner.responseCode);
         tStart = toMatch.c_str();
         tStop = tStart + toMatch.size();
-		if (!m_matcher->match(tStart, tStop, tEnd, pMatch)) {
-			pMatch->stackSaveMemory.pop();
+		match = m_matcher->match(tStart, tStop, tEnd, pMatch);
+		pMatch->stackSaveMemory.pop();
+		pMatch->reached = reachedOrigin;
+		if (!match) {
 			return NULL;
 		}
-		pMatch->stackSaveMemory.pop();
         break;
 
     case CMD_SETSHARP:
@@ -1269,7 +1275,8 @@ const UChar* CNode_Command::match(const UChar* start, const UChar* stop, MatchDa
         break;
 
     case CMD_KEYCHK:
-        if (!CUtil::keyCheck(m_content)) return NULL;
+        if (!CUtil::keyCheck(m_content)) 
+			return NULL;
         break;
 
     case CMD_KILL:
