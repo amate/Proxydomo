@@ -36,6 +36,7 @@ enum LogProxyEvent
 
 enum LogHttpEvent
 {
+	kLogHttpNewRequest,
 	kLogHttpRecvOut,	// Browserからデータを受信
 	kLogHttpSendOut,	// Websiteへデータを送信
 	kLogHttpPostOut,

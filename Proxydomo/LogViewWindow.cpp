@@ -105,6 +105,17 @@ void CLogViewWindow::HttpEvent(LogHttpEvent Event, const IPv4Address& addr, int 
 {
 	CString msg = GetTranslateMessage(ID_HTTPEVENTHEADER, addr.GetPortNumber(), RequestNumber).c_str();
 	switch (Event) {
+	case kLogHttpNewRequest:
+		{
+			CString url = text.c_str();
+			CString temp;
+			temp.Format(_T("#%d %s"), RequestNumber, (LPCWSTR)url);
+			int nSel = m_cmbRequest.AddString(temp);
+			m_cmbRequest.SetItemData(nSel, RequestNumber);
+			return;
+		}
+		break;
+		
 	case kLogHttpRecvOut:	if (!m_bBrowserToProxy)	return ;
 		msg += GetTranslateMessage(ID_HTTPRECVOUT).c_str();
 		break;
@@ -171,11 +182,6 @@ void CLogViewWindow::HttpEvent(LogHttpEvent Event, const IPv4Address& addr, int 
 		if (bFound == false) {
 			m_vecRquestLog.emplace_back(new RequestLog(RequestNumber));
 			m_vecRquestLog.back()->vecLog.emplace_back(new TextLog(msg, color));
-			lock.Unlock();
-			CString temp;
-			temp.Format(_T("#%d"), RequestNumber);
-			int nSel = m_cmbRequest.AddString(temp);
-			m_cmbRequest.SetItemData(nSel, RequestNumber);
 		}
 	}
 	_AppendText(msg, color);

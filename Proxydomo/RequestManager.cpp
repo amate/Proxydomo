@@ -441,6 +441,8 @@ void CRequestManager::_ProcessOut()
 				}
 				m_connectionData->SetUrl(m_filterOwner.url.getUrl());
 
+				CLog::HttpEvent(kLogHttpNewRequest, m_ipFromAddress, m_filterOwner.requestNumber, UTF8fromUTF16(m_filterOwner.url.getUrl()));
+
 				if (m_filterOwner.url.getBypassIn())
 					m_filterOwner.bypassIn = true;
 				if (m_filterOwner.url.getBypassOut())
