@@ -470,8 +470,12 @@ void CRequestManager::_ProcessOut()
 				if (contentLength.size() > 0)
 					m_outSize = boost::lexical_cast<int64_t>(contentLength);
 
-				if (CUtil::noCaseContains(L"application/x-www-form-urlencoded", m_filterOwner.GetOutHeader(L"Content-Type")))
+				std::wstring contentType = m_filterOwner.GetOutHeader(L"Content-Type");
+				if (CUtil::noCaseContains(L"application/x-www-form-urlencoded", contentType)
+					|| CUtil::noCaseContains(L"text/xml", contentType)) 
+				{
 					m_bPostData = true;
+				}
 
 				// We'll work on a copy, since we don't want to alter
 				// the real headers that $IHDR and $OHDR may access
@@ -649,7 +653,9 @@ void CRequestManager::_ProcessOut()
 					m_sendOutBuf += m_recvOutBuf.substr(0, pos) + CRLF CRLF;
 					m_recvOutBuf.erase(0, pos + len);
 
-					CLog::HttpEvent(kLogHttpPostOut, m_ipFromAddress, m_filterOwner.requestNumber, m_logPostData);
+					if (m_bPostData) {
+						CLog::HttpEvent(kLogHttpPostOut, m_ipFromAddress, m_filterOwner.requestNumber, m_logPostData);
+					}
 
 					m_outStep = STEP::STEP_FINISH;
 					m_connectionData->SetOutStep(m_outStep);
@@ -694,7 +700,9 @@ void CRequestManager::_ProcessOut()
 						m_outStep = STEP::STEP_CHUNK;
 						m_connectionData->SetOutStep(m_outStep);
 					} else {
-						CLog::HttpEvent(kLogHttpPostOut, m_ipFromAddress, m_filterOwner.requestNumber, m_logPostData);
+						if (m_bPostData) {
+							CLog::HttpEvent(kLogHttpPostOut, m_ipFromAddress, m_filterOwner.requestNumber, m_logPostData);
+						}
 
 						m_outStep = STEP::STEP_FINISH;
 						m_connectionData->SetOutStep(m_outStep);
