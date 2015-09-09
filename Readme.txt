@@ -32,7 +32,8 @@ Copyright (C) 2013 amate
  画像の一部に「VS2010ImageLibrary」の一部を使用しています。
  
 ■ビルドについて
-ビルドには boost(1.54~)と zlib と WTL と ICU と wolfSSL が必要なのでそれぞれ用意してください。
+Visual Studio 2015 Communityが必要です
+ビルドには boost(1.58~)と zlib(v1.2.8~) と WTL(v90_4140~) と ICU(v55.1~) と wolfSSL(v3.6.0~) が必要なのでそれぞれ用意してください。
 
 ◆boost
 http://www.boost.org/
@@ -71,9 +72,60 @@ boost::shared_mutexを使用するのでboost::threadのライブラリが必要になります
  https://sites.google.com/site/boostjp/howtobuild
 コマンドライン
 // x86
-b2.exe install -j 2 --prefix=lib toolset=msvc-12.0 runtime-link=static --with-thread --with-date_time
+b2.exe install -j 4 --prefix=lib toolset=msvc-14.0 runtime-link=static --with-thread --with-date_time --with-timer --with-log
 // x64
-b2.exe install -j 2 --prefix=lib64 toolset=msvc-12.0 runtime-link=static address-model=64 --with-thread --with-date_time
+b2.exe install -j 4 --prefix=lib64 toolset=msvc-14.0 runtime-link=static address-model=64 --with-thread --with-date_time --with-timer --with-log
+
+□wolfssl
+wolfsslがソリューションエクスプローラーに読み込まれていないとビルドが通らないので
+一度消してプロジェクトを追加する必要があります
+
+Proxydomoのソリューションエクスプローラーからwolfsslのプロジェクトを削除して
+既存のプロジェクトの追加で wolfssl\wolfssl.vcxproj を追加してください
+
+wolfsslのプロパティーページでプリプロセッサ->プリプロセッサの定義の内容を以下の内容に書き換える
+
+// for Debug/Release Win32
+WOLFSSL_CERT_GEN
+WOLFSSL_KEY_GEN
+HAVE_AESGCM
+HAVE_AESCCM
+HAVE_CAMELLIA
+HAVE_ECC
+HAVE_OCSP
+HAVE_TLS_EXTENSIONS
+HAVE_SESSION_TICKET
+HAVE_SNI
+HAVE_SECURE_RENEGOTIATION
+HAVE_SUPPORTED_CURVES
+WOLFSSL_RIPEMD
+WOLFSSL_SHA384
+WOLFSSL_SHA512
+NO_PSK
+
+// for Debug/Release x64
+WOLFSSL_CERT_GEN
+WOLFSSL_KEY_GEN
+HAVE_AESGCM
+HAVE_AESCCM
+HAVE_CAMELLIA
+HAVE_ECC
+HAVE_OCSP
+WOLFSSL_AESNI
+HAVE_TLS_EXTENSIONS
+HAVE_SESSION_TICKET
+HAVE_SNI
+HAVE_SECURE_RENEGOTIATION
+HAVE_SUPPORTED_CURVES
+WOLFSSL_RIPEMD
+WOLFSSL_SHA384
+WOLFSSL_SHA512
+NO_PSK
+
+プロジェクトの依存関係の設定で プロジェクト:Proxydomo 依存先のwolfssl にチェックを入れてください
+ソリューションエクスプローラーにあるProxydomoの"参照"に wolfssl を追加してください
+
+これでビルドが通るはずです
 
 
 v1.55の以下の修正はwolfSSL側のソースを修正する必要があります

@@ -421,8 +421,4 @@
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>
-  <ItemGroup>
-    <None Include="..\..\wolfssl\wolfssl.vcproj" />
-    <None Include="..\..\wolfssl\wolfssl.vcxproj" />
-  </ItemGroup>
 </Project>

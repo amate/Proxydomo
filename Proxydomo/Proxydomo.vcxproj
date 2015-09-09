@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -25,26 +25,26 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v120_xp</PlatformToolset>
+    <PlatformToolset>v140_xp</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
@@ -98,7 +98,7 @@
       <MinimalRebuild>false</MinimalRebuild>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <PreprocessorDefinitions>WOLFSSL_CERT_GEN;WOLFSSL_KEY_GEN;HAVE_AESGCM;HAVE_AESCCM;HAVE_CAMELLIA;HAVE_ECC;HAVE_TLS_EXTENSIONS;HAVE_SESSION_TICKET;HAVE_SNI;HAVE_SECURE_RENEGOTIATION;HAVE_SUPPORTED_CURVES;WOLFSSL_RIPEMD;WOLFSSL_SHA384;WOLFSSL_SHA512;NO_PSK;WIN32;_WINDOWS;STRICT;NOMINMAX;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WOLFSSL_CERT_GEN;WOLFSSL_KEY_GEN;HAVE_AESGCM;HAVE_AESCCM;HAVE_CAMELLIA;HAVE_ECC;HAVE_OCSP;HAVE_TLS_EXTENSIONS;HAVE_SESSION_TICKET;HAVE_SNI;HAVE_SECURE_RENEGOTIATION;HAVE_SUPPORTED_CURVES;WOLFSSL_RIPEMD;WOLFSSL_SHA384;WOLFSSL_SHA512;NO_PSK;WIN32;_WINDOWS;STRICT;NOMINMAX;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
@@ -133,7 +133,7 @@
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <PreprocessorDefinitions>WOLFSSL_CERT_GEN;WOLFSSL_KEY_GEN;HAVE_AESGCM;HAVE_AESCCM;HAVE_CAMELLIA;HAVE_ECC;WOLFSSL_AESNI;HAVE_TLS_EXTENSIONS;HAVE_SESSION_TICKET;HAVE_SNI;HAVE_SECURE_RENEGOTIATION;HAVE_SUPPORTED_CURVES;WOLFSSL_RIPEMD;WOLFSSL_SHA384;WOLFSSL_SHA512;NO_PSK;WIN32;_WINDOWS;STRICT;NOMINMAX;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WOLFSSL_CERT_GEN;WOLFSSL_KEY_GEN;HAVE_AESGCM;HAVE_AESCCM;HAVE_CAMELLIA;HAVE_ECC;HAVE_OCSP;WOLFSSL_AESNI;HAVE_TLS_EXTENSIONS;HAVE_SESSION_TICKET;HAVE_SNI;HAVE_SECURE_RENEGOTIATION;HAVE_SUPPORTED_CURVES;WOLFSSL_RIPEMD;WOLFSSL_SHA384;WOLFSSL_SHA512;NO_PSK;WIN32;_WINDOWS;STRICT;NOMINMAX;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
@@ -168,7 +168,7 @@
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <ExceptionHandling>Sync</ExceptionHandling>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <PreprocessorDefinitions>WOLFSSL_CERT_GEN;WOLFSSL_KEY_GEN;HAVE_AESGCM;HAVE_AESCCM;HAVE_CAMELLIA;HAVE_ECC;HAVE_TLS_EXTENSIONS;HAVE_SESSION_TICKET;HAVE_SNI;HAVE_SECURE_RENEGOTIATION;HAVE_SUPPORTED_CURVES;WOLFSSL_RIPEMD;WOLFSSL_SHA384;WOLFSSL_SHA512;NO_PSK;WIN32;_WINDOWS;STRICT;NOMINMAX;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WOLFSSL_CERT_GEN;WOLFSSL_KEY_GEN;HAVE_AESGCM;HAVE_AESCCM;HAVE_CAMELLIA;HAVE_ECC;HAVE_OCSP;HAVE_TLS_EXTENSIONS;HAVE_SESSION_TICKET;HAVE_SNI;HAVE_SECURE_RENEGOTIATION;HAVE_SUPPORTED_CURVES;WOLFSSL_RIPEMD;WOLFSSL_SHA384;WOLFSSL_SHA512;NO_PSK;WIN32;_WINDOWS;STRICT;NOMINMAX;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -209,7 +209,7 @@
       <ExceptionHandling>Sync</ExceptionHandling>
       <DebugInformationFormat>
       </DebugInformationFormat>
-      <PreprocessorDefinitions>WOLFSSL_CERT_GEN;WOLFSSL_KEY_GEN;HAVE_AESGCM;HAVE_AESCCM;HAVE_CAMELLIA;HAVE_ECC;WOLFSSL_AESNI;HAVE_TLS_EXTENSIONS;HAVE_SESSION_TICKET;HAVE_SNI;HAVE_SECURE_RENEGOTIATION;HAVE_SUPPORTED_CURVES;WOLFSSL_RIPEMD;WOLFSSL_SHA384;WOLFSSL_SHA512;NO_PSK;WIN32;_WINDOWS;STRICT;NOMINMAX;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WOLFSSL_CERT_GEN;WOLFSSL_KEY_GEN;HAVE_AESGCM;HAVE_AESCCM;HAVE_CAMELLIA;HAVE_ECC;HAVE_OCSP;WOLFSSL_AESNI;HAVE_TLS_EXTENSIONS;HAVE_SESSION_TICKET;HAVE_SNI;HAVE_SECURE_RENEGOTIATION;HAVE_SUPPORTED_CURVES;WOLFSSL_RIPEMD;WOLFSSL_SHA384;WOLFSSL_SHA512;NO_PSK;WIN32;_WINDOWS;STRICT;NOMINMAX;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -752,10 +752,6 @@
     <Image Include="res\HeaderFilter.ico" />
     <Image Include="res\Proxydomo.ico" />
     <Image Include="res\WebFilter.ico" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\..\wolfssl\wolfssl.vcproj" />
-    <None Include="..\..\wolfssl\wolfssl.vcxproj" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\wolfssl-3.6.0\wolfssl.vcxproj">
