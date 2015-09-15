@@ -431,8 +431,8 @@ bool	InitSSL()
 			ret = wolfSSL_CTX_UseSessionTicket(g_sslclientCtx);
 			ATLASSERT(ret == SSL_SUCCESS);
 
-			ret = wolfSSL_CTX_EnableOCSP(g_sslclientCtx, WOLFSSL_OCSP_CHECKALL);
-			ATLASSERT(ret == SSL_SUCCESS);
+			//ret = wolfSSL_CTX_EnableOCSP(g_sslclientCtx, WOLFSSL_OCSP_CHECKALL);
+			//ATLASSERT(ret == SSL_SUCCESS);
 
 			ret = wolfSSL_CTX_UseSupportedCurve(g_sslclientCtx, WOLFSSL_ECC_SECP256R1);
 			ATLASSERT(ret == SSL_SUCCESS);

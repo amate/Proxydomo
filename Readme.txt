@@ -83,7 +83,7 @@ wolfssl‚ªƒ\ƒŠƒ…[ƒVƒ‡ƒ“ƒGƒNƒXƒvƒ[ƒ‰[‚É“Ç‚Ýž‚Ü‚ê‚Ä‚¢‚È‚¢‚Æƒrƒ‹ƒh‚ª’Ê‚ç‚È‚¢‚Ì‚
 Proxydomo‚Ìƒ\ƒŠƒ…[ƒVƒ‡ƒ“ƒGƒNƒXƒvƒ[ƒ‰[‚©‚çwolfssl‚ÌƒvƒƒWƒFƒNƒg‚ðíœ‚µ‚Ä
 Šù‘¶‚ÌƒvƒƒWƒFƒNƒg‚Ì’Ç‰Á‚Å wolfssl\wolfssl.vcxproj ‚ð’Ç‰Á‚µ‚Ä‚­‚¾‚³‚¢
 
-wolfssl‚ÌƒvƒƒpƒeƒB[ƒy[ƒW‚ÅƒvƒŠƒvƒƒZƒbƒT->ƒvƒŠƒvƒƒZƒbƒT‚Ì’è‹`‚Ì“à—e‚ðˆÈ‰º‚Ì“à—e‚É‘‚«Š·‚¦‚é
+wolfssl‚ÌƒvƒƒpƒeƒBƒy[ƒW‚ÅƒvƒŠƒvƒƒZƒbƒT->ƒvƒŠƒvƒƒZƒbƒT‚Ì’è‹`‚Ì“à—e‚ðˆÈ‰º‚Ì“à—e‚É‘‚«Š·‚¦‚é
 
 // for Debug/Release Win32
 WOLFSSL_CERT_GEN
@@ -121,6 +121,10 @@ WOLFSSL_RIPEMD
 WOLFSSL_SHA384
 WOLFSSL_SHA512
 NO_PSK
+
+wolfssl‚ÌƒvƒƒpƒeƒBƒy[ƒW C/C++ -> ƒR[ƒh¶¬
+ƒ‰ƒ“ƒ^ƒCƒ€ƒ‰ƒCƒuƒ‰ƒŠ‚ð \¬‚ªDebug ‚È‚ç"ƒ}ƒ‹ƒ`ƒXƒŒƒbƒh ƒfƒoƒbƒO (/MTd)" ‚Ö•ÏX
+Release‚È‚ç"ƒ}ƒ‹ƒ`ƒXƒŒƒbƒh (/MT)" ‚Ö•ÏX‚µ‚Ä‚­‚¾‚³‚¢
 
 ƒvƒƒWƒFƒNƒg‚ÌˆË‘¶ŠÖŒW‚ÌÝ’è‚Å ƒvƒƒWƒFƒNƒg:Proxydomo ˆË‘¶æ‚Ìwolfssl ‚Éƒ`ƒFƒbƒN‚ð“ü‚ê‚Ä‚­‚¾‚³‚¢
 ƒ\ƒŠƒ…[ƒVƒ‡ƒ“ƒGƒNƒXƒvƒ[ƒ‰[‚É‚ ‚éProxydomo‚Ì"ŽQÆ"‚É wolfssl ‚ð’Ç‰Á‚µ‚Ä‚­‚¾‚³‚¢

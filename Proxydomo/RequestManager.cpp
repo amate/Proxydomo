@@ -1527,6 +1527,9 @@ bool	CRequestManager::_VerifyContentType(std::string& ctype)
 	} else if (type == "xml") {
 		m_filterOwner.fileType = "xml";
 		return false;
+	} else if (type == "plain") {
+		m_filterOwner.fileType = "plain";
+		return false;
 	}
 
     m_filterOwner.fileType = "oth";
