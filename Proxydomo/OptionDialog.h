@@ -200,18 +200,32 @@ public:
 				auto start = steady_clock::now();
 				CStatic resultLog = testLog;
 				bool bSuccess = false;
-				if (WinHTTPWrapper::InitWinHTTP(boost::none, remoteProxy)) {
-					if (*spThreadActive) {
-						if (auto downloadData = WinHTTPWrapper::HttpDownloadData(L"http://www.google.com/")) {
-							bSuccess = true;
-							if (*spThreadActive) {
-								long long processingTime = duration_cast<milliseconds>(steady_clock::now() - start).count();
-								resultLog.SetWindowText(UITranslator::GetTranslateMessage(ID_PROXYTESTSUCCEEDEDMESSAGE, processingTime).c_str());
-							}
+				if (*spThreadActive) {
+					auto funcHttpDownloadData = [remoteProxy]() -> boost::optional<std::string> {
+						try {
+							WinHTTPWrapper::CUrl	downloadUrl("http://www.google.com/");
+							auto hConnect = WinHTTPWrapper::HttpConnect(downloadUrl);
+							auto hRequest = WinHTTPWrapper::HttpOpenRequest(downloadUrl, hConnect);
+							WinHTTPWrapper::HttpSetProxy(hRequest, remoteProxy);
+							if (WinHTTPWrapper::HttpSendRequestAndReceiveResponse(hRequest))
+								return HttpReadData(hRequest);
+						}
+						catch (boost::exception& e) {
+							std::string expText = boost::diagnostic_information(e);
+							int a = 0;
+						}
+						return boost::none;
+					};
+
+					if (auto downloadData = funcHttpDownloadData()) {
+						bSuccess = true;
+						if (*spThreadActive) {
+							long long processingTime = duration_cast<milliseconds>(steady_clock::now() - start).count();
+							resultLog.SetWindowText(UITranslator::GetTranslateMessage(ID_PROXYTESTSUCCEEDEDMESSAGE, processingTime).c_str());
 						}
 					}
-					WinHTTPWrapper::TermWinHTTP();
 				}
+
 				if (bSuccess == false) {
 					if (*spThreadActive) {
 						resultLog.SetWindowText(UITranslator::GetTranslateMessage(ID_PROXYTESTFAILEDMESSAGE).c_str());

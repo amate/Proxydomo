@@ -85,7 +85,7 @@ string& CUtil::trim(string& s, string list)
 wstring& CUtil::trim(wstring& s, wstring list)
 {
     size_t p1 = s.find_first_not_of(list);
-    if (p1 == string::npos) return s = L"";
+    if (p1 == wstring::npos) return s = L"";
     size_t p2 = s.find_last_not_of(list);
     return s = s.substr(p1, p2+1-p1);
 }
@@ -99,7 +99,7 @@ unsigned int CUtil::readHex(const string& s) {
 		auto h = H.find(toupper(*c));
 		if (h == std::string::npos)
 			break;
-		n = n*16 + h;
+		n = n*16 + static_cast<unsigned int>(h);
 	}
     return n;
 }
@@ -672,9 +672,9 @@ string CUtil::decodeBASE64(const string& str) {
     for (int i=0; i<size; i++) {
         unsigned char c = str[i];
         if (c == '=') break;
-        unsigned long v = base64.find(str[i]);
+        auto v = base64.find(str[i]);
         if (v == string::npos) continue;
-        code = (code << 6) + v;
+        code = (code << 6) + static_cast<unsigned long>(v);
         step += 6;
         if (step >= 8) {
             step -= 8;

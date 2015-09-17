@@ -134,6 +134,7 @@ CRequestManager::~CRequestManager(void)
 		m_psockWebsite->Close();
 	} catch (SocketException& e) {
 		ATLTRACE(e.what());
+		ERROR_LOG << L"~CRequestManager : " << e.what();
 	}
 
 	CConnectionManager::RemoveConnectionData(m_connectionData);
@@ -235,6 +236,7 @@ void CRequestManager::Manage()
 	}	// while
 	} catch (std::exception& e) {
 		TRACEIN("例外が発生しました！ : ポート %d 例外:%s", m_ipFromAddress.GetPortNumber(), e.what()); 
+		e;
 	} catch (...) {
 		TRACEIN("例外が発生しました！ : ポート %d", m_ipFromAddress.GetPortNumber());
 	}

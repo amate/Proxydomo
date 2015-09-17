@@ -84,7 +84,18 @@ std::vector<std::unique_ptr<CFilterDescriptor>> GetFilterDescriptorFromClipboard
 			CUtil::upper(label);
 			std::wstring value = line.substr(eq + 1);
 			CUtil::trim(value);
-			CUtil::trim(value, L"\"");
+			
+			if (value.length() > 0) {
+				if (value.front() == L'\"') {
+					value.erase(value.begin());
+				}
+				if (value.length() > 0) {
+					if (value.back() == L'\"') {
+						value.erase(value.begin() + (value.length() - 1));
+					}
+				}
+			}
+			//CUtil::trim(value, L"\"");
 			value = CUtil::replaceAll(value, L"\r", L"\r\n");
 
 			if (label == L"IN") {
@@ -102,7 +113,7 @@ std::vector<std::unique_ptr<CFilterDescriptor>> GetFilterDescriptorFromClipboard
 					isActive = true;
 				}
 			} else if (label == L"KEY") {
-				size_t colon = value.find(':');
+				size_t colon = value.find(L':');
 				if (colon != string::npos) {
 					d.headerName = value.substr(0, colon);
 					d.title = value.substr(colon + 1);
@@ -126,7 +137,7 @@ std::vector<std::unique_ptr<CFilterDescriptor>> GetFilterDescriptorFromClipboard
 			} else if (label == L"COMMENT") {
 				d.comment = UTF8fromUTF16(value);
 			} else if (label == L"MULTI") {
-				d.multipleMatches = (value[0] == 'T');
+				d.multipleMatches = (value[0] == L'T');
 			} else if (label == L"LIMIT") {
 				d.windowWidth = ::_wtoi(value.c_str());
 			} else if (label == L"URL")

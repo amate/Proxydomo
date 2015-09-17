@@ -77,6 +77,11 @@ b2.exe install -j 4 --prefix=lib toolset=msvc-14.0 runtime-link=static --with-th
 b2.exe install -j 4 --prefix=lib64 toolset=msvc-14.0 runtime-link=static address-model=64 --with-thread --with-date_time --with-timer --with-log
 
 □wolfssl
+$(SolutionDir)wolfssl\wolfssl.vcxproj
+のプロジェクトを読み込むようにしているので
+あとはプリプロセッサの定義の変更だけすればビルドが通るようにしています
+
+それ以外の場合
 wolfsslがソリューションエクスプローラーに読み込まれていないとビルドが通らないので
 一度消してプロジェクトを追加する必要があります
 
@@ -85,6 +90,7 @@ Proxydomoのソリューションエクスプローラーからwolfsslのプロジェクトを削除して
 
 wolfsslのプロパティページでプリプロセッサ->プリプロセッサの定義の内容を以下の内容に書き換える
 
+※プリプロセッサの定義の変更
 // for Debug/Release Win32
 WOLFSSL_CERT_GEN
 WOLFSSL_KEY_GEN
@@ -101,6 +107,9 @@ HAVE_SUPPORTED_CURVES
 WOLFSSL_RIPEMD
 WOLFSSL_SHA384
 WOLFSSL_SHA512
+WOLFSSL_STATIC_RSA
+NO_RC4
+NO_HC128
 NO_PSK
 
 // for Debug/Release x64
@@ -120,6 +129,9 @@ HAVE_SUPPORTED_CURVES
 WOLFSSL_RIPEMD
 WOLFSSL_SHA384
 WOLFSSL_SHA512
+WOLFSSL_STATIC_RSA
+NO_RC4
+NO_HC128
 NO_PSK
 
 wolfsslのプロパティページ C/C++ -> コード生成
@@ -134,7 +146,7 @@ Releaseなら"マルチスレッド (/MT)" へ変更してください
 
 v1.55の以下の修正はwolfSSL側のソースを修正する必要があります
 ・サーバーから送られてくるルートCA証明書がおかしいとき"ASN no signer error to confirm failure"の警告が出るのを修正
-internal.cの 3990行目あたりを
+internal.cの 4175行目あたりを
 
 // before
 WOLFSSL_MSG("Failed to verify CA from chain");

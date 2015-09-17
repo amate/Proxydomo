@@ -210,20 +210,21 @@ BEGIN
     CONTROL         "このPCからの接続のみ許可する",IDC_CHECK_PRIVATECONNECTION,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,8,28,127,12
 END
 
-IDD_CERTIFICATEERROR DIALOGEX 0, 0, 227, 133
+IDD_CERTIFICATEERROR DIALOGEX 0, 0, 227, 139
 STYLE DS_SETFONT | DS_MODALFRAME | DS_SETFOREGROUND | DS_3DLOOK | DS_FIXEDSYS | DS_CENTER | WS_POPUP | WS_VISIBLE | WS_CAPTION
 EXSTYLE WS_EX_WINDOWEDGE
 CAPTION "セキュリティの警告"
 FONT 9, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
-    LTEXT           "接続を続行しますか？",IDC_STATIC_CONNECTIONCONTINUE,6,60,214,12
-    LTEXT           "詳細:",IDC_STATIC_DETAIL,5,35,202,23
+    LTEXT           "接続を続行しますか？",IDC_STATIC_CONNECTIONCONTINUE,6,70,214,12
+    LTEXT           "詳細: test test test",IDC_STATIC_DETAIL,5,45,202,23
     LTEXT           "この Web サイトの ID またはこの接続の安全性を確認できません。",IDC_STATIC_WARNING,5,5,207,17
-    LTEXT           "Host: www.example.co.jp",IDC_STATIC_HOST,5,20,211,12
-    DEFPUSHBUTTON   "サイトの接続をすべて拒否する",IDC_BTN_PERMANENTDENY,118,105,105,21
-    PUSHBUTTON      "サイトの接続をすべて許可する",IDC_BTN_PERMANENTALLOW,3,105,110,21
-    PUSHBUTTON      "一時的に拒否する",IDC_BTN_TEMPDENY,118,77,105,21
-    PUSHBUTTON      "一時的に許可する",IDC_BTN_TEMPALLOW,3,77,110,21
+    LTEXT           "Host: www.example.co.jp",IDC_STATIC_HOST,5,20,211,10
+    DEFPUSHBUTTON   "サイトの接続をすべて拒否する",IDC_BTN_PERMANENTDENY,118,115,105,21
+    PUSHBUTTON      "サイトの接続をすべて許可する",IDC_BTN_PERMANENTALLOW,3,115,110,21
+    PUSHBUTTON      "一時的に拒否する",IDC_BTN_TEMPDENY,118,87,105,21
+    PUSHBUTTON      "一時的に許可する",IDC_BTN_TEMPALLOW,3,87,110,21
+    PUSHBUTTON      "OSからルート証明書の取得を試みる",IDC_BTN_TRYTOGETROOTCA,39,31,152,12,NOT WS_VISIBLE
 END
 
 IDD_CONNECTIONMONITOR DIALOGEX 0, 0, 281, 183
@@ -364,6 +365,17 @@ END
 //
 
 IDB_FILTERMANAGERTOOLBAR BITMAP                  "res\\FilterManagerToolBar.bmp"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_CERTIFICATEERROR AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //

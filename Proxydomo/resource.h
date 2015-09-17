@@ -118,6 +118,7 @@
 #define IDC_LIST_CONNECTION             1096
 #define IDC_BUTTON_VIEWCONNECTIONMONITOR 1097
 #define IDC_CHECKBOX_VIEWPOSTDATA       1098
+#define IDC_BTN_TRYTOGETROOTCA          1099
 #define ID_TRANS_NEWFOLDER              40000
 #define ID_TRANS_CONFIRM                40001
 #define ID_TRANS_NEWFILTER              40002
@@ -126,6 +127,7 @@
 #define ID_TRANS_INHEADER               40005
 #define ID_TRANS_ERROR                  40006
 #define ID_TRANS_SUCCESS                40007
+#define ID_TRANS_FAILURE				40008
 #define ID_TASKTRAYMENUBEGIN            50000
 #define ID_TASKTRAYMENUEND              50999
 #define ID_FILTERMANAGERWINDOWMENUBEGIN 51000
@@ -188,14 +190,16 @@
 #define ID_OPENFILTERXMLFAILED          51155
 #define ID_LOADFILTERXMLFAILED          51156
 #define ID_SAVEFILTERXMLFAILED          51157
+#define ID_SUCCEEDGETROOTCA				51158
+#define ID_FAILEDGETROOTCA				51159
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        252
+#define _APS_NEXT_RESOURCE_VALUE        253
 #define _APS_NEXT_COMMAND_VALUE         32775
-#define _APS_NEXT_CONTROL_VALUE         1099
+#define _APS_NEXT_CONTROL_VALUE         1100
 #define _APS_NEXT_SYMED_VALUE           140
 #endif
 #endif

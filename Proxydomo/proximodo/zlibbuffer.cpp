@@ -111,7 +111,7 @@ void CZlibBuffer::feed(string data)
     char buf1[ZLIB_BLOCK], buf2[ZLIB_BLOCK];
 	while ((err == Z_OK || err == Z_BUF_ERROR) && remaining > 0) {
         stream.next_in = (Byte*)buf1;
-        stream.avail_in = (remaining > ZLIB_BLOCK ? ZLIB_BLOCK : remaining);
+        stream.avail_in = (remaining > ZLIB_BLOCK ? ZLIB_BLOCK : static_cast<uInt>(remaining));
 		memcpy_s(buf1, ZLIB_BLOCK, &buffer[size - remaining], stream.avail_in);
         do {
             stream.next_out = (Byte*)buf2;
@@ -147,7 +147,7 @@ void CZlibBuffer::dump() {
         char* buf1 = new char[size];
         char buf2[ZLIB_BLOCK];
         stream.next_in = (Byte*)buf1;
-        stream.avail_in = size;
+        stream.avail_in = static_cast<uInt>(size);
         for (size_t i=0; i<size; i++) buf1[i] = buffer[i];
         do {
             stream.next_out = (Byte*)buf2;

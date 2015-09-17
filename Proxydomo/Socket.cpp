@@ -264,6 +264,7 @@ void	CSocket::Close()
 			}
 		} catch (SocketException& e) {
 			ATLTRACE( e.what() );
+			ERROR_LOG << L"CSocket::Close : " << e.what();
 		}
 		::shutdown(m_sock, SD_RECEIVE);
 		if (::closesocket(m_sock) == SOCKET_ERROR) {

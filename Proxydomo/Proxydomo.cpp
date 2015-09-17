@@ -35,6 +35,7 @@
 #include "Logger.h"
 #include "ssl.h"
 #include "UITranslator.h"
+#include "WinHTTPWrapper.h"
 
 
 // ÉOÉçÅ[ÉoÉãïœêî
@@ -105,12 +106,16 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR lp
 
 		CSocket::Init();
 
+		WinHTTPWrapper::InitWinHTTP();
+
 		CSettings::s_SSLFilter = InitSSL();
 
 		nRet = Run(lpstrCmdLine, nCmdShow);
 
 		if (CSettings::s_SSLFilter)
 			TermSSL();
+
+		WinHTTPWrapper::TermWinHTTP();
 
 		CSocket::Term();
 

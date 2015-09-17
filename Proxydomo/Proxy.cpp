@@ -102,6 +102,7 @@ void CProxy::_ServerThread()
 			}
 			catch (std::exception& e) {
 				ATLTRACE(e.what());
+				ERROR_LOG << L"funcCreateRequestManagerThread : " << e.what();
 			}
 
 			CCritSecLock	lock(m_csRequestManager);

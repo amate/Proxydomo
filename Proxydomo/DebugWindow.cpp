@@ -59,7 +59,8 @@ public:
 CDebugUtility::Impl::Impl()  : m_hOut(NULL)
 {
 	// ログファイル作成
-	FILE* fp = _wfopen(Misc::GetExeDirectory() + _T("log.txt"), L"w");
+	FILE* fp = nullptr;
+	_wfopen_s(&fp, Misc::GetExeDirectory() + _T("log.txt"), L"w");
 	fclose(fp);
 
 	::AllocConsole();
@@ -115,9 +116,10 @@ void	CDebugUtility::Impl::_WriteConsole(LPCTSTR str)
 	if (filestream) {
 		filestream.imbue(std::locale(std::locale(), new std::codecvt_utf8_utf16<wchar_t>));
 		time_t time = std::time(nullptr);
-		tm* date = std::localtime(&time);
+		tm date = {};
+		localtime_s(&date, &time);
 		WCHAR strtime[128] = L"";
-		std::wcsftime(strtime, _countof(strtime), L"%c | ", date);
+		std::wcsftime(strtime, _countof(strtime), L"%c | ", &date);
 		filestream << strtime << str;
 	}
 	DWORD dwWrite;

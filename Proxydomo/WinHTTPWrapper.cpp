@@ -8,7 +8,7 @@ namespace WinHTTPWrapper {
 
 LPCWSTR	kDefaultUserAgent = L"Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.1; WOW64; Trident/6.0)";
 
-__declspec(thread)	HINTERNET	s_hSession = NULL;
+HINTERNET	s_hSession = NULL;
 
 bool	InitWinHTTP(boost::optional<CString> optUserAgent /*= boost::none*/, boost::optional<CString> optProxy /*= boost::none*/)
 {

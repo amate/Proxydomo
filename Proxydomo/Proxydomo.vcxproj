@@ -67,11 +67,11 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <LibraryPath>$(SolutionDir)icu\lib;$(SolutionDir)zlib\x86\lib;D:\Program\boost_1_56_0\lib\lib;$(LibraryPath)</LibraryPath>
-    <IncludePath>D:\Program\wolfssl;$(SolutionDir)icu\include;$(SolutionDir)zlib\x86\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)wolfssl;$(SolutionDir)icu\include;$(SolutionDir)zlib\x86\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>D:\Program\wolfssl;$(SolutionDir)icu\include;D:\Program\WTL81_12085\Include;$(SolutionDir)zlib\x64\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)wolfssl;$(SolutionDir)icu\include;D:\Program\WTL81_12085\Include;$(SolutionDir)zlib\x64\include;$(IncludePath)</IncludePath>
     <OutDir>$(SolutionDir)$(Configuration)$(Platform)\</OutDir>
     <IntDir>$(Configuration)$(Platform)\</IntDir>
     <TargetName>$(ProjectName)64</TargetName>
@@ -79,8 +79,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <LibraryPath>$(SolutionDir)icu\lib;$(SolutionDir)zlib\x86\lib;D:\Program\boost_1_56_0\lib\lib;$(LibraryPath)</LibraryPath>
-    <IncludePath>D:\Program\wolfssl;$(SolutionDir)icu\include;$(SolutionDir)zlib\x86\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)icu\lib;$(SolutionDir)zlib\x86\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)wolfssl;$(SolutionDir)icu\include;$(SolutionDir)zlib\x86\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -88,7 +88,7 @@
     <IntDir>$(Configuration)$(Platform)\</IntDir>
     <TargetName>$(ProjectName)64</TargetName>
     <LibraryPath>$(SolutionDir)icu\lib64;$(SolutionDir)zlib\x64\lib;$(VCInstallDir)lib\amd64;$(VCInstallDir)atlmfc\lib\amd64;$(WindowsSDK_LibraryPath_x64);$(LibraryPath)</LibraryPath>
-    <IncludePath>D:\Program\wolfssl;$(SolutionDir)icu\include;D:\Program\WTL81_12085\Include;$(SolutionDir)zlib\x64\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)wolfssl;$(SolutionDir)icu\include;D:\Program\WTL81_12085\Include;$(SolutionDir)zlib\x64\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -98,7 +98,7 @@
       <MinimalRebuild>false</MinimalRebuild>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <PreprocessorDefinitions>WOLFSSL_CERT_GEN;WOLFSSL_KEY_GEN;HAVE_AESGCM;HAVE_AESCCM;HAVE_CAMELLIA;HAVE_ECC;HAVE_OCSP;HAVE_TLS_EXTENSIONS;HAVE_SESSION_TICKET;HAVE_SNI;HAVE_SECURE_RENEGOTIATION;HAVE_SUPPORTED_CURVES;WOLFSSL_RIPEMD;WOLFSSL_SHA384;WOLFSSL_SHA512;NO_PSK;WIN32;_WINDOWS;STRICT;NOMINMAX;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WOLFSSL_CERT_GEN;WOLFSSL_KEY_GEN;HAVE_AESGCM;HAVE_AESCCM;HAVE_CAMELLIA;HAVE_ECC;HAVE_OCSP;HAVE_TLS_EXTENSIONS;HAVE_SESSION_TICKET;HAVE_SNI;HAVE_SECURE_RENEGOTIATION;HAVE_SUPPORTED_CURVES;WOLFSSL_RIPEMD;WOLFSSL_SHA384;WOLFSSL_SHA512;WOLFSSL_STATIC_RSA;NO_RC4;NO_PSK;WIN32;_WINDOWS;STRICT;NOMINMAX;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
@@ -133,7 +133,7 @@
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <PreprocessorDefinitions>WOLFSSL_CERT_GEN;WOLFSSL_KEY_GEN;HAVE_AESGCM;HAVE_AESCCM;HAVE_CAMELLIA;HAVE_ECC;HAVE_OCSP;WOLFSSL_AESNI;HAVE_TLS_EXTENSIONS;HAVE_SESSION_TICKET;HAVE_SNI;HAVE_SECURE_RENEGOTIATION;HAVE_SUPPORTED_CURVES;WOLFSSL_RIPEMD;WOLFSSL_SHA384;WOLFSSL_SHA512;NO_PSK;WIN32;_WINDOWS;STRICT;NOMINMAX;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WOLFSSL_CERT_GEN;WOLFSSL_KEY_GEN;HAVE_AESGCM;HAVE_AESCCM;HAVE_CAMELLIA;HAVE_ECC;HAVE_OCSP;WOLFSSL_AESNI;HAVE_TLS_EXTENSIONS;HAVE_SESSION_TICKET;HAVE_SNI;HAVE_SECURE_RENEGOTIATION;HAVE_SUPPORTED_CURVES;WOLFSSL_RIPEMD;WOLFSSL_SHA384;WOLFSSL_SHA512;WOLFSSL_STATIC_RSA;NO_RC4;NO_PSK;WIN32;_WINDOWS;STRICT;NOMINMAX;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
@@ -168,7 +168,7 @@
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <ExceptionHandling>Sync</ExceptionHandling>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <PreprocessorDefinitions>WOLFSSL_CERT_GEN;WOLFSSL_KEY_GEN;HAVE_AESGCM;HAVE_AESCCM;HAVE_CAMELLIA;HAVE_ECC;HAVE_OCSP;HAVE_TLS_EXTENSIONS;HAVE_SESSION_TICKET;HAVE_SNI;HAVE_SECURE_RENEGOTIATION;HAVE_SUPPORTED_CURVES;WOLFSSL_RIPEMD;WOLFSSL_SHA384;WOLFSSL_SHA512;NO_PSK;WIN32;_WINDOWS;STRICT;NOMINMAX;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WOLFSSL_CERT_GEN;WOLFSSL_KEY_GEN;HAVE_AESGCM;HAVE_AESCCM;HAVE_CAMELLIA;HAVE_ECC;HAVE_OCSP;HAVE_TLS_EXTENSIONS;HAVE_SESSION_TICKET;HAVE_SNI;HAVE_SECURE_RENEGOTIATION;HAVE_SUPPORTED_CURVES;WOLFSSL_RIPEMD;WOLFSSL_SHA384;WOLFSSL_SHA512;WOLFSSL_STATIC_RSA;NO_RC4;NO_PSK;WIN32;_WINDOWS;STRICT;NOMINMAX;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -209,7 +209,7 @@
       <ExceptionHandling>Sync</ExceptionHandling>
       <DebugInformationFormat>
       </DebugInformationFormat>
-      <PreprocessorDefinitions>WOLFSSL_CERT_GEN;WOLFSSL_KEY_GEN;HAVE_AESGCM;HAVE_AESCCM;HAVE_CAMELLIA;HAVE_ECC;HAVE_OCSP;WOLFSSL_AESNI;HAVE_TLS_EXTENSIONS;HAVE_SESSION_TICKET;HAVE_SNI;HAVE_SECURE_RENEGOTIATION;HAVE_SUPPORTED_CURVES;WOLFSSL_RIPEMD;WOLFSSL_SHA384;WOLFSSL_SHA512;NO_PSK;WIN32;_WINDOWS;STRICT;NOMINMAX;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WOLFSSL_CERT_GEN;WOLFSSL_KEY_GEN;HAVE_AESGCM;HAVE_AESCCM;HAVE_CAMELLIA;HAVE_ECC;HAVE_OCSP;WOLFSSL_AESNI;HAVE_TLS_EXTENSIONS;HAVE_SESSION_TICKET;HAVE_SNI;HAVE_SECURE_RENEGOTIATION;HAVE_SUPPORTED_CURVES;WOLFSSL_RIPEMD;WOLFSSL_SHA384;WOLFSSL_SHA512;WOLFSSL_STATIC_RSA;NO_RC4;NO_PSK;WIN32;_WINDOWS;STRICT;NOMINMAX;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <Optimization>Full</Optimization>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>

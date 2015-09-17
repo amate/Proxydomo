@@ -14,6 +14,7 @@
 
 #include <wolfssl\ssl.h>
 #include <wolfssl\wolfcrypt\asn_public.h>
+#include <wolfssl\wolfcrypt\error-crypt.h>
 
 #include <wincrypt.h>
 #pragma comment (lib, "crypt32.lib")
@@ -26,6 +27,7 @@
 #include "resource.h"
 #include "UITranslator.h"
 using namespace UITranslator;
+#include "WinHTTPWrapper.h"
 
 namespace {
 
@@ -37,12 +39,11 @@ enum {
 	kBuffSize = 1024 * 4,
 
 	kRSA1024Keybit = 1024,
-
 };
 
 WOLFSSL_CTX*	g_sslclientCtx = nullptr;
 
-std::vector<byte>	g_derCA;
+std::vector<byte>	g_derCA;	// ProxydomoCA certification
 struct CAKey {
 	enum {
 		kRsaKey,
@@ -54,10 +55,12 @@ struct CAKey {
 		ecc_key	eccKey;
 	} key;
 };
-CAKey				g_caKey;
+CAKey				g_caKey;	// ProxydomoCA secretKey
 
 std::unordered_map<std::string, bool>	g_mapHostAllowOrDeny;
 CCriticalSection						g_csmapHost;
+int				g_loadCACount = 0;
+std::string		g_lastnoCAHost;
 
 struct serverCertAndKey {
 	std::vector<byte>	derCert;
@@ -70,6 +73,8 @@ std::unordered_map<std::string, std::unique_ptr<serverCertAndKey>>	g_mapHostServ
 CCriticalSection	g_csmapHostServerCert;
 
 
+bool	LoadSystemTrustCA(WOLFSSL_CTX* ctx);
+
 ////////////////////////////////////////////////////////////////////////
 // CCertificateErrorDialog
 
@@ -78,8 +83,8 @@ class CCertificateErrorDialog : public CDialogImpl<CCertificateErrorDialog>
 public:
 	enum { IDD = IDD_CERTIFICATEERROR };
 
-	CCertificateErrorDialog(const std::string& host, const CString& errorMsg) : 
-		m_host(host), m_errorMsg(errorMsg) {}
+	CCertificateErrorDialog(const std::string& host, const CString& errorMsg, bool bNoCA) : 
+		m_host(host), m_errorMsg(errorMsg), m_bNoCA(bNoCA) {}
 
 	BEGIN_MSG_MAP(CCertificateErrorDialog)
 		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
@@ -87,6 +92,8 @@ public:
 		COMMAND_ID_HANDLER(IDC_BTN_PERMANENTALLOW	, OnCommand)
 		COMMAND_ID_HANDLER(IDC_BTN_TEMPDENY			, OnCommand)
 		COMMAND_ID_HANDLER(IDC_BTN_TEMPALLOW		, OnCommand)
+
+		COMMAND_ID_HANDLER(IDC_BTN_TRYTOGETROOTCA, OnTryToGetRootCA)
 	END_MSG_MAP()
 
 	// Handler prototypes (uncomment arguments if needed):
@@ -104,10 +111,14 @@ public:
 		ChangeControlTextForTranslateMessage(m_hWnd, IDC_BTN_PERMANENTALLOW);
 		ChangeControlTextForTranslateMessage(m_hWnd, IDC_BTN_TEMPDENY);
 		ChangeControlTextForTranslateMessage(m_hWnd, IDC_BTN_TEMPALLOW);
-
+		ChangeControlTextForTranslateMessage(m_hWnd, IDC_BTN_TRYTOGETROOTCA);
 
 		GetDlgItem(IDC_STATIC_DETAIL).SetWindowText(GetTranslateMessage(IDC_STATIC_DETAIL, (LPCWSTR)m_errorMsg).c_str());
 		GetDlgItem(IDC_STATIC_HOST).SetWindowText(GetTranslateMessage(IDC_STATIC_HOST, (LPWSTR)CA2W(m_host.c_str())).c_str());
+
+		if (m_bNoCA) {
+			GetDlgItem(IDC_BTN_TRYTOGETROOTCA).ShowWindow(TRUE);
+		}
 		return TRUE;
 	}
 
@@ -128,9 +139,28 @@ public:
 		}
 		return 0;
 	}
+
+	LRESULT OnTryToGetRootCA(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
+	{
+		auto DLData = WinHTTPWrapper::HttpDownloadData(("https://" + m_host).c_str());
+		int lastLoadCACount = g_loadCACount;
+		g_loadCACount = 0;
+		ATLVERIFY(LoadSystemTrustCA(g_sslclientCtx));
+		if (lastLoadCACount < g_loadCACount) {	// success
+			MessageBox(GetTranslateMessage(ID_SUCCEEDGETROOTCA).c_str(), GetTranslateMessage(ID_TRANS_SUCCESS).c_str(), MB_OK);
+			g_lastnoCAHost = m_host;
+			EndDialog(IDCANCEL);
+
+		} else {
+			MessageBox(GetTranslateMessage(ID_FAILEDGETROOTCA).c_str(), GetTranslateMessage(ID_TRANS_FAILURE).c_str(), MB_ICONWARNING | MB_OK);
+		}
+		return 0;
+	}
+
 private:
 	std::string	m_host;
 	CString	m_errorMsg;
+	bool	m_bNoCA;
 };
 
 
@@ -176,7 +206,14 @@ int myVerify(int preverify, WOLFSSL_X509_STORE_CTX* store)
 
 	{
 		CCritSecLock lock(g_csmapHost);
-		std::string host = store->domain;
+		std::string host = static_cast<LPCSTR>(store->userCtx);
+		if (host == g_lastnoCAHost) {
+			return 0;
+
+		} else {
+			g_lastnoCAHost.clear();
+		}
+
 		auto itfound = g_mapHostAllowOrDeny.find(host);
 		if (itfound != g_mapHostAllowOrDeny.end()) {
 			if (itfound->second) {
@@ -186,7 +223,8 @@ int myVerify(int preverify, WOLFSSL_X509_STORE_CTX* store)
 			}
 		}
 
-		CCertificateErrorDialog crtErrorDlg(host, buffer);
+		bool bNoCA = (store->error == ASN_NO_SIGNER_E);
+		CCertificateErrorDialog crtErrorDlg(host, buffer, bNoCA);
 		if (crtErrorDlg.DoModal() == IDOK) {
 			return 1;	// allow
 		} else {
@@ -213,6 +251,8 @@ bool	LoadSystemTrustCA(WOLFSSL_CTX* ctx)
 					CertGetNameString(crtcontext, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, 0, crtName.GetBuffer(256), 256);
 					crtName.ReleaseBuffer();
 					ATLTRACE(L"wolfSSL_CTX_load_verify_buffer failed: %s\n", (LPCWSTR)crtName);
+				} else {
+					++g_loadCACount;
 				}
 			}
 			crtcontext = CertEnumCertificatesInStore(store, crtcontext);
@@ -626,12 +666,15 @@ std::unique_ptr<CSSLSession>	CSSLSession::InitClientSession(CSocket* sock, const
 	ret = wolfSSL_check_domain_name(session->m_ssl, host.c_str());
 	ATLASSERT(ret == SSL_SUCCESS);
 
+	wolfSSL_SetCertCbCtx(session->m_ssl, (void*)host.c_str());
+
 	sock->SetBlocking(true);
 	ret = wolfSSL_connect(session->m_ssl);
 	if (ret != SSL_SUCCESS) {
 		int err = wolfSSL_get_error(session->m_ssl, 0);
 		char buffer[WOLFSSL_MAX_ERROR_SZ];
 		ATLTRACE("error = %d, %s\n", err, wolfSSL_ERR_error_string(err, buffer));
+		buffer;
 
 		wolfSSL_free(session->m_ssl);
 		session->m_ssl = nullptr;
