@@ -541,6 +541,13 @@ void CRequestManager::_ProcessOut()
      
 				}
 
+				if (m_requestLine.method == "CONNECT" && m_filterOwner.killed == false && m_filterOwner.rdirToHost.size() > 0) {
+					INFO_LOG << L"CONNECT redirect clear, src : " << m_filterOwner.url.getHost() 
+							<< L" rdirToHost : " << m_filterOwner.rdirToHost << L" rdirMode : " << m_filterOwner.rdirMode;
+					m_filterOwner.rdirToHost.clear();
+					m_filterOwner.rdirMode = 0;
+				}
+
 				// If we haven't connected to ths host yet, we do it now.
 				// This will allow incoming processing to start. If the
 				// connection fails, incoming processing will jump to
@@ -549,37 +556,19 @@ void CRequestManager::_ProcessOut()
 				if (m_pSSLServerSession && m_filterOwner.killed == false) {
 					m_inStep = STEP::STEP_START;
 					m_connectionData->SetInStep(m_inStep);
-					
-					if (m_filterOwner.rdirToHost.size() > 0) {
-						// $RDIR
-						if (m_filterOwner.rdirMode == 1) {
-							CUrl rdirURL(m_filterOwner.rdirToHost);
-							if (m_filterOwner.url.getHost() != rdirURL.getHost()) {
-								ERROR_LOG << L"#" << m_ipFromAddress.GetPortNumber()
-									<< L" SSLで違うホストにリダイレクトしようとしています。"
-									<< L" nowHost: " << m_filterOwner.url.getHost()
-									<< L" -> rdirHost: " << rdirURL.getHost();
-								throw GeneralException("SSL invalid Redirect Error");
-							} else {
-								m_filterOwner.url.parseUrl(m_filterOwner.rdirToHost);
-								m_connectionData->SetUrl(m_filterOwner.url.getUrl());
-								m_filterOwner.rdirToHost.clear();
-							}
-						// $JUMP
-						} else if (m_filterOwner.rdirMode == 0) {
-							_ConnectWebsite();
-						}
+
+					if (m_filterOwner.rdirToHost.length() > 0) {
+						_ConnectWebsite();
 					}
 				} else {
 					_ConnectWebsite();
 				}
+
 				// If website is read, send headers
 				if (m_inStep == STEP::STEP_START) {
 
 					// Update URL within request
-					if (m_pSSLServerSession == nullptr) {
-						CFilterOwner::SetHeader(m_filterOwner.outHeadersFiltered, L"Host", m_filterOwner.url.getHost());
-					}
+					CFilterOwner::SetHeader(m_filterOwner.outHeadersFiltered, L"Host", m_filterOwner.url.getHost());
 
 					if (CUtil::noCaseContains(L"Keep-Alive", CFilterOwner::GetHeader(m_filterOwner.outHeadersFiltered, L"Proxy-Connection"))) {
 						CFilterOwner::RemoveHeader(m_filterOwner.outHeadersFiltered, L"Proxy-Connection");
@@ -774,7 +763,7 @@ void CRequestManager::_ConnectWebsite()
 	// 受信ヘッダフィルターでリダイレクトを指示された場合
 	if (m_inStep == STEP::STEP_DECODE) {
 		if (m_pSSLServerSession) {
-			m_pSSLServerSession->Close();
+			m_pSSLServerSession.reset();
 		} else {
 			m_psockWebsite->Close();
 		}
@@ -796,27 +785,27 @@ void CRequestManager::_ConnectWebsite()
     }
 
 	// https://local.ptron/ への接続
-	if (CSettings::s_SSLFilter) {
-		if (m_filterOwner.url.getHost() == L"local.ptron:443") {
-			m_filterOwner.rdirToHost = m_filterOwner.url.getUrl();
-		}
-		if (CUtil::noCaseBeginsWith(L"https://local.ptron", m_filterOwner.rdirToHost)) {
+	if (CSettings::s_SSLFilter && CUtil::noCaseBeginsWith(L"https://local.ptron", m_filterOwner.rdirToHost)) {
+		wstring subpath;
+		if (m_requestLine.method == "CONNECT") {
 			m_sendInBuf = "HTTP/1.0 200 Connection established" CRLF
 				"Proxy-agent: " "Proxydomo/1.0"/*APP_NAME " " APP_VERSION*/ CRLF CRLF;
 			CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_filterOwner.requestNumber, m_sendInBuf);
 			_SendIn();
 			m_pSSLClientSession = CSSLSession::InitServerSession(m_psockBrowser.get(), "local.ptron");
+
 			if (m_pSSLClientSession == nullptr) {
 				throw GeneralException("LocalSSLServer handshake failed");
 			}
 
+			// ブラウザからリクエストURLを取得する
 			auto findGetURL = [this]() -> bool {
 				// Do we have the full first line yet?
 				size_t pos, len;
 				if (CUtil::endOfLine(m_recvOutBuf, 0, pos, len) == false)
 					return false;				// 最初の改行まで来てないので帰る
 
-				// Get it and record it
+												// Get it and record it
 				size_t p1 = m_recvOutBuf.find_first_of(" ");
 				size_t p2 = m_recvOutBuf.find_first_of(" ", p1 + 1);
 				m_requestLine.method = m_recvOutBuf.substr(0, p1);
@@ -835,18 +824,27 @@ void CRequestManager::_ConnectWebsite()
 			}
 			m_recvOutBuf.clear();
 
-			wstring subpath = L"./html" + CUrl(UTF16fromUTF8(m_requestLine.url)).getPath();
-			wstring filename = CUtil::makePath(subpath);
-			if (::PathFileExists(Misc::GetFullPath_ForExe(filename.c_str()))) {
-				_FakeResponse("200 OK", filename);
-			} else {
-				_FakeResponse("404 Not Found");
-			}
-			while (_SendIn());	// 最後まで送信してしまう
+			subpath = L"./html" + CUrl(UTF16fromUTF8(m_requestLine.url)).getPath();
 
-			m_filterOwner.rdirToHost.clear();
-			return;
+		} else {
+			// リダイレクト
+			ATLASSERT(m_pSSLClientSession);
+			if (m_pSSLClientSession == nullptr) {
+				throw GeneralException("LocalSSLServer handshake failed");
+			}
+
+			subpath = L"./html" + CUrl(m_filterOwner.rdirToHost).getPath();
 		}
+		wstring filename = CUtil::makePath(subpath);
+		if (::PathFileExists(Misc::GetFullPath_ForExe(filename.c_str()))) {
+			_FakeResponse("200 OK", filename);
+		} else {
+			_FakeResponse("404 Not Found");
+		}
+		while (_SendIn());	// 最後まで送信してしまう
+
+		m_filterOwner.rdirToHost.clear();
+		return;
 	}
 
     // Test for redirection __to file__
@@ -923,7 +921,11 @@ void CRequestManager::_ConnectWebsite()
 		m_psockWebsite->IsConnected() == false ) {
 
         // Disconnect from previous host
-        m_psockWebsite->Close();
+		if (m_pSSLServerSession) {
+			m_pSSLServerSession.reset();
+		} else {
+			m_psockWebsite->Close();
+		}
         m_previousHost = m_filterOwner.contactHost;
 
         // Check the host (Hostname() asks the DNS)
@@ -947,15 +949,16 @@ void CRequestManager::_ConnectWebsite()
             return ;
         }
 
-        if (m_requestLine.method == "CONNECT") {
-            // for CONNECT method, incoming data is encrypted from start
-            m_sendInBuf = "HTTP/1.0 200 Connection established" CRLF
-						  "Proxy-agent: " "Proxydomo/1.0"/*APP_NAME " " APP_VERSION*/ CRLF CRLF;
+		if (m_requestLine.method == "CONNECT") {
+			// for CONNECT method, incoming data is encrypted from start
+			m_sendInBuf = "HTTP/1.0 200 Connection established" CRLF
+				"Proxy-agent: " "Proxydomo/1.0"/*APP_NAME " " APP_VERSION*/ CRLF CRLF;
 			CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_filterOwner.requestNumber, m_sendInBuf);
-            m_inStep = STEP::STEP_TUNNELING;
+			m_inStep = STEP::STEP_TUNNELING;
 			m_connectionData->SetInStep(m_inStep);
 			_SendIn();
-
+		}
+		if (m_filterOwner.url.getProtocol() == L"https") {
 			// remote proxy
 			if (m_filterOwner.contactHost != m_filterOwner.url.getHostPort()) {
 				name = UTF8fromUTF16(m_filterOwner.url.getHost());
@@ -998,7 +1001,12 @@ void CRequestManager::_ConnectWebsite()
 
 			if (CSettings::s_SSLFilter) {
 				if (m_pSSLServerSession = CSSLSession::InitClientSession(m_psockWebsite.get(), name)) {
-					m_pSSLClientSession = CSSLSession::InitServerSession(m_psockBrowser.get(), name);
+					if (m_requestLine.method == "CONNECT") {
+						m_pSSLClientSession = CSSLSession::InitServerSession(m_psockBrowser.get(), name);
+					} else {
+						// リダイレクト
+						ATLASSERT(m_pSSLClientSession);
+					}
 					if (m_pSSLClientSession == nullptr) {
 						m_pSSLServerSession.reset();
 						throw GeneralException("CSSLSession::InitServerSession(m_psockBrowser.get()) failed");
