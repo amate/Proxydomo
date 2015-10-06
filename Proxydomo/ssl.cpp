@@ -257,6 +257,7 @@ bool	LoadSystemTrustCA(WOLFSSL_CTX* ctx)
 			}
 			crtcontext = CertEnumCertificatesInStore(store, crtcontext);
 		}
+		CertCloseStore(store, 0);
 		return true;
 	};
 
