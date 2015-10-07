@@ -144,7 +144,7 @@ Releaseなら"マルチスレッド (/MT)" へ変更してください
 これでビルドが通るはずです
 
 
-v1.55の以下の修正はwolfSSL側のソースを修正する必要があります
+v1.66の以下の修正はwolfSSL側のソースを修正する必要があります
 ・サーバーから送られてくるルートCA証明書がおかしいとき"ASN no signer error to confirm failure"の警告が出るのを修正
 internal.cの 4175行目あたりを
 
@@ -154,7 +154,7 @@ WOLFSSL_MSG("Failed to verify CA from chain");
 // after
 WOLFSSL_MSG("Failed to verify CA from chain");
 
-if (count == totalCerts && count > 2) {
+if (count > 2) {
 	if (ret == ASN_NO_SIGNER_E || ret == ASN_SIG_CONFIRM_E) {
 		ret = 0;	// 最上位のみ見逃す
 	}
