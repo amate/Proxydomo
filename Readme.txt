@@ -120,7 +120,6 @@ HAVE_AESCCM
 HAVE_CAMELLIA
 HAVE_ECC
 HAVE_OCSP
-WOLFSSL_AESNI
 HAVE_TLS_EXTENSIONS
 HAVE_SESSION_TICKET
 HAVE_SNI
@@ -133,6 +132,7 @@ WOLFSSL_STATIC_RSA
 NO_RC4
 NO_HC128
 NO_PSK
+WOLFSSL_AESNI
 
 wolfsslのプロパティページ C/C++ -> コード生成
 ランタイムライブラリを 構成がDebug なら"マルチスレッド デバッグ (/MTd)" へ変更
@@ -146,7 +146,7 @@ Releaseなら"マルチスレッド (/MT)" へ変更してください
 
 v1.66の以下の修正はwolfSSL側のソースを修正する必要があります
 ・サーバーから送られてくるルートCA証明書がおかしいとき"ASN no signer error to confirm failure"の警告が出るのを修正
-internal.cの 4175行目あたりを
+internal.cの 4305行目あたりを
 
 // before
 WOLFSSL_MSG("Failed to verify CA from chain");

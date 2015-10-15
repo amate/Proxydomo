@@ -428,8 +428,6 @@ void CTextBuffer::DataFeed(const std::string& data)
 	}
 	const UChar* bufStart = m_unicodeBuffer.getBuffer();
 	int len = m_unicodeBuffer.length();
-	if (len == 0)
-		return ;
 	const UChar* bufEnd   = bufStart + len;
     const UChar* index    = bufStart;
     const UChar* done     = bufStart;

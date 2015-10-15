@@ -35,12 +35,12 @@ using namespace CodeConvert;
 #include "UITranslator.h"
 using namespace UITranslator;
 
-#define  LOG_COLOR_BACKGROUND  RGB(255, 255, 255)
-#define  LOG_COLOR_DEFAULT     RGB(140, 140, 140)
-#define  LOG_COLOR_FILTER      RGB(140, 140, 140)
-#define  LOG_COLOR_REQUEST     RGB(240, 100,   0)
-#define  LOG_COLOR_RESPONSE    RGB(  0, 150,   0)
-#define  LOG_COLOR_PROXY       RGB(  0,   0,   0)
+COLORREF  LOG_COLOR_BACKGROUND	= RGB(255, 255, 255);
+COLORREF  LOG_COLOR_DEFAULT		= RGB(140, 140, 140);
+COLORREF  LOG_COLOR_FILTER		= RGB(140, 140, 140);
+COLORREF  LOG_COLOR_REQUEST		= RGB(240, 100,   0);
+COLORREF  LOG_COLOR_RESPONSE	= RGB(0	 , 150,   0);
+COLORREF  LOG_COLOR_PROXY		= RGB(0  ,   0,   0);
 
 
 CLogViewWindow::CLogViewWindow() :
@@ -67,7 +67,9 @@ CLogViewWindow::~CLogViewWindow()
 void	CLogViewWindow::ShowWindow()
 {
 	if (IsWindowVisible() == FALSE) {
-		CLog::RegisterLogTrace(this);
+		if (m_bStopLog == false) {
+			CLog::RegisterLogTrace(this);
+		}
 		_RefreshTitle();
 	}
 	__super::ShowWindow(TRUE);
@@ -371,11 +373,9 @@ BOOL CLogViewWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 	ChangeControlTextForTranslateMessage(m_hWnd, IDC_CHECKBOX_WEBFILTERDEBUG);
 
 	m_editLog = GetDlgItem(IDC_RICHEDIT_LOG);
-	m_editLog.SetBackgroundColor(LOG_COLOR_BACKGROUND);
 	m_editLog.SetTargetDevice(NULL, 0);
 
 	m_editPartLog = GetDlgItem(IDC_RICHEDIT_PARTLOG);
-	m_editPartLog.SetBackgroundColor(LOG_COLOR_BACKGROUND);
 	m_editPartLog.SetTargetDevice(NULL, 0);
 	m_editPartLog.ShowWindow(FALSE);
 
@@ -450,7 +450,31 @@ BOOL CLogViewWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 			m_bFilterEvent	= value.get();
 		if (auto value = pt.get_optional<bool>("LogWindow.ViewPostData"))
 			m_bViewPostData = value.get();
+
+		auto funcConvertRGB = [](const std::string& colorString, COLORREF& color) {
+			if (colorString.length() != 6)
+				return;
+				
+			std::string r = colorString.substr(0, 2);
+			std::string g = colorString.substr(2, 2);
+			std::string b = colorString.substr(4, 2);
+			color = RGB(std::stoi(r, nullptr, 16), std::stoi(g, nullptr, 16), std::stoi(b, nullptr, 16));
+		};
+		if (auto value = pt.get_optional<std::string>("LogWindow.COLOR_BACKGROUND"))
+			funcConvertRGB(value.get(), LOG_COLOR_BACKGROUND);
+		if (auto value = pt.get_optional<std::string>("LogWindow.COLOR_DEFAULT"))
+			funcConvertRGB(value.get(), LOG_COLOR_DEFAULT);
+		if (auto value = pt.get_optional<std::string>("LogWindow.COLOR_FILTER"))
+			funcConvertRGB(value.get(), LOG_COLOR_FILTER);
+		if (auto value = pt.get_optional<std::string>("LogWindow.COLOR_REQUEST"))
+			funcConvertRGB(value.get(), LOG_COLOR_REQUEST);
+		if (auto value = pt.get_optional<std::string>("LogWindow.COLOR_RESPONSE"))
+			funcConvertRGB(value.get(), LOG_COLOR_RESPONSE);
+		if (auto value = pt.get_optional<std::string>("LogWindow.COLOR_PROXY"))
+			funcConvertRGB(value.get(), LOG_COLOR_PROXY);
 	}
+	m_editLog.SetBackgroundColor(LOG_COLOR_BACKGROUND);
+	m_editPartLog.SetBackgroundColor(LOG_COLOR_BACKGROUND);
 
 	DoDataExchange(DDX_LOAD);
 
@@ -496,9 +520,12 @@ void CLogViewWindow::OnDestroy()
 	write_ini(settingsPath, pt);
 }
 
+// ShowWindowÇ∆ëŒÇ…Ç»ÇÈä÷êî
 void CLogViewWindow::OnCancel(UINT uNotifyCode, int nID, CWindow wndCtl)
 {
-	CLog::RemoveLogTrace(this);
+	if (m_bStopLog == false) {
+		CLog::RemoveLogTrace(this);
+	}
 
 	CSettings::s_WebFilterDebug = false;
 

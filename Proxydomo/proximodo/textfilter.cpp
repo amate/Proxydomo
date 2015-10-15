@@ -125,7 +125,17 @@ int CTextFilter::match(const wchar_t* index, const wchar_t* bufTail) {
     // for special <start> and <end> filters
     if (isSpecial) {
         endOfMatched = index;
-        return (isForStart || (isComplete && index == bufTail ? (bypassed = true, 1) : 0));
+		if (isForStart) {	// <start>
+			bypassed = true;
+			return true;
+
+		} else {	// <end>
+			if (isComplete && index == bufTail) {
+				bypassed = true;
+				return true;
+			}
+		}
+        return false;
     }
     
     // compute up to where we want to match

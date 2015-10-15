@@ -266,6 +266,10 @@ bool	LoadSystemTrustCA(WOLFSSL_CTX* ctx)
 	if (funcAddCA(CertOpenSystemStoreW(0, L"CA")) == false)
 		return false;
 
+#if 0	// CRL
+	if (funcAddCA(CertOpenSystemStoreW(0, L"Disallowed")) == false)
+		return false; 
+#endif
 	return true;
 }
 

@@ -74,7 +74,7 @@ private:
 
     // For special <start> and <end> match patterns
     bool isSpecial;
-    bool isForStart;
+    bool isForStart;	// matchPattern == "<start>"
 
     // true if we are reached the end of the stream
     bool isComplete;
