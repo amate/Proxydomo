@@ -67,6 +67,9 @@ public:
     // Assignment operator
     inline CMemory& operator=(const CMemory& mem);
 
+	const wchar_t*&	posStart() { return m_posStart; }
+	const wchar_t*& posEnd() { return m_posEnd; }
+
 private:
 	// Data members
 	const wchar_t*	m_posStart;

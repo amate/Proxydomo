@@ -567,23 +567,17 @@ CNode_And::~CNode_And()
 const UChar* CNode_And::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
     // Ask left node for the first match
-	pMatch->reached = start;
     const UChar* posL = m_nodeL->match(start, stop, pMatch);
 	if (posL == nullptr) {
 		return nullptr;
 	}
-
-	const UChar* reachedL = pMatch->reached;
-	pMatch->reached = start;
 
     // Ask right node for the first match
 	const UChar* posR = m_nodeR->match(start, stop, pMatch);
 	if (posR == nullptr) {
 		return nullptr;
 	}
-	const UChar* reachedR = pMatch->reached;
-	if (reachedR < reachedL)
-		pMatch->reached = reachedL;
+
 	if (posR < posL) {
 		return posL;
 	} else {
@@ -654,7 +648,8 @@ private:
 
 };
 
-CNode_AndAnd::CNode_AndAnd(CNode* L, CNode* R) : CNode(ANDAND), m_nodeL(L), m_nodeR(R), m_recorder(new CNode_nodeLReachedRecoder(this))
+CNode_AndAnd::CNode_AndAnd(CNode* L, CNode* R) : 
+	CNode(ANDAND), m_nodeL(L), m_nodeR(R), m_recorder(new CNode_nodeLReachedRecoder(this))
 {
 }
 
@@ -668,12 +663,11 @@ CNode_AndAnd::~CNode_AndAnd()
 const UChar* CNode_AndAnd::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
 	// Ask left node for the first match
-	pMatch->reached = start;
-	pMatch->mapReached.emplace((void*)this, std::make_tuple(start, (const UChar*)nullptr));
+	auto emplaceResult = pMatch->mapReached.emplace((void*)this, std::make_tuple(start, (const UChar*)nullptr));
 
 	const UChar* posL = m_nodeL->match(start, stop, pMatch);
 
-	auto it = pMatch->mapReached.find((void*)this);
+	auto it = emplaceResult.first;// pMatch->mapReached.find((void*)this);
 	ATLASSERT(it != pMatch->mapReached.end());
 	const UChar* reachedL = std::get<0>(it->second);
 	const UChar* ret = std::get<1>(it->second);
@@ -682,9 +676,6 @@ const UChar* CNode_AndAnd::match(const UChar* start, const UChar* stop, MatchDat
 	if (posL == nullptr) {
 		return nullptr;
 	}
-
-	const UChar* reachedNext = pMatch->reached;
-	pMatch->reached = start;
 
 	const UChar* posR = m_nodeR->match(start, reachedL, pMatch);
 	// && の右側のパターンがマッチなし、もしくはパターンがreachedLまで消費しなかったらマッチなし
@@ -780,10 +771,14 @@ void CNode_Repeat::setNextNode(CNode* node)
  * Try and match something, and if it does, store the position with a CMemory
  */
 CNode_Memory::CNode_Memory(CNode *node, int memoryPos) :
-	CNode(MEMORY), m_node(node), m_memoryPos(memoryPos), m_memorizer(nullptr)
+	CNode(MEMORY), m_node(node), m_memoryPos(memoryPos), m_memorizer(nullptr), m_contentNodeIsAnd(false)
 {
-	if (m_node)
+	if (m_node) {
 		m_memorizer = new CNode_Memory(nullptr, m_memoryPos);
+		if (m_node->m_id == AND) {
+			m_memorizer->m_contentNodeIsAnd = true;
+		}
+	}
 }
 
 CNode_Memory::~CNode_Memory()
@@ -796,9 +791,9 @@ const UChar* CNode_Memory::match(const UChar* start, const UChar* stop, MatchDat
 {
     if (m_memorizer) {	// // 親Memoryの時に通る。子Memory(memorizer)のために現在の位置を記憶しておく
         //m_memorizer->m_recordPos = start;
-		pMatch->mapRecordPos.insert(std::make_pair((void*)m_memorizer, start));
+		auto insertResult = pMatch->mapRecordPos.insert(std::make_pair((void*)m_memorizer, start));
         const UChar* ret = m_node->match(start, stop, pMatch);
-		pMatch->mapRecordPos.erase((void*)m_memorizer);
+		pMatch->mapRecordPos.erase(insertResult.first);
         return ret;
 
     } else {	// setNextNodeで次のマッチの前にmemorizer(this)がよばれるようになっている
@@ -811,7 +806,16 @@ const UChar* CNode_Memory::match(const UChar* start, const UChar* stop, MatchDat
         // Backup memory and replace by a new one, or push new one on stack
         if (m_memoryPos != -1) {
 			backup = pMatch->pFilter->memoryTable[m_memoryPos];
-			pMatch->pFilter->memoryTable[m_memoryPos](begin, start, pMatch->IsSaveMemory());
+
+			// (a&b)\0-9 で bのマッチ後に強制的に上書きされないようにする
+			if (m_contentNodeIsAnd && backup.posStart() == begin) {
+				if (backup.posEnd() < start) {
+					ATLASSERT(pMatch->IsSaveMemory() == false);
+					pMatch->pFilter->memoryTable[m_memoryPos](begin, start, pMatch->IsSaveMemory());
+				}
+			} else {
+				pMatch->pFilter->memoryTable[m_memoryPos](begin, start, pMatch->IsSaveMemory());
+			}
         } else {
 			pMatch->pFilter->memoryStack.emplace_back(begin, start, pMatch->IsSaveMemory());
         }

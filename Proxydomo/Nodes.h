@@ -29,7 +29,7 @@
 #include <deque>
 #include <mutex>
 #include <memory>
-#include <set>
+#include <unordered_set>
 #include "Node.h"
 #include "proximodo\memory.h"
 #include "proximodo\url.h"
@@ -216,7 +216,7 @@ public:
 	const UChar* match(const UChar* start, const UChar* stop, MatchData* pMatch) override;
 
 private:
-	std::set<UChar>	m_setChars;
+	std::unordered_set<UChar>	m_setChars;
 	bool m_byte[256];
     bool m_allow;
 };
@@ -378,6 +378,7 @@ private:
 	int	m_memoryPos;	// 	'0'-'9' or '-1'(stack)
 
     CNode_Memory* m_memorizer;
+	bool	m_contentNodeIsAnd;
     //const UChar* m_recordPos;
 };
 
