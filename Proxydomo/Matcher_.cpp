@@ -554,7 +554,7 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
 		if (token == patternIt.DONE) 
 			throw parsing_exception(ID_PARSINGERROR_ESCAPE_AT_END, patternIt.getIndex());
 
-        patternIt.next();
+        UChar nextToken = patternIt.next();
 
         switch (token) {
             case L't':
@@ -571,7 +571,12 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
                 return new CNode_Repeat(new CNode_Chars(L" \t\r\n"), 1, BIG_NUMBER);
             case L'w':
                 // Rule: \w
-                return new CNode_Repeat(new CNode_Chars(L" \t\r\n>", false), 0, BIG_NUMBER, true);
+				{
+					bool bIterate = true;
+					if ((nextToken != patternIt.DONE) && (nextToken == L')' || nextToken == L'|' || nextToken == L'&'))
+						bIterate = false;	// Œã‚ë‚ðŒ©‚È‚¢ŒŸõ‚ð‚·‚é
+					return new CNode_Repeat(new CNode_Chars(L" \t\r\n>", false), 0, BIG_NUMBER, bIterate);
+				}
             case L'#':
                 // Rule: \#
                 return new CNode_MemStar();
