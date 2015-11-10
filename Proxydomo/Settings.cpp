@@ -429,9 +429,6 @@ static void ActiveFilterCallFunc(std::vector<std::unique_ptr<FilterItem>>& vecFi
 
 void CSettings::EnumActiveFilter(std::function<void (CFilterDescriptor*)> func)
 {
-	if (s_bypass)
-		return;
-
 	CCritSecLock	lock(CSettings::s_csFilters);
 	ActiveFilterCallFunc(s_vecpFilters, func);
 }

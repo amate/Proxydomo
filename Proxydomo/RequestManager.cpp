@@ -457,10 +457,13 @@ void CRequestManager::_ProcessOut()
 
 				// Test URL with bypass-URL matcher, if matches we'll bypass all
 				{
+					m_bypass = false;
 					CFilter filter(m_filterOwner);
 					std::wstring urlFromHost = m_filterOwner.url.getFromHost();
-					if (CSettings::s_pBypassMatcher->match(urlFromHost, &filter))
+					if (CSettings::s_bypass || CSettings::s_pBypassMatcher->match(urlFromHost, &filter)) {
+						m_bypass = true;
 						m_filterOwner.bypassOut = m_filterOwner.bypassIn = m_filterOwner.bypassBody = true;
+					}
 				}
 
 				// We must read the Content-Length and Transfer-Encoding
@@ -999,7 +1002,7 @@ void CRequestManager::_ConnectWebsite()
 					throw GeneralException("RemoteProxy SSL Connection Establish failed");
 			}
 
-			if (CSettings::s_SSLFilter) {
+			if (CSettings::s_SSLFilter && m_bypass == false) {
 				if (m_pSSLServerSession = CSSLSession::InitClientSession(m_psockWebsite.get(), name)) {
 					if (m_requestLine.method == "CONNECT") {
 						m_pSSLClientSession = CSSLSession::InitServerSession(m_psockBrowser.get(), name);

@@ -1048,25 +1048,23 @@ const UChar* CNode_List::match(const UChar* start, const UChar* stop, MatchData*
 			}
 		}
 		if (slashPos != startOrigin) {
-			std::wstring urlHost(startOrigin, slashPos);
-			CUtil::lower(urlHost);
-			const UChar* firstMatchEnd = urlHost.c_str();
+			const UChar* firstMatchEnd = startOrigin;
 			std::deque<std::pair<std::wstring, const UChar*>> deqDomain;
 			std::wstring domain;
-			for (auto it = urlHost.cbegin(); it != urlHost.cend(); ++it) {
+			for (auto it = startOrigin; it != slashPos; ++it) {
 				if (*it == L'.') {
 					deqDomain.emplace_back(domain, firstMatchEnd);	// domain == (it ~ firstMatchEnd)
 					domain.clear();
 					firstMatchEnd = &*it;
 
-				} else if (std::next(it) == urlHost.cend()) {
-					domain.push_back(*it);
+				} else if (std::next(it) == slashPos) {
+					domain.push_back(towlower(*it));
 					deqDomain.emplace_back(domain, firstMatchEnd);
 					domain.clear();
 					break;
 
 				} else {
-					domain.push_back(*it);
+					domain.push_back(towlower(*it));
 				}
 			}
 
@@ -1077,7 +1075,7 @@ const UChar* CNode_List::match(const UChar* start, const UChar* stop, MatchData*
 					break;
 
 				for (auto& pairNode : itfound->second->vecpairNode) {
-					const UChar* firstRet = pairNode.nodeFirst->match(urlHost.c_str(), it->second, pMatch);
+					const UChar* firstRet = pairNode.nodeFirst->match(startOrigin, it->second, pMatch);
 					if (firstRet && firstRet == it->second) {
 						const UChar* ptr = pairNode.nodeLast->match(slashPos + 1, stop, pMatch);
 						if (ptr) {

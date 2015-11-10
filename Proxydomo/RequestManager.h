@@ -105,6 +105,7 @@ private:
 
 	// Data members
 
+	bool		m_bypass;	// for SSL filter
 	// Filter instances
 	bool		m_useChain;
 	CTextBuffer	m_textFilterChain;
