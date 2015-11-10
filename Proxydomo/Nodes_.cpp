@@ -1077,7 +1077,8 @@ const UChar* CNode_List::match(const UChar* start, const UChar* stop, MatchData*
 					break;
 
 				for (auto& pairNode : itfound->second->vecpairNode) {
-					if (pairNode.nodeFirst->match(urlHost.c_str(), it->second, pMatch)) {
+					const UChar* firstRet = pairNode.nodeFirst->match(urlHost.c_str(), it->second, pMatch);
+					if (firstRet && firstRet == it->second) {
 						const UChar* ptr = pairNode.nodeLast->match(slashPos + 1, stop, pMatch);
 						if (ptr) {
 							start = ptr;

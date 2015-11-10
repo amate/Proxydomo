@@ -1119,7 +1119,7 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
         if (negate)
             node = new CNode_Negate(node);
 
-		if (patternIt.hasNext() && patternIt.current() == L'\\') {
+		if (negate == false && patternIt.hasNext() && patternIt.current() == L'\\') {
 			UChar dig = patternIt.next();
 			if (iswdigit(dig)) {
                 // Rule: ()\0-9
