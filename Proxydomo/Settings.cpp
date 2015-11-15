@@ -586,7 +586,7 @@ void	CSettings::AddListLine(const std::string& name, const std::wstring& addLine
 }
 
 static inline bool isNonWildWord(wchar_t c) {
-	return (c != L'*' && c != +'\\' && c != L'[' && c != L'$' && c != L'(' && c != L')' && c != L'|' && c != L'&' && c != L'?' && c != L'~');
+	return (c != L'*' && c != L'\\' && c != L'[' && c != L'$' && c != L'(' && c != L')' && c != L'|' && c != L'&' && c != L'?' && c != L'~' && c != L'"' && c != L'\'' && c != L' ' && c != L'=' && c != L'^' &&  c != L'+');
 }
 
 
@@ -596,7 +596,8 @@ bool CSettings::_CreatePattern(std::wstring& pattern, HashedListCollection& list
 	enum { kMaxPreHashWordLength = 7 };
 	bool	bPreHash = true;
 	std::size_t length = pattern.length();
-	for (std::size_t i = 0; i < length && i < kMaxPreHashWordLength; ++i) {
+	// (kMaxPreHashWordLength + 1)•¶Žš–Ú‚É '+'‚ª‚ ‚é‚±‚Æ‚ðl—¶‚·‚é
+	for (std::size_t i = 0; i < length && i < (kMaxPreHashWordLength + 1); ++i) {		
 		if (isNonWildWord(pattern[i]) == false) {
 			bPreHash = false;
 			break;
