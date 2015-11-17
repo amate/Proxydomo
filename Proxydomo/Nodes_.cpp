@@ -1550,7 +1550,7 @@ const UChar* CNode_Test::match(const UChar* start, const UChar* stop, MatchData*
 
     const UChar* ptr = str.c_str();
     const UChar* max = (stop < start+size ? stop : start+size);
-    while (start < max && *ptr == towlower(*start)) { ptr++; start++; }
+    while (start < max && towlower(*ptr) == towlower(*start)) { ptr++; start++; }
     if (ptr < str.c_str() + size) {
 		UpdateReached(start, pMatch);
         return NULL;
