@@ -44,6 +44,7 @@ public:
 		kTrayIconId = 1,
 		WM_TRAYICONNOTIFY	= WM_APP + 1,
 	};
+	const int WM_TASKBARCREATED;
 
 	CMainDlg(CProxy* proxy);
 
@@ -77,6 +78,7 @@ public:
 		MESSAGE_HANDLER(WM_INITDIALOG, OnInitDialog)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
 		MSG_WM_ENDSESSION( OnEndSession	)
+		MESSAGE_HANDLER(WM_TASKBARCREATED, OnTaskbarCreated)
 		COMMAND_ID_HANDLER(ID_APP_ABOUT, OnAppAbout)
 		COMMAND_ID_HANDLER(IDCANCEL, OnCancel)
 		MSG_WM_SIZE( OnSize )
@@ -104,6 +106,8 @@ public:
 	LRESULT OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	LRESULT OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
 	void	OnEndSession(BOOL bEnding, UINT uLogOff);
+	LRESULT OnTaskbarCreated(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/);
+
 	LRESULT OnAppAbout(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 
 	LRESULT OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
@@ -123,6 +127,7 @@ public:
 
 private:
 	void	_SaveMainDlgWindowPos();
+	void	_CreateTasktrayIcon();
 
 	// Data members
 	CProxy*			m_proxy;

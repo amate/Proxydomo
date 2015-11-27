@@ -35,7 +35,7 @@ class CUrl
 {
 public:
     CUrl() : bypassIn(false), bypassOut(false), bypassText(false),
-             debug(false), source(false) { }
+             debug(false), source(false), https(false) { }
     CUrl(const std::wstring& str);
     void parseUrl(const std::wstring& str);
     
@@ -53,12 +53,13 @@ public:
     inline bool getBypassText()         const { return bypassText;}
     inline bool getDebug()              const { return debug;     }
     inline bool getSource()             const { return source;    }
+	inline bool getHttps()				const { return https;	  }
 
 private:
     // fromhost is the URL without http://
     // hostport is host:port
     std::wstring url, protocol, fromhost, host, afterhost, path, query, anchor, hostport;
-    bool bypassIn, bypassOut, bypassText, debug, source;
+    bool bypassIn, bypassOut, bypassText, debug, source, https;
 };
 
 

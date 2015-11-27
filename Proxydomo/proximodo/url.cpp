@@ -77,9 +77,15 @@ void CUrl::parseUrl(const wstring& str) {
             } else if (CUtil::noCaseBeginsWith(L"dbug.", begin)) {
                 debug = true;
                 pos1 += 5;
-            } else if (CUtil::noCaseBeginsWith(L"src.", begin)) {
-                source = true;
-                pos1 += 4;
+			} else if (CUtil::noCaseBeginsWith(L"src.", begin)) {
+				source = true;
+				pos1 += 4;
+			} else if (CUtil::noCaseBeginsWith(L"https.", begin)) {
+				if (protocol != L"https") {
+					https = true;
+					protocol = L"https";
+				}
+				pos1 += 6;
             } else {
 				if (foundUrlCmd)
 					pos1 -= CSettings::s_urlCommandPrefix.length();

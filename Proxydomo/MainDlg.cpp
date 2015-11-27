@@ -34,7 +34,9 @@
 using namespace UITranslator;
 using namespace boost::property_tree;
 
-CMainDlg::CMainDlg(CProxy* proxy) : m_proxy(proxy), m_wndLogButton(this, 1), m_bVisibleOnDestroy(true)
+CMainDlg::CMainDlg(CProxy* proxy) : 
+	WM_TASKBARCREATED(::RegisterWindowMessage(TEXT("TaskbarCreated"))), 
+	m_proxy(proxy), m_wndLogButton(this, 1), m_bVisibleOnDestroy(true)
 {
 }
 
@@ -54,6 +56,27 @@ void CMainDlg::FilterEvent(LogFilterEvent Event, int RequestNumber, const std::s
 			}
 		}
 	}
+}
+
+// トレイアイコンを作成
+void	CMainDlg::_CreateTasktrayIcon()
+{	
+	HICON hIconSmall = AtlLoadIconImage(IDR_MAINFRAME, LR_DEFAULTCOLOR, ::GetSystemMetrics(SM_CXSMICON), ::GetSystemMetrics(SM_CYSMICON));
+	NOTIFYICONDATA	nid = { sizeof(NOTIFYICONDATA) };
+	nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
+	nid.hWnd = m_hWnd;
+	nid.hIcon = hIconSmall;
+	nid.uID = kTrayIconId;
+	nid.uCallbackMessage = WM_TRAYICONNOTIFY;
+	::_tcscpy_s(nid.szTip, APP_NAME);
+	if (::Shell_NotifyIcon(NIM_ADD, &nid) == FALSE && ::GetLastError() == ERROR_TIMEOUT) {
+		do {
+			::Sleep(1000);
+			if (::Shell_NotifyIcon(NIM_MODIFY, &nid))
+				break;	// success
+		} while (::Shell_NotifyIcon(NIM_ADD, &nid) == FALSE);
+	}
+	DestroyIcon(hIconSmall);
 }
 
 LRESULT CMainDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
@@ -92,22 +115,7 @@ LRESULT CMainDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam
 
 	DoDataExchange(DDX_LOAD);
 
-	{	// トレイアイコンを作成
-		NOTIFYICONDATA	nid = { sizeof(NOTIFYICONDATA) };
-		nid.uFlags	= NIF_ICON | NIF_MESSAGE | NIF_TIP;
-		nid.hWnd	= m_hWnd;
-		nid.hIcon	= hIconSmall;
-		nid.uID		= kTrayIconId;
-		nid.uCallbackMessage	= WM_TRAYICONNOTIFY;
-		::_tcscpy_s(nid.szTip, APP_NAME);
-		if (::Shell_NotifyIcon(NIM_ADD, &nid) == FALSE && ::GetLastError() == ERROR_TIMEOUT) {
-			do {
-				::Sleep(1000);
-				if (::Shell_NotifyIcon(NIM_MODIFY, &nid))
-					break;	// success
-			} while (::Shell_NotifyIcon(NIM_ADD, &nid) == FALSE);
-		}
-	}
+	_CreateTasktrayIcon();
 
 	std::ifstream fs(Misc::GetExeDirectory() + _T("settings.ini"));
 	if (fs) {
@@ -199,6 +207,13 @@ void	CMainDlg::OnEndSession(BOOL bEnding, UINT uLogOff)
 		m_bVisibleOnDestroy	= IsWindowVisible() != 0;
 		_SaveMainDlgWindowPos();
 	}
+}
+
+// タスクトレイアイコンを再作成する
+LRESULT CMainDlg::OnTaskbarCreated(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
+{
+	_CreateTasktrayIcon();
+	return 0;
 }
 
 LRESULT CMainDlg::OnAppAbout(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/)

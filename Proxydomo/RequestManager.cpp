@@ -183,20 +183,6 @@ void CRequestManager::Manage()
 					_ProcessOut();
 				}
 
-				if (m_pSSLServerSession) {	// SSL
-					if ( m_outStep == STEP::STEP_START &&
-						 (m_pSSLServerSession->IsConnected() == false ||
-						  m_pSSLClientSession->IsConnected() == false   ) )
-					{
-						INFO_LOG << L"#" << m_ipFromAddress.GetPortNumber()
-							<< L" SSL すべての STEP が START なので接続を切ります。"
-							<< L" svcon:" << m_pSSLServerSession->IsConnected()
-							<< L" clcon:" << m_pSSLClientSession->IsConnected();
-						m_pSSLServerSession->Close();
-						m_pSSLClientSession->Close();
-					}
-				}
-
 				if (bRest) {
 					_JudgeManageContinue();
 
@@ -265,12 +251,36 @@ void	CRequestManager::_JudgeManageContinue()
 	if (m_valid == false) {	// 接続を強制終了させる
 		if (m_pSSLServerSession) {
 			m_pSSLServerSession->Close();
-			m_pSSLClientSession->Close();
-		} else {
-			m_psockWebsite->Close();
-			m_psockBrowser->Close();
 		}
+		if (m_pSSLClientSession) {
+			m_pSSLClientSession->Close();
+		}
+		m_psockWebsite->Close();
+		m_psockBrowser->Close();
 		return;
+	}
+
+	// SSL
+	if (m_pSSLServerSession && m_outStep == STEP::STEP_START) {	
+		bool browserConnected = true;
+		if (m_filterOwner.url.getHttps()) {
+			browserConnected = m_psockBrowser->IsConnected();
+		} else {
+			browserConnected = m_pSSLClientSession->IsConnected();
+		}
+		if (m_pSSLServerSession->IsConnected() == false || browserConnected == false ) {
+			INFO_LOG << L"#" << m_ipFromAddress.GetPortNumber()
+				<< L" SSL すべての STEP が START なので接続を切ります。"
+				<< L" svcon:" << m_pSSLServerSession->IsConnected()
+				<< L" clcon:" << browserConnected;
+			m_pSSLServerSession->Close();
+			if (m_filterOwner.url.getHttps()) {
+				m_psockBrowser->Close();
+			} else {
+				m_pSSLClientSession->Close();
+			}
+			return;
+		}
 	}
 
 	if (m_pSSLServerSession && m_filterOwner.responseLine.code != "101")
@@ -433,7 +443,7 @@ void CRequestManager::_ProcessOut()
 				CLog::HttpEvent(kLogHttpRecvOut, m_ipFromAddress, m_filterOwner.requestNumber, m_logRequest);
 
 				// Get the URL and the host to contact (unless we use a proxy)
-				if (m_pSSLServerSession) {
+				if (m_pSSLClientSession) {
 					std::wstring sslurl = L"https://" + m_filterOwner.url.getHost()	+ UTF16fromUTF8(m_requestLine.url);
 					m_filterOwner.url.parseUrl(sslurl);
 				} else if (m_requestLine.method == "CONNECT") {
@@ -892,6 +902,7 @@ void CRequestManager::_ConnectWebsite()
 
         // Change URL
         m_filterOwner.url.parseUrl(m_filterOwner.rdirToHost);
+		m_connectionData->SetUrl(m_filterOwner.url.getUrl());
         if (m_filterOwner.url.getBypassIn())    m_filterOwner.bypassIn   = true;
 		if (m_filterOwner.url.getBypassOut())	m_filterOwner.bypassOut  = true;
         if (m_filterOwner.url.getBypassText())  m_filterOwner.bypassBody = true;
@@ -1007,10 +1018,11 @@ void CRequestManager::_ConnectWebsite()
 					if (m_requestLine.method == "CONNECT") {
 						m_pSSLClientSession = CSSLSession::InitServerSession(m_psockBrowser.get(), name);
 					} else {
-						// リダイレクト
-						ATLASSERT(m_pSSLClientSession);
+						// リダイレクト or URLコマンド[https.]
+						ATLASSERT(m_pSSLClientSession || m_filterOwner.url.getHttps());
 					}
-					if (m_pSSLClientSession == nullptr) {
+					// ブラウザとのTLS接続が確立できなければ、リクエストを終了させる
+					if (m_pSSLClientSession == nullptr && m_filterOwner.url.getHttps() == false) {
 						m_pSSLServerSession.reset();
 						throw GeneralException("CSSLSession::InitServerSession(m_psockBrowser.get()) failed");
 					}
