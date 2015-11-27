@@ -161,3 +161,5 @@ if (count > 2) {
 }
 // ==============================================
 
+Å°äJî≠éxâá
+https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=D4WWS368DZKPS
