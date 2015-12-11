@@ -8,6 +8,7 @@
 #include <string>
 #include <functional>
 #include <atomic>
+#include <unordered_set>
 #include <atlcrack.h>
 #include <atlctrls.h>
 #include <atlframe.h>
@@ -20,6 +21,7 @@ enum class STEP;
 struct ConnectionData
 {
 	CCriticalSection	cs;
+	uint32_t		uniqueId;
 	std::wstring	verb;
 	std::wstring	url;
 	STEP			outStep;
@@ -27,7 +29,7 @@ struct ConnectionData
 
 	std::list<ConnectionData>::iterator	itThis;
 
-	ConnectionData();
+	ConnectionData(uint32_t uniqueId);
 
 	void	SetVerb(const std::wstring& verb);
 	void	SetUrl(const std::wstring& url);
@@ -58,6 +60,7 @@ public:
 	static CCriticalSection				s_csList;
 	static std::list<ConnectionData>	s_connectionDataList;
 	static std::function<void(ConnectionData*, UpdateCategory)> s_funcCallback;
+	static std::atomic_uint32_t	s_uniqueIdGenerator;
 };
 
 
@@ -68,6 +71,8 @@ class CConnectionMonitorWindow :
 {
 public:
 	enum { IDD = IDD_CONNECTIONMONITOR };
+
+	enum { WM_UPDATENOTIFY = WM_APP + 1 };
 
 	void	ShowWindow();
 
@@ -80,31 +85,44 @@ public:
 		MSG_WM_INITDIALOG(OnInitDialog)
 		MSG_WM_DESTROY(OnDestroy)
 		COMMAND_ID_HANDLER_EX(IDCANCEL, OnCancel)
-
+		MESSAGE_HANDLER_EX(WM_UPDATENOTIFY, OnUpdateNotify)
 		MSG_WM_TIMER(OnTimer)
 
 		NOTIFY_HANDLER_EX(IDC_LIST_CONNECTION, NM_RCLICK, OnConnectionListRClick)
 
 		CHAIN_MSG_MAP(CDialogResize<CConnectionMonitorWindow>)
 		CHAIN_MSG_MAP(CCustomDraw<CConnectionMonitorWindow>)
-		END_MSG_MAP()
+	END_MSG_MAP()
 
-		BOOL OnInitDialog(CWindow wndFocus, LPARAM lInitParam);
-		void OnDestroy();
-		void OnCancel(UINT uNotifyCode, int nID, CWindow wndCtl);
-		void OnTimer(UINT_PTR nIDEvent);
-		LRESULT OnConnectionListRClick(LPNMHDR pnmh);
+	BOOL OnInitDialog(CWindow wndFocus, LPARAM lInitParam);
+	void OnDestroy();
+	void OnCancel(UINT uNotifyCode, int nID, CWindow wndCtl);
+	LRESULT OnUpdateNotify(UINT uMsg, WPARAM wParam, LPARAM lParam);
+	void OnTimer(UINT_PTR nIDEvent);
+	LRESULT OnConnectionListRClick(LPNMHDR pnmh);
 
-		// CCustomDraw
-		DWORD OnPrePaint(int nID, LPNMCUSTOMDRAW lpnmcd);
-		DWORD OnItemPrePaint(int nID, LPNMCUSTOMDRAW lpnmcd);
+	// CCustomDraw
+	DWORD OnPrePaint(int nID, LPNMCUSTOMDRAW lpnmcd);
+	DWORD OnItemPrePaint(int nID, LPNMCUSTOMDRAW lpnmcd);
 
 private:
 	CListViewCtrl	m_connectionListView;
 
-	CCriticalSection m_csConnectionCloseList;
-	std::list<int>	m_connectionCloseList;
+	struct ConnectionDataOperation
+	{
+		ConnectionData conData;
+		CConnectionManager::UpdateCategory	updateCategory;
+
+		ConnectionDataOperation(ConnectionData* conData, CConnectionManager::UpdateCategory	updateCategory) :
+			conData(*conData), updateCategory(updateCategory)
+		{}
+	};
+	CCriticalSection m_csConnectionDataOperationList;
+	std::list<ConnectionDataOperation>	m_connectionDataOperationList;
+
+	std::list<uint32_t>	m_connectionCloseList;
 	std::atomic_bool	m_listActive;
+	std::unordered_set<uint32_t>	m_idleConnections;
 };
 
 

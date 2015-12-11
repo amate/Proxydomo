@@ -15,14 +15,13 @@
 /////////////////////////////////////////////////////////
 // ConnectionData
 
-ConnectionData::ConnectionData() : inStep(STEP::STEP_START), outStep(STEP::STEP_START)
+ConnectionData::ConnectionData(uint32_t uniqueId) : uniqueId(uniqueId), inStep(STEP::STEP_START), outStep(STEP::STEP_START)
 {}
 
 void	ConnectionData::SetVerb(const std::wstring& verb)
 {
 	CCritSecLock lock(cs);
 	this->verb = verb;
-	lock.Unlock();
 	CConnectionManager::UpdateNotify(this);
 }
 
@@ -30,7 +29,6 @@ void	ConnectionData::SetUrl(const std::wstring& url)
 {
 	CCritSecLock lock(cs);
 	this->url = url;
-	lock.Unlock();
 	CConnectionManager::UpdateNotify(this);
 }
 
@@ -53,11 +51,12 @@ void	ConnectionData::SetOutStep(STEP out)
 CCriticalSection			CConnectionManager::s_csList;
 std::list<ConnectionData>	CConnectionManager::s_connectionDataList;
 std::function<void(ConnectionData*, CConnectionManager::UpdateCategory)> CConnectionManager::s_funcCallback;
+std::atomic_uint32_t	CConnectionManager::s_uniqueIdGenerator;
 
 ConnectionData*	CConnectionManager::CreateConnectionData()
 {
 	CCritSecLock lock(s_csList);
-	s_connectionDataList.emplace_front();
+	s_connectionDataList.emplace_front(s_uniqueIdGenerator++);
 	ConnectionData* conData = &s_connectionDataList.front();
 	conData->itThis = s_connectionDataList.begin();
 	if (s_funcCallback) {
@@ -117,81 +116,30 @@ void	CConnectionMonitorWindow::ShowWindow()
 			if (m_listActive == false)
 				return;
 
-			auto funcSetItem = [this, conData](int iItem) {
-				LVITEM	Item = {};
-				Item.mask = LVIF_TEXT;
-				Item.iItem = iItem;
-
-				Item.iSubItem = 0;
-				Item.pszText = (LPWSTR)STEPtoString(conData->outStep);
-				m_connectionListView.SetItem(&Item);
-
-				Item.iSubItem = 1;
-				Item.pszText = (LPWSTR)STEPtoString(conData->inStep);
-				m_connectionListView.SetItem(&Item);
-
-				Item.iSubItem = 2;
-				Item.pszText = (LPWSTR)conData->verb.c_str();
-				m_connectionListView.SetItem(&Item);
-
-				Item.iSubItem = 3;
-				Item.pszText = (LPWSTR)conData->url.c_str();
-				m_connectionListView.SetItem(&Item);
-			};
-
-			auto funcGetIndex = [this, conData]() -> int {
-				int count = m_connectionListView.GetItemCount();
-				for (int i = 0; i < count; ++i) {
-					if (conData == (ConnectionData*)m_connectionListView.GetItemData(i)) {
-						return i;
+			int connectionCount = -1;
+			{
+				CCritSecLock lock(m_csConnectionDataOperationList);
+				if (updateCategory == CConnectionManager::kUpdateConnection) {
+					for (auto& conDataOperation : m_connectionDataOperationList) {
+						if (conDataOperation.conData.uniqueId == conData->uniqueId
+							&& conDataOperation.updateCategory == updateCategory)
+						{
+							conDataOperation.conData = *conData;
+							return;	// ÇQèdÇ…ÇÕìoò^ÇµÇ»Ç¢
+						}
+					}
+				} else {
+					connectionCount = (int)CConnectionManager::s_connectionDataList.size();
+					if (updateCategory == CConnectionManager::kRemoveConnection) {
+						--connectionCount;
 					}
 				}
-				ATLASSERT(FALSE);
-				return -1;
-			};
-
-			switch (updateCategory) {
-			case CConnectionManager::kAddConnection:
-			{
-				m_connectionListView.InsertItem(0, _T(""));
-				m_connectionListView.SetItemData(0, (DWORD_PTR)conData);
-				funcSetItem(0);
-
+				m_connectionDataOperationList.emplace_back(conData, updateCategory);
+				PostMessage(WM_UPDATENOTIFY);
+			}
+			if (connectionCount != -1) {
 				SetWindowText((boost::wformat(L"Connection Monitor - [%02d]")
-					% (int)CConnectionManager::s_connectionDataList.size()).str().c_str());
-			}
-			break;
-
-			case CConnectionManager::kUpdateConnection:
-			{
-				int i = funcGetIndex();
-				if (i != -1) {
-					funcSetItem(i);
-				}
-			}
-			break;
-
-			case CConnectionManager::kRemoveConnection:
-			{
-				int i = funcGetIndex();
-				if (i != -1) {
-					CCritSecLock lock(m_csConnectionCloseList);
-					m_connectionCloseList.emplace_front();
-					DWORD_PTR itemData = (DWORD_PTR)&m_connectionCloseList.front();
-					lock.Unlock();
-
-					m_connectionListView.SetItemData(i, itemData);
-					RECT rcItem;
-					m_connectionListView.GetItemRect(i, &rcItem, LVIR_BOUNDS);
-					m_connectionListView.InvalidateRect(&rcItem);
-					SetTimer(itemData, 1500);
-
-					SetWindowText((boost::wformat(L"Connection Monitor - [%02d]")
-						% (int)(CConnectionManager::s_connectionDataList.size() - 1)).str().c_str());
-				}
-			}
-			break;
-
+					% connectionCount).str().c_str());
 			}
 		});
 	}
@@ -257,10 +205,7 @@ BOOL CConnectionMonitorWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 
 void CConnectionMonitorWindow::OnDestroy()
 {
-	m_listActive = false;
-	std::thread([](){
-		CConnectionManager::UnregisterCallback();
-	}).detach();
+	OnCancel(0, 0, NULL);
 
 	using namespace boost::property_tree;
 
@@ -288,38 +233,129 @@ void CConnectionMonitorWindow::OnDestroy()
 void CConnectionMonitorWindow::OnCancel(UINT uNotifyCode, int nID, CWindow wndCtl)
 {
 	m_listActive = false;
-	std::thread([](){
-		CConnectionManager::UnregisterCallback();
-	}).detach();
+	CConnectionManager::UnregisterCallback();
 	
 	__super::ShowWindow(FALSE);
 
+	{
+		CCritSecLock lock(m_csConnectionDataOperationList);
+		m_connectionDataOperationList.clear();
+	}
+
 	m_connectionListView.DeleteAllItems();
 
-	CCritSecLock lock(m_csConnectionCloseList);
-	for (auto& closeItem : m_connectionCloseList) {
-		KillTimer((UINT_PTR)&closeItem);
+	for (uint32_t closeItem : m_connectionCloseList) {
+		KillTimer((UINT_PTR)closeItem);
 	}
 	m_connectionCloseList.clear();
+
+	m_idleConnections.clear();
 }
 
+
+LRESULT CConnectionMonitorWindow::OnUpdateNotify(UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	CCritSecLock lock(m_csConnectionDataOperationList);
+	for (auto& conDataOperation : m_connectionDataOperationList) {
+		auto conData = &conDataOperation.conData;
+		auto updateCategory = conDataOperation.updateCategory;
+
+		auto funcSetItem = [this, conData](int iItem) {
+			LVITEM	Item = {};
+			Item.mask = LVIF_TEXT;
+			Item.iItem = iItem;
+
+			Item.iSubItem = 0;
+			Item.pszText = (LPWSTR)STEPtoString(conData->outStep);
+			m_connectionListView.SetItem(&Item);
+
+			Item.iSubItem = 1;
+			Item.pszText = (LPWSTR)STEPtoString(conData->inStep);
+			m_connectionListView.SetItem(&Item);
+
+			Item.iSubItem = 2;
+			Item.pszText = (LPWSTR)conData->verb.c_str();
+			m_connectionListView.SetItem(&Item);
+
+			Item.iSubItem = 3;
+			Item.pszText = (LPWSTR)conData->url.c_str();
+			m_connectionListView.SetItem(&Item);
+		};
+
+		auto funcGetIndex = [this, conData]() -> int {
+			int count = m_connectionListView.GetItemCount();
+			for (int i = 0; i < count; ++i) {
+				if (conData->uniqueId == (uint32_t)m_connectionListView.GetItemData(i)) {
+					return i;
+				}
+			}
+			ATLASSERT(FALSE);
+			return -1;
+		};
+
+		switch (updateCategory) {
+		case CConnectionManager::kAddConnection:
+		{
+			if (conData->inStep == STEP::STEP_START && conData->inStep == STEP::STEP_START) {
+				m_idleConnections.insert(conData->uniqueId);
+			} else {
+				m_idleConnections.erase(conData->uniqueId);
+			}
+			m_connectionListView.InsertItem(0, _T(""));
+			m_connectionListView.SetItemData(0, (DWORD_PTR)conData->uniqueId);
+			funcSetItem(0);
+		}
+		break;
+
+		case CConnectionManager::kUpdateConnection:
+		{
+			int i = funcGetIndex();
+			if (i != -1) {
+				if (conData->inStep == STEP::STEP_START && conData->inStep == STEP::STEP_START) {
+					m_idleConnections.insert(conData->uniqueId);
+				} else {
+					m_idleConnections.erase(conData->uniqueId);
+				}
+				funcSetItem(i);
+			}
+		}
+		break;
+
+		case CConnectionManager::kRemoveConnection:
+		{
+			int i = funcGetIndex();
+			if (i != -1) {
+				m_connectionCloseList.emplace_front(conData->uniqueId);
+
+				RECT rcItem;
+				m_connectionListView.GetItemRect(i, &rcItem, LVIR_BOUNDS);
+				m_connectionListView.InvalidateRect(&rcItem);
+				SetTimer(conData->uniqueId, 1500);	// íxâÑÇ≥ÇπÇƒÇ©ÇÁè¡Ç∑
+			}
+		}
+		break;
+
+		}
+	}
+	m_connectionDataOperationList.clear();
+	return 0;
+}
 
 void CConnectionMonitorWindow::OnTimer(UINT_PTR nIDEvent)
 {
 	KillTimer(nIDEvent);
 
-	int* itemData = (int*)nIDEvent;
+	uint32_t	uniqueId = (uint32_t)nIDEvent;
 	int count = m_connectionListView.GetItemCount();
 	for (int i = 0; i < count; ++i) {
-		if (m_connectionListView.GetItemData(i) == (DWORD_PTR)nIDEvent) {
+		if (m_connectionListView.GetItemData(i) == (DWORD_PTR)uniqueId) {
 			m_connectionListView.DeleteItem(i);
 			break;
 		}
 	}
 
-	CCritSecLock lock(m_csConnectionCloseList);
 	for (auto it = m_connectionCloseList.begin(); it != m_connectionCloseList.end(); ++it) {
-		if (itemData == &*it) {
+		if (uniqueId == *it) {
 			m_connectionCloseList.erase(it);
 			break;
 		}
@@ -347,10 +383,13 @@ DWORD CConnectionMonitorWindow::OnItemPrePaint(int nID, LPNMCUSTOMDRAW lpnmcd)
 {
 	if (lpnmcd->hdr.idFrom == IDC_LIST_CONNECTION){
 		LPNMLVCUSTOMDRAW lpnmlv = (LPNMLVCUSTOMDRAW)lpnmcd;
-		int* itemData = (int*)m_connectionListView.GetItemData((int)lpnmcd->dwItemSpec);
-		CCritSecLock lock(m_csConnectionCloseList);
-		for (int& dlItem : m_connectionCloseList) {
-			if (itemData == &dlItem) {
+		uint32_t uniqueId = (uint32_t)m_connectionListView.GetItemData((int)lpnmcd->dwItemSpec);
+
+		if (m_idleConnections.find(uniqueId) != m_idleConnections.end()) {
+			lpnmlv->clrText = RGB(0x80, 0x80, 0x80);
+		}
+		for (uint32_t dlItem : m_connectionCloseList) {
+			if (uniqueId == dlItem) {
 				lpnmlv->clrText = RGB(255, 255, 255);
 				lpnmlv->clrTextBk = RGB(0xDF, 0x33, 0x4E);
 				break;

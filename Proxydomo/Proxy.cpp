@@ -119,7 +119,7 @@ void CProxy::_ServerThread()
 		std::unique_ptr<CSocket> pSock = m_sockServer.Accept();
 		if (pSock) {
 			auto manager = new CRequestManager(std::move(pSock));
-
+#if 0
 			// 最大接続数を超えた
 			// 最大接続数以下になるまでこのスレッドはロックしちゃってもよい
 			if (CLog::GetActiveRequestCount() > kMaxActiveRequestThread) {
@@ -127,6 +127,7 @@ void CProxy::_ServerThread()
 					::Sleep(50);
 				} while (m_bServerActive && CLog::GetActiveRequestCount() > kMaxActiveRequestThread);
 			}
+#endif
 			funcCreateRequestManagerThread(manager);
 		}
 	}
