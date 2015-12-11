@@ -30,6 +30,8 @@ struct ConnectionData
 	std::list<ConnectionData>::iterator	itThis;
 
 	ConnectionData(uint32_t uniqueId);
+	ConnectionData(const ConnectionData& conData);
+	ConnectionData& operator= (const ConnectionData& conData);
 
 	void	SetVerb(const std::wstring& verb);
 	void	SetUrl(const std::wstring& url);

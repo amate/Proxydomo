@@ -18,6 +18,21 @@
 ConnectionData::ConnectionData(uint32_t uniqueId) : uniqueId(uniqueId), inStep(STEP::STEP_START), outStep(STEP::STEP_START)
 {}
 
+ConnectionData::ConnectionData(const ConnectionData& conData)
+{
+	*this = conData;
+}
+
+ConnectionData& ConnectionData::operator= (const ConnectionData& conData)
+{
+	uniqueId = conData.uniqueId;
+	verb = conData.verb;
+	url = conData.url;
+	inStep = conData.inStep;
+	outStep = conData.outStep;
+	return *this;
+}
+
 void	ConnectionData::SetVerb(const std::wstring& verb)
 {
 	CCritSecLock lock(cs);
@@ -234,7 +249,7 @@ void CConnectionMonitorWindow::OnCancel(UINT uNotifyCode, int nID, CWindow wndCt
 {
 	m_listActive = false;
 	CConnectionManager::UnregisterCallback();
-	
+
 	__super::ShowWindow(FALSE);
 
 	{
@@ -381,7 +396,7 @@ DWORD CConnectionMonitorWindow::OnPrePaint(int nID, LPNMCUSTOMDRAW lpnmcd)
 
 DWORD CConnectionMonitorWindow::OnItemPrePaint(int nID, LPNMCUSTOMDRAW lpnmcd)
 {
-	if (lpnmcd->hdr.idFrom == IDC_LIST_CONNECTION){
+	if (lpnmcd->hdr.idFrom == IDC_LIST_CONNECTION) {
 		LPNMLVCUSTOMDRAW lpnmlv = (LPNMLVCUSTOMDRAW)lpnmcd;
 		uint32_t uniqueId = (uint32_t)m_connectionListView.GetItemData((int)lpnmcd->dwItemSpec);
 
