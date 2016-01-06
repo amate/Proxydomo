@@ -477,17 +477,23 @@ void CTextBuffer::DataFeed(const std::string& data)
 
 					escapeOutput(out, done, CharCount(index, done));
 					if (m_owner.url.getDebug()) {
-						std::wstring occurrence(index,
-							CharCount((*m_currentFilter)->endOfMatched, index));
-						string buf = "<div class=\"match\">\n"
-							"<div class=\"filter\">Match: ";
-						CUtil::htmlEscape(buf, ConvertFromUTF16((*m_currentFilter)->title, m_pConverter));
-						buf += "</div>\n<div class=\"in\">";
-						CUtil::htmlEscape(buf, ConvertFromUTF16(occurrence, m_pConverter));
-						buf += "</div>\n<div class=\"repl\">";
-						CUtil::htmlEscape(buf, ConvertFromUTF16(replaceText, m_pConverter));
-						buf += "</div>\n</div>\n";
-						out << buf;
+						if (m_owner.url.getSource()) {
+							string buf;
+							CUtil::htmlEscape(buf, ConvertFromUTF16(replaceText, m_pConverter));
+							out << buf;
+						} else {
+							std::wstring occurrence(index,
+								CharCount((*m_currentFilter)->endOfMatched, index));
+							string buf = "<div class=\"match\">\n"
+								"<div class=\"filter\">Match: ";
+							CUtil::htmlEscape(buf, ConvertFromUTF16((*m_currentFilter)->title, m_pConverter));
+							buf += "</div>\n<div class=\"in\">";
+							CUtil::htmlEscape(buf, ConvertFromUTF16(occurrence, m_pConverter));
+							buf += "</div>\n<div class=\"repl\">";
+							CUtil::htmlEscape(buf, ConvertFromUTF16(replaceText, m_pConverter));
+							buf += "</div>\n</div>\n";
+							out << buf;
+						}
 					}
 					if (m_owner.killed) {
 

@@ -76,6 +76,10 @@ private:
 
 	void	_ConnectWebsite();
 
+	bool	_HandleLocalPtron();
+	bool	_HandleRedirectToHost();
+	void	_SendConnectRequestToRemoteProxy(std::string& name);
+
 	// サイトからのデータを受信
 	bool	_ReceiveIn();
 	std::string m_recvInBuf;
@@ -116,6 +120,7 @@ private:
 	std::unique_ptr<CSocket>	m_psockBrowser;
 	std::unique_ptr<CSocket>	m_psockWebsite;
 	std::wstring	m_previousHost;
+	std::string		m_previousConnectRequest;	// for SSL & $SETPROXY
 	std::unique_ptr<CSSLSession>	m_pSSLClientSession;
 	std::unique_ptr<CSSLSession>	m_pSSLServerSession;
 

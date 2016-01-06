@@ -79,6 +79,7 @@ void CUrl::parseUrl(const wstring& str) {
                 pos1 += 5;
 			} else if (CUtil::noCaseBeginsWith(L"src.", begin)) {
 				source = true;
+				debug = true;
 				pos1 += 4;
 			} else if (CUtil::noCaseBeginsWith(L"https.", begin)) {
 				if (protocol != L"https") {
@@ -109,8 +110,15 @@ void CUrl::parseUrl(const wstring& str) {
     afterhost = str.substr(pos2);
     host      = str.substr(pos1, pos2 - pos1);
 	hostport = host;
-	if (hostport.find(L":") == string::npos)
-		hostport += L':' + protocol;
+	if (hostport.find(L":") == string::npos) {
+		if (protocol == L"http") {
+			hostport += L":80";
+		} else if (protocol == L"https") {
+			hostport += L":443";
+		} else {
+			hostport += L':' + protocol;
+		}
+	}
 	size_t pos5 = host.find(L':');
 	if (pos5 != string::npos) {
 		wstring port = host.substr(pos5 + 1);

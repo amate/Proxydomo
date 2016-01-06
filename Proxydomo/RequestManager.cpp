@@ -554,8 +554,9 @@ void CRequestManager::_ProcessOut()
      
 				}
 
+				// CONNECTリクエストはリダイレクトしないようにする
 				if (m_requestLine.method == "CONNECT" && m_filterOwner.killed == false && m_filterOwner.rdirToHost.size() > 0) {
-					INFO_LOG << L"CONNECT redirect clear, src : " << m_filterOwner.url.getHost() 
+					WARN_LOG << L"CONNECT redirect clear, src : " << m_filterOwner.url.getHost() 
 							<< L" rdirToHost : " << m_filterOwner.rdirToHost << L" rdirMode : " << m_filterOwner.rdirMode;
 					m_filterOwner.rdirToHost.clear();
 					m_filterOwner.rdirMode = 0;
@@ -570,9 +571,11 @@ void CRequestManager::_ProcessOut()
 					m_inStep = STEP::STEP_START;
 					m_connectionData->SetInStep(m_inStep);
 
-					if (m_filterOwner.rdirToHost.length() > 0) {
+					// $SETPROXYされた場合、CONNECTリクエストしなおさないといけない場合がある
+					if (m_previousHost != m_filterOwner.contactHost || m_filterOwner.rdirToHost.length() > 0) {
 						_ConnectWebsite();
 					}
+
 				} else {
 					_ConnectWebsite();
 				}
@@ -581,6 +584,7 @@ void CRequestManager::_ProcessOut()
 				if (m_inStep == STEP::STEP_START) {
 
 					// Update URL within request
+					// おそらく送信ヘッダフィルターで、URL:を使用してURLが書き換えられた時にHostも変更するようにしているんだろう
 					CFilterOwner::SetHeader(m_filterOwner.outHeadersFiltered, L"Host", m_filterOwner.url.getHost());
 
 					if (CUtil::noCaseContains(L"Keep-Alive", CFilterOwner::GetHeader(m_filterOwner.outHeadersFiltered, L"Proxy-Connection"))) {
@@ -790,128 +794,13 @@ void CRequestManager::_ConnectWebsite()
     m_sendInBuf.clear();
 
     // Test for "local.ptron" host
-    if (m_filterOwner.url.getHost() == L"local.ptron") {
-        m_filterOwner.rdirToHost = m_filterOwner.url.getUrl();
-    }
-    if (CUtil::noCaseBeginsWith(L"http://local.ptron", m_filterOwner.rdirToHost)) {
-        m_filterOwner.rdirToHost = L"http://file//./html" + CUrl(m_filterOwner.rdirToHost).getPath();
-    }
-
-	// https://local.ptron/ への接続
-	if (CSettings::s_SSLFilter && CUtil::noCaseBeginsWith(L"https://local.ptron", m_filterOwner.rdirToHost)) {
-		wstring subpath;
-		if (m_requestLine.method == "CONNECT") {
-			m_sendInBuf = "HTTP/1.0 200 Connection established" CRLF
-				"Proxy-agent: " "Proxydomo/1.0"/*APP_NAME " " APP_VERSION*/ CRLF CRLF;
-			CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_filterOwner.requestNumber, m_sendInBuf);
-			_SendIn();
-			m_pSSLClientSession = CSSLSession::InitServerSession(m_psockBrowser.get(), "local.ptron");
-
-			if (m_pSSLClientSession == nullptr) {
-				throw GeneralException("LocalSSLServer handshake failed");
-			}
-
-			// ブラウザからリクエストURLを取得する
-			auto findGetURL = [this]() -> bool {
-				// Do we have the full first line yet?
-				size_t pos, len;
-				if (CUtil::endOfLine(m_recvOutBuf, 0, pos, len) == false)
-					return false;				// 最初の改行まで来てないので帰る
-
-												// Get it and record it
-				size_t p1 = m_recvOutBuf.find_first_of(" ");
-				size_t p2 = m_recvOutBuf.find_first_of(" ", p1 + 1);
-				m_requestLine.method = m_recvOutBuf.substr(0, p1);
-				m_requestLine.url = m_recvOutBuf.substr(p1 + 1, p2 - p1 - 1);
-				m_requestLine.ver = m_recvOutBuf.substr(p2 + 1, pos - p2 - 1);
-				m_logRequest = m_recvOutBuf.substr(0, pos + len);
-				m_recvOutBuf.erase(0, pos + len);
-				return true;
-			};
-			for (; m_pSSLClientSession->IsConnected();) {
-				if (_ReceiveOut()) {
-					if (findGetURL())
-						break;
-				}
-				::Sleep(10);
-			}
-			m_recvOutBuf.clear();
-
-			subpath = L"./html" + CUrl(UTF16fromUTF8(m_requestLine.url)).getPath();
-
-		} else {
-			// リダイレクト
-			ATLASSERT(m_pSSLClientSession);
-			if (m_pSSLClientSession == nullptr) {
-				throw GeneralException("LocalSSLServer handshake failed");
-			}
-
-			subpath = L"./html" + CUrl(m_filterOwner.rdirToHost).getPath();
-		}
-		wstring filename = CUtil::makePath(subpath);
-		if (::PathFileExists(Misc::GetFullPath_ForExe(filename.c_str()))) {
-			_FakeResponse("200 OK", filename);
-		} else {
-			_FakeResponse("404 Not Found");
-		}
-		while (_SendIn());	// 最後まで送信してしまう
-
-		m_filterOwner.rdirToHost.clear();
+	if (_HandleLocalPtron())
 		return;
-	}
 
-    // Test for redirection __to file__
-    // ($JUMP to file will behave like a transparent redirection,
-    // since the browser may not be on the same file system)
-    if (CUtil::noCaseBeginsWith(L"http://file//", m_filterOwner.rdirToHost)) {
-
-        wstring filename = CUtil::makePath(m_filterOwner.rdirToHost.substr(13));
-		if (::PathFileExists(Misc::GetFullPath_ForExe(filename.c_str()))) {
-			_FakeResponse("200 OK", filename);
-		} else {
-			_FakeResponse("404 Not Found");
-		}
-
-        m_filterOwner.rdirToHost.clear();
-        return;
-    }
-
-    // Test for non-transparent redirection ($JUMP)
-    if (m_filterOwner.rdirToHost.size() > 0 && m_filterOwner.rdirMode == 0) {
-        // We'll keep browser's socket, for persistent connections, and
-        // continue processing outgoing data (which will not be moved to
-        // send buffer).
-        m_inStep = STEP::STEP_FINISH;
-		m_connectionData->SetInStep(m_inStep);
-		m_sendInBuf =
-            "HTTP/1.0 302 Found" CRLF
-            "Location: " + UTF8fromUTF16(m_filterOwner.rdirToHost) + CRLF;
-
-		CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_filterOwner.requestNumber, m_sendInBuf);
-
-        m_sendInBuf += CRLF;
-        m_filterOwner.rdirToHost.clear();
-        m_sendConnectionClose = true;
-        return;
-    }
-
-
-    // Test for transparent redirection to URL ($RDIR)
-    // Note: new URL will not go through URL* OUT filters
-    if (m_filterOwner.rdirToHost.size() > 0 && m_filterOwner.rdirMode == 1) {
-
-        // Change URL
-        m_filterOwner.url.parseUrl(m_filterOwner.rdirToHost);
-		m_connectionData->SetUrl(m_filterOwner.url.getUrl());
-        if (m_filterOwner.url.getBypassIn())    m_filterOwner.bypassIn   = true;
-		if (m_filterOwner.url.getBypassOut())	m_filterOwner.bypassOut  = true;
-        if (m_filterOwner.url.getBypassText())  m_filterOwner.bypassBody = true;
-		m_filterOwner.useSettingsProxy = CSettings::s_useRemoteProxy;
-        m_filterOwner.contactHost = m_filterOwner.url.getHostPort();
-		m_filterOwner.SetOutHeader(L"Host", m_filterOwner.url.getHost());
-
-        m_filterOwner.rdirToHost.clear();
-    }
+	// Test for transparent redirection to URL ($RDIR)
+	// Test for non-transparent redirection ($JUMP)
+	if (_HandleRedirectToHost())
+		return;
 
     // If we must contact the host via the settings' proxy,
     // we now override the contactHost
@@ -971,48 +860,15 @@ void CRequestManager::_ConnectWebsite()
 			m_inStep = STEP::STEP_TUNNELING;
 			m_connectionData->SetInStep(m_inStep);
 			_SendIn();
+
+			// CONNECTリクエストのやり直し用に保存しておく
+			m_previousConnectRequest = m_logRequest + CRLF;
 		}
+
+		// remote proxy
+		_SendConnectRequestToRemoteProxy(name);
+
 		if (m_filterOwner.url.getProtocol() == L"https") {
-			// remote proxy
-			if (m_filterOwner.contactHost != m_filterOwner.url.getHostPort()) {
-				name = UTF8fromUTF16(m_filterOwner.url.getHost());
-				size_t colon = name.find(':');
-				if (colon != std::string::npos) {    // (this should always happen)
-					name = name.substr(0, colon);
-				}
-				m_sendOutBuf = m_logRequest + CRLF;
-				_SendOut();
-
-				auto fucnGetResponse = [this]() -> bool {
-					// Do we have the full first line yet?
-					size_t pos, len;
-					if (CUtil::endOfLine(m_recvInBuf, 0, pos, len) == false)
-						return false;				// 最初の改行まで来てないので帰る
-
-					// Parse it
-					size_t p1 = m_recvInBuf.find_first_of(" ");
-					size_t p2 = m_recvInBuf.find_first_of(" ", p1 + 1);
-					m_filterOwner.responseLine.ver = m_recvInBuf.substr(0, p1);
-					m_filterOwner.responseLine.code = m_recvInBuf.substr(p1 + 1, p2 - p1 - 1);
-					m_filterOwner.responseLine.msg = m_recvInBuf.substr(p2 + 1, pos - p2 - 1);
-					m_filterOwner.responseCode = m_recvInBuf.substr(p1 + 1, pos - p1 - 1);
-
-					m_recvInBuf.erase(0, pos + len);
-					return true;
-				};
-				for (; m_psockWebsite->IsConnected();) {
-					if (_ReceiveIn()) {
-						if (fucnGetResponse())
-							break;
-					}
-					::Sleep(10);
-				}
-				m_recvInBuf.clear();
-
-				if (m_filterOwner.responseLine.code != "200")
-					throw GeneralException("RemoteProxy SSL Connection Establish failed");
-			}
-
 			if (CSettings::s_SSLFilter && m_bypass == false) {
 				if (m_pSSLServerSession = CSSLSession::InitClientSession(m_psockWebsite.get(), name)) {
 					if (m_requestLine.method == "CONNECT") {
@@ -1051,6 +907,199 @@ void CRequestManager::_ConnectWebsite()
         // Send request
         _SendOut();
     }
+}
+
+
+bool	CRequestManager::_HandleLocalPtron()
+{
+	if (m_filterOwner.url.getHost() == L"local.ptron") {
+		m_filterOwner.rdirToHost = m_filterOwner.url.getUrl();
+	}
+	if (CUtil::noCaseBeginsWith(L"http://local.ptron", m_filterOwner.rdirToHost)) {
+		m_filterOwner.rdirToHost = L"http://file//./html" + CUrl(m_filterOwner.rdirToHost).getPath();
+	}
+
+	// https://local.ptron/ への接続
+	if (CSettings::s_SSLFilter && CUtil::noCaseBeginsWith(L"https://local.ptron", m_filterOwner.rdirToHost)) {
+		wstring subpath;
+		if (m_requestLine.method == "CONNECT") {
+			m_sendInBuf = "HTTP/1.0 200 Connection established" CRLF
+				"Proxy-agent: " "Proxydomo/1.0"/*APP_NAME " " APP_VERSION*/ CRLF CRLF;
+			CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_filterOwner.requestNumber, m_sendInBuf);
+			_SendIn();
+			m_pSSLClientSession = CSSLSession::InitServerSession(m_psockBrowser.get(), "local.ptron");
+
+			if (m_pSSLClientSession == nullptr) {
+				throw GeneralException("LocalSSLServer handshake failed");
+			}
+
+			// ブラウザからリクエストURLを取得する
+			auto findGetRequestLineURL = [this]() -> bool {
+				// Do we have the full first line yet?
+				size_t pos, len;
+				if (CUtil::endOfLine(m_recvOutBuf, 0, pos, len) == false)
+					return false;				// 最初の改行まで来てないので帰る
+
+												// Get it and record it
+				size_t p1 = m_recvOutBuf.find_first_of(" ");
+				ATLASSERT(p1 != std::string::npos);
+				size_t p2 = m_recvOutBuf.find_first_of(" ", p1 + 1);
+				ATLASSERT(p2 != std::string::npos);
+				m_requestLine.method = m_recvOutBuf.substr(0, p1);
+				m_requestLine.url = m_recvOutBuf.substr(p1 + 1, p2 - p1 - 1);
+				m_requestLine.ver = m_recvOutBuf.substr(p2 + 1, pos - p2 - 1);
+				m_logRequest = m_recvOutBuf.substr(0, pos + len);
+				m_recvOutBuf.erase(0, pos + len);
+				return true;
+			};
+			for (; m_pSSLClientSession->IsConnected();) {
+				if (_ReceiveOut()) {
+					if (findGetRequestLineURL())
+						break;
+				}
+				::Sleep(10);
+			}
+			m_recvOutBuf.clear();
+
+			subpath = L"./html" + CUrl(UTF16fromUTF8(m_requestLine.url)).getPath();
+
+		} else {
+			// リダイレクト
+			ATLASSERT(m_pSSLClientSession);
+			if (m_pSSLClientSession == nullptr) {
+				throw GeneralException("LocalSSLServer handshake failed");
+			}
+
+			subpath = L"./html" + CUrl(m_filterOwner.rdirToHost).getPath();
+		}
+		wstring filename = CUtil::makePath(subpath);
+		if (::PathFileExists(Misc::GetFullPath_ForExe(filename.c_str()))) {
+			_FakeResponse("200 OK", filename);
+		} else {
+			_FakeResponse("404 Not Found");
+		}
+		while (_SendIn());	// 最後まで送信してしまう
+
+		m_filterOwner.rdirToHost.clear();
+		return true;
+	}
+
+	// Test for redirection __to file__
+	// ($JUMP to file will behave like a transparent redirection,
+	// since the browser may not be on the same file system)
+	if (CUtil::noCaseBeginsWith(L"http://file//", m_filterOwner.rdirToHost)) {
+
+		wstring filename = CUtil::makePath(m_filterOwner.rdirToHost.substr(13));
+		if (::PathFileExists(Misc::GetFullPath_ForExe(filename.c_str()))) {
+			_FakeResponse("200 OK", filename);
+		} else {
+			_FakeResponse("404 Not Found");
+		}
+		while (_SendIn());	// 最後まで送信してしまう
+
+		m_filterOwner.rdirToHost.clear();
+		return true;
+	}
+
+	return false;
+}
+
+bool	CRequestManager::_HandleRedirectToHost()
+{
+	// Test for non-transparent redirection ($JUMP)
+	if (m_filterOwner.rdirToHost.size() > 0 && m_filterOwner.rdirMode == 0) {
+		// We'll keep browser's socket, for persistent connections, and
+		// continue processing outgoing data (which will not be moved to
+		// send buffer).
+		m_inStep = STEP::STEP_FINISH;
+		m_connectionData->SetInStep(m_inStep);
+		m_sendInBuf =
+			"HTTP/1.0 302 Found" CRLF
+			"Location: " + UTF8fromUTF16(m_filterOwner.rdirToHost) + CRLF;
+
+		CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_filterOwner.requestNumber, m_sendInBuf);
+
+		m_sendInBuf += CRLF;
+		m_filterOwner.rdirToHost.clear();
+		m_sendConnectionClose = true;
+		return true;
+	}
+
+	// Test for transparent redirection to URL ($RDIR)
+	// Note: new URL will not go through URL* OUT filters
+	if (m_filterOwner.rdirToHost.size() > 0 && m_filterOwner.rdirMode == 1) {
+
+		// Change URL
+		m_filterOwner.url.parseUrl(m_filterOwner.rdirToHost);
+		m_connectionData->SetUrl(m_filterOwner.url.getUrl());
+		if (m_filterOwner.url.getBypassIn())    m_filterOwner.bypassIn = true;
+		if (m_filterOwner.url.getBypassOut())	m_filterOwner.bypassOut = true;
+		if (m_filterOwner.url.getBypassText())  m_filterOwner.bypassBody = true;
+		m_filterOwner.useSettingsProxy = CSettings::s_useRemoteProxy;
+		m_filterOwner.contactHost = m_filterOwner.url.getHostPort();
+		m_filterOwner.SetOutHeader(L"Host", m_filterOwner.url.getHost());
+
+		m_filterOwner.rdirToHost.clear();
+	}
+	return false;
+}
+
+void	CRequestManager::_SendConnectRequestToRemoteProxy(std::string& name)
+{
+	//ATLASSERT(m_requestLine.method == "CONNECT");
+	if (m_filterOwner.contactHost == m_filterOwner.url.getHostPort())
+		return ;	// proxy接続ではない
+
+	// nameを実際の接続ホスト名へ変更	
+	name = UTF8fromUTF16(m_filterOwner.url.getHost());
+	size_t colon = name.find(':');
+	if (colon != std::string::npos) {    // (this should always happen)
+		name = name.substr(0, colon);
+	}
+
+	// Proxyへ CONNECTリクエストを送信
+	if (m_requestLine.method == "CONNECT") {
+		m_sendOutBuf = m_logRequest + CRLF;
+	} else {
+		if (m_previousConnectRequest.empty())
+			return;
+		m_sendOutBuf = m_previousConnectRequest;
+	}
+	_SendOut();
+
+	auto fucnGetResponse = [this]() -> bool {
+		// Do we have the full first line yet?
+		size_t pos, len;
+		if (CUtil::endOfLine(m_recvInBuf, 0, pos, len) == false)
+			return false;				// 最初の改行まで来てないので帰る
+
+		// Parse it
+		size_t p1 = m_recvInBuf.find_first_of(" ");
+		ATLASSERT(p1 != std::string::npos);
+		size_t p2 = m_recvInBuf.find_first_of(" ", p1 + 1);
+		ATLASSERT(p2 != std::string::npos);
+		m_filterOwner.responseLine.ver = m_recvInBuf.substr(0, p1);
+		m_filterOwner.responseLine.code = m_recvInBuf.substr(p1 + 1, p2 - p1 - 1);
+		m_filterOwner.responseLine.msg = m_recvInBuf.substr(p2 + 1, pos - p2 - 1);
+		m_filterOwner.responseCode = m_recvInBuf.substr(p1 + 1, pos - p1 - 1);
+
+		m_recvInBuf.erase(0, pos + len);
+		return true;
+	};
+
+	for (; m_psockWebsite->IsConnected();) {
+		if (_ReceiveIn()) {
+			if (fucnGetResponse())
+				break;
+		}
+		::Sleep(10);
+	}
+	m_recvInBuf.clear();
+
+	if (m_filterOwner.responseLine.code != "200") {
+		WARN_LOG << L"RemoteProxy SSL Connection Establish failed, proxy : " << m_filterOwner.contactHost << L" ConnectHost : " << name << L" ResponseCode : " << m_filterOwner.responseCode;
+		throw GeneralException("RemoteProxy SSL Connection Establish failed");
+	}
 }
 
 
