@@ -119,6 +119,7 @@ void CUrl::parseUrl(const wstring& str) {
 			hostport += L':' + protocol;
 		}
 	}
+	// hostにポート番号が書かれてる場合、プロトコルデフォルトのポートなら省略する
 	size_t pos5 = host.find(L':');
 	if (pos5 != string::npos) {
 		wstring port = host.substr(pos5 + 1);
@@ -131,5 +132,8 @@ void CUrl::parseUrl(const wstring& str) {
     path      = str.substr(pos2, pos3 - pos2);
     query     = str.substr(pos3, pos4 - pos3);
     anchor    = str.substr(pos4);
+
+	url = protocol + L"://" + host + afterhost;
+	fromhost = host + afterhost;
 }
 // vi:ts=4:sw=4:et

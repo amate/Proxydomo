@@ -311,7 +311,7 @@ LRESULT CConnectionMonitorWindow::OnUpdateNotify(UINT uMsg, WPARAM wParam, LPARA
 		switch (updateCategory) {
 		case CConnectionManager::kAddConnection:
 		{
-			if (conData->inStep == STEP::STEP_START && conData->inStep == STEP::STEP_START) {
+			if (conData->inStep == STEP::STEP_START && conData->outStep == STEP::STEP_START) {
 				m_idleConnections.insert(conData->uniqueId);
 			} else {
 				m_idleConnections.erase(conData->uniqueId);
@@ -326,7 +326,7 @@ LRESULT CConnectionMonitorWindow::OnUpdateNotify(UINT uMsg, WPARAM wParam, LPARA
 		{
 			int i = funcGetIndex();
 			if (i != -1) {
-				if (conData->inStep == STEP::STEP_START && conData->inStep == STEP::STEP_START) {
+				if (conData->inStep == STEP::STEP_START && conData->outStep == STEP::STEP_START) {
 					m_idleConnections.insert(conData->uniqueId);
 				} else {
 					m_idleConnections.erase(conData->uniqueId);
@@ -341,6 +341,7 @@ LRESULT CConnectionMonitorWindow::OnUpdateNotify(UINT uMsg, WPARAM wParam, LPARA
 			int i = funcGetIndex();
 			if (i != -1) {
 				m_connectionCloseList.emplace_front(conData->uniqueId);
+				m_idleConnections.erase(conData->uniqueId);
 
 				RECT rcItem;
 				m_connectionListView.GetItemRect(i, &rcItem, LVIR_BOUNDS);

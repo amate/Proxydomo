@@ -447,7 +447,7 @@ void CRequestManager::_ProcessOut()
 					std::wstring sslurl = L"https://" + m_filterOwner.url.getHost()	+ UTF16fromUTF8(m_requestLine.url);
 					m_filterOwner.url.parseUrl(sslurl);
 				} else if (m_requestLine.method == "CONNECT") {
-					m_filterOwner.url.parseUrl(L"https://" + UTF16fromUTF8(m_requestLine.url));
+					m_filterOwner.url.parseUrl(L"https://" + UTF16fromUTF8(m_requestLine.url) + L"/");
 				} else {
 					m_filterOwner.url.parseUrl(UTF16fromUTF8(m_requestLine.url));
 				}
@@ -1062,7 +1062,7 @@ void	CRequestManager::_SendConnectRequestToRemoteProxy(std::string& name)
 		m_sendOutBuf = m_logRequest + CRLF;
 	} else {
 		if (m_previousConnectRequest.empty())
-			return;
+			return;		// この接続はCONNECTリクエストから始まらなかった
 		m_sendOutBuf = m_previousConnectRequest;
 	}
 	_SendOut();
