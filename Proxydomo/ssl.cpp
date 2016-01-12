@@ -28,6 +28,10 @@
 #include "UITranslator.h"
 using namespace UITranslator;
 #include "WinHTTPWrapper.h"
+#include "Matcher.h"
+#include "FilterOwner.h"
+#include "proximodo\filter.h"
+#include "CodeConvert.h"
 
 namespace {
 
@@ -72,6 +76,7 @@ struct serverCertAndKey {
 std::unordered_map<std::string, std::unique_ptr<serverCertAndKey>>	g_mapHostServerCert;
 CCriticalSection	g_csmapHostServerCert;
 
+std::shared_ptr<Proxydomo::CMatcher>	g_pAllowSSLServerHostMatcher;
 
 bool	LoadSystemTrustCA(WOLFSSL_CTX* ctx);
 
@@ -221,6 +226,14 @@ int myVerify(int preverify, WOLFSSL_X509_STORE_CTX* store)
 			} else {
 				return 0;	// deny
 			}
+		}
+
+		{
+			CFilterOwner owner;
+			CFilter filter(owner);
+			std::wstring utf16host = CodeConvert::UTF16fromUTF8(host);
+			if (g_pAllowSSLServerHostMatcher->match(utf16host, &filter))
+				return 1;	// allow
 		}
 
 		bool bNoCA = (store->error == ASN_NO_SIGNER_E);
@@ -486,7 +499,12 @@ bool	InitSSL()
 			ret = wolfSSL_CTX_UseSupportedCurve(g_sslclientCtx, WOLFSSL_ECC_SECP521R1);
 			ATLASSERT(ret == SSL_SUCCESS);
 
+			ret = wolfSSL_CTX_EnableOCSPStapling(g_sslclientCtx);
+			ATLASSERT(ret == SSL_SUCCESS);
+
 		}
+		g_pAllowSSLServerHostMatcher = Proxydomo::CMatcher::CreateMatcher(L"$LST(AllowSSLServerHostList)");
+
 		return true;
 
 	} catch (std::exception& e) {
