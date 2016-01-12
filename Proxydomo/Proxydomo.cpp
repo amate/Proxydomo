@@ -37,6 +37,9 @@
 #include "UITranslator.h"
 #include "WinHTTPWrapper.h"
 
+#ifdef UNIT_TEST
+#include <gtest\gtest.h>
+#endif
 
 // グローバル変数
 CAppModule _Module;
@@ -70,6 +73,22 @@ int Run(LPTSTR /*lpstrCmdLine*/ = NULL, int nCmdShow = SW_SHOWDEFAULT)
 
 int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR lpstrCmdLine, int nCmdShow)
 {
+#ifdef UNIT_TEST
+	::AllocConsole();
+	freopen("CONOUT$", "w", stdout); //標準出力をコンソールにする
+	freopen("CONIN$", "r", stdin);   //標準入力をコンソールにする
+
+	wchar_t exeFilePath[MAX_PATH];
+	::GetModuleFileName(NULL, exeFilePath, MAX_PATH);
+	int argc = 1;
+	wchar_t* argv[] = { exeFilePath };
+	testing::InitGoogleTest(&argc, argv);
+
+	int ret = RUN_ALL_TESTS();
+	getchar();
+	return ret;
+#endif
+
 	HRESULT hRes = ::CoInitialize(NULL);
 // If you are running on NT 4.0 or higher you can use the following call instead to 
 // make the EXE free threaded. This means that calls come in on a random RPC thread.

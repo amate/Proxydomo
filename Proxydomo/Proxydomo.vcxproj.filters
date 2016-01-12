@@ -19,6 +19,9 @@
     <Filter Include="Header Files\Window">
       <UniqueIdentifier>{77f0da3b-3a0b-4914-a007-0964fd88071a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Test">
+      <UniqueIdentifier>{2fcd1ce1-7070-49e9-9ab4-d7d2bd71f0ad}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -185,6 +188,9 @@
     </ClCompile>
     <ClCompile Include="ConnectionMonitor.cpp">
       <Filter>Header Files\Window</Filter>
+    </ClCompile>
+    <ClCompile Include="Test.cpp">
+      <Filter>Header Files\Test</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

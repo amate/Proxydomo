@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.23107.0
+VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Proxydomo", "Proxydomo\Proxydomo.vcxproj", "{DDADC3EE-73B1-4DED-9073-F4AF4755B6D4}"
 	ProjectSection(ProjectDependencies) = postProject
@@ -22,6 +22,8 @@ Global
 		DLL Release|x64 = DLL Release|x64
 		Release|Win32 = Release|Win32
 		Release|x64 = Release|x64
+		Test|Win32 = Test|Win32
+		Test|x64 = Test|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{DDADC3EE-73B1-4DED-9073-F4AF4755B6D4}.Debug|Win32.ActiveCfg = Debug|Win32
@@ -40,6 +42,10 @@ Global
 		{DDADC3EE-73B1-4DED-9073-F4AF4755B6D4}.Release|Win32.Build.0 = Release|Win32
 		{DDADC3EE-73B1-4DED-9073-F4AF4755B6D4}.Release|x64.ActiveCfg = Release|x64
 		{DDADC3EE-73B1-4DED-9073-F4AF4755B6D4}.Release|x64.Build.0 = Release|x64
+		{DDADC3EE-73B1-4DED-9073-F4AF4755B6D4}.Test|Win32.ActiveCfg = Test|Win32
+		{DDADC3EE-73B1-4DED-9073-F4AF4755B6D4}.Test|Win32.Build.0 = Test|Win32
+		{DDADC3EE-73B1-4DED-9073-F4AF4755B6D4}.Test|x64.ActiveCfg = Test|x64
+		{DDADC3EE-73B1-4DED-9073-F4AF4755B6D4}.Test|x64.Build.0 = Test|x64
 		{EFE6CD92-3F8A-4833-81AE-21B754386B8C}.Debug|Win32.ActiveCfg = Debug|Win32
 		{EFE6CD92-3F8A-4833-81AE-21B754386B8C}.Debug|Win32.Build.0 = Debug|Win32
 		{EFE6CD92-3F8A-4833-81AE-21B754386B8C}.Debug|x64.ActiveCfg = Debug|x64
@@ -56,6 +62,10 @@ Global
 		{EFE6CD92-3F8A-4833-81AE-21B754386B8C}.Release|Win32.Build.0 = Release|Win32
 		{EFE6CD92-3F8A-4833-81AE-21B754386B8C}.Release|x64.ActiveCfg = Release|x64
 		{EFE6CD92-3F8A-4833-81AE-21B754386B8C}.Release|x64.Build.0 = Release|x64
+		{EFE6CD92-3F8A-4833-81AE-21B754386B8C}.Test|Win32.ActiveCfg = Test|Win32
+		{EFE6CD92-3F8A-4833-81AE-21B754386B8C}.Test|Win32.Build.0 = Test|Win32
+		{EFE6CD92-3F8A-4833-81AE-21B754386B8C}.Test|x64.ActiveCfg = Test|x64
+		{EFE6CD92-3F8A-4833-81AE-21B754386B8C}.Test|x64.Build.0 = Test|x64
 		{73973223-5EE8-41CA-8E88-1D60E89A237B}.Debug|Win32.ActiveCfg = Debug|Win32
 		{73973223-5EE8-41CA-8E88-1D60E89A237B}.Debug|Win32.Build.0 = Debug|Win32
 		{73973223-5EE8-41CA-8E88-1D60E89A237B}.Debug|x64.ActiveCfg = Debug|x64
@@ -72,6 +82,10 @@ Global
 		{73973223-5EE8-41CA-8E88-1D60E89A237B}.Release|Win32.Build.0 = Release|Win32
 		{73973223-5EE8-41CA-8E88-1D60E89A237B}.Release|x64.ActiveCfg = Release|x64
 		{73973223-5EE8-41CA-8E88-1D60E89A237B}.Release|x64.Build.0 = Release|x64
+		{73973223-5EE8-41CA-8E88-1D60E89A237B}.Test|Win32.ActiveCfg = Test|Win32
+		{73973223-5EE8-41CA-8E88-1D60E89A237B}.Test|Win32.Build.0 = Test|Win32
+		{73973223-5EE8-41CA-8E88-1D60E89A237B}.Test|x64.ActiveCfg = Test|x64
+		{73973223-5EE8-41CA-8E88-1D60E89A237B}.Test|x64.Build.0 = Test|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

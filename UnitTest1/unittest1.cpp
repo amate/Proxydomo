@@ -22,8 +22,8 @@ namespace UnitTest1
 		void	MatchTest(std::shared_ptr<Proxydomo::CMatcher> matcher, const std::wstring& test)
 		{
 			CFilterOwner owner;
-			owner.SetInHeader("Host", "www.host.org");
-			std::string url = "http://www.host.org/path/page.html?query=true#anchor";
+			owner.SetInHeader(L"Host", L"www.host.org");
+			std::wstring url = L"http://www.host.org/path/page.html?query=true#anchor";
 			owner.url.parseUrl(url);
 			//owner.cnxNumber = 1;
 			owner.fileType = "htm";

@@ -36,14 +36,18 @@ class CFilter;
 
 namespace Proxydomo {
 
+class CNode;
+
+
 struct MatchData
 {
 	const UChar*	reached;
 	CFilter*		pFilter;
 
 	std::stack<bool>	stackSaveMemory;	// for CMemory
-	std::map<void*, const UChar*>	mapRecordPos;	// for CNode_Memory
-	std::map<void*, std::tuple<const UChar*, const UChar*>>	mapReached;		// for CNode_AndAnd
+	std::map<CNode*, const UChar*>	mapRecordPos;	// for CNode_Memory
+	std::map<CNode*, std::tuple<const UChar*, const UChar*>>	mapReached;		// for CNode_AndAnd
+	std::map<CNode*, UChar>	mapQuote;	// for CNode_Quote
 
 	std::vector<std::pair<std::string, int>> matchListLog;
 

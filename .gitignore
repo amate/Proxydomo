@@ -39,3 +39,5 @@ GnuTLS*/
 mingw/
 wolfssl/
 packages/
+Test/
+Proxydomo/Test/

@@ -244,24 +244,56 @@ bool CNode_Equal::mayMatch(bool* tab)
 const UChar* CNode_Quote::match(const UChar* start, const UChar* stop, MatchData* pMatch) {
 
     if (start >= stop) 
-		return NULL;
+		return nullptr;
 
-    m_matched = *start;
-	++start;
-    // Rule: "
-    // Rule: '
-    if (!((   m_matched == L'\'' && (   m_quote == L'\"'
-                                  || m_openingQuote == nullptr
-                                  || m_openingQuote->m_matched == '\'' ))
-          ||  (m_matched == L'\"' && (  m_quote == L'\"'
-                                  || (m_openingQuote
-                                      && m_openingQuote->m_matched == L'\"'))) )) {
-        return nullptr;
-    }
+	const UChar matched = *start;
 
-    const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
-	UpdateReached(start, pMatch);
-    return ret;
+	auto funcNextNodeMatch = [&]() -> const UChar* {
+		std::map<CNode*, UChar>::iterator it;
+		if (m_openingQuote == nullptr) {
+			auto insertRet = pMatch->mapQuote.insert({ this, matched });
+			it = insertRet.first;
+		}
+
+		++start;
+		const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
+		UpdateReached(start, pMatch);
+
+		if (m_openingQuote == nullptr) {
+			pMatch->mapQuote.erase(it);
+		}
+		return ret;
+	};
+
+	// Rule: "
+	if (m_quote == L'\"') {
+		if (matched == L'\"' || matched == L'\'') {
+			return funcNextNodeMatch();
+		}
+	// Rule: '
+	} else if (m_quote == L'\'') {
+		if (matched == L'\'') {
+			if (m_openingQuote == nullptr) {	// 自分は ' 前のQuoteはないのでマッチ
+				return funcNextNodeMatch();
+
+			} else {	// 前のQuoteを見なければならない
+				auto it = pMatch->mapQuote.find(m_openingQuote);
+				ATLASSERT(it != pMatch->mapQuote.end());
+				if (it->second == L'\'') {
+					return funcNextNodeMatch();
+				}
+			}
+		} else if (matched == L'\"') {	
+			if (m_openingQuote) {		// 絶対に前のQuoteを見なければならない 前のQuoteがなければマッチしない
+				auto it = pMatch->mapQuote.find(m_openingQuote);
+				ATLASSERT(it != pMatch->mapQuote.end());
+				if (it->second == L'\"') {
+					return funcNextNodeMatch();
+				}
+			}
+		}
+	}
+	return nullptr;
 }
 
 bool CNode_Quote::mayMatch(bool* tab) {
@@ -632,7 +664,7 @@ public:
 	{
 		const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
 		if (ret) {
-			auto it = pMatch->mapReached.find((void*)m_pParentNode);
+			auto it = pMatch->mapReached.find(m_pParentNode);
 			ATLASSERT(it != pMatch->mapReached.end());
 
 			const UChar* retLast = std::get<1>(it->second);
@@ -663,7 +695,7 @@ CNode_AndAnd::~CNode_AndAnd()
 const UChar* CNode_AndAnd::match(const UChar* start, const UChar* stop, MatchData* pMatch)
 {
 	// Ask left node for the first match
-	auto emplaceResult = pMatch->mapReached.emplace((void*)this, std::make_tuple(start, (const UChar*)nullptr));
+	auto emplaceResult = pMatch->mapReached.insert({ this, std::make_tuple(start, (const UChar*)nullptr) });
 
 	const UChar* posL = m_nodeL->match(start, stop, pMatch);
 
@@ -791,7 +823,7 @@ const UChar* CNode_Memory::match(const UChar* start, const UChar* stop, MatchDat
 {
     if (m_memorizer) {	// // 親Memoryの時に通る。子Memory(memorizer)のために現在の位置を記憶しておく
         //m_memorizer->m_recordPos = start;
-		auto insertResult = pMatch->mapRecordPos.insert(std::make_pair((void*)m_memorizer, start));
+		auto insertResult = pMatch->mapRecordPos.insert({ m_memorizer, start });
         const UChar* ret = m_node->match(start, stop, pMatch);
 		pMatch->mapRecordPos.erase(insertResult.first);
         return ret;
@@ -799,7 +831,7 @@ const UChar* CNode_Memory::match(const UChar* start, const UChar* stop, MatchDat
     } else {	// setNextNodeで次のマッチの前にmemorizer(this)がよばれるようになっている
 		ATLASSERT(pMatch->mapRecordPos.size() > 0);
 
-		auto itfound = pMatch->mapRecordPos.find((void*)this);
+		auto itfound = pMatch->mapRecordPos.find(this);
 		ATLASSERT(itfound != pMatch->mapRecordPos.end());
 		const UChar* begin = itfound->second;
 		CMemory backup;
