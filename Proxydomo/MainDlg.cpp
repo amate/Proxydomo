@@ -196,7 +196,7 @@ LRESULT CMainDlg::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/,
 
 	_SaveMainDlgWindowPos();
 
-	m_logView.PostMessage(WM_CLOSE);
+	m_logView.PostMessage(CLogViewWindow::WM_EXECDESTROYWINDOW);
 	m_threadLogView.join();
 
 	return 0;

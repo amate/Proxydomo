@@ -481,11 +481,6 @@ BOOL CLogViewWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 	return 0;
 }
 
-void CLogViewWindow::OnClose()
-{
-	DestroyWindow();
-}
-
 void CLogViewWindow::OnDestroy()
 {
 	CLog::RemoveLogTrace(this);
