@@ -37,14 +37,18 @@ void	ConnectionData::SetVerb(const std::wstring& verb)
 {
 	CCritSecLock lock(cs);
 	this->verb = verb;
-	CConnectionManager::UpdateNotify(this);
+	ConnectionData conData(*this);
+	lock.Unlock();
+	CConnectionManager::UpdateNotify(&conData);
 }
 
 void	ConnectionData::SetUrl(const std::wstring& url)
 {
 	CCritSecLock lock(cs);
 	this->url = url;
-	CConnectionManager::UpdateNotify(this);
+	ConnectionData conData(*this);
+	lock.Unlock();
+	CConnectionManager::UpdateNotify(&conData);
 }
 
 void	ConnectionData::SetInStep(STEP in)
@@ -96,7 +100,9 @@ void CConnectionManager::RegisterCallback(std::function<void(ConnectionData*, Up
 	s_funcCallback = callback;
 	for (auto rit = s_connectionDataList.rbegin(); rit != s_connectionDataList.rend(); ++rit) {
 		CCritSecLock lock(rit->cs);
-		s_funcCallback(&*rit, kAddConnection);
+		auto conData = *rit;
+		lock.Unlock();
+		s_funcCallback(&conData, kAddConnection);
 	}
 
 }

@@ -21,6 +21,7 @@
 */
 #pragma once
 
+#include <thread>
 #include <atlchecked.h>
 #include <atlddx.h>
 #include "LogViewWindow.h"
@@ -128,10 +129,12 @@ public:
 private:
 	void	_SaveMainDlgWindowPos();
 	void	_CreateTasktrayIcon();
+	void	_ChangeTasttrayIcon();
 
 	// Data members
 	CProxy*			m_proxy;
 	CLogViewWindow	m_logView;
+	std::thread		m_threadLogView;
 	CContainedWindow m_wndLogButton;
 	CFilterManageWindow	m_filterManagerWindow;
 	bool		m_bVisibleOnDestroy;

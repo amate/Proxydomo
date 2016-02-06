@@ -77,6 +77,22 @@ void	CMainDlg::_CreateTasktrayIcon()
 		} while (::Shell_NotifyIcon(NIM_ADD, &nid) == FALSE);
 	}
 	DestroyIcon(hIconSmall);
+
+	_ChangeTasttrayIcon();
+}
+
+void	CMainDlg::_ChangeTasttrayIcon()
+{
+	UINT iconid = CSettings::s_bypass ? IDI_PROXYDOMO_BYPASS : IDR_MAINFRAME;
+	HICON hIconSmall = AtlLoadIconImage(iconid, LR_DEFAULTCOLOR, ::GetSystemMetrics(SM_CXSMICON), ::GetSystemMetrics(SM_CYSMICON));
+	NOTIFYICONDATA	nid = { sizeof(NOTIFYICONDATA) };
+	nid.uFlags = NIF_ICON;
+	nid.hWnd = m_hWnd;
+	nid.hIcon = hIconSmall;
+	nid.uID = kTrayIconId;
+	::Shell_NotifyIcon(NIM_MODIFY, &nid);
+
+	DestroyIcon(hIconSmall);
 }
 
 LRESULT CMainDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/)
@@ -141,7 +157,11 @@ LRESULT CMainDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam
 		CenterWindow();
 	}
 
-	m_logView.Create(m_hWnd);
+	m_threadLogView = std::thread([this]() {
+		m_logView.Create(m_hWnd);
+		CMessageLoop loop;
+		loop.Run();
+	});
 
 	m_wndLogButton.SubclassWindow(GetDlgItem(IDC_BUTTON_SHOWLOGWINDOW));
 
@@ -175,6 +195,9 @@ LRESULT CMainDlg::OnDestroy(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/,
 	}
 
 	_SaveMainDlgWindowPos();
+
+	m_logView.PostMessage(WM_CLOSE);
+	m_threadLogView.join();
 
 	return 0;
 }
@@ -337,6 +360,7 @@ LRESULT CMainDlg::OnTrayIconNotify(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, 
 		case kBypass:
 			CSettings::s_bypass = !CSettings::s_bypass;
 			DoDataExchange(DDX_LOAD, IDC_CHECK_BYPASS);
+			_ChangeTasttrayIcon();
 			break;
 
 		case kUseRemoteProxy:
@@ -391,6 +415,9 @@ LRESULT CMainDlg::OnShowOption(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/,
 LRESULT CMainDlg::OnFilterButtonCheck(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOOL& /*bHandled*/)
 {
 	DoDataExchange(DDX_SAVE, wID);
+	if (wID == IDC_CHECK_BYPASS) {
+		_ChangeTasttrayIcon();
+	}
 	return 0;
 }
 

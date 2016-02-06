@@ -52,10 +52,17 @@ END
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDR_MAINFRAME           ICON                    "res\\Proxydomo.ico"
+
 IDI_FOLDER              ICON                    "res\\folder.ico"
+
 IDI_FILTER              ICON                    "res\\filter.ico"
+
 IDI_HEADERFILTER        ICON                    "res\\HeaderFilter.ico"
+
 IDI_WEBFILTER           ICON                    "res\\WebFilter.ico"
+
+IDI_PROXYDOMO_BYPASS    ICON                    "res\\Proxydomo_bypass.ico"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -99,8 +106,8 @@ CAPTION "ログ"
 FONT 9, "MS Shell Dlg", 0, 0, 0x1
 BEGIN
     COMBOBOX        IDC_COMBO_REQUEST,4,169,306,204,CBS_DROPDOWNLIST | CBS_HASSTRINGS | WS_VSCROLL
-    CONTROL         "",IDC_RICHEDIT_LOG,"RichEdit20W",ES_MULTILINE | ES_AUTOHSCROLL | ES_READONLY | ES_WANTRETURN | WS_BORDER | WS_VSCROLL | WS_TABSTOP,0,0,314,145
-    CONTROL         "",IDC_RICHEDIT_PARTLOG,"RichEdit20W",ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_READONLY | ES_WANTRETURN | WS_BORDER | WS_VSCROLL | WS_TABSTOP,0,0,314,146
+    CONTROL         "",IDC_RICHEDIT_LOG,"RichEdit20W",WS_BORDER | WS_VSCROLL | WS_TABSTOP | 0x1884,0,0,314,145
+    CONTROL         "",IDC_RICHEDIT_PARTLOG,"RichEdit20W",WS_BORDER | WS_VSCROLL | WS_TABSTOP | 0x18c4,0,0,314,146
     CONTROL         "",IDC_LIST_RECENTURLS,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | NOT WS_VISIBLE | WS_BORDER | WS_TABSTOP,0,0,314,146
     PUSHBUTTON      "クリア",IDC_BUTTON_CLEAR,113,150,33,15
     CONTROL         "ログを停止",IDC_CHECKBOX_STOPLOG,"Button",BS_AUTOCHECKBOX | BS_PUSHLIKE | WS_TABSTOP,4,150,51,15
@@ -365,6 +372,7 @@ END
 //
 
 IDB_FILTERMANAGERTOOLBAR BITMAP                  "res\\FilterManagerToolBar.bmp"
+
 
 /////////////////////////////////////////////////////////////////////////////
 //

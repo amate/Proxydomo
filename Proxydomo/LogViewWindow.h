@@ -99,6 +99,7 @@ public:
 
 	BEGIN_MSG_MAP_EX( CLogViewWindow )
 		MSG_WM_INITDIALOG( OnInitDialog )
+		MSG_WM_CLOSE( OnClose )
 		MSG_WM_DESTROY( OnDestroy )
 
 		COMMAND_ID_HANDLER_EX( IDCANCEL, OnCancel )
@@ -129,6 +130,7 @@ public:
 	// void OnCommandIDHandlerEX(UINT uNotifyCode, int nID, CWindow wndCtl)
 
 	BOOL OnInitDialog(CWindow wndFocus, LPARAM lInitParam);
+	void OnClose();
 	void OnDestroy();
 
 	void OnCancel(UINT uNotifyCode, int nID, CWindow wndCtl);

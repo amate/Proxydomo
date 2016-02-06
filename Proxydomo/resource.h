@@ -19,6 +19,8 @@
 #define IDB_FILTERMANAGERTOOLBAR        250
 #define IDD_CONNECTIONMANAGER           251
 #define IDD_CONNECTIONMONITOR           251
+#define IDI_ICON1                       254
+#define IDI_PROXYDOMO_BYPASS            254
 #define IDC_RICHEDIT_LOG                1000
 #define IDC_BUTTON_CLEAR                1001
 #define IDC_BUTTON_SHOWLOGWINDOW        1002
@@ -127,7 +129,7 @@
 #define ID_TRANS_INHEADER               40005
 #define ID_TRANS_ERROR                  40006
 #define ID_TRANS_SUCCESS                40007
-#define ID_TRANS_FAILURE				40008
+#define ID_TRANS_FAILURE                40008
 #define ID_TASKTRAYMENUBEGIN            50000
 #define ID_TASKTRAYMENUEND              50999
 #define ID_FILTERMANAGERWINDOWMENUBEGIN 51000
@@ -190,14 +192,14 @@
 #define ID_OPENFILTERXMLFAILED          51155
 #define ID_LOADFILTERXMLFAILED          51156
 #define ID_SAVEFILTERXMLFAILED          51157
-#define ID_SUCCEEDGETROOTCA				51158
-#define ID_FAILEDGETROOTCA				51159
+#define ID_SUCCEEDGETROOTCA             51158
+#define ID_FAILEDGETROOTCA              51159
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        253
+#define _APS_NEXT_RESOURCE_VALUE        255
 #define _APS_NEXT_COMMAND_VALUE         32775
 #define _APS_NEXT_CONTROL_VALUE         1100
 #define _APS_NEXT_SYMED_VALUE           140

@@ -481,6 +481,11 @@ BOOL CLogViewWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 	return 0;
 }
 
+void CLogViewWindow::OnClose()
+{
+	DestroyWindow();
+}
+
 void CLogViewWindow::OnDestroy()
 {
 	CLog::RemoveLogTrace(this);
@@ -518,6 +523,8 @@ void CLogViewWindow::OnDestroy()
 	pt.put("LogWindow.ViewPostData"		, m_bViewPostData);
 
 	write_ini(settingsPath, pt);
+
+	PostQuitMessage(0);
 }
 
 // ShowWindowÇ∆ëŒÇ…Ç»ÇÈä÷êî

@@ -247,7 +247,7 @@ void	CTextBuffer::_decideCharset()
 				{
 					charaCode = attrResult.str(1);
 					CUtil::upper(charaCode);
-					if (charaCode == "NONE")
+					if (charaCode == "NONE" || charaCode == "UNICODE")
 						charaCode.clear();
 					break;
 				}
@@ -266,7 +266,7 @@ void	CTextBuffer::_decideCharset()
 			if (nPos != std::wstring::npos) {
 				charaCode = UTF8fromUTF16(contentType.substr(nPos + 8));
 				CUtil::upper(charaCode);
-				if (charaCode == "NONE")
+				if (charaCode == "NONE" || charaCode == "UNICODE")
 					charaCode.clear();
 			}
 		}
