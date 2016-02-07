@@ -31,6 +31,37 @@ extern CAppModule _Module;
 using std::min;
 using std::max;
 
+#include <atlcrack.h>
+#include <atlctrls.h>
+#include <atlframe.h>
+#include <atldlgs.h>
+#include <atlsync.h>
+#include <atlddx.h>
+#include <atlctrlx.h>
+
+#include <cstdint>
+
+#include <string>
+#include <memory>
+#include <array>
+#include <list>
+#include <vector>
+#include <deque>
+#include <set>
+#include <unordered_set>
+#include <unordered_map>
+#include <chrono>
+#include <sstream>
+#include <regex>
+#include <mutex>
+#include <thread>
+#include <atomic>
+#include <fstream>
+#include <codecvt>
+#include <random>
+#include <algorithm>
+
+
 #if defined _M_IX86
   #pragma comment(linker, "/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='x86' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #elif defined _M_IA64

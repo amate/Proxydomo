@@ -444,8 +444,13 @@ void CRequestManager::_ProcessOut()
 
 				// Get the URL and the host to contact (unless we use a proxy)
 				if (m_pSSLClientSession) {
-					std::wstring sslurl = L"https://" + m_filterOwner.url.getHost()	+ UTF16fromUTF8(m_requestLine.url);
-					m_filterOwner.url.parseUrl(sslurl);
+					if (m_requestLine.url.length() > 0 && m_requestLine.url[0] == L'/') {
+						std::wstring sslurl = L"https://" + m_filterOwner.url.getHost() + UTF16fromUTF8(m_requestLine.url);
+						m_filterOwner.url.parseUrl(sslurl);
+					} else {
+						ATLASSERT(::strncmp(m_requestLine.url.c_str(), "https://", 0) == 0);
+						m_filterOwner.url.parseUrl(UTF16fromUTF8(m_requestLine.url));
+					}
 				} else if (m_requestLine.method == "CONNECT") {
 					m_filterOwner.url.parseUrl(L"https://" + UTF16fromUTF8(m_requestLine.url) + L"/");
 				} else {
