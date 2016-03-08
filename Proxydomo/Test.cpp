@@ -592,4 +592,16 @@ TEST(MatchTest, TST)
 	}
 }
 
+
+#include "FilterOwner.h"
+
+TEST(FilterOwner, CleanHeader)
+{
+	HeadPairList headers;
+	headers.emplace_back(L"name", L"");
+
+	CFilterOwner::CleanHeader(headers);
+	EXPECT_TRUE(headers.empty());
+}
+
 #endif	// UNIT_TEST
