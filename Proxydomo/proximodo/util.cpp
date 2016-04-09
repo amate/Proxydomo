@@ -32,6 +32,7 @@
 #include <sstream>
 #include <fstream>
 #include <iomanip>
+#include <boost\optional.hpp>
 #include <Windows.h>
 #include "..\Misc.h"
 
@@ -381,39 +382,78 @@ string CUtil::UESC(const string& str) {
 
 wstring CUtil::UESC(const wstring& str) {
     wstringstream out;
-    static const wstring hex = L"0123456789ABCDEF";
-    for (auto c = str.begin(); c != str.end(); c++) {
+    for (auto c = str.begin(); c != str.end(); ++c) {
         if (*c == L'%') {
-			if (*(c + 1) == L'u' && 
-				hex.find(*(c + 2)) != string::npos && 
-				hex.find(*(c + 3)) != string::npos && 
-				hex.find(*(c + 4)) != string::npos && 
-				hex.find(*(c + 5)) != string::npos )
-			{
-				auto funcHexToNumber = [](const wchar_t c) -> BYTE {
-					if (L'0' <= c && c <= L'9') {
-						return c - L'0';
-					} else if (L'A' <= c && c <= L'F') {
-						return c - L'A' + 0x0A;
-					} else if (L'a' <= c && c <= L'f') {
-						return c - L'a' + 0x0A;
-					}
-					ATLASSERT(FALSE);
-					return 0;
-				};
-				wchar_t wc = funcHexToNumber(*(c + 2)) << 12 | funcHexToNumber(*(c + 3)) << 8 | funcHexToNumber(*(c + 4)) << 4 | funcHexToNumber(*(c + 5));
+
+			auto funcCharOpt = [&](std::wstring::const_iterator it, size_t advance) -> boost::optional<wchar_t> {
+				auto advancedIt = std::next(it, advance);
+				if (advancedIt == str.end()) {
+					return boost::none;
+				} else {
+					return *advancedIt;
+				}
+			};
+
+			auto funcIsHex = [](wchar_t c) -> bool {
+				if (L'0' <= c && c <= L'9') {
+					return true;
+				} else if (L'A' <= c && c <= L'F') {
+					return true;
+				} else if (L'a' <= c && c <= L'f') {
+					return true;
+				}
+				return false;
+			};
+
+			// 16進数を数値に変換する
+			auto funcHexToNumber = [](const wchar_t c) -> BYTE {
+				if (L'0' <= c && c <= L'9') {
+					return c - L'0';
+				} else if (L'A' <= c && c <= L'F') {
+					return c - L'A' + 10;
+				} else if (L'a' <= c && c <= L'f') {
+					return c - L'a' + 10;
+				}
+				ATLASSERT(FALSE);
+				return 0;
+			};
+
+			auto c1 = funcCharOpt(c, 1);
+			
+			// %uXXXX 形式
+			if (c1 && *c1 == L'u') {
+				auto c2 = funcCharOpt(c, 2);
+				if (!c2 || !funcIsHex(*c2))
+					goto OUTPUT;
+				auto c3 = funcCharOpt(c, 3);
+				if (!c3 || !funcIsHex(*c3))
+					goto OUTPUT;
+				auto c4 = funcCharOpt(c, 4);
+				if (!c4 || !funcIsHex(*c4))
+					goto OUTPUT;
+				auto c5 = funcCharOpt(c, 5);
+				if (!c5 || !funcIsHex(*c5))
+					goto OUTPUT;
+
+				wchar_t wc = funcHexToNumber(*c2) << 12 | funcHexToNumber(*c3) << 8 | funcHexToNumber(*c4) << 4 | funcHexToNumber(*c5);
 				out << wc;
 				c += 5;
 				continue;
+			
+			} else {	// %XX 形式
+				if (!c1 || !funcIsHex(*c1))
+					goto OUTPUT;
 
-			} else if (hex.find(*(c + 1)) != string::npos &&
-					   hex.find(*(c + 2)) != string::npos) 
-			{
-				out << (char)(hex.find(*(c + 1)) * 16 + hex.find(*(c + 2)));
+				auto c2 = funcCharOpt(c, 2);
+				if (!c2 || !funcIsHex(*c2))
+					goto OUTPUT;
+
+				out << (char)((funcHexToNumber(*c1) * 16) + funcHexToNumber(*c2));
 				c += 2;
 				continue;
 			}
         }
+		OUTPUT:;
         out << *c;
     }
     return out.str();

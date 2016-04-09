@@ -604,4 +604,25 @@ TEST(FilterOwner, CleanHeader)
 	EXPECT_TRUE(headers.empty());
 }
 
+#include "proximodo\util.h"
+
+TEST(CUtil, UESC)
+{
+	EXPECT_TRUE(CUtil::UESC(L"%2A%5C") == L"*\\");
+	EXPECT_TRUE(CUtil::UESC(L"%2a%5c") == L"*\\");	// 小文字
+
+	EXPECT_TRUE(CUtil::UESC(L"TEST") == L"TEST");	// そのまま
+
+	EXPECT_TRUE(CUtil::UESC(L"%u65E5%u672C%u8A9E") == L"日本語");
+	EXPECT_TRUE(CUtil::UESC(L"%u65e5%u672c%u8a9e") == L"日本語");	// 小文字
+
+	EXPECT_TRUE(CUtil::UESC(L"%2A%5") == L"*%5");	// 末尾欠け
+	EXPECT_TRUE(CUtil::UESC(L"%2A%UU") == L"*%UU");	// デコード不可
+
+	EXPECT_TRUE(CUtil::UESC(L"%u65E5%u672C%u8A9") == L"日本%u8A9");	// 末尾欠け
+	EXPECT_TRUE(CUtil::UESC(L"%u65E5%u672C%u8A9G") == L"日本%u8A9G"); // デコード不可
+
+
+}
+
 #endif	// UNIT_TEST

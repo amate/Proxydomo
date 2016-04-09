@@ -507,6 +507,30 @@ void CFilterEditWindow::OnDestroy()
 }
 
 
+BOOL CFilterEditWindow::OnSetCursor(CWindow wnd, UINT nHitTest, UINT message)
+{
+	if (nHitTest == HTCLIENT) {
+		CRect rcMatching = _GetControlRect(IDC_EDIT_MATCHPATTERN);
+		CRect rcReplace = _GetControlRect(IDC_EDIT_REPLACEPATTERN);
+
+		CRect rcDragBound;
+		rcDragBound.top = rcMatching.bottom;
+		rcDragBound.left = rcMatching.left;
+		rcDragBound.right = rcMatching.right;
+		rcDragBound.bottom = rcReplace.top;
+
+		CPoint point;
+		::GetCursorPos(&point);
+		ScreenToClient(&point);
+		if (rcDragBound.PtInRect(point)) {
+			SetCursor(LoadCursor(0, IDC_SIZENS));
+			return TRUE;
+		}
+	}
+	SetMsgHandled(FALSE);
+	return FALSE;
+}
+
 void CFilterEditWindow::OnLButtonDown(UINT nFlags, CPoint point)
 {
 	CRect rcMatching = _GetControlRect(IDC_EDIT_MATCHPATTERN);
