@@ -485,7 +485,7 @@ LRESULT CFilterManageWindow::OnTreeFilterRClick(LPNMHDR pnmh)
 			filter->title = GetTranslateMessage(ID_TRANS_NEWFILTER).c_str();
 
 			CFilterEditWindow filterEdit(filter.get());
-			if (filterEdit.DoModal(m_hWnd) == IDCANCEL) {
+			if (filterEdit.DoModal(m_hWnd) == IDCANCEL || IsWindow() == false) {
 				return 0;
 			}
 			auto filterItem = std::make_unique<FilterItem>(std::move(filter));
@@ -566,7 +566,7 @@ LRESULT CFilterManageWindow::OnTreeFilterDblClk(LPNMHDR pnmh)
 
 	// フィルター編集ダイアログを開く
 	CFilterEditWindow filterEdit(filterItem->pFilter.get());
-	if (filterEdit.DoModal(m_hWnd) == IDCANCEL) 
+	if (filterEdit.DoModal(m_hWnd) == IDCANCEL || IsWindow() == false)
 		return 0;
 
 	filterItem->name = filterItem->pFilter->title.c_str();
@@ -934,7 +934,7 @@ void CFilterManageWindow::OnAddFilter(UINT uNotifyCode, int nID, CWindow wndCtl)
 	filter->title		=  GetTranslateMessage(ID_TRANS_NEWFILTER).c_str();
 
 	CFilterEditWindow filterEdit(filter.get());
-	if (filterEdit.DoModal(m_hWnd) == IDCANCEL) {
+	if (filterEdit.DoModal(m_hWnd) == IDCANCEL || IsWindow() == false) {
 		return ;
 	}
 	_AddFilterDescriptor(std::move(filter));

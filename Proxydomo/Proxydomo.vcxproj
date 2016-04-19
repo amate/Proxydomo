@@ -120,8 +120,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <LibraryPath>$(SolutionDir)icu\lib;$(SolutionDir)zlib\x86\lib;$(LibraryPath)</LibraryPath>
     <IncludePath>$(SolutionDir)wolfssl;$(SolutionDir)icu\include;$(SolutionDir)zlib\x86\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)icu\lib;$(SolutionDir)zlib\x86\lib;C:\Program Files (x86)\Windows Kits\8.1\Lib\winv6.3\um\x86;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>

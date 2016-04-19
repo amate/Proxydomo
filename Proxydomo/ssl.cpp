@@ -765,7 +765,7 @@ std::unique_ptr<CSSLSession> CSSLSession::InitServerSession(CSocket* sock, const
 		int err = wolfSSL_get_error(session->m_ssl, 0);
 		char buffer[WOLFSSL_MAX_ERROR_SZ];
 		ATLTRACE("error = %d, %s\n", err, wolfSSL_ERR_error_string(err, buffer));
-		INFO_LOG << L"wolfSSL_accept failed [" << err << L"] : " << (LPWSTR)CA2W(buffer);
+		WARN_LOG << L"wolfSSL_accept failed [" << err << L"] : " << (LPWSTR)CA2W(buffer);
 
 		wolfSSL_free(session->m_ssl);
 		session->m_ssl = nullptr;

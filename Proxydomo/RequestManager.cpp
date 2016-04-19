@@ -556,7 +556,11 @@ void CRequestManager::_ProcessOut()
 							break;
 						}
 					}
-     
+				}
+
+				// CONNECTリクエストで$FILTER(false)された場合はバイパス扱いする
+				if (m_requestLine.method == "CONNECT" && m_filterOwner.bypassBody) {
+					m_bypass = true;
 				}
 
 				// CONNECTリクエストはリダイレクトしないようにする

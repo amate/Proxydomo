@@ -33,7 +33,7 @@ Copyright (C) 2013 amate
  
 ■ビルドについて
 Visual Studio 2015 Communityが必要です
-ビルドには boost(1.58~)と zlib(v1.2.8~) と WTL(v90_4140~) と ICU(v55.1~) と wolfSSL(v3.6.0~) が必要なのでそれぞれ用意してください。
+ビルドには boost(1.60~)と zlib(v1.2.8~) と WTL(v90_4140~) と ICU(v55.1~) と wolfSSL(v3.6.0~) が必要なのでそれぞれ用意してください。
 
 ◆boost
 http://www.boost.org/
@@ -72,9 +72,9 @@ boost::shared_mutexを使用するのでboost::threadのライブラリが必要になります
  https://sites.google.com/site/boostjp/howtobuild
 コマンドライン
 // x86
-b2.exe install -j 4 --prefix=lib toolset=msvc-14.0 runtime-link=static --with-thread --with-date_time --with-timer --with-log
+b2.exe install -j 4 --prefix=lib toolset=msvc-14.0 define=BOOST_USE_WINAPI_VERSION=0x0501 runtime-link=static --with-thread --with-date_time --with-timer --with-log
 // x64
-b2.exe install -j 4 --prefix=lib64 toolset=msvc-14.0 runtime-link=static address-model=64 --with-thread --with-date_time --with-timer --with-log
+b2.exe install -j 4 --prefix=lib64 toolset=msvc-14.0 define=BOOST_USE_WINAPI_VERSION=0x0501 runtime-link=static address-model=64 --with-thread --with-date_time --with-timer --with-log
 
 □wolfssl
 $(SolutionDir)wolfssl\wolfssl.vcxproj
