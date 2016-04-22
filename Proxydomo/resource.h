@@ -194,6 +194,10 @@
 #define ID_SAVEFILTERXMLFAILED          51157
 #define ID_SUCCEEDGETROOTCA             51158
 #define ID_FAILEDGETROOTCA              51159
+#define ID_ADDHOSTALLOWLIST				51160
+#define ID_ADDHOSTDENYLIST				51161
+#define ID_ADDHOSTTEMPALLOWLIST			51162
+#define ID_ADDHOSTTEMPDENYLIST			51163
 
 // Next default values for new objects
 // 

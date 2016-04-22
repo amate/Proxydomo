@@ -22,6 +22,9 @@
     <Filter Include="Header Files\Test">
       <UniqueIdentifier>{2fcd1ce1-7070-49e9-9ab4-d7d2bd71f0ad}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\SSL">
+      <UniqueIdentifier>{5372b90b-3702-4d60-bf91-5afb22cc3180}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -183,14 +186,14 @@
     <ClCompile Include="UITranslator.cpp">
       <Filter>Header Files</Filter>
     </ClCompile>
-    <ClCompile Include="ssl.cpp">
-      <Filter>Header Files</Filter>
-    </ClCompile>
     <ClCompile Include="ConnectionMonitor.cpp">
       <Filter>Header Files\Window</Filter>
     </ClCompile>
     <ClCompile Include="Test.cpp">
       <Filter>Header Files\Test</Filter>
+    </ClCompile>
+    <ClCompile Include="ssl.cpp">
+      <Filter>Header Files\SSL</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -395,11 +398,11 @@
     <ClInclude Include="format.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ssl.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="ConnectionMonitor.h">
       <Filter>Header Files\Window</Filter>
+    </ClInclude>
+    <ClInclude Include="ssl.h">
+      <Filter>Header Files\SSL</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

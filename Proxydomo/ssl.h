@@ -15,6 +15,10 @@ void	TermSSL();
 // CAèÿñæèëÇê∂ê¨Ç∑ÇÈ
 void	GenerateCACertificate(bool rsa);
 
+class CSSLSession;
+
+bool	ManageCertificateAPI(const std::string& url, CSSLSession* sockBrowser);
+
 
 struct WOLFSSL;
 struct WOLFSSL_CTX;
@@ -23,8 +27,8 @@ struct WOLFSSL_CTX;
 class CSSLSession
 {
 public:
-	static std::unique_ptr<CSSLSession>	InitClientSession(CSocket* sock, const std::string& host);
-	static std::unique_ptr<CSSLSession> InitServerSession(CSocket* sock, const std::string& host);
+	static std::unique_ptr<CSSLSession>	InitClientSession(CSocket* sockWebsite, const std::string& host, CSocket* sockBrowser);
+	static std::unique_ptr<CSSLSession> InitServerSession(CSocket* sockBrowser, const std::string& host);
 
 	CSSLSession();
 	~CSSLSession();

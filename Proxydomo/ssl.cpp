@@ -11,6 +11,7 @@
 #include <unordered_map>
 #include <memory>
 #include <chrono>
+#include <boost\algorithm\string.hpp>
 
 #include <wolfssl\ssl.h>
 #include <wolfssl\wolfcrypt\asn_public.h>
@@ -32,6 +33,7 @@ using namespace UITranslator;
 #include "FilterOwner.h"
 #include "proximodo\filter.h"
 #include "CodeConvert.h"
+#include "proximodo\util.h"
 
 namespace {
 
@@ -62,6 +64,7 @@ struct CAKey {
 CAKey				g_caKey;	// ProxydomoCA secretKey
 
 std::unordered_map<std::string, bool>	g_mapHostAllowOrDeny;
+std::unordered_map<std::string, std::pair<std::chrono::steady_clock::time_point, bool>>	g_mapHostTempAllowOrDeny;
 CCriticalSection						g_csmapHost;
 int				g_loadCACount = 0;
 std::string		g_lastnoCAHost;
@@ -77,6 +80,18 @@ std::unordered_map<std::string, std::unique_ptr<serverCertAndKey>>	g_mapHostServ
 CCriticalSection	g_csmapHostServerCert;
 
 std::shared_ptr<Proxydomo::CMatcher>	g_pAllowSSLServerHostMatcher;
+
+// ManageCertificateErrorPage
+
+struct SSLCallbackContext
+{
+	std::string host;
+	CSocket*	sockBrowser;
+
+	SSLCallbackContext(const std::string& host, CSocket* sockBrowser) : host(host), sockBrowser(sockBrowser) {}
+};
+
+std::string	g_authentication;
 
 bool	LoadSystemTrustCA(WOLFSSL_CTX* ctx);
 
@@ -169,6 +184,49 @@ private:
 };
 
 
+bool	ManageCatificateErrorPage(CSocket* sockBrowser, const std::string& host, const CString& errorMsg, bool bNoCA)
+{
+	std::wstring filename = L"./html/certificate_error.html";
+	std::string contentType = "text/html";
+	std::string content = CUtil::getFile(filename);
+	if (content.empty())
+		return false;	// ‹ŒdialogŒ`Ž®‚Ö
+
+	content = CUtil::replaceAll(content, "%%title%%", CodeConvert::UTF8fromUTF16(GetTranslateMessage(IDD_CERTIFICATEERROR)));
+	content = CUtil::replaceAll(content, "%%static-waring%%", CodeConvert::UTF8fromUTF16(GetTranslateMessage(IDC_STATIC_WARNING)));
+	content = CUtil::replaceAll(content, "%%host-name%%", host);
+	content = CUtil::replaceAll(content, "%%auth%%", g_authentication);
+	content = CUtil::replaceAll(content, "%%error-detail%%", CodeConvert::UTF8fromUTF16(GetTranslateMessage(IDC_STATIC_DETAIL, (LPCWSTR)errorMsg)));
+
+	content = CUtil::replaceAll(content, "%%noCA%%", bNoCA ? "true" : "false");
+	content = CUtil::replaceAll(content, "%%try-getrootca%%", CodeConvert::UTF8fromUTF16(GetTranslateMessage(IDC_BTN_TRYTOGETROOTCA)));
+
+	content = CUtil::replaceAll(content, "%%static-connectioncontinue%%", CodeConvert::UTF8fromUTF16(GetTranslateMessage(IDC_STATIC_CONNECTIONCONTINUE)));
+	content = CUtil::replaceAll(content, "%%temp-allow%%", CodeConvert::UTF8fromUTF16(GetTranslateMessage(IDC_BTN_TEMPALLOW)));
+	content = CUtil::replaceAll(content, "%%temp-deny%%", CodeConvert::UTF8fromUTF16(GetTranslateMessage(IDC_BTN_TEMPDENY)));
+	content = CUtil::replaceAll(content, "%%permanent-allow%%", CodeConvert::UTF8fromUTF16(GetTranslateMessage(IDC_BTN_PERMANENTALLOW)));
+	content = CUtil::replaceAll(content, "%%permanent-deny%%", CodeConvert::UTF8fromUTF16(GetTranslateMessage(IDC_BTN_PERMANENTDENY)));
+
+#define CRLF "\r\n"
+
+	std::string sendInBuf =
+		"HTTP/1.1 200 OK" CRLF
+		"Content-Type: " + contentType + CRLF
+		"Content-Length: " + boost::lexical_cast<std::string>(content.size()) + CRLF
+		"Connection: close" + CRLF CRLF;
+	sendInBuf += content;
+
+	auto clientSession = CSSLSession::InitServerSession(sockBrowser, host);
+	ATLASSERT(clientSession);
+	if (clientSession == nullptr)
+		return true;	// deny
+
+	while (clientSession->Write(sendInBuf.data(), sendInBuf.length()));
+
+	clientSession->Close();
+
+	return true;
+}
 
 // ===========================================================
 
@@ -211,7 +269,8 @@ int myVerify(int preverify, WOLFSSL_X509_STORE_CTX* store)
 
 	{
 		CCritSecLock lock(g_csmapHost);
-		std::string host = static_cast<LPCSTR>(store->userCtx);
+		SSLCallbackContext* pcontext = static_cast<SSLCallbackContext*>(store->userCtx);
+		std::string host = pcontext->host;
 		if (host == g_lastnoCAHost) {
 			return 0;
 
@@ -228,6 +287,20 @@ int myVerify(int preverify, WOLFSSL_X509_STORE_CTX* store)
 			}
 		}
 
+		auto ittempfound = g_mapHostTempAllowOrDeny.find(host);
+		if (ittempfound != g_mapHostTempAllowOrDeny.end()) {
+			// 5•ª’´‚¦‚Ä‚¢‚ê‚ÎÁ‚·
+			if ((std::chrono::steady_clock::now() - ittempfound->second.first) > std::chrono::minutes(5)) {
+				g_mapHostTempAllowOrDeny.erase(ittempfound);
+			} else {
+				if (ittempfound->second.second) {
+					return 1;	// allow
+				} else {
+					return 0;	// deny
+				}
+			}
+		}
+
 		{
 			CFilterOwner owner;
 			CFilter filter(owner);
@@ -237,6 +310,10 @@ int myVerify(int preverify, WOLFSSL_X509_STORE_CTX* store)
 		}
 
 		bool bNoCA = (store->error == ASN_NO_SIGNER_E);
+		if (ManageCatificateErrorPage(pcontext->sockBrowser, host, buffer, bNoCA)) {
+			return 0;	// deny
+		}
+
 		CCertificateErrorDialog crtErrorDlg(host, buffer, bNoCA);
 		if (crtErrorDlg.DoModal() == IDOK) {
 			return 1;	// allow
@@ -505,6 +582,15 @@ bool	InitSSL()
 		}
 		g_pAllowSSLServerHostMatcher = Proxydomo::CMatcher::CreateMatcher(L"$LST(AllowSSLServerHostList)");
 
+		enum { kMaxAuthLength = 8 };
+		std::string chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+		std::random_device rd;
+		std::mt19937 engine(rd());
+		std::uniform_int_distribution<int> dist(0, chars.length() - 1);
+		for (int i = 0; i < kMaxAuthLength; ++i) {
+			g_authentication += chars[dist(engine)];
+		}
+
 		return true;
 
 	} catch (std::exception& e) {
@@ -653,6 +739,81 @@ void	GenerateCACertificate(bool rsa)
 }
 
 
+bool	ManageCertificateAPI(const std::string& url, CSSLSession* sockBrowser)
+{
+	std::string authURL = "/certificate_api?&auth=" + g_authentication;
+	if (boost::starts_with(url, authURL) == false)
+		return false;
+
+	auto funcGetValue = [&](const std::string& name) -> boost::optional<std::string> {
+		std::regex rx(name + "=([^& ]+)");
+		std::smatch result;
+		if (std::regex_search(url, result, rx) == false)
+			return boost::none;
+
+		std::string value = result[1].str();
+		return value;
+	};
+
+	auto operation = funcGetValue("operation");
+	if (!operation)
+		return false;
+
+	auto host = funcGetValue("host");
+	if (!host)
+		return false;
+
+	{
+		std::string status = "Success";
+		std::wstring description = L"none";
+		CCritSecLock lock(g_csmapHost);
+		if (*operation == "permanent-allow") {
+			g_mapHostAllowOrDeny[*host] = true;
+			description = GetTranslateMessage(ID_ADDHOSTALLOWLIST);
+
+		} else if (*operation == "permanent-deny") {
+			g_mapHostAllowOrDeny[*host] = false;
+			description = GetTranslateMessage(ID_ADDHOSTDENYLIST);
+
+		} else if (*operation == "temp-allow") {
+			g_mapHostTempAllowOrDeny[*host] = std::make_pair(std::chrono::steady_clock::now(), true);
+			description = GetTranslateMessage(ID_ADDHOSTTEMPALLOWLIST);
+
+		} else if (*operation == "temp-deny") {
+			g_mapHostTempAllowOrDeny[*host] = std::make_pair(std::chrono::steady_clock::now(), false);
+			description = GetTranslateMessage(ID_ADDHOSTTEMPDENYLIST);
+
+		} else if (*operation == "try-getrootca") {
+			auto DLData = WinHTTPWrapper::HttpDownloadData(("https://" + *host).c_str());
+			int lastLoadCACount = g_loadCACount;
+			g_loadCACount = 0;
+			ATLVERIFY(LoadSystemTrustCA(g_sslclientCtx));
+			if (lastLoadCACount < g_loadCACount) {	// success
+				description = CUtil::replaceAll(GetTranslateMessage(ID_SUCCEEDGETROOTCA), L"\n", L"\\\\n");	
+
+			} else {
+				description = GetTranslateMessage(ID_FAILEDGETROOTCA);
+				status = "Failure";
+			}
+		} else {
+			status = "Failure";
+		}
+
+		std::string content =  (boost::format(R"({"status": "%1%", "description": "%2%"})") % status % CodeConvert::UTF8fromUTF16(description)).str();
+		std::string sendInBuf =
+			"HTTP/1.1 200 OK" CRLF
+			"Content-Type: application/json" CRLF
+			"Content-Length: " + boost::lexical_cast<std::string>(content.size()) + CRLF
+			"Access-Control-Allow-Origin: *" CRLF
+			"Connection: close" + CRLF CRLF;
+		sendInBuf += content;
+		while (sockBrowser->Write(sendInBuf.data(), sendInBuf.length())) ;
+		sockBrowser->Close();
+	}
+	return true;
+}
+
+
 ////////////////////////////////////////////////////////////////
 // CSSLSession
 
@@ -669,7 +830,7 @@ CSSLSession::~CSSLSession()
 }
 
 
-std::unique_ptr<CSSLSession>	CSSLSession::InitClientSession(CSocket* sock, const std::string& host)
+std::unique_ptr<CSSLSession>	CSSLSession::InitClientSession(CSocket* sockWebsite, const std::string& host, CSocket* sockBrowser)
 {
 	auto session = std::make_unique<CSSLSession>();
 	int ret = 0;
@@ -678,7 +839,7 @@ std::unique_ptr<CSSLSession>	CSSLSession::InitClientSession(CSocket* sock, const
 	if (session->m_ssl == nullptr)
 		throw std::runtime_error("wolfSSL_new failed");
 
-	wolfSSL_set_fd(session->m_ssl, (int)sock->GetSocket());
+	wolfSSL_set_fd(session->m_ssl, (int)sockWebsite->GetSocket());
 
 	ret = wolfSSL_UseSNI(session->m_ssl, WOLFSSL_SNI_HOST_NAME, (const void*)host.c_str(), (unsigned short)host.length());
 	ATLASSERT(ret == SSL_SUCCESS);
@@ -689,9 +850,10 @@ std::unique_ptr<CSSLSession>	CSSLSession::InitClientSession(CSocket* sock, const
 	ret = wolfSSL_check_domain_name(session->m_ssl, host.c_str());
 	ATLASSERT(ret == SSL_SUCCESS);
 
-	wolfSSL_SetCertCbCtx(session->m_ssl, (void*)host.c_str());
+	SSLCallbackContext context(host, sockBrowser);
+	wolfSSL_SetCertCbCtx(session->m_ssl, (void*)&context);
 
-	sock->SetBlocking(true);
+	sockWebsite->SetBlocking(true);
 	ret = wolfSSL_connect(session->m_ssl);
 	if (ret != SSL_SUCCESS) {
 		int err = wolfSSL_get_error(session->m_ssl, 0);
@@ -705,13 +867,13 @@ std::unique_ptr<CSSLSession>	CSSLSession::InitClientSession(CSocket* sock, const
 	}
 
 	wolfSSL_set_using_nonblock(session->m_ssl, 1);
-	sock->SetBlocking(false);
+	sockWebsite->SetBlocking(false);
 
-	session->m_sock = sock;
+	session->m_sock = sockWebsite;
 	return session;
 }
 
-std::unique_ptr<CSSLSession> CSSLSession::InitServerSession(CSocket* sock, const std::string& host)
+std::unique_ptr<CSSLSession> CSSLSession::InitServerSession(CSocket* sockBrowser, const std::string& host)
 {
 	auto session = std::make_unique<CSSLSession>();
 	int ret = 0;
@@ -757,9 +919,9 @@ std::unique_ptr<CSSLSession> CSSLSession::InitServerSession(CSocket* sock, const
 		throw std::runtime_error("wolfSSL_new failed");
 	}
 
-	wolfSSL_set_fd(session->m_ssl, (int)sock->GetSocket());
+	wolfSSL_set_fd(session->m_ssl, (int)sockBrowser->GetSocket());
 
-	sock->SetBlocking(true);
+	sockBrowser->SetBlocking(true);
 	ret = wolfSSL_accept(session->m_ssl);
 	if (ret != SSL_SUCCESS) {
 		int err = wolfSSL_get_error(session->m_ssl, 0);
@@ -775,9 +937,9 @@ std::unique_ptr<CSSLSession> CSSLSession::InitServerSession(CSocket* sock, const
 	}
 
 	wolfSSL_set_using_nonblock(session->m_ssl, 1);
-	sock->SetBlocking(false);
+	sockBrowser->SetBlocking(false);
 
-	session->m_sock = sock;
+	session->m_sock = sockBrowser;
 	return session;
 }
 

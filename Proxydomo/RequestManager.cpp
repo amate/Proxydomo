@@ -879,7 +879,7 @@ void CRequestManager::_ConnectWebsite()
 
 		if (m_filterOwner.url.getProtocol() == L"https") {
 			if (CSettings::s_SSLFilter && m_bypass == false) {
-				if (m_pSSLServerSession = CSSLSession::InitClientSession(m_psockWebsite.get(), name)) {
+				if (m_pSSLServerSession = CSSLSession::InitClientSession(m_psockWebsite.get(), name, m_psockBrowser.get())) {
 					if (m_requestLine.method == "CONNECT") {
 						m_pSSLClientSession = CSSLSession::InitServerSession(m_psockBrowser.get(), name);
 					} else {
@@ -981,6 +981,11 @@ bool	CRequestManager::_HandleLocalPtron()
 
 			subpath = L"./html" + CUrl(m_filterOwner.rdirToHost).getPath();
 		}
+
+		if (ManageCertificateAPI(m_requestLine.url, m_pSSLClientSession.get())) {
+			return true;
+		}
+
 		wstring filename = CUtil::makePath(subpath);
 		if (::PathFileExists(Misc::GetFullPath_ForExe(filename.c_str()))) {
 			_FakeResponse("200 OK", filename);
