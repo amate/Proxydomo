@@ -75,7 +75,7 @@ CAPTION "About"
 FONT 9, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,130,76,50,14
-    LTEXT           "%APP_NAME% v%APP_VERSION%\n\n(c) Antony Boucher 2004\n(c) amate 2013-2015\n\nOpen-Source project distributed under GNU GPL",IDC_STATIC_APP,13,16,163,48
+    LTEXT           "%APP_NAME% v%APP_VERSION%\n\n(c) Antony Boucher 2004\n(c) amate 2013-2016\n\nOpen-Source project distributed under GNU GPL",IDC_STATIC_APP,13,16,163,48
     ICON            IDR_MAINFRAME,IDC_STATIC,129,11,20,20
     GROUPBOX        "",IDC_STATIC,6,2,174,70
 END
@@ -385,6 +385,11 @@ BEGIN
 END
 
 IDD_FILTEREDIT AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_ABOUTBOX AFX_DIALOG_LAYOUT
 BEGIN
     0
 END

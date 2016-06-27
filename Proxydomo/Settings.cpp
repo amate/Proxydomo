@@ -43,6 +43,7 @@
 #include "Matcher.h"
 #include "DirectoryWatcher.h"
 #include "UITranslator.h"
+#include "AdblockFilter.h"
 
 using namespace CodeConvert;
 using namespace boost::property_tree;
@@ -480,25 +481,34 @@ void CSettings::LoadList(const CString& filePath)
 		return ;	// XV‚³‚ê‚Ä‚¢‚È‚©‚Á‚½‚ç‹A‚é
 	hashedLists->prevLastWriteTime = lastWriteTime;
 
-	std::wifstream fs(filePath, std::ios::in | std::ios::binary);
-	if (!fs)
-		return ;
+	std::wifstream fs(filePath, std::ios::in);
+	if (!fs) {
+		ERROR_LOG << L"CSettings::LoadList file open error : " << (LPCTSTR)filePath;
+		return;
+	}
 	fs.imbue(std::locale(std::locale(), new std::codecvt_utf8_utf16<wchar_t, 0x10ffff, std::codecvt_mode::consume_header>));
 	int successLoadLineCount = 0;
 	{
 		hashedLists->PreHashWordList.clear();
 		hashedLists->URLHashList.clear();
 		hashedLists->deqNormalNode.clear();
+		hashedLists->adblockFilter.reset();
 
 		std::wstring pattern;
 		std::wstring strLine;
 		int nLineCount = 0;
 		bool	bAddPattern = false;
 		while (std::getline(fs, strLine)) {
-			if (bAddPattern == false && nLineCount < 6 && strLine.length() && strLine[0] == L'#') {
-				if (boost::algorithm::contains(strLine, L"LOGFILE")) {
+			if (bAddPattern == false && nLineCount < 6 && strLine.length()) {
+				if (strLine[0] == L'#' && boost::algorithm::contains(strLine, L"LOGFILE")) {
 					hashedLists->bLogFile = true;
 					break;	// LogFile
+
+				} else if (nLineCount == 0) {
+					if (boost::starts_with(strLine, L"[Adblock Plus")) {
+						hashedLists->adblockFilter = LoadAdblockFilter(fs, filename);
+						return ;	// 
+					}
 				}
 			}
 

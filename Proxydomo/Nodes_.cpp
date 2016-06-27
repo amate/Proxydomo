@@ -1044,9 +1044,17 @@ const UChar* CNode_List::match(const UChar* start, const UChar* stop, MatchData*
 	ATLASSERT(m_phashedCollection);
 
     if (start <= stop) {
+
 		const UChar* startOrigin = start;
         // Check the hashed list corresponding to the first char
 		boost::shared_lock<boost::shared_mutex>	lock(m_phashedCollection->mutex);
+
+		// adblockfilter
+		if (m_phashedCollection->adblockFilter) {
+			const UChar* ptr = m_phashedCollection->adblockFilter->match(start, stop, pMatch, m_nextNode);
+			return ptr;
+		}
+
 		// 固定プレフィックス
 		auto pmapPreHashWord = &m_phashedCollection->PreHashWordList;
 		while (start < stop) {

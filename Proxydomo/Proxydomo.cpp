@@ -36,6 +36,7 @@
 #include "ssl.h"
 #include "UITranslator.h"
 #include "WinHTTPWrapper.h"
+#include "DomainJudge.h"
 
 #ifdef UNIT_TEST
 #include <gtest\gtest.h>
@@ -84,6 +85,8 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR lp
 	wchar_t* argv[] = { exeFilePath };
 	testing::InitGoogleTest(&argc, argv);
 
+	Load_public_suffix_list();
+
 	int ret = RUN_ALL_TESTS();
 	getchar();
 	return ret;
@@ -122,6 +125,8 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR lp
 		CVersionControl::Run();
 
 		CSettings::LoadSettings();
+
+		ATLVERIFY(Load_public_suffix_list());
 
 		CSocket::Init();
 

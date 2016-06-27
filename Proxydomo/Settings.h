@@ -35,6 +35,7 @@
 #include <atlstr.h>
 #include <boost\thread.hpp>	// for shared_mutex
 #include "FilterDescriptor.h"
+#include "AdblockFilter.h"
 
 namespace Proxydomo { 
 	class CNode;
@@ -81,6 +82,9 @@ struct HashedListCollection {
 
 	// NormalƒŠƒXƒg
 	std::deque<NodeData>	deqNormalNode;
+
+	// adblockfilter
+	std::unique_ptr<CAdblockFilter>	adblockFilter;
 
 	HashedListCollection() : bLogFile(false), prevLastWriteTime(0), lineCount(0) {}
 };

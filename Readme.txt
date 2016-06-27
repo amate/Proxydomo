@@ -27,13 +27,13 @@ http://www31.atwiki.jp/lafe/pages/33.html
  
 ¡’˜ìŒ •\Ž¦
 Copyright (C) 2004 Antony BOUCHER
-Copyright (C) 2013 amate
+Copyright (C) 2013-2016 amate
  
  ‰æ‘œ‚Ìˆê•”‚ÉuVS2010ImageLibraryv‚Ìˆê•”‚ðŽg—p‚µ‚Ä‚¢‚Ü‚·B
  
 ¡ƒrƒ‹ƒh‚É‚Â‚¢‚Ä
 Visual Studio 2015 Community‚ª•K—v‚Å‚·
-ƒrƒ‹ƒh‚É‚Í boost(1.60~)‚Æ zlib(v1.2.8~) ‚Æ WTL(v90_4140~) ‚Æ ICU(v55.1~) ‚Æ wolfSSL(v3.6.0~) ‚ª•K—v‚È‚Ì‚Å‚»‚ê‚¼‚ê—pˆÓ‚µ‚Ä‚­‚¾‚³‚¢B
+ƒrƒ‹ƒh‚É‚Í boost(1.60~)‚Æ zlib(v1.2.8~) ‚Æ WTL(v91_5321_Final) ‚Æ ICU(v55.1~) ‚Æ wolfSSL(v3.9.6~) ‚ª•K—v‚È‚Ì‚Å‚»‚ê‚¼‚ê—pˆÓ‚µ‚Ä‚­‚¾‚³‚¢B
 
 Ÿboost
 http://www.boost.org/
@@ -92,6 +92,7 @@ wolfssl‚ÌƒvƒƒpƒeƒBƒy[ƒW‚ÅƒvƒŠƒvƒƒZƒbƒT->ƒvƒŠƒvƒƒZƒbƒT‚Ì’è‹`‚Ì“à—e‚ðˆÈ‰º‚Ì“à—
 
 ¦ƒvƒŠƒvƒƒZƒbƒT‚Ì’è‹`‚Ì•ÏX
 // for Debug/Release Win32
+WOLFSSL_LIB
 WOLFSSL_CERT_GEN
 WOLFSSL_KEY_GEN
 HAVE_AESGCM
@@ -114,6 +115,7 @@ NO_HC128
 NO_PSK
 
 // for Debug/Release x64
+WOLFSSL_LIB
 WOLFSSL_CERT_GEN
 WOLFSSL_KEY_GEN
 HAVE_AESGCM
@@ -148,7 +150,7 @@ Release‚È‚ç"ƒ}ƒ‹ƒ`ƒXƒŒƒbƒh (/MT)" ‚Ö•ÏX‚µ‚Ä‚­‚¾‚³‚¢
 
 v1.66‚ÌˆÈ‰º‚ÌC³‚ÍwolfSSL‘¤‚Ìƒ\[ƒX‚ðC³‚·‚é•K—v‚ª‚ ‚è‚Ü‚·
 EƒT[ƒo[‚©‚ç‘—‚ç‚ê‚Ä‚­‚éƒ‹[ƒgCAØ–¾‘‚ª‚¨‚©‚µ‚¢‚Æ‚«"ASN no signer error to confirm failure"‚ÌŒx‚ªo‚é‚Ì‚ðC³
-internal.c‚Ì 4305s–Ú‚ ‚½‚è‚ð
+internal.c‚Ì 6271s–Ú‚ ‚½‚è‚ð
 
 // before
 WOLFSSL_MSG("Failed to verify CA from chain");

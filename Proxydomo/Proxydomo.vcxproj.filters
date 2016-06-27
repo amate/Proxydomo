@@ -195,6 +195,12 @@
     <ClCompile Include="ssl.cpp">
       <Filter>Header Files\SSL</Filter>
     </ClCompile>
+    <ClCompile Include="AdblockFilter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DomainJudge.cpp">
+      <Filter>Header Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -403,6 +409,12 @@
     </ClInclude>
     <ClInclude Include="ssl.h">
       <Filter>Header Files\SSL</Filter>
+    </ClInclude>
+    <ClInclude Include="AdblockFilter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DomainJudge.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
