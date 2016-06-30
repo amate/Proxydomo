@@ -48,6 +48,7 @@
 #include "..\Settings.h"
 #include "..\AppConst.h"
 #include "..\Misc.h"
+#include "..\AdblockFilter.h"
 
 using namespace std;
 using namespace Proxydomo;
@@ -481,7 +482,24 @@ std::wstring CExpander::expand(const std::wstring& pattern, CFilter& filter) {
                     }
                     output << ss.str();
 #endif
-                }
+				} else if (command == L"ELEMENTHIDINGCSS") {
+					std::lock_guard<std::recursive_mutex> lock(CSettings::s_mutexHashedLists);
+					auto& hashedLists = CSettings::s_mapHashedLists[CodeConvert::UTF8fromUTF16(content)];
+					auto phashedCollection = hashedLists.get();
+					if (phashedCollection) {
+						boost::shared_lock<boost::shared_mutex>	lock(phashedCollection->mutex);
+
+						// adblockfilter
+						if (phashedCollection->adblockFilter) {
+							std::wstring cssSelectors = phashedCollection->adblockFilter->ElementHidingCssSelector(filter.owner.url.getHost());
+							if (cssSelectors.length() > 0) {
+								std::wstring cssbody = L"<style>" + cssSelectors
+													+ L"{ display:none !important; }</style>";
+								output << cssbody;
+							}
+						}
+					}
+				}
             } else {
                 // not a command, consume the $ as a normal character
                 output << '$';

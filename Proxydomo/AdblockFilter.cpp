@@ -3,14 +3,38 @@
 #include <boost/algorithm/string.hpp> 
 #include <boost/utility/string_ref.hpp>
 #include <boost/optional.hpp>
+#include <boost/container/flat_set.hpp>
+#include <boost/algorithm/string/join.hpp>
 #include "Nodes.h"
 #include "FilterOwner.h"
 #include "Log.h"
+#include "Logger.h"
 #include "DomainJudge.h"
 
 using namespace Proxydomo;
 
 enum { kMaxDomainLength = 255 };
+
+namespace {
+
+
+bool IsDomainMatch(const std::wstring& urlHost, const std::wstring& domain)
+{
+	if (boost::iends_with(urlHost, domain)) {
+		if (urlHost.length() == domain.length()) {
+			return true;
+		} else {
+			size_t dotPos = urlHost.length() - domain.length() - 1;
+			if (urlHost[dotPos] == L'.') {
+				return true;
+			}
+		}
+	}
+	return false;
+};
+
+
+}	// namespace
 
 
 std::deque<std::wstring>	SpliteDomain(const std::wstring& urlHost)
@@ -292,6 +316,167 @@ const UChar* CAdblockFilter::match(const UChar* start, const UChar* stop, Proxyd
 	return nullptr;
 }
 
+std::wstring CAdblockFilter::ElementHidingCssSelector(const std::wstring& urlHost)
+{
+	boost::container::flat_set<std::wstring> cssSelectors;
+	for (const auto& selector : ElementHidingAllDomainList) {
+		cssSelectors.emplace(selector);
+	}
+
+	std::vector<std::wstring>	exceptionCssSelectors;
+
+	const wchar_t* urlBegin = urlHost.data();
+	const wchar_t* urlEnd = urlBegin + urlHost.length();
+	bool bSep = true;
+	for (; urlBegin != urlEnd; ++urlBegin) {
+		if (bSep) {
+			std::wstring domain = urlBegin;
+			auto range = ElementHidingList.equal_range(domain);
+			for (auto it = range.first; it != range.second; ++it) {
+				if (it->second->IsMatchWhiteDomain(urlHost) == false) {
+					cssSelectors.emplace(it->second->cssSelector);
+				}
+			}
+
+			auto exceptRange = ElementHidingExceptionList.equal_range(domain);
+			for (auto it = exceptRange.first; it != exceptRange.second; ++it) {
+				exceptionCssSelectors.emplace_back(it->second);
+			}
+		}
+
+		if (*urlBegin == L'.') {
+			bSep = true;
+		} else {
+			bSep = false;
+		}
+	}
+
+	for (const auto& whiteDomainList : ElementHidingWhiteList) {
+		if (whiteDomainList->IsMatchWhiteDomain(urlHost) == false) {
+			cssSelectors.emplace(whiteDomainList->cssSelector);
+		}
+	}
+
+	auto funcEraseCssSelector = [&cssSelectors](const std::vector<std::wstring>& eraseRuleList) {
+		for (const auto& rule : eraseRuleList) {
+			cssSelectors.erase(rule);
+		}
+	};
+	funcEraseCssSelector(ElementHidingAllDomainExceptionList);
+	funcEraseCssSelector(exceptionCssSelectors);
+
+	std::wstring strJoinSelectors = boost::join(cssSelectors, L",");
+	return strJoinSelectors;
+}
+
+void	FuncEmplaceUnorderedMap(std::unordered_multimap<std::wstring, std::wstring>& list, const std::wstring& domain, const std::wstring& cssSelector)
+{
+	list.emplace(domain, cssSelector);
+}
+
+void	FuncEmplaceVector(std::vector<std::pair<std::wstring, std::wstring>>& list, const std::wstring& domain, const std::wstring& cssSelector)
+{
+	list.emplace_back(domain, cssSelector);
+}
+
+template<class TList, class TFunc>
+void	EmplaceBackDomainCssSelector(const std::wstring& sep, const std::wstring& line, TList& list, TFunc emplace)
+{
+	size_t sepPos = line.find(sep);
+	ATLASSERT(sepPos != std::wstring::npos);
+	std::wstring cssSelector = line.substr(sepPos + sep.length());
+	std::wstring domains = line.substr(0, sepPos);
+	std::vector<std::wstring> vecDomains;
+	boost::split(vecDomains, domains, boost::is_any_of(L","));
+	ATLASSERT(vecDomains.size());
+	for (const auto& domain : vecDomains) {
+		emplace(list, domain, cssSelector);
+	}
+};
+
+/////////////////////////////////////////////////////////////////////////////////
+// WhiteDomainList
+
+bool CAdblockFilter::WhiteDomainList::ParseLine(const std::wstring& strLine)
+{
+	size_t sepPos = strLine.find(L"##");
+	ATLASSERT(sepPos != std::wstring::npos);
+	std::wstring cssSelector = strLine.substr(sepPos + 2);
+	std::wstring domains = strLine.substr(0, sepPos);
+	std::vector<std::wstring> vecDomains;
+	boost::split(vecDomains, domains, boost::is_any_of(L","));
+	for (const auto& domain : vecDomains) {
+		ATLASSERT(domain.length() > 0 && domain.front() == L'~');
+		if (domain.empty())
+			continue;
+
+		if (domain.front() != L'~') {
+			ATLASSERT(FALSE);
+			WARN_LOG << L"WhiteDomainList : ~ not contain domain line : " << strLine;
+			continue;
+		}
+
+		vecWhiteDomains.emplace_back(domain.substr(1));
+	}
+	if (vecWhiteDomains.empty()) {
+		ATLASSERT(FALSE);
+		return false;
+	}
+	this->cssSelector = cssSelector;
+	return true;
+}
+
+bool CAdblockFilter::WhiteDomainList::IsMatchWhiteDomain(const std::wstring& urlHost) const
+{
+	for (const auto& domain : vecWhiteDomains) {
+		if (IsDomainMatch(urlHost, domain)) {
+			return true;
+		}
+	}
+	return false;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// DomainCssSelector
+
+std::vector<std::wstring> CAdblockFilter::DomainCssSelector::ParseLine(const std::wstring& strLine)
+{
+	std::vector<std::wstring>	targetDomains;
+
+	size_t sepPos = strLine.find(L"##");
+	ATLASSERT(sepPos != std::wstring::npos);
+	std::wstring cssSelector = strLine.substr(sepPos + 2);
+	std::wstring domains = strLine.substr(0, sepPos);
+	std::vector<std::wstring> vecDomains;
+	boost::split(vecDomains, domains, boost::is_any_of(L","));
+	for (const auto& domain : vecDomains) {
+		ATLASSERT(domain.length());
+		if (domain.empty())
+			continue;
+
+		if (domain.front() == L'~') {
+			vecWhiteDomains.emplace_back(domain.substr(1));
+		} else {
+			targetDomains.emplace_back(domain);
+		}
+	}
+	ATLASSERT(targetDomains.size());
+	this->cssSelector = cssSelector;
+	return targetDomains;
+}
+
+bool CAdblockFilter::DomainCssSelector::IsMatchWhiteDomain(const std::wstring& urlHost) const
+{
+	for (const auto& domain : vecWhiteDomains) {
+		if (IsDomainMatch(urlHost, domain)) {
+			return true;
+		}
+	}
+	return false;
+}
+
+
+
 bool	CAdblockFilter::AddPattern(const std::wstring& text, int listLine)
 {
 	if (boost::starts_with(text, L"@@")) {
@@ -300,6 +485,47 @@ bool	CAdblockFilter::AddPattern(const std::wstring& text, int listLine)
 			return false;
 		}
 		return whilteListFilter->AddPattern(text.substr(2), listLine);
+	}
+
+	if (boost::contains(text, L"#@#")) {
+		if (boost::starts_with(text, L"#@#")) {
+			ElementHidingAllDomainExceptionList.emplace_back(text.substr(3));
+			return true;
+
+		} else {
+			EmplaceBackDomainCssSelector(L"#@#", text, ElementHidingExceptionList, FuncEmplaceUnorderedMap);
+			return true;
+		}
+	} else if (boost::contains(text, L"##")) {
+		if (boost::starts_with(text, L"##")) {
+			ElementHidingAllDomainList.emplace_back(text.substr(2));
+			return true;
+
+		} else {
+			if (text.front() == L'~') {
+				auto whiteDomainList = std::make_unique<WhiteDomainList>();
+				if (whiteDomainList->ParseLine(text)) {
+					ElementHidingWhiteList.emplace_back(std::move(whiteDomainList));
+					return true;
+
+				} else {
+					return false;
+				}
+			} else {
+				auto domainCssSelector = std::make_shared<DomainCssSelector>();
+				auto targetDomains = domainCssSelector->ParseLine(text);
+				for (const auto& domain : targetDomains) {
+					ElementHidingList.emplace(domain, domainCssSelector);
+				}
+				if (targetDomains.empty()) {
+					return false;
+
+				} else {
+					return true;
+				}
+			}
+			return true;
+		}
 	}
 
 	std::wstring pattern;
@@ -496,23 +722,9 @@ struct DomainOption : public IOptionType
 		CUrl urlReferer(referer);
 		std::wstring refHost = urlReferer.getHost();
 
-		auto funcIsDomainMatch = [refHost](const std::wstring& domain) {
-			if (boost::iends_with(refHost, domain)) {
-				if (refHost.length() == domain.length()) {
-					return true;
-				} else {
-					size_t dotPos = refHost.length() - domain.length() - 1;
-					if (refHost[dotPos] == L'.') {
-						return true;
-					}
-				}
-			}
-			return false;
-		};
-
 		bool bMatch = false;
 		for (const std::wstring& domain : m_vecDomains) {
-			if (funcIsDomainMatch(domain)) {
+			if (IsDomainMatch(refHost, domain)) {
 				bMatch = true;
 				break;
 			}
@@ -522,7 +734,7 @@ struct DomainOption : public IOptionType
 		}
 		if (bMatch) {
 			for (const std::wstring& negativeDomain : m_vecNegativeDomains) {
-				if (funcIsDomainMatch(negativeDomain)) {
+				if (IsDomainMatch(refHost, negativeDomain)) {
 					return false;
 				}
 			}
@@ -594,13 +806,11 @@ std::unique_ptr<CAdblockFilter>	LoadAdblockFilter(std::wistream& fs, const std::
 	while (std::getline(fs, strLine)) {
 		++nLineCount;
 		if (strLine.empty() == false && strLine[0] != L'!') {
-			if (boost::contains(strLine, L"##") == false && boost::contains(strLine, L"#@#") == false) {
-				bool bSuccess = adblockFilter->AddPattern(strLine, nLineCount);
-				if (bSuccess == false) {
-					CLog::FilterEvent(kLogFilterListBadLine, nLineCount, filename, "");
-				} else {
-					++successLoadLineCount;
-				}
+			bool bSuccess = adblockFilter->AddPattern(strLine, nLineCount);
+			if (bSuccess == false) {
+				CLog::FilterEvent(kLogFilterListBadLine, nLineCount, filename, "");
+			} else {
+				++successLoadLineCount;
 			}
 		}
 		if (fs.eof())
@@ -834,6 +1044,76 @@ TEST(AdblockFilter, LoadAdblockFilter)
 	EXPECT_TRUE(MatchTest(*adfilter, L"http://tatsumi-sys.jp/test.asp?uid="));
 
 	int a = 0;
+}
+
+TEST(AdblockFilter, element_hiding_list)
+{
+	{
+		CAdblockFilter adblockFilter;
+		EXPECT_TRUE(adblockFilter.AddPattern(L"##div"));
+		EXPECT_TRUE(adblockFilter.ElementHidingCssSelector(L"example.com") == L"div");
+	}
+	{
+		CAdblockFilter adblockFilter;
+		EXPECT_TRUE(adblockFilter.AddPattern(L"example.com##div"));
+		EXPECT_TRUE(adblockFilter.ElementHidingCssSelector(L"example.com") == L"div");
+		EXPECT_TRUE(adblockFilter.ElementHidingCssSelector(L"www.example.com") == L"div");
+		EXPECT_TRUE(adblockFilter.ElementHidingCssSelector(L"test.com") == L"");
+	}
+	{
+		CAdblockFilter adblockFilter;
+		EXPECT_TRUE(adblockFilter.AddPattern(L"example.com,test.jp##div"));
+		EXPECT_TRUE(adblockFilter.ElementHidingCssSelector(L"example.com") == L"div");
+		EXPECT_TRUE(adblockFilter.ElementHidingCssSelector(L"test.jp") == L"div");
+		EXPECT_TRUE(adblockFilter.ElementHidingCssSelector(L"jp") == L"");
+	}
+	{
+		CAdblockFilter adblockFilter;
+		EXPECT_TRUE(adblockFilter.AddPattern(L"~example.com##div"));
+		EXPECT_TRUE(adblockFilter.ElementHidingCssSelector(L"example.com") == L"");
+		EXPECT_TRUE(adblockFilter.ElementHidingCssSelector(L"www.example.com") == L"");
+		EXPECT_TRUE(adblockFilter.ElementHidingCssSelector(L"test.com") == L"div");
+		EXPECT_TRUE(adblockFilter.ElementHidingCssSelector(L"com") == L"div");
+		EXPECT_TRUE(adblockFilter.ElementHidingCssSelector(L"www.test.com") == L"div");
+	}
+	{
+		CAdblockFilter adblockFilter;
+		EXPECT_TRUE(adblockFilter.AddPattern(L"##div"));
+		EXPECT_TRUE(adblockFilter.AddPattern(L"example.com#@#div"));
+		EXPECT_TRUE(adblockFilter.ElementHidingCssSelector(L"example.com") == L"");
+		EXPECT_TRUE(adblockFilter.ElementHidingCssSelector(L"www.example.com") == L"");
+		EXPECT_TRUE(adblockFilter.ElementHidingCssSelector(L"test.com") == L"div");
+	}
+	{
+		CAdblockFilter adblockFilter;
+		EXPECT_TRUE(adblockFilter.AddPattern(L"##div"));
+		EXPECT_TRUE(adblockFilter.AddPattern(L"example.com##div"));
+		EXPECT_TRUE(adblockFilter.ElementHidingCssSelector(L"example.com") == L"div");
+		EXPECT_TRUE(adblockFilter.ElementHidingCssSelector(L"test.com") == L"div");
+
+		EXPECT_TRUE(adblockFilter.AddPattern(L"###ad"));
+		EXPECT_TRUE(adblockFilter.AddPattern(L"##.cc"));
+		EXPECT_STREQ(adblockFilter.ElementHidingCssSelector(L"test.com").c_str(), L"#ad,.cc,div");
+
+		EXPECT_TRUE(adblockFilter.AddPattern(L"test.com#@##ad"));
+		EXPECT_STREQ(adblockFilter.ElementHidingCssSelector(L"test.com").c_str(), L".cc,div");
+	}
+	{
+		CAdblockFilter adblockFilter;
+		EXPECT_TRUE(adblockFilter.AddPattern(L"example.com,~mail.example.com##selector"));
+		EXPECT_TRUE(adblockFilter.ElementHidingCssSelector(L"example.com") == L"selector");
+		EXPECT_TRUE(adblockFilter.ElementHidingCssSelector(L"adverts.example.com") == L"selector");
+		EXPECT_TRUE(adblockFilter.ElementHidingCssSelector(L"mail.example.com") == L"");
+		EXPECT_TRUE(adblockFilter.ElementHidingCssSelector(L"www.mail.example.com") == L"");
+	}
+	{
+		CAdblockFilter adblockFilter;
+		EXPECT_TRUE(adblockFilter.AddPattern(L"~example.com,~test.jp##selector"));
+		EXPECT_TRUE(adblockFilter.ElementHidingCssSelector(L"abc.com") == L"selector");
+		EXPECT_TRUE(adblockFilter.ElementHidingCssSelector(L"example.com") == L"");
+		EXPECT_TRUE(adblockFilter.ElementHidingCssSelector(L"test.jp") == L"");
+		EXPECT_TRUE(adblockFilter.ElementHidingCssSelector(L"www.example.com") == L"");
+	}
 }
 
 #endif	// UNIT_TEST

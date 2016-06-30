@@ -26,6 +26,7 @@
 #include <memory>
 #include <map>
 #include <sstream>
+#include <chrono>
 #include "DataReceptor.h"
 #include "proximodo\textfilter.h"
 #include <unicode\ustring.h>
@@ -47,6 +48,7 @@ public:
     void DataDump();
 
 private:
+	void	_ReloadFilters();
 
 	// Data members
 
@@ -58,6 +60,7 @@ private:
 
     // the filters
     std::vector<std::unique_ptr<CTextFilter>> m_vecpTextfilters;
+	std::chrono::steady_clock::time_point	m_lastFilterEnumTime;
     
     // the next filter to try (if a filter needs more data,
     // we'll start with it on next data arrival)

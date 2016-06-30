@@ -77,6 +77,7 @@ bool			CSettings::s_tasktrayOnCloseBotton = false;
 std::thread		CSettings::s_threadSaveFilter;
 
 std::vector<std::unique_ptr<FilterItem>>	CSettings::s_vecpFilters;
+std::chrono::steady_clock::time_point		CSettings::s_lastFiltersSaveTime;
 CCriticalSection							CSettings::s_csFilters;
 
 std::shared_ptr<Proxydomo::CMatcher>	CSettings::s_pBypassMatcher;
@@ -298,6 +299,7 @@ void CSettings::LoadFilter()
 		wptree& ptChild = opChild.get();
 		LoadFilterItem(ptChild, s_vecpFilters);
 	}
+	s_lastFiltersSaveTime = std::chrono::steady_clock::now();
 }
 
 void	SaveFilterItem(std::vector<std::unique_ptr<FilterItem>>& vecpFilter, wptree& pt, std::atomic<bool>& bCansel)
@@ -352,6 +354,8 @@ void CSettings::SaveFilter()
 		}
 	};
 	funcCopy(&s_vecpFilters, pFilter);
+
+	s_lastFiltersSaveTime = std::chrono::steady_clock::now();
 
 	static CCriticalSection	 s_cs;
 	static std::atomic<bool> s_bCancel(false);
@@ -428,10 +432,11 @@ static void ActiveFilterCallFunc(std::vector<std::unique_ptr<FilterItem>>& vecFi
 	}
 }
 
-void CSettings::EnumActiveFilter(std::function<void (CFilterDescriptor*)> func)
+std::chrono::steady_clock::time_point CSettings::EnumActiveFilter(std::function<void (CFilterDescriptor*)> func)
 {
 	CCritSecLock	lock(CSettings::s_csFilters);
 	ActiveFilterCallFunc(s_vecpFilters, func);
+	return s_lastFiltersSaveTime;
 }
 
 /// ÅI‘‚«‚İ‚ğæ“¾

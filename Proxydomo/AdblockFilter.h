@@ -23,6 +23,8 @@ public:
 
 	const UChar* match(const UChar* start, const UChar* stop, Proxydomo::MatchData* pMatch, Proxydomo::CNode* nextNode);
 
+	std::wstring ElementHidingCssSelector(const std::wstring& urlHost);
+
 	bool	AddPattern(const std::wstring& text, int listLine = -1);
 
 private:
@@ -66,7 +68,36 @@ private:
 
 	// * “ü‚è
 	std::deque<std::pair<std::wstring, NodeOption>>	URLHashSpecialCharacterList;
+
+	// element hiding list
+	std::vector<std::wstring>	ElementHidingAllDomainList;	// ‚·‚×‚Ä‚ÌƒhƒƒCƒ“‚Å—LŒø ##css_selector
+
+	struct DomainCssSelector {
+		std::vector<std::wstring>	vecWhiteDomains;
+		std::wstring	cssSelector;
+
+		std::vector<std::wstring>	ParseLine(const std::wstring& strLine);
+
+		bool IsMatchWhiteDomain(const std::wstring& urlHost) const;
+	};
+	// domain[,~sub.domain]##css_selector
+	std::unordered_multimap<std::wstring, std::shared_ptr<DomainCssSelector>> ElementHidingList;	
+
+	struct WhiteDomainList {
+		std::vector<std::wstring>	vecWhiteDomains;
+		std::wstring	cssSelector;
+
+		bool ParseLine(const std::wstring& strLine);
+
+		bool IsMatchWhiteDomain(const std::wstring& urlHost) const;
+	};
+	// ~domain[,~domain2]##css_selector
+	std::vector<std::unique_ptr<WhiteDomainList>> ElementHidingWhiteList;
+
+	std::vector<std::wstring>	ElementHidingAllDomainExceptionList;	// #@#css_selector
+	std::unordered_multimap<std::wstring, std::wstring> ElementHidingExceptionList;	// domain#@#css_selector
 	
+	// white list
 	std::unique_ptr<CAdblockFilter>	whilteListFilter;
 };
 

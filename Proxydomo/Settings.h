@@ -31,6 +31,7 @@
 #include <mutex>
 #include <array>
 #include <thread>
+#include <chrono>
 #include <atlsync.h>
 #include <atlstr.h>
 #include <boost\thread.hpp>	// for shared_mutex
@@ -144,6 +145,7 @@ public:
 	static CCriticalSection		s_csFilters;
 	// 全所有フィルター
 	static std::vector<std::unique_ptr<FilterItem>>	s_vecpFilters;
+	static std::chrono::steady_clock::time_point s_lastFiltersSaveTime;
 
 	// Bypass フィルター
 	static std::shared_ptr<Proxydomo::CMatcher>	s_pBypassMatcher;
@@ -152,7 +154,8 @@ public:
 	static std::shared_ptr<Proxydomo::CMatcher> s_pPriorityCharsetMatcher;
 
 	/// アクティブなフィルターを返す (※ lockは必要ない)
-	static void EnumActiveFilter(std::function<void (CFilterDescriptor*)> func);
+	static std::chrono::steady_clock::time_point 
+				EnumActiveFilter(std::function<void (CFilterDescriptor*)> func);
 
 	// std::lock_guard<std::recursive_mutex> lock(CSettings::s_mutexHashedLists);
 	static std::recursive_mutex								s_mutexHashedLists;

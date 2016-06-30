@@ -51,11 +51,13 @@ CTextBuffer::CTextBuffer(CFilterOwner& owner, IDataReceptor* output) :
 	m_owner(owner), m_output(output), 
 	m_bCharaCodeDectated(false), m_pConverter(nullptr), m_bDataDump(false), m_bJISCode(false), m_bBinary(false)
 {
+#if 0
 	CSettings::EnumActiveFilter([&, this](CFilterDescriptor* filter) {
 		if (filter->filterType == filter->kFilterText)
 			m_vecpTextfilters.emplace_back(new CTextFilter(owner, *filter));
 	});
 	m_currentFilter = m_vecpTextfilters.begin();
+#endif
 }
 
 
@@ -63,12 +65,22 @@ CTextBuffer::~CTextBuffer(void)
 {
 }
 
+void	CTextBuffer::_ReloadFilters()
+{
+	if (m_lastFilterEnumTime != CSettings::s_lastFiltersSaveTime) {
+		m_lastFilterEnumTime = CSettings::EnumActiveFilter([this](CFilterDescriptor* filter) {
+			if (filter->filterType == filter->kFilterText)
+				m_vecpTextfilters.emplace_back(new CTextFilter(m_owner, *filter));
+		});
+	}
+}
 
 // IDataReceptor
 
 void CTextBuffer::DataReset()
 {
 	m_buffer.clear();
+	_ReloadFilters();
 	m_currentFilter = m_vecpTextfilters.begin();
 	for (auto& filter : m_vecpTextfilters)
 		filter->reset();

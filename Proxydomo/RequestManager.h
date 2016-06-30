@@ -64,6 +64,7 @@ public:
 	void	SwitchToInvalid();
 
 private:
+	void	_ReloadHeaderFilters();
 
 	// ブラウザ ⇒ Proxy(this) ⇒ サイト
 	bool	_ReceiveOut();
@@ -115,6 +116,7 @@ private:
 	CTextBuffer	m_textFilterChain;
 	std::vector<std::unique_ptr<CHeaderFilter>>	m_vecpInFilter;
 	std::vector<std::unique_ptr<CHeaderFilter>>	m_vecpOutFilter;
+	std::chrono::steady_clock::time_point	m_lastFiltersEnumTime;
 
 	// Sockets
 	std::unique_ptr<CSocket>	m_psockBrowser;

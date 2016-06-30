@@ -195,10 +195,10 @@
     <ClCompile Include="ssl.cpp">
       <Filter>Header Files\SSL</Filter>
     </ClCompile>
-    <ClCompile Include="AdblockFilter.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="DomainJudge.cpp">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AdblockFilter.cpp">
       <Filter>Header Files</Filter>
     </ClCompile>
   </ItemGroup>

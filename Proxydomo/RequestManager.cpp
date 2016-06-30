@@ -104,17 +104,6 @@ CRequestManager::CRequestManager(std::unique_ptr<CSocket>&& psockBrowser) :
 {
 	m_filterOwner.requestNumber = 0;
 
-	CSettings::EnumActiveFilter([&, this](CFilterDescriptor* filter) {
-		try {
-			if (filter->filterType == filter->kFilterHeadIn)
-				m_vecpInFilter.emplace_back(new CHeaderFilter(*filter, m_filterOwner));
-			else if (filter->filterType == filter->kFilterHeadOut)
-				m_vecpOutFilter.emplace_back(new CHeaderFilter(*filter, m_filterOwner));
-		} catch (...) {
-			// Invalid filters are just ignored
-		}
-	});
-
 	m_connectionData = CConnectionManager::CreateConnectionData();
 }
 
@@ -245,6 +234,22 @@ void	CRequestManager::SwitchToInvalid()
 	}
 }
 
+void	CRequestManager::_ReloadHeaderFilters()
+{
+	if (m_lastFiltersEnumTime != CSettings::s_lastFiltersSaveTime) {
+		m_lastFiltersEnumTime = CSettings::EnumActiveFilter([&, this](CFilterDescriptor* filter) {
+			try {
+				if (filter->filterType == filter->kFilterHeadIn)
+					m_vecpInFilter.emplace_back(new CHeaderFilter(*filter, m_filterOwner));
+				else if (filter->filterType == filter->kFilterHeadOut)
+					m_vecpOutFilter.emplace_back(new CHeaderFilter(*filter, m_filterOwner));
+			}
+			catch (...) {
+				// Invalid filters are just ignored
+			}
+		});
+	}
+}
 
 void	CRequestManager::_JudgeManageContinue()
 {
@@ -371,6 +376,8 @@ void CRequestManager::_ProcessOut()
 			{
 				if (m_recvOutBuf.empty())
 					return ;			// 処理するのに十分なデータがないので帰る
+
+				_ReloadHeaderFilters();
 			
 				m_outStep = STEP::STEP_FIRSTLINE;
 				m_connectionData->SetOutStep(m_outStep);
