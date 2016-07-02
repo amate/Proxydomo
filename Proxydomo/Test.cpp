@@ -3,7 +3,11 @@
 
 #ifdef UNIT_TEST
 #include <gtest\gtest.h>
+//#ifdef _WIN64
+//#pragma comment(lib, "gtest.lib")
+//#else
 #pragma comment(lib, "gtestd.lib")
+//#endif
 
 #include "Nodes.h"
 #include "FilterOwner.h"

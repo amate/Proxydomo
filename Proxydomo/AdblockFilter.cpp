@@ -818,7 +818,6 @@ std::unique_ptr<CAdblockFilter>	LoadAdblockFilter(std::wistream& fs, const std::
 
 #ifdef UNIT_TEST
 #include <gtest\gtest.h>
-#pragma comment(lib, "gtestd.lib")
 
 #include "FilterOwner.h"
 
@@ -915,19 +914,32 @@ TEST(AdblockFilter, IOptionType)
 	}
 }
 
-bool	MatchTest(CAdblockFilter& adblockFilter, const std::wstring& test)
+bool	MatchTestReferer(CAdblockFilter& adblockFilter, const std::wstring& test, const std::wstring& referer, bool bhtml = true)
 {
 	CFilterOwner owner;
 	owner.SetInHeader(L"Host", L"www.host.org");
-	std::wstring url = L"http://www.host.org/path/page.html?query=true#anchor";
+	owner.SetOutHeader(L"Referer", referer);
+	std::wstring url = test;
 	owner.url.parseUrl(url);
 	//owner.cnxNumber = 1;
-	owner.fileType = "htm";
+	if (bhtml) {
+		owner.fileType = "htm";
+	} else {
+		owner.SetInHeader(L"Content-Type", L"image/png");
+	}
 	CFilter filter(owner);
 	Proxydomo::MatchData matchData(&filter);
 
 	return adblockFilter.match(test.c_str(), test.c_str() + test.length(), &matchData, nullptr) != nullptr;
 }
+
+bool	MatchTest(CAdblockFilter& adblockFilter, const std::wstring& test)
+{
+	return MatchTestReferer(adblockFilter, test, L"");
+}
+
+
+
 
 TEST(AdblockFilter, AddPattern)
 {
@@ -1034,6 +1046,9 @@ TEST(AdblockFilter, LoadAdblockFilter)
 	EXPECT_TRUE(MatchTest(*adfilter, L"http://test.2bee.jp/count.php"));
 	EXPECT_TRUE(MatchTest(*adfilter, L"http://tatsumi-sys.jp/test.asp?uid="));
 
+	EXPECT_TRUE(MatchTestReferer(*adfilter, L"http://suvt.socdm.com/aux", L"http://www.tenki.jp/forecast", false));
+
+	
 	int a = 0;
 }
 

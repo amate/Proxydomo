@@ -109,7 +109,6 @@ std::wstring ParseOriginHostName(const std::wstring& host)
 
 #ifdef UNIT_TEST
 #include <gtest\gtest.h>
-#pragma comment(lib, "gtestd.lib")
 
 TEST(DomainJudge, 1)
 {
