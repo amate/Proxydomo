@@ -632,6 +632,10 @@ void CRequestManager::_ProcessOut()
 					CLog::HttpEvent(kLogHttpSendOut, m_ipFromAddress, m_filterOwner.requestNumber, m_sendOutBuf);
 
 					m_sendOutBuf += CRLF;
+
+				} else {	// m_inStep != STEP::STEP_START
+					CLog::AddNewRequest(m_filterOwner.requestNumber, m_filterOwner.responseLine.code, "", "-1",
+						UTF8fromUTF16(m_filterOwner.url.getUrl()), m_filterOwner.killed);
 				}
 
 				// Decide next step
@@ -1404,7 +1408,9 @@ void	CRequestManager::_ProcessIn()
 					//m_filterOwner.fileType.clear();	// Ç±Ç±Ç≈ÇÕè¡Ç≥Ç»Ç¢
 				}
 
-				CLog::AddNewRequest(m_filterOwner.requestNumber, m_filterOwner.responseLine.code, contentType, m_inChunked ? std::string("-1") : contentLength, UTF8fromUTF16(m_filterOwner.url.getUrl()));
+				CLog::AddNewRequest(m_filterOwner.requestNumber, m_filterOwner.responseLine.code, contentType, 
+									m_inChunked ? std::string("-1") : contentLength, 
+									UTF8fromUTF16(m_filterOwner.url.getUrl()), m_filterOwner.killed);
 
 				// Decide what to do next
 				if (m_filterOwner.responseLine.code == "101") {

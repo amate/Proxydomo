@@ -26,6 +26,7 @@
 #include <algorithm>
 #include <boost\property_tree\ini_parser.hpp>
 #include <boost\property_tree\ptree.hpp>
+#include <Shlwapi.h>
 #include "Misc.h"
 #include "Settings.h"
 #include "Logger.h"
@@ -114,6 +115,13 @@ void CLogViewWindow::HttpEvent(LogHttpEvent Event, const IPv4Address& addr, int 
 			temp.Format(_T("#%d %s"), RequestNumber, (LPCWSTR)url);
 			int nSel = m_cmbRequest.AddString(temp);
 			m_cmbRequest.SetItemData(nSel, RequestNumber);
+
+			CCritSecLock	lock(m_csRequestLog);
+			auto it = std::find_if(m_vecRquestLog.begin(), m_vecRquestLog.end(),
+				[RequestNumber](const std::unique_ptr<RequestLog>& requestLog) { return requestLog->RequestNumber == RequestNumber; });
+			if (it == m_vecRquestLog.end()) {
+				m_vecRquestLog.emplace_back(new RequestLog(RequestNumber));
+			}
 			return;
 		}
 		break;
@@ -334,15 +342,23 @@ void	CLogViewWindow::_AddNewRequest(CLog::RecentURLData* it)
 	lvi.pszText		= temp.GetBuffer();
 	m_listRequest.SetItem(&lvi);
 
-	temp = it->contentLength.c_str();
-	lvi.iSubItem	= 3;
-	lvi.pszText		= temp.GetBuffer();
-	m_listRequest.SetItem(&lvi);
+	//temp = it->contentLength.c_str();
+	if (it->contentLength.length() > 0) {
+		WCHAR tempSize[64] = L"";
+		::StrFormatByteSizeW(std::stoll(it->contentLength), tempSize, 64);
+		lvi.iSubItem = 3;
+		lvi.pszText = tempSize;
+		m_listRequest.SetItem(&lvi);
+	}
 
 	temp = it->url.c_str();
 	lvi.iSubItem	= 4;
 	lvi.pszText		= temp.GetBuffer();
 	m_listRequest.SetItem(&lvi);
+
+	if (it->kill) {
+		m_listRequest.SetItemData(0, 1);
+	}
 }
 
 void CLogViewWindow::AddNewRequest(long requestNumber)
@@ -397,6 +413,7 @@ BOOL CLogViewWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 	m_listRequest.SetExtendedListViewStyle(LVS_EX_FULLROWSELECT | LVS_EX_HEADERDRAGDROP | LVS_EX_INFOTIP | LVS_EX_DOUBLEBUFFER);
 	m_listRequest.AddColumn(_T("Con"), 0, 
 							-1, LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM, LVCFMT_RIGHT);
+	m_listRequest.SetColumnWidth(0, 50);
 	m_listRequest.SetColumnSortType(0, LVCOLSORT_LONG);
 	m_listRequest.AddColumn(_T("Code"), 1);
 	m_listRequest.SetColumnSortType(1, LVCOLSORT_LONG);
@@ -404,6 +421,7 @@ BOOL CLogViewWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 	m_listRequest.AddColumn(_T("Length"), 3, 
 							-1, LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM, LVCFMT_RIGHT);
 	m_listRequest.SetColumnSortType(3, LVCOLSORT_LONG);
+	m_listRequest.SetColumnWidth(3, 80);
 	m_listRequest.AddColumn(_T("URL"), 4);
 	m_listRequest.SetColumnWidth(4, 400);
 
@@ -568,6 +586,9 @@ void CLogViewWindow::OnViewConnectionMonitor(UINT uNotifyCode, int nID, CWindow 
 
 void CLogViewWindow::OnComboRequestSelChange(UINT uNotifyCode, int nID, CWindow wndCtl)
 {
+	if (m_bRecentURLs)
+		return;
+
 	int nCurSel = m_cmbRequest.GetCurSel();
 	if (nCurSel == 0) {
 		m_editPartLog.SetWindowText(_T(""));
@@ -579,6 +600,7 @@ void CLogViewWindow::OnComboRequestSelChange(UINT uNotifyCode, int nID, CWindow 
 			m_editPartLog.ShowWindow(TRUE);
 			m_editLog.ShowWindow(FALSE);
 		}
+		m_editPartLog.SetRedraw(FALSE);
 		int RequestNumber = (int)m_cmbRequest.GetItemData(nCurSel);
 		CCritSecLock	lock(m_csRequestLog);
 		for (auto& reqLog : m_vecRquestLog) {
@@ -589,6 +611,8 @@ void CLogViewWindow::OnComboRequestSelChange(UINT uNotifyCode, int nID, CWindow 
 				break;
 			}
 		}
+		m_editPartLog.SetRedraw(TRUE);
+		m_editPartLog.Invalidate();
 	}
 
 
@@ -606,6 +630,44 @@ LRESULT CLogViewWindow::OnRecentURLListRClick(LPNMHDR pnmh)
 	return 0;
 }
 
+LRESULT CLogViewWindow::OnRecentURLListRDblClick(LPNMHDR pnmh)
+{
+	auto lpnmitem = (LPNMITEMACTIVATE)pnmh;
+	CString con;
+	m_listRequest.GetItemText(lpnmitem->iItem, 0, con);
+	ATLASSERT(con.GetLength());
+
+	m_bRecentURLs = false;
+	DoDataExchange(DDX_LOAD, IDC_CHECKBOX_RECENTURLS);
+
+	GetDlgItem(IDC_LIST_RECENTURLS).ShowWindow(FALSE);
+
+	m_editLog.ShowWindow(TRUE);
+	m_editPartLog.ShowWindow(FALSE);
+
+	int RequestNumber = std::stoi((LPCWSTR)con);
+	CCritSecLock	lock(m_csRequestLog);
+	int nIndex = 0;
+	for (auto& reqLog : m_vecRquestLog) {
+		++nIndex;
+		if (reqLog->RequestNumber == RequestNumber) {
+			m_cmbRequest.SetCurSel(nIndex);
+
+			m_editPartLog.SetWindowText(_T(""));
+			if (m_editPartLog.IsWindowVisible() == FALSE) {
+				m_editPartLog.ShowWindow(TRUE);
+				m_editLog.ShowWindow(FALSE);
+			}
+
+			for (auto& log : reqLog->vecLog)
+				_AppendRequestLogText(log->text, log->textColor);
+			m_editPartLog.PostMessage(WM_VSCROLL, SB_TOP);
+			return 0;
+		}
+	}
+	return 0;
+}
+
 /// URL‚ðŠJ‚­
 LRESULT CLogViewWindow::OnRecentURLListDblClick(LPNMHDR pnmh)
 {
@@ -614,6 +676,36 @@ LRESULT CLogViewWindow::OnRecentURLListDblClick(LPNMHDR pnmh)
 	m_listRequest.GetItemText(lpnmitem->iItem, 4, url);
 	::ShellExecute(NULL, NULL, url, NULL, NULL, SW_NORMAL);
 	return 0;
+}
+
+DWORD CLogViewWindow::OnPrePaint(int nID, LPNMCUSTOMDRAW lpnmcd)
+{
+	if (lpnmcd->hdr.idFrom == IDC_LIST_RECENTURLS)
+		return CDRF_NOTIFYITEMDRAW;
+	else
+		return CDRF_DODEFAULT;
+}
+
+DWORD CLogViewWindow::OnItemPrePaint(int nID, LPNMCUSTOMDRAW lpnmcd)
+{
+	if (lpnmcd->hdr.idFrom == IDC_LIST_RECENTURLS) {
+		LPNMLVCUSTOMDRAW lpnmlv = (LPNMLVCUSTOMDRAW)lpnmcd;
+		if (lpnmlv->nmcd.lItemlParam == 1) {
+			int nSel = m_listRequest.GetSelectedIndex();
+			if ((lpnmlv->nmcd.uItemState & (CDIS_SELECTED | CDIS_FOCUS)) == (CDIS_SELECTED | CDIS_FOCUS) 
+				&& lpnmlv->nmcd.dwItemSpec == nSel) 
+			{
+				lpnmlv->clrText = RGB(255, 255, 255);
+				lpnmlv->clrTextBk = RGB(0xEF, 0x85, 0x8C);	// #EF858C
+			} else {
+				lpnmlv->clrText = RGB(255, 255, 255);
+				lpnmlv->clrTextBk = RGB(0xDF, 0x33, 0x4E);
+			}
+			lpnmlv->nmcd.uItemState &= ~CDIS_SELECTED;
+			return CDRF_NEWFONT;
+		}
+	}
+	return CDRF_DODEFAULT;
 }
 
 

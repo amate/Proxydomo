@@ -40,6 +40,7 @@ class CLogViewWindow :
 	public CDialogImpl<CLogViewWindow>, 
 	public CDialogResize<CLogViewWindow>,
 	public CWinDataExchange<CLogViewWindow>,
+	public CCustomDraw<CLogViewWindow>,
 	public ILogTrace
 {
 public:
@@ -112,6 +113,7 @@ public:
 		COMMAND_HANDLER_EX( IDC_COMBO_REQUEST, CBN_SELCHANGE, OnComboRequestSelChange )
 
 		NOTIFY_HANDLER_EX( IDC_LIST_RECENTURLS, NM_RCLICK , OnRecentURLListRClick )
+		NOTIFY_HANDLER_EX(IDC_LIST_RECENTURLS, NM_RDBLCLK, OnRecentURLListRDblClick)
 		NOTIFY_HANDLER_EX( IDC_LIST_RECENTURLS, NM_DBLCLK , OnRecentURLListDblClick )
 
 		COMMAND_ID_HANDLER_EX( IDC_CHECKBOX_STOPLOG			, OnCheckBoxChanged )
@@ -128,6 +130,7 @@ public:
 
 		MESSAGE_HANDLER_EX(WM_APPENDTEXT, OnAppendText)
 		CHAIN_MSG_MAP( CDialogResize<CLogViewWindow> )
+		CHAIN_MSG_MAP( CCustomDraw<CLogViewWindow> )
 	END_MSG_MAP()
 
 	// void OnCommandIDHandlerEX(UINT uNotifyCode, int nID, CWindow wndCtl)
@@ -146,7 +149,12 @@ public:
 
 	void OnComboRequestSelChange(UINT uNotifyCode, int nID, CWindow wndCtl);
 	LRESULT OnRecentURLListRClick(LPNMHDR pnmh);
+	LRESULT OnRecentURLListRDblClick(LPNMHDR pnmh);
 	LRESULT OnRecentURLListDblClick(LPNMHDR pnmh);
+
+	// CCustomDraw
+	DWORD OnPrePaint(int nID, LPNMCUSTOMDRAW lpnmcd);
+	DWORD OnItemPrePaint(int nID, LPNMCUSTOMDRAW lpnmcd);
 
 	void OnCheckBoxChanged(UINT uNotifyCode, int nID, CWindow wndCtl);
 

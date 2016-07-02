@@ -405,7 +405,7 @@ DWORD CConnectionMonitorWindow::OnItemPrePaint(int nID, LPNMCUSTOMDRAW lpnmcd)
 {
 	if (lpnmcd->hdr.idFrom == IDC_LIST_CONNECTION) {
 		LPNMLVCUSTOMDRAW lpnmlv = (LPNMLVCUSTOMDRAW)lpnmcd;
-		uint32_t uniqueId = (uint32_t)m_connectionListView.GetItemData((int)lpnmcd->dwItemSpec);
+		uint32_t uniqueId = (uint32_t)lpnmcd->lItemlParam;//m_connectionListView.GetItemData((int)lpnmcd->dwItemSpec);
 
 		if (m_idleConnections.find(uniqueId) != m_idleConnections.end()) {
 			lpnmlv->clrText = RGB(0x80, 0x80, 0x80);

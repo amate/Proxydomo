@@ -13,10 +13,9 @@
 
 using namespace Proxydomo;
 
-enum { kMaxDomainLength = 255 };
-
 namespace {
 
+enum { kMaxDomainLength = 255 };
 
 bool IsDomainMatch(const std::wstring& urlHost, const std::wstring& domain)
 {
@@ -369,18 +368,7 @@ std::wstring CAdblockFilter::ElementHidingCssSelector(const std::wstring& urlHos
 	return strJoinSelectors;
 }
 
-void	FuncEmplaceUnorderedMap(std::unordered_multimap<std::wstring, std::wstring>& list, const std::wstring& domain, const std::wstring& cssSelector)
-{
-	list.emplace(domain, cssSelector);
-}
-
-void	FuncEmplaceVector(std::vector<std::pair<std::wstring, std::wstring>>& list, const std::wstring& domain, const std::wstring& cssSelector)
-{
-	list.emplace_back(domain, cssSelector);
-}
-
-template<class TList, class TFunc>
-void	EmplaceBackDomainCssSelector(const std::wstring& sep, const std::wstring& line, TList& list, TFunc emplace)
+void	EmplaceBackDomainCssSelector(const std::wstring& sep, const std::wstring& line, std::unordered_multimap<std::wstring, std::wstring>& list)
 {
 	size_t sepPos = line.find(sep);
 	ATLASSERT(sepPos != std::wstring::npos);
@@ -390,7 +378,7 @@ void	EmplaceBackDomainCssSelector(const std::wstring& sep, const std::wstring& l
 	boost::split(vecDomains, domains, boost::is_any_of(L","));
 	ATLASSERT(vecDomains.size());
 	for (const auto& domain : vecDomains) {
-		emplace(list, domain, cssSelector);
+		list.emplace(domain, cssSelector);
 	}
 };
 
@@ -493,7 +481,7 @@ bool	CAdblockFilter::AddPattern(const std::wstring& text, int listLine)
 			return true;
 
 		} else {
-			EmplaceBackDomainCssSelector(L"#@#", text, ElementHidingExceptionList, FuncEmplaceUnorderedMap);
+			EmplaceBackDomainCssSelector(L"#@#", text, ElementHidingExceptionList);
 			return true;
 		}
 	} else if (boost::contains(text, L"##")) {
@@ -572,14 +560,15 @@ bool	CAdblockFilter::AddPattern(const std::wstring& text, int listLine)
 			std::wstring urlHost = pattern.substr(2, slashPos - 2);
 			ATLASSERT(urlHost.length());
 
-			if (boost::contains(urlHost, L"*")) {
+			std::deque<std::wstring> deqDomain = SpliteDomain(urlHost);
+
+			if (boost::contains(urlHost, L"*") || deqDomain.empty()) {
 				URLHashSpecialCharacterList.emplace_back(std::piecewise_construct,
 					std::forward_as_tuple(pattern.substr(2)),
 					std::forward_as_tuple(L"", std::move(vecOptionType), listLine));
 				return true;
 			}
 
-			std::deque<std::wstring> deqDomain = SpliteDomain(urlHost);
 			std::wstring lastWildcard = pattern.substr(slashPos);
 			auto	pmapChildURLHash = &URLHashList;
 			for (auto it = deqDomain.rbegin(); it != deqDomain.rend(); ++it) {
@@ -593,6 +582,8 @@ bool	CAdblockFilter::AddPattern(const std::wstring& text, int listLine)
 				}
 				pmapChildURLHash = &pURLHash->mapChildURLHash;
 			}
+			ATLASSERT(FALSE);
+
 		} else {	// |
 			pattern.erase(pattern.begin());
 			StartWithList.emplace_back(std::piecewise_construct, 

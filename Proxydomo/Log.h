@@ -134,7 +134,8 @@ public:
 								const std::string& responseCode, 
 								const std::string& contentType, 
 								const std::string& contentLength, 
-								const std::string& url)
+								const std::string& url,
+								bool kill = false)
 	{
 		CCritSecLock	lock(s_csdeqRecentURLs);
 		if (s_deqRecentURLs.size() >= kMaxRecentURLCount)
@@ -144,7 +145,7 @@ public:
 		size_t colon = contentType.find(';');
 		if (colon != std::string::npos)
 			contentType2 = contentType.substr(0, colon);
-		s_deqRecentURLs.emplace_front(requestNumber, responseCode, contentType2, contentLength, url);
+		s_deqRecentURLs.emplace_front(requestNumber, responseCode, contentType2, contentLength, url, kill);
 
 		std::vector<ILogTrace*> vec;
 		{
@@ -164,12 +165,14 @@ public:
 		std::string contentType;
 		std::string contentLength;
 		std::string url;
+		bool	kill;
 
 		RecentURLData(	long requestNumber, 
 						const std::string& responseCode, 
 						const std::string& contentType, 
 						const std::string& contentLength, 
-						const std::string& url) : requestNumber(requestNumber), responseCode(responseCode), contentType(contentType), contentLength(contentLength), url(url)
+						const std::string& url,
+						bool kill) : requestNumber(requestNumber), responseCode(responseCode), contentType(contentType), contentLength(contentLength), url(url), kill(kill)
 		{ }
 	};
 	static std::deque<RecentURLData>	s_deqRecentURLs;
