@@ -25,6 +25,7 @@
 #include "RequestManager.h"
 #include <sstream>
 #include <limits>
+#include <filesystem>
 #include <boost\lexical_cast.hpp>
 #include "DebugWindow.h"
 #include "Log.h"
@@ -37,6 +38,9 @@
 #include "Logger.h"
 #include "CodeConvert.h"
 #include "ConnectionMonitor.h"
+#include "BlockListDatabase.h"
+
+using namespace std::tr2::sys;
 using namespace CodeConvert;
 
 #define CR	'\r'
@@ -1013,10 +1017,29 @@ bool	CRequestManager::_HandleLocalPtron()
 	// ($JUMP to file will behave like a transparent redirection,
 	// since the browser may not be on the same file system)
 	if (CUtil::noCaseBeginsWith(L"http://file//", m_filterOwner.rdirToHost)) {
+		path filepath = CUtil::makePath(m_filterOwner.rdirToHost.substr(13));
+		path fullpath = (LPCWSTR)Misc::GetFullPath_ForExe(filepath.native().c_str());
+		if (is_directory(fullpath)) {
+			// フォルダが存在するかつ URLの末尾が '/' で終わっていなければ フォルダ名 + L'/' へリダイレクトさせる
+			if (filepath.native().back() != L'\\') {				
+				m_filterOwner.rdirToHost = L"http://local.ptron/" + filepath.native().substr(7) + L'/';
+				m_filterOwner.rdirMode = 0;
+				return false;
+			}
 
-		wstring filename = CUtil::makePath(m_filterOwner.rdirToHost.substr(13));
-		if (::PathFileExists(Misc::GetFullPath_ForExe(filename.c_str()))) {
-			_FakeResponse("200 OK", filename);
+			fullpath /= L"index.html";
+			filepath /= L"index.html";
+		}
+
+		if (auto blockListDB = CBlockListDatabase::GetInstance()) {
+			if (blockListDB->ManageBlockListInfoAPI(m_filterOwner.url, m_psockBrowser.get())) {
+				m_filterOwner.rdirToHost.clear();
+				return true;
+			}
+		}
+
+		if (exists(fullpath)) {
+			_FakeResponse("200 OK", filepath.native());
 		} else {
 			_FakeResponse("404 Not Found");
 		}

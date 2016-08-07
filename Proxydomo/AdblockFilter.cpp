@@ -10,6 +10,7 @@
 #include "Log.h"
 #include "Logger.h"
 #include "DomainJudge.h"
+#include "BlockListDatabase.h"
 
 using namespace Proxydomo;
 
@@ -307,6 +308,7 @@ const UChar* CAdblockFilter::match(const UChar* start, const UChar* stop, Proxyd
 			if (whilteListFilter && whilteListFilter->match(startOrigin, stop, pMatch, nextNode)) {
 				return nullptr;
 			}
+			pMatch->matchListLog.emplace_back(name, node.listLine);
 			return startOrigin;
 		}
 	}
@@ -790,6 +792,9 @@ std::vector<std::unique_ptr<IOptionType>>
 
 std::unique_ptr<CAdblockFilter>	LoadAdblockFilter(std::wistream& fs, const std::string& filename)
 {
+	auto blockListDB = CBlockListDatabase::GetInstance();
+	std::time_t updateTime = std::time(nullptr);
+
 	auto adblockFilter = std::make_unique<CAdblockFilter>(filename);
 	int nLineCount = 1;
 	int successLoadLineCount = 0;
@@ -801,11 +806,18 @@ std::unique_ptr<CAdblockFilter>	LoadAdblockFilter(std::wistream& fs, const std::
 			if (bSuccess == false) {
 				CLog::FilterEvent(kLogFilterListBadLine, nLineCount, filename, "");
 			} else {
+				if (blockListDB) {
+					blockListDB->AddPatternToList(filename, strLine, nLineCount, updateTime);
+				}
 				++successLoadLineCount;
 			}
 		}
 		if (fs.eof())
 			break;
+	}
+	if (blockListDB) {
+		blockListDB->UpdateList(filename, "ablock", successLoadLineCount);
+		blockListDB->DeleteOldPatternFromList(filename, updateTime);
 	}
 	CLog::FilterEvent(kLogFilterListReload, successLoadLineCount, filename, "");
 

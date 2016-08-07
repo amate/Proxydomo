@@ -201,6 +201,9 @@
     <ClCompile Include="AdblockFilter.cpp">
       <Filter>Header Files</Filter>
     </ClCompile>
+    <ClCompile Include="BlockListDatabase.cpp">
+      <Filter>Header Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -414,6 +417,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DomainJudge.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BlockListDatabase.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

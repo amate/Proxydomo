@@ -36,6 +36,7 @@
 //#include "matcher.h"
 #include "..\Node.h"
 #include "..\Matcher.h"
+#include "..\BlockListDatabase.h"
 
 using namespace std;
 
@@ -172,6 +173,9 @@ int CTextFilter::match(const wchar_t* index, const wchar_t* bufTail) {
 		return 0;
 
 	for (auto& matchListLog : matchData.matchListLog) {
+		if (auto blockListDB = CBlockListDatabase::GetInstance()) {
+			blockListDB->IncrementHitPatternCount(matchListLog.first, matchListLog.second);
+		}
 		CLog::FilterEvent(kLogFilterListMatch, owner.requestNumber, matchListLog.first, std::to_string(matchListLog.second));
 	}
     return 1;

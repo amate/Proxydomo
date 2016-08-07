@@ -133,6 +133,7 @@ public:
 	static std::wstring	s_language;
 
 	static bool			s_tasktrayOnCloseBotton;
+	static bool			s_saveBlockListUsageSituation;
 
 	static std::thread	s_threadSaveFilter;
 	

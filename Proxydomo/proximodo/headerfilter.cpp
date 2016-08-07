@@ -37,6 +37,7 @@
 #include <vector>
 #include <map>
 #include "..\CodeConvert.h"
+#include "..\BlockListDatabase.h"
 
 using namespace std;
 using namespace CodeConvert;
@@ -122,6 +123,9 @@ bool CHeaderFilter::filter(std::wstring& content) {
 	CLog::FilterEvent(kLogFilterHeaderReplace, owner.requestNumber, UTF8fromUTF16(title), UTF8fromUTF16(content));
 
 	for (auto& matchListLog : matchData.matchListLog) {
+		if (auto blockListDB = CBlockListDatabase::GetInstance()) {
+			blockListDB->IncrementHitPatternCount(matchListLog.first, matchListLog.second);
+		}
 		CLog::FilterEvent(kLogFilterListMatch, owner.requestNumber, matchListLog.first, std::to_string(matchListLog.second));
 	}
 
