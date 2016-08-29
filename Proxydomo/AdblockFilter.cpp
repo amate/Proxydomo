@@ -816,7 +816,7 @@ std::unique_ptr<CAdblockFilter>	LoadAdblockFilter(std::wistream& fs, const std::
 			break;
 	}
 	if (blockListDB) {
-		blockListDB->UpdateList(filename, "ablock", successLoadLineCount);
+		blockListDB->UpdateList(filename, "adblock", successLoadLineCount);
 		blockListDB->DeleteOldPatternFromList(filename, updateTime);
 	}
 	CLog::FilterEvent(kLogFilterListReload, successLoadLineCount, filename, "");

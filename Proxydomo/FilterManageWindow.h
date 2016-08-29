@@ -57,6 +57,8 @@ public:
 
 	BEGIN_DLGRESIZE_MAP( CFilterManageWindow )
 		DLGRESIZE_CONTROL( IDC_TREE_FILTER, DLSZ_SIZE_X | DLSZ_SIZE_Y )
+		DLGRESIZE_CONTROL( IDC_LIST_FILTER, DLSZ_SIZE_X | DLSZ_SIZE_Y)
+		DLGRESIZE_CONTROL( IDC_EDIT_FILTER, DLSZ_SIZE_X )
 		DLGRESIZE_CONTROL( IDC_FILTERMANAGERTOOLBAR, DLSZ_SIZE_X | DLSZ_SIZE_Y)
 	END_DLGRESIZE_MAP()
 
@@ -76,12 +78,19 @@ public:
 		MSG_WM_LBUTTONUP( OnLButtonUp )
 		MSG_WM_RBUTTONDOWN( OnRButtonDown )
 
+		COMMAND_HANDLER_EX( IDC_EDIT_FILTER, EN_CHANGE, OnEditFilterEnChange )
+		NOTIFY_HANDLER_EX(IDC_LIST_FILTER, NM_RCLICK, OnListFilterRClick)
+
 		COMMAND_ID_HANDLER_EX( IDC_BUTTON_ADDFILTER, OnAddFilter )
 		COMMAND_ID_HANDLER_EX( IDC_BUTTON_DELETEFILTER, OnDeleteFilter )
 		COMMAND_ID_HANDLER_EX( IDC_BUTTON_CREATE_FOLDER, OnCreateFolder )
 		COMMAND_ID_HANDLER_EX( IDC_BUTTON_IMPORTFROMPROXOMITRON, OnImportFromProxomitron )
 		COMMAND_ID_HANDLER_EX( IDC_BUTTON_EXPORTTOPROXOMITRON , OnExportToProxomitron )
 		CHAIN_MSG_MAP( CDialogResize<CFilterManageWindow> )
+	ALT_MSG_MAP(1)
+		MESSAGE_HANDLER(WM_LBUTTONDOWN, OnLButtonDown)
+		MESSAGE_HANDLER(WM_LBUTTONDBLCLK, OnLButtonDblClk)
+		MESSAGE_HANDLER(WM_KEYDOWN, OnKeyDown)
 	END_MSG_MAP()
 
 	// LRESULT OnMessageHandlerEX(UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -104,12 +113,19 @@ public:
 	void OnLButtonUp(UINT nFlags, CPoint point);
 	void OnRButtonDown(UINT nFlags, CPoint point);
 
+	void OnEditFilterEnChange(UINT uNotifyCode, int nID, CWindow wndCtl);
+	LRESULT OnListFilterRClick(LPNMHDR pnmh);
+
 	void OnAddFilter(UINT uNotifyCode, int nID, CWindow wndCtl);
 	void OnDeleteFilter(UINT uNotifyCode, int nID, CWindow wndCtl);
 	void OnCreateFolder(UINT uNotifyCode, int nID, CWindow wndCtl);
 
 	void OnImportFromProxomitron(UINT uNotifyCode, int nID, CWindow wndCtl);
 	void OnExportToProxomitron(UINT uNotifyCode, int nID, CWindow wndCtl);
+
+	LRESULT OnLButtonDown(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& bHandled);
+	LRESULT OnLButtonDblClk(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& bHandled);
+	LRESULT OnKeyDown(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& bHandled);
 
 private:
 	void _AddTreeItem(HTREEITEM htRoot, std::vector<std::unique_ptr<FilterItem>>& vecpFilter);
@@ -119,9 +135,15 @@ private:
 	std::vector<std::unique_ptr<FilterItem>>* _GetParentFilterFolder(HTREEITEM htItem);
 	bool	_IsChildItem(HTREEITEM htParent, HTREEITEM htItem);
 
+	void	_CheckChangeListFilter(int nIndex);
+	void	_ListOpenFilterEditWindow(int nIndex);
+
 	// Data members
 	CToolBarCtrl	m_toolBar;
 	CTreeViewCtrl	m_treeFilter;
+
+	CEdit	m_editFilter;
+	CContainedWindowT<CCheckListViewCtrl>	m_listFilter;
 
 	HTREEITEM		m_htBeginDrag;
 	//CImageList		m_dragImage;

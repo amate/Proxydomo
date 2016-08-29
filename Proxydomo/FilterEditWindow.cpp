@@ -82,7 +82,7 @@ public:
 
 	BEGIN_DLGRESIZE_MAP( CFilterTestWindow )
 		DLGRESIZE_CONTROL(IDC_STATIC_SPLITTER, DLSZ_SIZE_X | DLSZ_SIZE_Y)
-
+		DLGRESIZE_CONTROL(IDC_EDIT_URL, DLSZ_SIZE_X )
 	END_DLGRESIZE_MAP()
 
 	BEGIN_MSG_MAP_EX( CFilterTestWindow )
@@ -92,6 +92,7 @@ public:
 		COMMAND_ID_HANDLER_EX( IDC_BUTTON_TEST, OnTestAnalyze )
 		COMMAND_ID_HANDLER_EX( IDC_BUTTON_ANALYZE, OnTestAnalyze )
 		COMMAND_ID_HANDLER_EX( IDC_BUTTON_CLEAR, OnClear )
+		COMMAND_ID_HANDLER_EX( IDC_CHECK_SETTING, OnSetting )
 		CHAIN_MSG_MAP( CDialogResize<CFilterTestWindow> )
 	END_MSG_MAP()
 
@@ -102,6 +103,7 @@ public:
 		ChangeControlTextForTranslateMessage(m_hWnd, IDC_BUTTON_TEST);
 		ChangeControlTextForTranslateMessage(m_hWnd, IDC_BUTTON_ANALYZE);
 		ChangeControlTextForTranslateMessage(m_hWnd, IDC_BUTTON_CLEAR);
+		ChangeControlTextForTranslateMessage(m_hWnd, IDC_CHECK_SETTING);
 
 		HFONT hFont = GetDlgItem(IDC_STATIC_SPLITTER).GetFont();
 		CRect rcSplitter;
@@ -111,6 +113,14 @@ public:
 		GetDlgItem(IDC_STATIC_SPLITTER).SetDlgCtrlID(0);
 		m_wndSplitter.SetDlgCtrlID(IDC_STATIC_SPLITTER);
 		m_wndSplitter.SetSplitterExtendedStyle(SPLIT_BOTTOMALIGNED);
+
+		GetDlgItem(IDC_EDIT_URL).SetWindowText(L"http://www.host.org/path/page.html?query=true#anchor");
+		CComboBox cmbFileType = GetDlgItem(IDC_COMBO_FILETYPE);
+		LPCWSTR fileTypes[] = {L"htm", L"js", L"css", L"json", L"xml", L"plain", L"oth" };
+		for (LPCWSTR fileType : fileTypes) {
+			cmbFileType.AddString(fileType);
+		}
+		cmbFileType.SetCurSel(0);
 
 		CLogFont lf;
 		lf.SetMenuFont();
@@ -186,6 +196,8 @@ public:
 
 	void OnTestAnalyze(UINT uNotifyCode, int nID, CWindow wndCtl)
 	{
+		_FlipSettingView(false);
+
 		if (m_funcSaveToTempFilter() == false)
 			return;
 
@@ -198,6 +210,13 @@ public:
 
 		bool prof = (nID == IDC_BUTTON_ANALYZE);
 
+		WCHAR url[L_MAX_URL_LENGTH] = L"";
+		GetDlgItem(IDC_EDIT_URL).GetWindowText(url, L_MAX_URL_LENGTH);
+
+		CComboBox cmbFileType = GetDlgItem(IDC_COMBO_FILETYPE);
+		CString fileType;
+		cmbFileType.GetLBText(cmbFileType.GetCurSel(), fileType);
+
         // create a fake text filter (would normally be a
         // resident CRequestManager + CTextBuffer + CTextFilter).
         // This instanciation is not profiled, because it the real
@@ -205,10 +224,10 @@ public:
         // processes the first few pages.
         CFilterOwner owner;
 		owner.SetInHeader(L"Host", L"www.host.org");
-        std::wstring url = L"http://www.host.org/path/page.html?query=true#anchor";
+        //std::wstring url = L"http://www.host.org/path/page.html?query=true#anchor";
         owner.url.parseUrl(url);
         //owner.cnxNumber = 1;
-		owner.fileType	= "htm";
+		owner.fileType = UTF8fromUTF16(static_cast<LPCWSTR>(fileType));// "htm";
         CFilter filter(owner);
 		Proxydomo::MatchData matchData(&filter);
 
@@ -368,10 +387,38 @@ public:
 
 	void OnClear(UINT uNotifyCode, int nID, CWindow wndCtl)
 	{
+		_FlipSettingView(false);
+
 		m_editTest.SetWindowText(_T(""));
 	}
 
+	void OnSetting(UINT uNotifyCode, int nID, CWindow wndCtl)
+	{
+		bool check = CButton(GetDlgItem(IDC_CHECK_SETTING)).GetCheck() != 0;
+		_FlipSettingView(check);
+	}
+
 private:
+	void	_FlipSettingView(bool check)
+	{
+		CButton(GetDlgItem(IDC_CHECK_SETTING)).SetCheck(check);
+		if (check) {
+			GetDlgItem(IDC_STATIC_URL).ShowWindow(SW_NORMAL);
+			GetDlgItem(IDC_EDIT_URL).ShowWindow(SW_NORMAL);
+			GetDlgItem(IDC_STATIC_FILETYPE).ShowWindow(SW_NORMAL);
+			GetDlgItem(IDC_COMBO_FILETYPE).ShowWindow(SW_NORMAL);
+
+			GetDlgItem(IDC_STATIC_SPLITTER).ShowWindow(SW_HIDE);
+		} else {
+			GetDlgItem(IDC_STATIC_URL).ShowWindow(SW_HIDE);
+			GetDlgItem(IDC_EDIT_URL).ShowWindow(SW_HIDE);
+			GetDlgItem(IDC_STATIC_FILETYPE).ShowWindow(SW_HIDE);
+			GetDlgItem(IDC_COMBO_FILETYPE).ShowWindow(SW_HIDE);
+
+			GetDlgItem(IDC_STATIC_SPLITTER).ShowWindow(SW_NORMAL);
+		}
+	}
+
 	// Data members
 	CFilterDescriptor*	m_pFilter;
 	std::function<bool ()>	m_funcSaveToTempFilter;

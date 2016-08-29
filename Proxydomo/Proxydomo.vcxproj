@@ -1025,6 +1025,7 @@
     <Image Include="res\icon1.ico" />
     <Image Include="res\Proxydomo.ico" />
     <Image Include="res\Proxydomo_bypass.ico" />
+    <Image Include="res\StatusAnnotations_Critical_16xLG.ico" />
     <Image Include="res\WebFilter.ico" />
   </ItemGroup>
   <ItemGroup>

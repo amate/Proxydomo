@@ -123,6 +123,14 @@
 #define IDC_BTN_TRYTOGETROOTCA          1099
 #define IDC_CHECK_SAVEBLOCKLISTUSAGESITUATION 1100
 #define IDC_STATIC_ENABLEONREBOOT3      1101
+#define IDC_LIST_FILTER                 1102
+#define IDC_EDIT_FILTER                 1103
+#define IDC_CHECK_SETTING               1104
+#define IDC_STATIC_URL                  1105
+#define IDC_EDIT_URL                    1106
+#define IDC_COMBO1                      1107
+#define IDC_COMBO_FILETYPE              1107
+#define IDC_STATIC_FILETYPE             1108
 #define ID_TRANS_NEWFOLDER              40000
 #define ID_TRANS_CONFIRM                40001
 #define ID_TRANS_NEWFILTER              40002
@@ -205,9 +213,9 @@
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        256
+#define _APS_NEXT_RESOURCE_VALUE        259
 #define _APS_NEXT_COMMAND_VALUE         32775
-#define _APS_NEXT_CONTROL_VALUE         1102
+#define _APS_NEXT_CONTROL_VALUE         1109
 #define _APS_NEXT_SYMED_VALUE           140
 #endif
 #endif

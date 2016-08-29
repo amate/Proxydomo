@@ -27,6 +27,7 @@
 #include <atlmisc.h>
 #include <boost\property_tree\ptree.hpp>
 #include <boost\property_tree\ini_parser.hpp>
+#include <boost\algorithm\string\predicate.hpp>
 #include "FilterDescriptor.h"
 #include "FilterEditWindow.h"
 #include "Settings.h"
@@ -203,7 +204,7 @@ void	OutputFilterClipboardFormat(std::wstringstream& out, CFilterDescriptor* fil
 // CFilterManageWindow
 
 
-CFilterManageWindow::CFilterManageWindow() : m_htBeginDrag(NULL)
+CFilterManageWindow::CFilterManageWindow() : m_listFilter(this, 1), m_htBeginDrag(NULL)
 {
 }
 
@@ -233,11 +234,24 @@ void CFilterManageWindow::DlgResize_UpdateLayout(int cxWidth, int cyHeight)
 	CRect rcItem;
 	m_toolBar.GetItemRect(m_toolBar.GetButtonCount() - 1, &rcItem);
 
+	CRect rcEdit;
+	m_editFilter.GetWindowRect(&rcEdit);
+	int editHeight = rcEdit.Height();
+	rcEdit.top = rcItem.bottom + 2;
+	rcEdit.left = 0;
+	rcEdit.right = cxWidth;
+	rcEdit.bottom = rcEdit.top + editHeight;
+	m_editFilter.MoveWindow(&rcEdit);
+
 	CRect rcTree;
-	rcTree.top = rcItem.bottom + 2;
+	rcTree.top = rcEdit.bottom + 1;
 	rcTree.right = cxWidth;
 	rcTree.bottom = cyHeight;
 	m_treeFilter.MoveWindow(&rcTree);
+
+	const int kcxvscroll = ::GetSystemMetrics(SM_CXVSCROLL);
+	m_listFilter.MoveWindow(&rcTree);
+	m_listFilter.SetColumnWidth(0, rcTree.Width() - kcxvscroll - 2);
 }
 
 #ifndef TVS_EX_EXCLUSIONCHECKBOXES
@@ -251,7 +265,16 @@ BOOL CFilterManageWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 {
 	SetWindowText(GetTranslateMessage(IDD_FILTERMANAGE).c_str());
 
+	m_editFilter = GetDlgItem(IDC_EDIT_FILTER);
 	m_treeFilter = GetDlgItem(IDC_TREE_FILTER);
+	m_listFilter.SubclassWindow(GetDlgItem(IDC_LIST_FILTER));
+	m_listFilter.Init();
+	
+	m_listFilter.SetWindowLongPtrW(GWL_STYLE, m_listFilter.GetStyle() | LVS_SHAREIMAGELISTS);
+
+	m_listFilter.AddColumn(L"Name", 0);
+	m_listFilter.SetColumnWidth(0, 500);
+
 	// これがないと初回時のチェックが入らない…
 	m_treeFilter.ModifyStyle(TVS_CHECKBOXES, 0);
 	m_treeFilter.ModifyStyle(0, TVS_CHECKBOXES);
@@ -314,6 +337,7 @@ BOOL CFilterManageWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 	tvImageList.AddIcon(icoWebFilter);
 
 	m_treeFilter.SetImageList(tvImageList);
+	m_listFilter.SetImageList(tvImageList, LVSIL_SMALL);
 
 	HTREEITEM htRoot = m_treeFilter.InsertItem(_T("Root"), kIconFolder, kIconFolder, TVI_ROOT, TVI_FIRST);
 	m_treeFilter.SetCheckState(htRoot, true);
@@ -945,6 +969,15 @@ void CFilterManageWindow::OnAddFilter(UINT uNotifyCode, int nID, CWindow wndCtl)
 void CFilterManageWindow::OnDeleteFilter(UINT uNotifyCode, int nID, CWindow wndCtl)
 {
 	HTREEITEM htSel = m_treeFilter.GetSelectedItem();
+	if (m_listFilter.IsWindowVisible()) {
+		int selIndex = m_listFilter.GetSelectedIndex();
+		if (selIndex == -1)
+			return;
+
+		htSel = reinterpret_cast<HTREEITEM>(m_listFilter.GetItemData(selIndex));
+		ATLASSERT(htSel);
+		m_listFilter.DeleteItem(selIndex);
+	}
 	if (htSel == NULL || htSel == m_treeFilter.GetRootItem())
 		return ;
 
@@ -1125,6 +1158,193 @@ void CFilterManageWindow::_InsertFilterItem(std::unique_ptr<FilterItem>&& filter
 
 	// CSettings::SaveFilter(); // 手動でやって
 }
+
+void CFilterManageWindow::OnEditFilterEnChange(UINT uNotifyCode, int nID, CWindow wndCtl)
+{
+	WCHAR temp[128] = L"";
+	m_editFilter.GetWindowText(temp, 128);
+	if (temp[0] != L'\0') {	// 絞り込み
+		m_listFilter.DeleteAllItems();
+
+		m_treeFilter.ShowWindow(SW_HIDE);
+		m_listFilter.ShowWindow(SW_NORMAL);
+
+		m_toolBar.EnableButton(IDC_BUTTON_ADDFILTER, FALSE);
+		m_toolBar.EnableButton(IDC_BUTTON_CREATE_FOLDER, FALSE);
+		m_toolBar.EnableButton(IDC_BUTTON_IMPORTFROMPROXOMITRON, FALSE);
+		m_toolBar.EnableButton(IDC_BUTTON_EXPORTTOPROXOMITRON, FALSE);
+
+	} else {				// 絞り込み解除
+		m_listFilter.ShowWindow(SW_HIDE);
+		m_treeFilter.ShowWindow(SW_NORMAL);
+
+		m_toolBar.EnableButton(IDC_BUTTON_ADDFILTER, TRUE);
+		m_toolBar.EnableButton(IDC_BUTTON_CREATE_FOLDER, TRUE);
+		m_toolBar.EnableButton(IDC_BUTTON_IMPORTFROMPROXOMITRON, TRUE);
+		m_toolBar.EnableButton(IDC_BUTTON_EXPORTTOPROXOMITRON, TRUE);
+		return;
+	}
+	int count = 0;
+	std::function<void (HTREEITEM)> funcEnumChildTree;
+	funcEnumChildTree = [&](HTREEITEM htParent) {
+		HTREEITEM htChild = m_treeFilter.GetChildItem(htParent);
+		if (htChild == NULL)
+			return;
+
+		while (htChild) {
+			FilterItem*	pFilterItem = (FilterItem*)m_treeFilter.GetItemData(htChild);
+			ATLASSERT(pFilterItem);
+			if (pFilterItem && pFilterItem->pvecpChildFolder) {	// フォルダ
+				funcEnumChildTree(m_treeFilter.GetChildItem(htChild));
+			} else {
+				WCHAR filterName[512] = L"";
+				m_treeFilter.GetItemText(htChild, filterName, 512);
+
+				if (boost::icontains(filterName, temp)) {
+					BOOL bCheched = m_treeFilter.GetCheckState(htChild);
+					const int iconIndex = pFilterItem->pFilter->filterType == CFilterDescriptor::kFilterText ? 
+												kIconWebFilter : kIconHeaderFilter;
+					m_listFilter.AddItem(count, 0, filterName, iconIndex);
+					m_listFilter.SetItemData(count, reinterpret_cast<DWORD_PTR>(htChild));
+					m_listFilter.SetCheckState(count, bCheched);
+					++count;
+				}
+			}
+			htChild = m_treeFilter.GetNextSiblingItem(htChild);
+		}
+	};
+	funcEnumChildTree(m_treeFilter.GetRootItem());
+}
+
+LRESULT CFilterManageWindow::OnListFilterRClick(LPNMHDR pnmh)
+{
+	auto lpnmitem = (LPNMITEMACTIVATE)pnmh;
+	int hitIndex = lpnmitem->iItem;
+	if (hitIndex == -1)
+		return 0;
+
+	m_listFilter.SelectItem(hitIndex);
+	HTREEITEM htHit = reinterpret_cast<HTREEITEM>(m_listFilter.GetItemData(hitIndex));
+	ATLASSERT(htHit);
+
+	FilterItem* filterItem = (FilterItem*)m_treeFilter.GetItemData(htHit);
+
+	enum {
+		kFilterEdit = ID_FILTERMANAGERWINDOWMENUBEGIN + 1,
+		kFilterDelete = ID_FILTERMANAGERWINDOWMENUBEGIN + 4,
+
+	};
+	std::wstring filterEditText = GetTranslateMessage(kFilterEdit);
+	std::wstring filterDeleteText = GetTranslateMessage(kFilterDelete);
+
+	CMenu menu;
+	menu.CreatePopupMenu();
+	menu.AppendMenu(MF_STRING, kFilterEdit, filterEditText.c_str());
+	menu.AppendMenu(MF_SEPARATOR);
+	menu.AppendMenu(MF_STRING, kFilterDelete, filterDeleteText.c_str());
+
+	CPoint ptCursor;
+	::GetCursorPos(&ptCursor);
+	int ret = menu.TrackPopupMenu(TPM_RETURNCMD, ptCursor.x, ptCursor.y, m_hWnd);
+	switch (ret) {
+	case kFilterEdit:
+		_ListOpenFilterEditWindow(hitIndex);
+		break;
+
+	case kFilterDelete:
+		m_listFilter.SelectItem(hitIndex);
+		m_treeFilter.SelectItem(htHit);
+		OnDeleteFilter(0, 0, NULL);
+		break;
+	}
+	return 0;
+}
+
+void	CFilterManageWindow::_CheckChangeListFilter(int nIndex)
+{
+	BOOL check = !m_listFilter.GetCheckState(nIndex);
+	HTREEITEM htHit = reinterpret_cast<HTREEITEM>(m_listFilter.GetItemData(nIndex));
+	ATLASSERT(htHit);
+	m_treeFilter.SetCheckState(htHit, check);
+	PostMessage(WM_CHECKSTATECHANGED, (WPARAM)htHit);
+}
+
+void	CFilterManageWindow::_ListOpenFilterEditWindow(int nIndex)
+{
+	HTREEITEM htHit = reinterpret_cast<HTREEITEM>(m_listFilter.GetItemData(nIndex));
+	FilterItem*	pFilterItem = (FilterItem*)m_treeFilter.GetItemData(htHit);
+	ATLASSERT(pFilterItem);
+
+	// フィルター編集ダイアログを開く
+	CFilterEditWindow filterEdit(pFilterItem->pFilter.get());
+	if (filterEdit.DoModal(m_hWnd) == IDCANCEL || IsWindow() == false)
+		return ;
+
+	pFilterItem->name = pFilterItem->pFilter->title.c_str();
+	m_treeFilter.SetItemText(htHit, pFilterItem->pFilter->title.c_str());
+	int iconIndex = pFilterItem->pFilter->filterType == CFilterDescriptor::kFilterText ? kIconWebFilter : kIconHeaderFilter;
+	m_treeFilter.SetItemImage(htHit, iconIndex, iconIndex);
+
+	m_listFilter.SetItemText(nIndex, 0, pFilterItem->pFilter->title.c_str());
+	m_listFilter.SetItem(nIndex, 0, LVIF_IMAGE, nullptr, iconIndex, 0, 0, 0);
+
+	CSettings::SaveFilter();
+}
+
+LRESULT CFilterManageWindow::OnLButtonDown(UINT, WPARAM, LPARAM lParam, BOOL & bHandled)
+{
+	LRESULT ret = m_listFilter.OnLButtonDown(0, 0, lParam, bHandled);
+	POINT ptMsg = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+	LVHITTESTINFO lvh = { 0 };
+	lvh.pt = ptMsg;
+	int hitIndex = m_listFilter.HitTest(&lvh);
+	if (hitIndex != -1 && lvh.flags == LVHT_ONITEMSTATEICON && ::GetKeyState(VK_CONTROL) >= 0) {
+		_CheckChangeListFilter(lvh.iItem);
+	}
+	return ret;
+}
+
+LRESULT CFilterManageWindow::OnLButtonDblClk(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& bHandled)
+{
+	LRESULT ret = m_listFilter.OnLButtonDown(0, 0, lParam, bHandled);
+	POINT ptMsg = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+	LVHITTESTINFO lvh = { 0 };
+	lvh.pt = ptMsg;
+	int hitIndex = m_listFilter.HitTest(&lvh);
+	if (hitIndex != -1 && lvh.flags == LVHT_ONITEMSTATEICON && ::GetKeyState(VK_CONTROL) >= 0) {
+		_CheckChangeListFilter(lvh.iItem);
+
+	} else if (hitIndex != -1 && lvh.flags == LVHT_ONITEMLABEL) {
+		// フィルター編集ダイアログを開く
+		_ListOpenFilterEditWindow(hitIndex);
+	}
+	return ret;
+}
+
+LRESULT CFilterManageWindow::OnKeyDown(UINT, WPARAM wParam, LPARAM, BOOL & bHandled)
+{
+	LRESULT ret = m_listFilter.OnKeyDown(0, wParam, 0, bHandled);
+	if (wParam == VK_SPACE) {
+		int nCurrItem = m_listFilter.GetNextItem(-1, LVNI_FOCUSED);
+		if (nCurrItem != -1 && ::GetKeyState(VK_CONTROL) >= 0) {
+			_CheckChangeListFilter(nCurrItem);
+		}
+	}
+	return ret;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

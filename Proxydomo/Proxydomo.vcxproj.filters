@@ -453,6 +453,9 @@
     <Image Include="res\icon1.ico">
       <Filter>Resource Files</Filter>
     </Image>
+    <Image Include="res\StatusAnnotations_Critical_16xLG.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
