@@ -68,6 +68,7 @@ CTextBuffer::~CTextBuffer(void)
 void	CTextBuffer::_ReloadFilters()
 {
 	if (m_lastFilterEnumTime != CSettings::s_lastFiltersSaveTime) {
+		m_vecpTextfilters.clear();
 		m_lastFilterEnumTime = CSettings::EnumActiveFilter([this](CFilterDescriptor* filter) {
 			if (filter->filterType == filter->kFilterText)
 				m_vecpTextfilters.emplace_back(new CTextFilter(m_owner, *filter));

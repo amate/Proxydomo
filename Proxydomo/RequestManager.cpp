@@ -241,6 +241,8 @@ void	CRequestManager::SwitchToInvalid()
 void	CRequestManager::_ReloadHeaderFilters()
 {
 	if (m_lastFiltersEnumTime != CSettings::s_lastFiltersSaveTime) {
+		m_vecpInFilter.clear();
+		m_vecpOutFilter.clear();
 		m_lastFiltersEnumTime = CSettings::EnumActiveFilter([&, this](CFilterDescriptor* filter) {
 			try {
 				if (filter->filterType == filter->kFilterHeadIn)

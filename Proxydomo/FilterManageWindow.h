@@ -88,6 +88,8 @@ public:
 		COMMAND_ID_HANDLER_EX( IDC_BUTTON_EXPORTTOPROXOMITRON , OnExportToProxomitron )
 		CHAIN_MSG_MAP( CDialogResize<CFilterManageWindow> )
 	ALT_MSG_MAP(1)
+		MSG_WM_KEYUP( OnTreeFilterKeyUp )
+	ALT_MSG_MAP(2)
 		MESSAGE_HANDLER(WM_LBUTTONDOWN, OnLButtonDown)
 		MESSAGE_HANDLER(WM_LBUTTONDBLCLK, OnLButtonDblClk)
 		MESSAGE_HANDLER(WM_KEYDOWN, OnKeyDown)
@@ -123,6 +125,8 @@ public:
 	void OnImportFromProxomitron(UINT uNotifyCode, int nID, CWindow wndCtl);
 	void OnExportToProxomitron(UINT uNotifyCode, int nID, CWindow wndCtl);
 
+	void OnTreeFilterKeyUp(UINT nChar, UINT nRepCnt, UINT nFlags);
+
 	LRESULT OnLButtonDown(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& bHandled);
 	LRESULT OnLButtonDblClk(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& bHandled);
 	LRESULT OnKeyDown(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& bHandled);
@@ -140,7 +144,7 @@ private:
 
 	// Data members
 	CToolBarCtrl	m_toolBar;
-	CTreeViewCtrl	m_treeFilter;
+	CContainedWindowT<CTreeViewCtrl>	m_treeFilter;
 
 	CEdit	m_editFilter;
 	CContainedWindowT<CCheckListViewCtrl>	m_listFilter;

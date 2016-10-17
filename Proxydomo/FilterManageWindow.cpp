@@ -204,7 +204,7 @@ void	OutputFilterClipboardFormat(std::wstringstream& out, CFilterDescriptor* fil
 // CFilterManageWindow
 
 
-CFilterManageWindow::CFilterManageWindow() : m_listFilter(this, 1), m_htBeginDrag(NULL)
+CFilterManageWindow::CFilterManageWindow() : m_treeFilter(this, 1), m_listFilter(this, 2), m_htBeginDrag(NULL)
 {
 }
 
@@ -266,7 +266,7 @@ BOOL CFilterManageWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 	SetWindowText(GetTranslateMessage(IDD_FILTERMANAGE).c_str());
 
 	m_editFilter = GetDlgItem(IDC_EDIT_FILTER);
-	m_treeFilter = GetDlgItem(IDC_TREE_FILTER);
+	m_treeFilter.SubclassWindow(GetDlgItem(IDC_TREE_FILTER));
 	m_listFilter.SubclassWindow(GetDlgItem(IDC_LIST_FILTER));
 	m_listFilter.Init();
 	
@@ -437,6 +437,17 @@ LRESULT CFilterManageWindow::OnTreeFilterClick(LPNMHDR pnmh)
 	PostMessage(WM_CHECKSTATECHANGED, (WPARAM)htHit);
 	m_treeFilter.SelectItem(htHit);
 	return 0;
+}
+
+void CFilterManageWindow::OnTreeFilterKeyUp(UINT nChar, UINT nRepCnt, UINT nFlags)
+{
+	if (nChar == VK_SPACE) {
+		HTREEITEM htSel = m_treeFilter.GetSelectedItem();
+		if (htSel == NULL)
+			return ;
+
+		PostMessage(WM_CHECKSTATECHANGED, (WPARAM)htSel);
+	}
 }
 
 // 右クリックメニューを表示
