@@ -1638,6 +1638,7 @@ bool	CRequestManager::_VerifyContentType(std::string& ctype)
       slash += 2;
     std::string type = ctype.substr(slash, end - slash);
     CUtil::lower(type);
+	CUtil::trim(type);
 
     if (type == "html") {
 		m_filterOwner.fileType = "htm";
