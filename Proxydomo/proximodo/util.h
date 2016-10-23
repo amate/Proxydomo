@@ -123,7 +123,7 @@ public:
     static wstring UESC(const wstring& str);
 
     // Formats a number
-    static string pad(int n, int size);
+    static wstring pad(int n, int size);
 
     // Check if keys are pressed
     static bool keyCheck(const string& keys);

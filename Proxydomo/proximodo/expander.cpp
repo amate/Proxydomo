@@ -50,6 +50,10 @@
 #include "..\Misc.h"
 #include "..\AdblockFilter.h"
 
+// for $DTM
+#include <Wininet.h>
+#pragma comment(lib, "Wininet.lib")
+
 using namespace std;
 using namespace Proxydomo;
 using namespace CodeConvert;
@@ -449,39 +453,47 @@ std::wstring CExpander::expand(const std::wstring& pattern, CFilter& filter) {
                         index = size;
 
                 } else if (command == L"DTM") {
-					//time_t time = std::time(nullptr);
-					//tm* tm = std::localtime(&time);
-#if 0
-                    string day[7] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
-                    stringstream ss;
-                    wxDateTime now = wxDateTime::UNow();
+					SYSTEMTIME localtime = {};
+					::GetLocalTime(&localtime);
+                    wstring day[7] = {L"Sun", L"Mon", L"Tue", L"Wed", L"Thu", L"Fri", L"Sat"};
+					
+                    std::wstringstream ss;
                     size_t i = 0;
                     while (i < content.size()) {
-                        char c = content[i];
+                        wchar_t c = content[i];
                         switch (c) {
-                        case 'Y' : ss << now.GetYear(); break;
-                        case 'M' : ss << CUtil::pad(now.GetMonth()+1,2); break;
-                        case 'D' : ss << CUtil::pad(now.GetDay(),2); break;
-                        case 'H' : ss << CUtil::pad(now.GetHour(),2); break;
-                        case 'm' : ss << CUtil::pad(now.GetMinute(),2); break;
-                        case 's' : ss << CUtil::pad(now.GetSecond(),2); break;
-                        case 't' : ss << CUtil::pad(now.GetMillisecond(),3); break;
-                        case 'h' : ss << CUtil::pad(((now.GetHour()+11)%12+1),2); break;
-                        case 'a' : ss << (now.GetDay()<12?wxT("am"):wxT("pm")); break;
-                        case 'c' : ss << filter.owner.reqNumber; break;
-                        case 'w' : ss << day[now.GetWeekDay()]; break;
-                        case 'T' : content.replace(i, 1, "H:m:s"); continue;
-                        case 'U' : content.replace(i, 1, "M/D/Y"); continue;
-                        case 'E' : content.replace(i, 1, "D/M/Y"); continue;
-                        case 'd' : content.replace(i, 1, "Y-M-D"); continue;
-                        case 'I' : ss << W2S(now.Format(wxT("%a, %d %b %Y %H:%M:%S GMT"), wxDateTime::GMT0)); break;
-                        case '\\' : if (i+1 < content.size()) { ss << content[i+1]; i++; } break;
+                        case L'Y' : ss << localtime.wYear; break;
+                        case L'M' : ss << CUtil::pad(localtime.wMonth, 2); break;
+                        case L'D' : ss << CUtil::pad(localtime.wDay, 2); break;
+                        case L'H' : ss << CUtil::pad(localtime.wHour, 2); break;
+                        case L'm' : ss << CUtil::pad(localtime.wMinute, 2); break;
+                        case L's' : ss << CUtil::pad(localtime.wSecond,2); break;
+                        case L't' : ss << CUtil::pad(localtime.wMilliseconds, 3); break;
+                        case L'h' : ss << CUtil::pad(((localtime.wHour + 11) % 12 + 1), 2); break;
+                        case L'a' : ss << (localtime.wHour < 12 ? L"am" : L"pm"); break;
+                        case L'c' : ss << filter.owner.requestNumber; break;
+                        case L'w' : ss << day[localtime.wDayOfWeek]; break;
+                        case L'T' : content.replace(i, 1, L"H:m:s"); continue;
+                        case L'U' : content.replace(i, 1, L"M/D/Y"); continue;
+                        case L'E' : content.replace(i, 1, L"D/M/Y"); continue;
+                        case L'd' : content.replace(i, 1, L"Y-M-D"); continue;
+                        case L'I' : 
+						{
+							SYSTEMTIME systemtime = {};
+							::GetSystemTime(&systemtime);
+							WCHAR internetTime[INTERNET_RFC1123_BUFSIZE + 1] = L"";
+							BOOL ret = ::InternetTimeFromSystemTimeW(&systemtime, INTERNET_RFC1123_FORMAT, internetTime, sizeof(internetTime));
+							ATLASSERT(ret);
+							ss << internetTime;
+						}
+						break;
+                        case L'\\' : if (i+1 < content.size()) { ss << content[i+1]; i++; } break;
                         default  : ss << c;
                         }
                         i++;
                     }
                     output << ss.str();
-#endif
+
 				} else if (command == L"ELEMENTHIDINGCSS") {
 					std::lock_guard<std::recursive_mutex> lock(CSettings::s_mutexHashedLists);
 					auto& hashedLists = CSettings::s_mapHashedLists[CodeConvert::UTF8fromUTF16(content)];

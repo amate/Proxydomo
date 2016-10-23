@@ -95,12 +95,9 @@ void		CFilterOwner::SetHeader(HeadPairList& headers, const std::wstring& name, c
 
 void		CFilterOwner::RemoveHeader(HeadPairList& headers, const std::wstring& name)
 {
-	for (auto it = headers.begin(); it != headers.end(); ++it) {
-        if (CUtil::noCaseEqual(name, it->first)) {
-            headers.erase(it);
-            it = headers.begin();
-        }
-    }
+	boost::remove_erase_if(headers, [&name](const std::pair<std::wstring, std::wstring>& header) {
+		return CUtil::noCaseEqual(name, header.first);
+	});
 }
 
 

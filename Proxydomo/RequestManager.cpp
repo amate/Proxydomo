@@ -1331,6 +1331,8 @@ void	CRequestManager::_ProcessIn()
 							if (CUtil::noCaseEqual(name, pair.first))
 								headerfilter->filter(pair.second);
 						}
+
+						CFilterOwner::RemoveHeader(m_filterOwner.inHeadersFiltered, L"URL");
 						// Remove null headers
 						CFilterOwner::CleanHeader(m_filterOwner.inHeadersFiltered);
 

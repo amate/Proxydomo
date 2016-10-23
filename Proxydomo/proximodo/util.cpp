@@ -460,10 +460,10 @@ wstring CUtil::UESC(const wstring& str) {
 }
 
 // Formats a number
-string CUtil::pad(int n, int size) {
-    stringstream ss;
+wstring CUtil::pad(int n, int size) {
+    wstringstream ss;
     ss << n;
-    return string(size-ss.str().size(), '0') + ss.str();
+    return wstring(size-ss.str().size(), L'0') + ss.str();
 }
 
 // Check if keys are pressed (keys must be in uppercase)
