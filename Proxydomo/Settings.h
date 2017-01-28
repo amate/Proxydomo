@@ -135,6 +135,8 @@ public:
 	static bool			s_tasktrayOnCloseBotton;
 	static bool			s_saveBlockListUsageSituation;
 
+	static int			s_logLevel;
+
 	static std::thread	s_threadSaveFilter;
 	
 	static void	LoadSettings();

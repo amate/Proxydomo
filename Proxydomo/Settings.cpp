@@ -76,6 +76,8 @@ std::wstring	CSettings::s_language = kDefaultLanguage;
 bool			CSettings::s_tasktrayOnCloseBotton = false;
 bool			CSettings::s_saveBlockListUsageSituation = false;
 
+int				CSettings::s_logLevel = boost::log::trivial::warning;
+
 std::thread		CSettings::s_threadSaveFilter;
 
 std::vector<std::unique_ptr<FilterItem>>	CSettings::s_vecpFilters;
@@ -140,6 +142,8 @@ void	CSettings::LoadSettings()
 				}
 				s_language = language;
 			}
+
+			s_logLevel = pt.get<int>("Setting.logLevel", s_logLevel);
 
 			if (auto value = pt.get_optional<bool>("Setting.tasktrayOnCloseBotton"))
 				s_tasktrayOnCloseBotton = value.get();
@@ -252,6 +256,8 @@ void	CSettings::SaveSettings()
 	}
 
 	pt.put("Setting.language", UTF8fromUTF16(s_language));
+
+	pt.put("Setting.logLevel", s_logLevel);
 
 	pt.put<bool>("Setting.tasktrayOnCloseBotton", s_tasktrayOnCloseBotton);
 	pt.put<bool>("Setting.saveBlockListUsageSituation", s_saveBlockListUsageSituation);	

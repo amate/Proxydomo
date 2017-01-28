@@ -17,6 +17,7 @@
 #include "WinHTTPWrapper.h"
 #include "UITranslator.h"
 #include "Misc.h"
+#include "Logger.h"
 
 
 class COptionDialog : public CDialogImpl<COptionDialog>, public CWinDataExchange<COptionDialog>
@@ -30,6 +31,7 @@ public:
 
 		DDX_CONTROL_HANDLE(IDC_COMBO_REMOTEPROXY, m_cmbRemoteProxy)
 		DDX_CONTROL_HANDLE(IDC_COMBO_LANG, m_cmbLang)
+		DDX_CONTROL_HANDLE(IDC_COMBO_LOGLEVEL, m_cmbLogLevel)
 
 		DDX_CHECK(IDC_CHECK_TASKTRAYONCLOSEBOTTON, CSettings::s_tasktrayOnCloseBotton)
 		DDX_CHECK(IDC_CHECK_SAVEBLOCKLISTUSAGESITUATION, CSettings::s_saveBlockListUsageSituation)
@@ -95,6 +97,21 @@ public:
 			if (::_wcsicmp(CSettings::s_language.c_str(), lang.c_str()) == 0)
 				m_cmbLang.SetCurSel(sel);
 		}
+
+		std::vector<std::pair<std::wstring, int>> vecLoglevel = { 
+			{L"none", -1}, 
+			{L"info", boost::log::trivial::info}, 
+			{L"warning", boost::log::trivial::warning},
+			{L"error", boost::log::trivial::error}
+		};
+		for (const auto& level : vecLoglevel) {
+			int i = m_cmbLogLevel.AddString(level.first.c_str());
+			m_cmbLogLevel.SetItemData(i, level.second);
+			if (level.second == CSettings::s_logLevel) {
+				m_cmbLogLevel.SetCurSel(i);
+			}
+		}
+
 		return TRUE;
 	}
 
@@ -109,11 +126,21 @@ public:
 		CSettings::s_defaultRemoteProxy = (LPCSTR)CW2A(defaultRemoteProxy);
 		CSettings::s_setRemoteProxy = m_setRemoteProxy;
 
-		int nSel = m_cmbLang.GetCurSel();
-		if (nSel != -1) {
-			CString lang;
-			m_cmbLang.GetLBText(nSel, lang);
-			CSettings::s_language = (LPCWSTR)lang;
+		{
+			int nSel = m_cmbLang.GetCurSel();
+			if (nSel != -1) {
+				CString lang;
+				m_cmbLang.GetLBText(nSel, lang);
+				CSettings::s_language = (LPCWSTR)lang;
+			}
+		}
+		{
+			int nSel = m_cmbLogLevel.GetCurSel();
+			if (nSel != -1) {
+				CString lang;
+				int level = static_cast<int>(m_cmbLogLevel.GetItemData(nSel));
+				CSettings::s_logLevel = level;
+			}
 		}
 
 		CSettings::SaveSettings();
@@ -254,6 +281,7 @@ private:
 	// Data members
 	CComboBox	m_cmbRemoteProxy;
 	CComboBox	m_cmbLang;
+	CComboBox	m_cmbLogLevel;
 	std::set<std::string>	m_setRemoteProxy;
 	std::shared_ptr<bool>	m_spThreadActive;
 	std::thread	m_threadTestProxy;

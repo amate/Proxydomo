@@ -18,6 +18,8 @@
 
 #define SYS_LOGFILE             "info.log"
 
+std::string LogFilePath();
+
 //Narrow-char thread-safe logger.
 typedef boost::log::sources::wseverity_logger_mt<boost::log::trivial::severity_level> logger_t;
 

@@ -4,13 +4,26 @@
 
 #include "stdafx.h"
 #include "Logger.h"
+#include <string>
 #include <codecvt>
+#include <Shlwapi.h>
+#pragma comment(lib, "Shlwapi.lib")
+#include "Settings.h"
 
 namespace attrs = boost::log::attributes;
 namespace expr = boost::log::expressions;
 namespace sinks = boost::log::sinks;
 namespace keywords = boost::log::keywords;
 namespace logging = boost::log;
+
+std::string LogFilePath()
+{
+	char logPath[MAX_PATH] = "";
+	::GetModuleFileNameA(NULL, logPath, MAX_PATH);
+	::PathRemoveFileSpecA(logPath);
+	::PathAppendA(logPath, SYS_LOGFILE);
+	return logPath;
+}
 
 //Defines a global logger initialization routine
 BOOST_LOG_GLOBAL_LOGGER_INIT(my_logger, logger_t)
@@ -21,7 +34,7 @@ BOOST_LOG_GLOBAL_LOGGER_INIT(my_logger, logger_t)
 
 #if 0
 	auto flsink = logging::add_file_log(
-		boost::log::keywords::file_name = SYS_LOGFILE,
+		boost::log::keywords::file_name = LogFilePath(),
 		boost::log::keywords::format = (
 		expr::stream << expr::format_date_time<     boost::posix_time::ptime >("TimeStamp", "%Y-%m-%d %H:%M:%S")
 		<< " [" << expr::attr<     boost::log::trivial::severity_level >("Severity") << "]: "
@@ -53,21 +66,35 @@ BOOST_LOG_GLOBAL_LOGGER_INIT(my_logger, logger_t)
 #endif
 
 	// ログのファイル出力を設定
-	auto text_backend = boost::make_shared<sinks::text_file_backend>(
-			boost::log::keywords::file_name = SYS_LOGFILE
+	if (CSettings::s_logLevel != -1) {
+		auto text_backend = boost::make_shared<sinks::text_file_backend>(
+			boost::log::keywords::file_name = LogFilePath()
+			);
+		text_backend->auto_flush(true);
+
+		typedef sinks::synchronous_sink<sinks::text_file_backend> sink_text_t;
+		boost::shared_ptr<sink_text_t> sink_text(new sink_text_t(text_backend));
+
+		sink_text->set_formatter(
+			expr::format("%1% [%2%]: %3%")
+			% expr::format_date_time<boost::posix_time::ptime>("TimeStamp", "%Y-%m-%d %H:%M:%S")
+			% logging::trivial::severity
+			% expr::wmessage);
+		sink_text->imbue(std::locale(std::locale(), new std::codecvt_utf8_utf16<wchar_t>));
+		core->add_sink(sink_text);
+
+		logging::core::get()->set_filter
+		(
+			logging::trivial::severity >= CSettings::s_logLevel
+#if 0
+#ifdef _DEBUG
+			logging::trivial::severity >= logging::trivial::info
+#else
+			logging::trivial::severity >= logging::trivial::warning
+#endif
+#endif
 		);
-	text_backend->auto_flush(true);
-
-	typedef sinks::synchronous_sink<sinks::text_file_backend> sink_text_t;
-	boost::shared_ptr<sink_text_t> sink_text(new sink_text_t(text_backend));
-
-	sink_text->set_formatter(
-		expr::format("%1% [%2%]: %3%")
-		% expr::format_date_time<boost::posix_time::ptime>("TimeStamp", "%Y-%m-%d %H:%M:%S")
-		% logging::trivial::severity
-		% expr::wmessage);
-	sink_text->imbue(std::locale(std::locale(), new std::codecvt_utf8_utf16<wchar_t>));
-	core->add_sink(sink_text);
+	}
 
 #ifdef _DEBUG
 	// ログのコンソール出力を設定
@@ -84,15 +111,6 @@ BOOST_LOG_GLOBAL_LOGGER_INIT(my_logger, logger_t)
 		% expr::wmessage);
 	//console_sink->imbue(std::locale(std::locale(), new std::codecvt_utf8_utf16<wchar_t>));
 #endif
-
-	logging::core::get()->set_filter
-		(
-#ifdef _DEBUG
-		logging::trivial::severity >= logging::trivial::info
-#else
-		logging::trivial::severity >= logging::trivial::warning
-#endif
-		);
 
 	return lg;
 }
