@@ -163,6 +163,25 @@ if (count > 2) {
 		ret = 0;	// 最上位のみ見逃す
 	}
 }
+
+v1.95の以下の修正はwolfSSL側のソースを修正する必要があります
+・サーバーから送られてくる証明書にルートCAが含まれていると接続できないことがあるのを修正
+
+asn.cの 5455行目あたりを
+
+// before
+        WOLFSSL_MSG("About to verify certificate signature");
+
+        if (ca) {
+			if (cert->isCA) {
+
+// after
+        WOLFSSL_MSG("About to verify certificate signature");
+
+        if (ca) {
+        	int isRootCA = XMEMCMP(cert->subjectHash, cert->issuerHash, SIGNER_DIGEST_SIZE) == 0;
+			if (cert->isCA && isRootCA == 0) {
+
 // ==============================================
 
 ■開発支援
