@@ -24,6 +24,7 @@
 
 #include "zlibbuffer.h"
 //#include "const.h"
+#include <memory>
 #include <assert.h>
 #include <Windows.h>
 
@@ -35,15 +36,18 @@ using namespace std;
 
 /* Constructor
  */
-CZlibBuffer::CZlibBuffer()
+CZlibBuffer::CZlibBuffer(bool shrink, bool modeGzip /*= false*/)
 {
     freed = true;
+
+	reset(shrink, modeGzip);
 }
 
 
 /* Destructor
  */
-CZlibBuffer::~CZlibBuffer() {
+CZlibBuffer::~CZlibBuffer()
+{
 	freemem();
 }
 
@@ -100,7 +104,7 @@ bool CZlibBuffer::reset(bool shrink, bool modeGzip) {
 /* Provide data to the container.
  * As much data as possible is immediately processed.
  */
-void CZlibBuffer::feed(string data) 
+void CZlibBuffer::feed(const std::string& data)
 {
     if (freed)	
 		return;		// resetが呼ばれていなければ帰る
@@ -108,13 +112,14 @@ void CZlibBuffer::feed(string data)
     buffer += data;
     size_t size = buffer.size();
     size_t remaining = size;
-    char buf1[ZLIB_BLOCK], buf2[ZLIB_BLOCK];
+	auto buf1 = std::make_unique<char[]>(ZLIB_BLOCK);
+	auto buf2 = std::make_unique<char[]>(ZLIB_BLOCK);
 	while ((err == Z_OK || err == Z_BUF_ERROR) && remaining > 0) {
-        stream.next_in = (Byte*)buf1;
+        stream.next_in = (Byte*)buf1.get();
         stream.avail_in = (remaining > ZLIB_BLOCK ? ZLIB_BLOCK : static_cast<uInt>(remaining));
-		memcpy_s(buf1, ZLIB_BLOCK, &buffer[size - remaining], stream.avail_in);
+		memcpy_s(buf1.get(), ZLIB_BLOCK, &buffer[size - remaining], stream.avail_in);
         do {
-            stream.next_out = (Byte*)buf2;
+            stream.next_out = (Byte*)buf2.get();
             stream.avail_out = (uInt)ZLIB_BLOCK;
             if (shrink) {
                 err = deflate(&stream, Z_NO_FLUSH);
@@ -126,12 +131,12 @@ void CZlibBuffer::feed(string data)
 				   (err != Z_DATA_ERROR) &&
 				   (err != Z_MEM_ERROR));
 
-            output << string(buf2, ZLIB_BLOCK - stream.avail_out);
+            output << string(buf2.get(), ZLIB_BLOCK - stream.avail_out);
         } while (err == Z_OK && stream.avail_out < ZLIB_BLOCK / 10);
 		// 入力が消費されていなかったら終了
-        if (stream.next_in == (Byte*)buf1) 
+        if (stream.next_in == (Byte*)buf1.get()) 
 			break;
-        remaining -= ((char*)stream.next_in - buf1);
+        remaining -= ((char*)stream.next_in - buf1.get());
     }
     buffer = buffer.substr(size - remaining);
 }
@@ -144,19 +149,18 @@ void CZlibBuffer::dump() {
 
     if (shrink) {
         size_t size = buffer.size();
-        char* buf1 = new char[size];
-        char buf2[ZLIB_BLOCK];
-        stream.next_in = (Byte*)buf1;
+		auto buf1 = std::make_unique<char[]>(size);
+		auto buf2 = std::make_unique<char[]>(ZLIB_BLOCK);
+        stream.next_in = (Byte*)buf1.get();
         stream.avail_in = static_cast<uInt>(size);
         for (size_t i=0; i<size; i++) buf1[i] = buffer[i];
         do {
-            stream.next_out = (Byte*)buf2;
+            stream.next_out = (Byte*)buf2.get();
             stream.avail_out = (uInt)ZLIB_BLOCK;
             err = deflate(&stream, Z_FINISH);
-            output << string(buf2, ZLIB_BLOCK - stream.avail_out);
+            output << string(buf2.get(), ZLIB_BLOCK - stream.avail_out);
         } while (err == Z_OK);
 		freemem();
-        delete[] buf1;
     } else {
 		// デバッグ時利用
 		assert( err == Z_OK || err == Z_STREAM_END );
@@ -178,9 +182,10 @@ void CZlibBuffer::dump() {
 
 /* Get processed data. It is removed from the container.
  */
-void CZlibBuffer::read(string& data) {
+std::string CZlibBuffer::read() {
 
-    data = output.str();
+    std::string data = output.str();
     output.str("");
+	return data;
 }
 

@@ -39,6 +39,8 @@
 #include "CodeConvert.h"
 #include "ConnectionMonitor.h"
 #include "BlockListDatabase.h"
+#include "proximodo\zlibbuffer.h"
+#include "BrotliDecompressor.h"
 
 using namespace std::tr2::sys;
 using namespace CodeConvert;
@@ -401,7 +403,7 @@ void CRequestManager::_ProcessOut()
 				m_redirectedIn = 0;
 				m_recvConnectionClose = false;
 				m_sendConnectionClose = false;
-				m_recvContentCoding = 0;
+				m_recvContentCoding = ContentEncoding::kNone;
 				m_bPostData = false;
 				m_logPostData.clear();
 
@@ -1246,7 +1248,7 @@ void	CRequestManager::_ProcessIn()
 
 				m_recvConnectionClose = false;
 				m_sendConnectionClose = false;
-				m_recvContentCoding = 0;
+				m_recvContentCoding = ContentEncoding::kNone;
 			}
 			break;
 
@@ -1372,17 +1374,18 @@ void	CRequestManager::_ProcessIn()
 				if (m_useChain) {
 					std::wstring contentEncoding = m_filterOwner.GetInHeader(L"Content-Encoding");
 					if (CUtil::noCaseContains(L"gzip", contentEncoding)) {
-						m_recvContentCoding = 1;
-						if (m_decompressor == nullptr)
-							m_decompressor.reset(new CZlibBuffer());
-						m_decompressor->reset(false, true);
+						m_recvContentCoding = ContentEncoding::kGzip;
+						m_decompressor.reset(new CZlibBuffer(false, true));
 						CFilterOwner::RemoveHeader(m_filterOwner.inHeadersFiltered, L"Content-Encoding");
 
 					} else if (CUtil::noCaseContains(L"deflate", contentEncoding)) {
-						m_recvContentCoding = 2;
-						if (m_decompressor == nullptr)
-							m_decompressor.reset(new CZlibBuffer());
-						m_decompressor->reset(false, false);
+						m_recvContentCoding = ContentEncoding::kDeflate;
+						m_decompressor.reset(new CZlibBuffer(false, false));
+						CFilterOwner::RemoveHeader(m_filterOwner.inHeadersFiltered, L"Content-Encoding");
+
+					} else if (CUtil::noCaseContains(L"br", contentEncoding)) {
+						m_recvContentCoding = ContentEncoding::kBrotli;
+						m_decompressor.reset(new CBrotliDecompressor());
 						CFilterOwner::RemoveHeader(m_filterOwner.inHeadersFiltered, L"Content-Encoding");
 
 					} else if (contentEncoding.length() > 0) {	// 解釈できない圧縮形式
@@ -1510,9 +1513,9 @@ void	CRequestManager::_ProcessIn()
 
 				// We must decompress compressed data,
 				// unless bypassed body with same coding
-				if (m_recvContentCoding && m_useChain) {
+				if (m_recvContentCoding != ContentEncoding::kNone && m_useChain) {
 					m_decompressor->feed(data);
-					m_decompressor->read(data);
+					data = m_decompressor->read();
 				}
 
 				/// フィルターに食わせる
@@ -1708,10 +1711,10 @@ void	CRequestManager::DataDump()
  */
 void	CRequestManager::_EndFeeding() {
 
-    if (m_recvContentCoding && m_useChain) {
+    if (m_recvContentCoding != ContentEncoding::kNone && m_useChain) {
         string data;
         m_decompressor->dump();
-        m_decompressor->read(data);
+		data = m_decompressor->read();
 
         if (m_useChain) {
             m_textFilterChain.DataFeed(data);

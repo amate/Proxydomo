@@ -924,4 +924,32 @@ bool CUtil::endOfLine(const string& str, size_t start,
         }
     }
 }
-// vi:ts=4:sw=4:et
+
+
+
+std::vector<uint8_t>	CUtil::LoadBinaryFile(const std::wstring& filePath)
+{
+	std::ifstream fs(filePath, std::ios::in | std::ios::binary);
+	if (!fs)
+		return std::vector<uint8_t>();
+
+	fs.seekg(0, std::ios::end);
+	auto eofPos = fs.tellg();
+	fs.clear();
+	fs.seekg(0, std::ios::beg);
+	size_t fileSize = (size_t)eofPos.seekpos();
+
+	std::vector<uint8_t> vec(fileSize);
+	fs.read((char*)vec.data(), fileSize);
+
+	return vec;
+}
+
+void	CUtil::SaveBinaryFile(const std::wstring& filePath, const std::vector<uint8_t>& data)
+{
+	std::ofstream fs(filePath, std::ios::out | std::ios::binary | std::ios::trunc);
+	fs.write((const char*)data.data(), data.size());
+	fs.close();
+}
+
+

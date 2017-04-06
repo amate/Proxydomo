@@ -50,6 +50,10 @@ http://sourceforge.net/projects/wtl/
 ◆wolfSSL
 http://www.wolfssl.com/yaSSL/Home.html
 
+◇brotli
+https://github.com/google/brotli
+ソース組み込み済み
+
 □コンパイル済みdll
 zlibのコンパイル済みdllを下記のURLで公開しています
 http://1drv.ms/1vqvcaG

@@ -231,32 +231,6 @@ bool	ManageCatificateErrorPage(CSocket* sockBrowser, const std::string& host, co
 // ===========================================================
 
 
-std::vector<byte>	LoadBinaryFile(const std::wstring& filePath)
-{
-	std::ifstream fs(filePath, std::ios::in | std::ios::binary);
-	if (!fs)
-		return std::vector<byte>();
-
-	fs.seekg(0, std::ios::end);
-	auto eofPos = fs.tellg();
-	fs.clear();
-	fs.seekg(0, std::ios::beg);
-	size_t fileSize = (size_t)eofPos.seekpos();
-
-	std::vector<byte> vec(fileSize);
-	fs.read((char*)vec.data(), fileSize);
-
-	return vec;
-}
-
-void	SaveBinaryFile(const std::wstring& filePath, const std::vector<byte>& data)
-{
-	std::ofstream fs(filePath, std::ios::out | std::ios::binary | std::ios::trunc);
-	fs.write((const char*)data.data(), data.size());
-	fs.close();
-}
-
-
 int myVerify(int preverify, WOLFSSL_X509_STORE_CTX* store)
 {
 	(void)preverify;
@@ -504,13 +478,13 @@ bool	InitSSL()
 	try {
 
 		{	// server init
-			auto pemCA = LoadBinaryFile((LPCWSTR)cafile);
-			auto pemCAkey = LoadBinaryFile((LPCWSTR)rsacaKeyfile);
+			auto pemCA = CUtil::LoadBinaryFile((LPCWSTR)cafile);
+			auto pemCAkey = CUtil::LoadBinaryFile((LPCWSTR)rsacaKeyfile);
 			if (pemCAkey.size()) {
 				g_caKey.keyType = CAKey::kRsaKey;
 			} else {
 				g_caKey.keyType = CAKey::kEccKey;
-				pemCAkey = LoadBinaryFile((LPCWSTR)ecccaKeyfile);
+				pemCAkey = CUtil::LoadBinaryFile((LPCWSTR)ecccaKeyfile);
 			}
 
 			g_derCA.resize(kBuffSize);
@@ -674,8 +648,8 @@ void	GenerateCACertificate(bool rsa)
 
 		DeleteFileW(static_cast<LPCWSTR>(Misc::GetExeDirectory() + kCAEccKeyFileName));
 
-		SaveBinaryFile(static_cast<LPCWSTR>(Misc::GetExeDirectory() + kCAFileName), pemCA);
-		SaveBinaryFile(static_cast<LPCWSTR>(Misc::GetExeDirectory() + kCAKeyFileName), pemkey);
+		CUtil::SaveBinaryFile(static_cast<LPCWSTR>(Misc::GetExeDirectory() + kCAFileName), pemCA);
+		CUtil::SaveBinaryFile(static_cast<LPCWSTR>(Misc::GetExeDirectory() + kCAKeyFileName), pemkey);
 
 	} else {
 		caCert.sigType = CTC_SHA256wECDSA;
@@ -733,8 +707,8 @@ void	GenerateCACertificate(bool rsa)
 
 		DeleteFileW(static_cast<LPCWSTR>(Misc::GetExeDirectory() + kCAKeyFileName));
 
-		SaveBinaryFile(static_cast<LPCWSTR>(Misc::GetExeDirectory() + kCAFileName), pemCA);
-		SaveBinaryFile(static_cast<LPCWSTR>(Misc::GetExeDirectory() + kCAEccKeyFileName), pemkey);
+		CUtil::SaveBinaryFile(static_cast<LPCWSTR>(Misc::GetExeDirectory() + kCAFileName), pemCA);
+		CUtil::SaveBinaryFile(static_cast<LPCWSTR>(Misc::GetExeDirectory() + kCAEccKeyFileName), pemkey);
 	}
 }
 

@@ -832,6 +832,7 @@ std::unique_ptr<CAdblockFilter>	LoadAdblockFilter(std::wistream& fs, const std::
 #include <gtest\gtest.h>
 
 #include "FilterOwner.h"
+#include "Settings.h"
 
 ///////////////////////////////////////////////////////////////////////////////////
 // AdblockFilterTest
@@ -1042,10 +1043,13 @@ TEST(AdblockFilter, AddPattern)
 
 TEST(AdblockFilter, LoadAdblockFilter)
 {
+#if 0
 	std::wifstream fs(LR"(C:\Programing\Proxydomo\Test\touhu.txt)", std::ios::in);
 	fs.imbue(std::locale(std::locale(), new std::codecvt_utf8_utf16<wchar_t, 0x10ffff, std::codecvt_mode::consume_header>));
 	std::wstring temp;
 	std::getline(fs, temp);
+	CSettings::s_saveBlockListUsageSituation = true;
+	CBlockListDatabase::GetInstance()->Init();
 	auto adfilter = LoadAdblockFilter(fs, ":test:");
 
 	EXPECT_TRUE(MatchTest(*adfilter, L"http://ad.test.jp/"));
@@ -1062,6 +1066,7 @@ TEST(AdblockFilter, LoadAdblockFilter)
 
 	
 	int a = 0;
+#endif
 }
 
 TEST(AdblockFilter, element_hiding_list)

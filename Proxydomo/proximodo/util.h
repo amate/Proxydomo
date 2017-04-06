@@ -27,6 +27,7 @@
 #ifndef __util__
 #define __util__
 
+#include <stdint.h>
 #include <string>
 #include <vector>
 #include <map>
@@ -186,6 +187,9 @@ public:
     static string unquote(string str);
     static int getQuoted(const string& str, string& out,
                          int start = -1, char token = '\0');
+
+	static std::vector<uint8_t>	LoadBinaryFile(const std::wstring& filePath);
+	static void	SaveBinaryFile(const std::wstring& filePath, const std::vector<uint8_t>& data);
 
 private:
     // Case-insensitive compare binary function

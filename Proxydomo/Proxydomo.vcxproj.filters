@@ -25,6 +25,9 @@
     <Filter Include="Header Files\SSL">
       <UniqueIdentifier>{5372b90b-3702-4d60-bf91-5afb22cc3180}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\brotli">
+      <UniqueIdentifier>{9e5b7cff-e122-4cd1-8309-b1ea29098bfa}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -202,6 +205,78 @@
       <Filter>Header Files</Filter>
     </ClCompile>
     <ClCompile Include="BlockListDatabase.cpp">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="brotli\enc\backward_references.c">
+      <Filter>Header Files\brotli</Filter>
+    </ClCompile>
+    <ClCompile Include="brotli\enc\backward_references_hq.c">
+      <Filter>Header Files\brotli</Filter>
+    </ClCompile>
+    <ClCompile Include="brotli\enc\bit_cost.c">
+      <Filter>Header Files\brotli</Filter>
+    </ClCompile>
+    <ClCompile Include="brotli\enc\block_splitter.c">
+      <Filter>Header Files\brotli</Filter>
+    </ClCompile>
+    <ClCompile Include="brotli\enc\brotli_bit_stream.c">
+      <Filter>Header Files\brotli</Filter>
+    </ClCompile>
+    <ClCompile Include="brotli\enc\cluster.c">
+      <Filter>Header Files\brotli</Filter>
+    </ClCompile>
+    <ClCompile Include="brotli\enc\compress_fragment.c">
+      <Filter>Header Files\brotli</Filter>
+    </ClCompile>
+    <ClCompile Include="brotli\enc\compress_fragment_two_pass.c">
+      <Filter>Header Files\brotli</Filter>
+    </ClCompile>
+    <ClCompile Include="brotli\enc\dictionary_hash.c">
+      <Filter>Header Files\brotli</Filter>
+    </ClCompile>
+    <ClCompile Include="brotli\enc\encode.c">
+      <Filter>Header Files\brotli</Filter>
+    </ClCompile>
+    <ClCompile Include="brotli\enc\entropy_encode.c">
+      <Filter>Header Files\brotli</Filter>
+    </ClCompile>
+    <ClCompile Include="brotli\enc\histogram.c">
+      <Filter>Header Files\brotli</Filter>
+    </ClCompile>
+    <ClCompile Include="brotli\enc\literal_cost.c">
+      <Filter>Header Files\brotli</Filter>
+    </ClCompile>
+    <ClCompile Include="brotli\enc\memory.c">
+      <Filter>Header Files\brotli</Filter>
+    </ClCompile>
+    <ClCompile Include="brotli\enc\metablock.c">
+      <Filter>Header Files\brotli</Filter>
+    </ClCompile>
+    <ClCompile Include="brotli\enc\static_dict.c">
+      <Filter>Header Files\brotli</Filter>
+    </ClCompile>
+    <ClCompile Include="brotli\enc\utf8_util.c">
+      <Filter>Header Files\brotli</Filter>
+    </ClCompile>
+    <ClCompile Include="brotli\dec\bit_reader.c">
+      <Filter>Header Files\brotli</Filter>
+    </ClCompile>
+    <ClCompile Include="brotli\dec\decode.c">
+      <Filter>Header Files\brotli</Filter>
+    </ClCompile>
+    <ClCompile Include="brotli\dec\huffman.c">
+      <Filter>Header Files\brotli</Filter>
+    </ClCompile>
+    <ClCompile Include="brotli\dec\state.c">
+      <Filter>Header Files\brotli</Filter>
+    </ClCompile>
+    <ClCompile Include="brotli\common\dictionary.c">
+      <Filter>Header Files\brotli</Filter>
+    </ClCompile>
+    <ClCompile Include="Test_brotli.cpp">
+      <Filter>Header Files\Test</Filter>
+    </ClCompile>
+    <ClCompile Include="BrotliDecompressor.cpp">
       <Filter>Header Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -420,6 +495,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="BlockListDatabase.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Decompressor.h.cpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BrotliDecompressor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

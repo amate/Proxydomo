@@ -512,6 +512,7 @@ TEST(BlockListDatabase, Test)
 	}
 	db.DeleteNoExistList();
 
+#if 0
 	auto list = db.QueryPatternLineHitCountList(listName);
 	EXPECT_TRUE(list.front().line == 1);
 	EXPECT_TRUE(list.front().pattern == "test_pattern");
@@ -530,6 +531,7 @@ TEST(BlockListDatabase, Test)
 	EXPECT_TRUE(list.front().line == 2);
 	EXPECT_TRUE(list.front().pattern == "test_pattern2");
 	EXPECT_TRUE(list.front().hitCount == 0);
+#endif
 
 }
 

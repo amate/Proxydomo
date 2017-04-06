@@ -32,9 +32,9 @@
 #include "TextBuffer.h"
 #include "FilterOwner.h"
 #include "proximodo\url.h"
-#include "proximodo\zlibbuffer.h"
 #include "proximodo\headerfilter.h"
 #include "ssl.h"
+#include "Decompressor.h"
 
 namespace Proxydomo { class CMatcher; }
 struct ConnectionData;
@@ -144,8 +144,15 @@ private:
 	// for correct incoming body processing
     bool	m_recvConnectionClose; // should the connection be closed when finished
     bool	m_sendConnectionClose;
-    int		m_recvContentCoding;   // 0: plain/compress, 1: gzip, 2:deflate (zlib)
-	std::unique_ptr<CZlibBuffer>	m_decompressor;
+
+	enum class ContentEncoding {
+		kNone = 0,	// plain/compress
+		kGzip,
+		kDeflate,
+		kBrotli,
+	};
+	ContentEncoding		m_recvContentCoding;
+	std::unique_ptr<IDecompressor>	m_decompressor;
 
     // Variables and functions for outgoing processing
     STEP	m_outStep;	// ブラウザ ⇒ Proxy(this) ⇒ サイト 間の処理の状態を示す

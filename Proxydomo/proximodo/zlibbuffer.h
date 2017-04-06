@@ -31,8 +31,8 @@
 #include <zlib.h>       // (zlib 1.2.8)
 #include <string>
 #include <sstream>
+#include "..\Decompressor.h"
 
-using namespace std;
 
 /* This class is a simple container for a zlib stream. One can feed it
  * with compressed (resp. uncompressed) data then immediately read
@@ -42,25 +42,27 @@ using namespace std;
  * Inflating automatically detects gzip/deflate input.
  * Deflating will generate gzip/deflate formatted data depending on 'modeGzip'.
  */
-class CZlibBuffer {
-
+class CZlibBuffer : public IDecompressor 
+{
 public:
-    CZlibBuffer();
+    CZlibBuffer(bool shrink, bool modeGzip = false);
     ~CZlibBuffer();
-    bool reset(bool shrink, bool modeGzip = false);
-    void feed(string data);
-    void dump();
-    void read(string& data);
-	void freemem();
+
+	virtual void feed(const std::string& data) override;
+	virtual void dump() override;
+	virtual std::string read() override;
 
 private:
+	bool reset(bool shrink, bool modeGzip = false);
+	void freemem();
+
     bool modeGzip;
     bool shrink;
     bool freed;
     int  err;
-    string buffer;
+    std::string buffer;
     z_stream stream;
-    stringstream output;
+    std::stringstream output;
 };
 
 #endif
