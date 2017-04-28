@@ -372,6 +372,70 @@ bool CRequestManager::_SendOut()
 	return ret;
 }
 
+void CRequestManager::_ProcessOutHeaderFilter()
+{
+	// We'll work on a copy, since we don't want to alter
+	// the real headers that $IHDR and $OHDR may access
+	m_filterOwner.outHeadersFiltered = m_filterOwner.outHeaders;
+
+	// Filter outgoing headers
+	if (m_filterOwner.bypassOut == false && CSettings::s_filterOut &&
+		m_filterOwner.url.getHost() != L"local.ptron") {
+		// Apply filters one by one
+		for (auto& headerfilter : m_vecpOutFilter) {
+			headerfilter->bypassed = false;
+			const wstring& name = headerfilter->headerName;
+
+			if (CUtil::noCaseBeginsWith(L"url", name) == false) {
+
+				// If header is absent, temporarily create one
+				if (CFilterOwner::GetHeader(m_filterOwner.outHeadersFiltered, name).empty())
+					CFilterOwner::SetHeader(m_filterOwner.outHeadersFiltered, name, L"");
+				// Test headers one by one
+				for (auto& pair : m_filterOwner.outHeadersFiltered) {
+					if (CUtil::noCaseEqual(name, pair.first))
+						headerfilter->filter(pair.second);
+				}
+				// Remove null headers
+				CFilterOwner::CleanHeader(m_filterOwner.outHeadersFiltered);
+
+			} else {
+
+				// filter works on a copy of the URL
+				std::wstring test = m_filterOwner.url.getUrl();
+				headerfilter->filter(test);
+				CUtil::trim(test);
+				// if filter changed the url, update variables
+				if (!m_filterOwner.killed && !test.empty() && test != m_filterOwner.url.getUrl()) {
+					// We won't change contactHost if it has been
+					// set to a proxy address by a $SETPROXY command
+					bool changeHost = (m_filterOwner.contactHost == m_filterOwner.url.getHostPort());
+					// update URL
+					m_filterOwner.url.parseUrl(test);
+					if (m_filterOwner.url.getBypassIn())    m_filterOwner.bypassIn = true;
+					if (m_filterOwner.url.getBypassOut())   m_filterOwner.bypassOut = true;
+					if (m_filterOwner.url.getBypassText())  m_filterOwner.bypassBody = true;
+					if (changeHost) m_filterOwner.contactHost = m_filterOwner.url.getHostPort();
+				}
+			}
+			if (m_filterOwner.rdirToHost.size() > 0 && m_filterOwner.rdirMode == 1) {
+				if (CUrl(m_filterOwner.rdirToHost).getBypassOut())
+					break;
+			}
+
+			if (m_filterOwner.killed) {
+				// There has been a \k in a header filter, so we
+				// redirect to an empty file and stop processing headers
+				if (m_filterOwner.url.getPath().find(L".gif") != wstring::npos)
+					m_filterOwner.rdirToHost = L"http://file//./html/killed.gif";
+				else
+					m_filterOwner.rdirToHost = L"http://file//./html/killed.html";
+				break;
+			}
+		}
+	}
+}
+
 /// Process outgoing data (from browser to website)
 /// ブラウザ ⇒ Proxy(this) ⇒ サイト
 void CRequestManager::_ProcessOut()
@@ -511,67 +575,9 @@ void CRequestManager::_ProcessOut()
 				{
 					m_bPostData = true;
 				}
-
-				// We'll work on a copy, since we don't want to alter
-				// the real headers that $IHDR and $OHDR may access
-				m_filterOwner.outHeadersFiltered = m_filterOwner.outHeaders;
-
+				
 				// Filter outgoing headers
-				if (m_filterOwner.bypassOut == false && CSettings::s_filterOut &&
-					m_filterOwner.url.getHost() != L"local.ptron") {
-					// Apply filters one by one
-					for (auto& headerfilter : m_vecpOutFilter) {
-						headerfilter->bypassed = false;
-						const wstring& name = headerfilter->headerName;
-
-						if (CUtil::noCaseBeginsWith(L"url", name) == false) {
-
-							// If header is absent, temporarily create one
-							if (CFilterOwner::GetHeader(m_filterOwner.outHeadersFiltered, name).empty())
-								CFilterOwner::SetHeader(m_filterOwner.outHeadersFiltered, name, L"");
-							// Test headers one by one
-							for (auto& pair : m_filterOwner.outHeadersFiltered) {
-								if (CUtil::noCaseEqual(name, pair.first))
-									headerfilter->filter(pair.second);
-							}
-							// Remove null headers
-							CFilterOwner::CleanHeader(m_filterOwner.outHeadersFiltered);
-
-						} else {
-
-							// filter works on a copy of the URL
-							std::wstring test = m_filterOwner.url.getUrl();
-							headerfilter->filter(test);
-							CUtil::trim(test);
-							// if filter changed the url, update variables
-							if (!m_filterOwner.killed && !test.empty() && test != m_filterOwner.url.getUrl()) {
-								// We won't change contactHost if it has been
-								// set to a proxy address by a $SETPROXY command
-								bool changeHost = (m_filterOwner.contactHost == m_filterOwner.url.getHostPort());
-								// update URL
-								m_filterOwner.url.parseUrl(test);
-								if (m_filterOwner.url.getBypassIn())    m_filterOwner.bypassIn   = true;
-								if (m_filterOwner.url.getBypassOut())   m_filterOwner.bypassOut  = true;
-								if (m_filterOwner.url.getBypassText())  m_filterOwner.bypassBody = true;
-								if (changeHost) m_filterOwner.contactHost = m_filterOwner.url.getHostPort();
-							}
-						}
-						if (m_filterOwner.rdirToHost.size() > 0 && m_filterOwner.rdirMode == 1) {
-							if (CUrl(m_filterOwner.rdirToHost).getBypassOut())
-								break;
-						}
-
-						if (m_filterOwner.killed) {
-							// There has been a \k in a header filter, so we
-							// redirect to an empty file and stop processing headers
-							if (m_filterOwner.url.getPath().find(L".gif") != wstring::npos)
-								m_filterOwner.rdirToHost = L"http://file//./html/killed.gif";
-							else
-								m_filterOwner.rdirToHost = L"http://file//./html/killed.html";
-							break;
-						}
-					}
-				}
+				_ProcessOutHeaderFilter();
 
 				// CONNECTリクエストで$FILTER(false)された場合はバイパス扱いする
 				if (m_requestLine.method == "CONNECT" && m_filterOwner.bypassBody) {
@@ -1179,6 +1185,50 @@ bool	CRequestManager::_ReceiveIn()
 	return bDataReceived;
 }
 
+// Filter incoming headers
+void	CRequestManager::_ProcessInHeaderFilter()
+{
+	// We'll work on a copy, since we don't want to alter
+	// the real headers that $IHDR and $OHDR may access
+	m_filterOwner.inHeadersFiltered = m_filterOwner.inHeaders;
+	if (m_filterOwner.bypassIn == false && CSettings::s_filterIn) {
+		// Apply filters one by one
+		for (auto& headerfilter : m_vecpInFilter) {
+			headerfilter->bypassed = false;
+			const wstring& name = headerfilter->headerName;
+
+			// If header is absent, temporarily create one
+			if (CFilterOwner::GetHeader(m_filterOwner.inHeadersFiltered, name).empty()) {
+				if (CUtil::noCaseBeginsWith(L"url", name)) {
+					CFilterOwner::SetHeader(m_filterOwner.inHeadersFiltered, name, m_filterOwner.url.getUrl());
+				} else {
+					CFilterOwner::SetHeader(m_filterOwner.inHeadersFiltered, name, L"");
+				}
+			}
+			// Test headers one by one
+			for (auto& pair : m_filterOwner.inHeadersFiltered) {
+				if (CUtil::noCaseEqual(name, pair.first))
+					headerfilter->filter(pair.second);
+			}
+
+			CFilterOwner::RemoveHeader(m_filterOwner.inHeadersFiltered, L"URL");
+			// Remove null headers
+			CFilterOwner::CleanHeader(m_filterOwner.inHeadersFiltered);
+
+			if (m_filterOwner.killed) {
+				// There has been a \k in a header filter, so we
+				// redirect to an empty file and stop processing headers
+				if (m_filterOwner.url.getPath().find(L".gif") != wstring::npos)
+					m_filterOwner.rdirToHost = L"http://file//./html/killed.gif";
+				else
+					m_filterOwner.rdirToHost = L"http://file//./html/killed.html";
+				m_filterOwner.rdirMode = 0;   // (to use non-transp code below)
+				break;
+			}
+		}
+	}
+}
+
 /// Process incoming data (from website to browser) 
 /// サイト ⇒ Proxy(this) ⇒ ブラウザ
 void	CRequestManager::_ProcessIn()
@@ -1308,48 +1358,12 @@ void	CRequestManager::_ProcessIn()
 						m_recvConnectionClose = true;
 				}
 
-				if (CUtil::noCaseBeginsWith("206", m_filterOwner.responseCode))
+				if (CUtil::noCaseBeginsWith("206", m_filterOwner.responseCode)) {
 					m_filterOwner.bypassBody = true;
-
-				// We'll work on a copy, since we don't want to alter
-				// the real headers that $IHDR and $OHDR may access
-				m_filterOwner.inHeadersFiltered = m_filterOwner.inHeaders;
-				if (m_filterOwner.bypassIn == false && CSettings::s_filterIn) {
-					// Apply filters one by one
-					for (auto& headerfilter : m_vecpInFilter) {
-						headerfilter->bypassed = false;
-						const wstring& name = headerfilter->headerName;
-
-						// If header is absent, temporarily create one
-						if (CFilterOwner::GetHeader(m_filterOwner.inHeadersFiltered, name).empty()) {
-							if (CUtil::noCaseBeginsWith(L"url", name)) {
-								CFilterOwner::SetHeader(m_filterOwner.inHeadersFiltered, name, m_filterOwner.url.getUrl());
-							} else {
-								CFilterOwner::SetHeader(m_filterOwner.inHeadersFiltered, name, L"");
-							}
-						}
-						// Test headers one by one
-						for (auto& pair : m_filterOwner.inHeadersFiltered) {
-							if (CUtil::noCaseEqual(name, pair.first))
-								headerfilter->filter(pair.second);
-						}
-
-						CFilterOwner::RemoveHeader(m_filterOwner.inHeadersFiltered, L"URL");
-						// Remove null headers
-						CFilterOwner::CleanHeader(m_filterOwner.inHeadersFiltered);
-
-						if (m_filterOwner.killed) {
-							// There has been a \k in a header filter, so we
-							// redirect to an empty file and stop processing headers
-							if (m_filterOwner.url.getPath().find(L".gif") != wstring::npos)
-								m_filterOwner.rdirToHost = L"http://file//./html/killed.gif";
-							else
-								m_filterOwner.rdirToHost = L"http://file//./html/killed.html";
-							m_filterOwner.rdirMode = 0;   // (to use non-transp code below)
-							break;
-						}
-					}
 				}
+
+				// Filter incoming headers
+				_ProcessInHeaderFilter();
 
 				// 受信ヘッダでリダイレクトを指示されたらリダイレクトする
 				// (limited to 3, to prevent infinite loop)
@@ -1365,7 +1379,7 @@ void	CRequestManager::_ProcessIn()
 				}
 
 				// Tell text filters to see whether they should work on it
-				if (m_filterOwner.url.getDebug()) {
+				if (m_filterOwner.url.getDebug() && m_filterOwner.fileType == "htm") {
 					m_useChain = true;
 				} else {
 					m_useChain = (m_filterOwner.bypassBody == false && CSettings::s_filterText);
@@ -1424,7 +1438,6 @@ void	CRequestManager::_ProcessIn()
 
 				} else {
 					m_sendInBuf = "HTTP/1.1 " + m_filterOwner.responseLine.code + " " + m_filterOwner.responseLine.msg + CRLF;
-					std::string name;
 					for (auto& pair : m_filterOwner.inHeadersFiltered)
 						m_sendInBuf += UTF8fromUTF16(pair.first) + ": " + UTF8fromUTF16(pair.second) + CRLF;
 					
@@ -1750,12 +1763,19 @@ void	CRequestManager::_FakeResponse(const std::string& code, const std::wstring&
 		content = CUtil::replaceAll(content, "%%1%%", code);
 	m_inStep = STEP::STEP_FINISH;
 	m_connectionData->SetInStep(m_inStep);
-	m_sendInBuf =
-		"HTTP/1.1 " + code + CRLF
-		"Content-Type: " + contentType + CRLF
-		"Content-Length: " + boost::lexical_cast<std::string>(content.size()) + CRLF
-		"Connection: close" + CRLF CRLF;
+
+	m_filterOwner.SetInHeader(L"Content-Type", UTF16fromUTF8(contentType));
+	m_filterOwner.SetInHeader(L"Content-Length", std::to_wstring(content.size()));
+	m_filterOwner.SetInHeader(L"Connection", L"close");
+	_ProcessInHeaderFilter();
+
+	m_sendInBuf = "HTTP/1.1 " + code + CRLF;
+	for (auto& pair : m_filterOwner.inHeadersFiltered)
+		m_sendInBuf += UTF8fromUTF16(pair.first) + ": " + UTF8fromUTF16(pair.second) + CRLF;
+
 	CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_filterOwner.requestNumber, m_sendInBuf);
+
+	m_sendInBuf += CRLF;
 	m_sendInBuf += content;
 	m_sendConnectionClose = true;
 }

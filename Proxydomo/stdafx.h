@@ -38,8 +38,10 @@ using std::max;
 #include <atlsync.h>
 #include <atlddx.h>
 #include <atlctrlx.h>
+#include <atlmisc.h>
 
 #include <cstdint>
+#include <ctime>
 
 #include <string>
 #include <memory>
@@ -60,6 +62,21 @@ using std::max;
 #include <codecvt>
 #include <random>
 #include <algorithm>
+#include <limits>
+#include <filesystem>
+
+#include <boost\lexical_cast.hpp>
+#include <boost\format.hpp>
+#include <boost\optional.hpp>
+#include <boost\algorithm\string.hpp>
+#include <boost\algorithm\string\predicate.hpp>
+#include <boost\algorithm\string\join.hpp>
+#include <boost\utility\string_ref.hpp>
+#include <boost\property_tree\ptree.hpp>
+#include <boost\property_tree\json_parser.hpp>
+#include <boost\property_tree\ini_parser.hpp>
+#include <boost\property_tree\xml_parser.hpp>
+#include <boost\container\flat_set.hpp>
 
 
 #if defined _M_IX86

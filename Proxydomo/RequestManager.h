@@ -75,6 +75,10 @@ private:
 	std::string m_sendOutBuf;	/// サイトに送るデータ
 	bool	_SendOut();			/// Send outgoing data to website
 
+	
+	void	_ProcessOutHeaderFilter();	// Filter outgoing headers
+	void	_ProcessInHeaderFilter();	// Filter incoming headers
+
 	void	_ConnectWebsite();
 
 	bool	_HandleLocalPtron();
