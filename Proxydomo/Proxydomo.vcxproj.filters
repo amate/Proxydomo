@@ -497,10 +497,10 @@
     <ClInclude Include="BlockListDatabase.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Decompressor.h.cpp">
+    <ClInclude Include="BrotliDecompressor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="BrotliDecompressor.h">
+    <ClInclude Include="Decompressor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -23,7 +23,7 @@ $LSTの指定方法は listsフォルダ以下にあるテキストから拡張子を消したものです
 使用にあたっては、自己責任でお願いします。
  
 何かあれば下記のURLにあるメールフォームにお願いします。
-http://www31.atwiki.jp/lafe/pages/33.html
+https://ws.formzu.net/fgen/S37403840/
  
 ■著作権表示
 Copyright (C) 2004 Antony BOUCHER
@@ -32,7 +32,7 @@ Copyright (C) 2013-2016 amate
  画像の一部に「VS2010ImageLibrary」の一部を使用しています。
  
 ■ビルドについて
-Visual Studio 2015 Communityが必要です
+Visual Studio 2017 が必要です
 ビルドには boost(1.60~)と zlib(v1.2.8~) と WTL(v91_5321_Final) と ICU(v55.1~) と wolfSSL(v3.9.6~) が必要なのでそれぞれ用意してください。
 
 ◆boost
@@ -117,6 +117,7 @@ WOLFSSL_STATIC_RSA
 NO_RC4
 NO_HC128
 NO_PSK
+WOLFSSL_ALT_NAMES
 
 // for Debug/Release x64
 WOLFSSL_LIB
@@ -141,6 +142,7 @@ NO_RC4
 NO_HC128
 NO_PSK
 WOLFSSL_AESNI
+WOLFSSL_ALT_NAMES
 
 wolfsslのプロパティページ C/C++ -> コード生成
 ランタイムライブラリを 構成がDebug なら"マルチスレッド デバッグ (/MTd)" へ変更
@@ -154,7 +156,7 @@ Releaseなら"マルチスレッド (/MT)" へ変更してください
 
 v1.66の以下の修正はwolfSSL側のソースを修正する必要があります
 ・サーバーから送られてくるルートCA証明書がおかしいとき"ASN no signer error to confirm failure"の警告が出るのを修正
-internal.cの 6555行目あたりを
+internal.cの 6636行目あたりを
 
 // before
 WOLFSSL_MSG("Failed to verify CA from chain");

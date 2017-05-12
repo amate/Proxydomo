@@ -368,6 +368,31 @@ std::unique_ptr<serverCertAndKey>	CreateServerCert(const std::string& host)
 		std::string wildcardHost = CreateWildcardHost(host);
 		::strcpy_s(serverCert.subject.commonName, wildcardHost.c_str());
 	}
+	{	// subjectAltNames
+		enum { kHeaderSize = 13 };
+		serverCert.altNames[0] = 0x30;
+		serverCert.altNames[1] = kHeaderSize + (byte)host.size() - 2;
+
+		serverCert.altNames[2] = 0x06;
+		serverCert.altNames[3] = 0x03;	// length
+		serverCert.altNames[4] = 0x55;	// id-ce-subjectAltName
+		serverCert.altNames[5] = 0x1d;	//
+		serverCert.altNames[6] = 0x11;	//
+
+		serverCert.altNames[7] = 0x04;
+		serverCert.altNames[8] = (byte)host.size() + 2 + 2;
+
+		serverCert.altNames[9] = 0x30;
+		serverCert.altNames[10] = (byte)host.size() + 2;
+
+		serverCert.altNames[11] = 0x82;
+		serverCert.altNames[12] = (byte)host.size();
+
+		::strncpy_s((char*)&serverCert.altNames[kHeaderSize],
+			_countof(serverCert.altNames) - kHeaderSize,
+			host.c_str(), host.length());
+		serverCert.altNamesSz = kHeaderSize + (byte)host.size();
+	}
 
 	if (g_caKey.keyType == CAKey::kRsaKey) {
 		serverCert.sigType = CTC_SHA256wRSA;
