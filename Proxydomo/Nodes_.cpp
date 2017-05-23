@@ -1208,7 +1208,8 @@ const UChar* CNode_Command::match(const UChar* start, const UChar* stop, MatchDa
 		pMatch->reached = reachedOrigin;
 		break;
 
-    case CMD_TSTEXPAND:	// $TST((VariableName or \# or \0-\9)=Matching expression)
+    case CMD_TSTEXPAND:	// $TST((expand text)=Matching expression)
+						// ƒJƒbƒR“à‚ª“WŠJ‚³‚ê‚½Œã‚ÉA•]‰¿‚³‚ê‚é (modo‚¾‚¯‚Ì“ÆŽ©Šg’£H)
 		pMatch->stackSaveMemory.push(true);
 		toMatch = CExpander::expand(m_name, filter);
         tStart = toMatch.c_str();
@@ -1242,7 +1243,11 @@ const UChar* CNode_Command::match(const UChar* start, const UChar* stop, MatchDa
 
     case CMD_TSTVAR:	// $TST(VariableName=Matching expression)
 		pMatch->stackSaveMemory.push(true);
-		toMatch = owner.variables[m_name];
+		if (m_name.front() == L'_') {
+			toMatch = filter.localVariables[m_name];
+		} else {
+			toMatch = owner.variables[m_name];
+		}
         tStart = toMatch.c_str();
         tStop = tStart + toMatch.size();
         if (toMatch.empty()
@@ -1314,7 +1319,11 @@ const UChar* CNode_Command::match(const UChar* start, const UChar* stop, MatchDa
         break;
 
     case CMD_SETVAR:
-        owner.variables[m_name] = CExpander::expand(m_content, filter);
+		if (m_name.front() == L'_') {
+			filter.localVariables[m_name] = CExpander::expand(m_content, filter);
+		} else {
+			owner.variables[m_name] = CExpander::expand(m_content, filter);
+		}
         break;
 
     case CMD_KEYCHK:
@@ -1582,7 +1591,11 @@ const UChar* CNode_Test::match(const UChar* start, const UChar* stop, MatchData*
     } else if (m_name[0] == L'(' && m_name[m_name.size()-1] == L')') {
         str = CExpander::expand(m_name.substr(1, m_name.size()-2), filter);
     } else {
-        str = filter.owner.variables[m_name];
+		if (m_name.front() == L'_') {
+			str = filter.localVariables[m_name];
+		} else {
+			str = filter.owner.variables[m_name];
+		}
     }
     size_t size = str.size();
     if (size == 0)

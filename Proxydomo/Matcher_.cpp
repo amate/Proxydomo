@@ -786,16 +786,21 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
                 CUtil::lower(name);
                 if (name[0] == L'\\') name.erase(0,1);
                 if (name == L"#") {	// #=value
-					if (boost::algorithm::contains(value, L"\\#") || boost::algorithm::contains(value, L"\\@"))
+					if (boost::algorithm::contains(value, L"\\#") || boost::algorithm::contains(value, L"\\@")) {
 						throw parsing_exception(ID_PARSINGERROR_FORBITNEST, 0);
+					}
                     return new CNode_Command(CMD_SETSHARP, L"", value);
 
 				} else if (name.length() == 1 && iswdigit(name[0])) {	// \0-9=value
-					if (boost::algorithm::contains(value, L"\\" + name))
+					if (boost::algorithm::contains(value, L"\\" + name)) {
 						throw parsing_exception(ID_PARSINGERROR_FORBITNEST, 0);
+					}
                     return new CNode_Command(CMD_SETDIGIT, name, value);
 
                 } else {	// globalName=value
+					if (name.empty()) {
+						throw parsing_exception(ID_PARSINGERROR_NEED_TEXT, 0);						
+					}
                     return new CNode_Command(CMD_SETVAR, name, value);
                 }
 
@@ -831,11 +836,15 @@ CNode* CMatcher::code(StringCharacterIterator& patternIt)
 				} else if (name.length() == 1 && iswdigit(name[0])) {
                     return new CNode_Command(CMD_TSTDIGIT, name, value);	// $TST(\0-\9=Matching expression)
 
-                } else if (name[0] == L'(' && name[name.size()-1] == L')') {	// $TST((VariableName or \# or \0-\9)=Matching expression)
+                } else if (name[0] == L'(' && name[name.size()-1] == L')') {	// $TST((expand text)=Matching expression)
+					// カッコ内が展開された後に、評価される (modoだけの独自拡張？)
                     name = name.substr(1, name.size()-2);
                     return new CNode_Command(CMD_TSTEXPAND, name, value);
 
                 } else {
+					if (name.empty()) {
+						throw parsing_exception(ID_PARSINGERROR_NEED_TEXT, 0);
+					}
                     return new CNode_Command(CMD_TSTVAR, name, value);	// $TST(VariableName=Matching expression)
                 }
 

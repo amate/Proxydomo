@@ -137,6 +137,84 @@ bool IPv4Address::SetNextHost()
 }
 
 ////////////////////////////////////////////////////////////////
+// IPAddress
+
+IPAddress::IPAddress()
+{
+
+}
+
+bool	IPAddress::Set(const std::string& IPorHostName, const std::string& protocol)
+{
+	std::string strPortNumber;
+	if (protocol == "http") {
+		strPortNumber = "80";
+	} else if (protocol == "https") {
+		strPortNumber = "443";
+	} else {
+		strPortNumber = protocol;
+	}
+
+	auto ipret = ::inet_addr(IPorHostName.c_str());
+	if (ipret != INADDR_NONE) {
+		addrinfoList.reset(new addrinfo, [](addrinfo* p) { 
+			delete (sockaddr_in*)p->ai_addr;
+			delete p;
+		});
+		addrinfoList->ai_addr = (sockaddr*)new sockaddr_in;
+		addrinfoList->ai_addrlen = sizeof(sockaddr_in);
+		reinterpret_cast<sockaddr_in*>(addrinfoList->ai_addr)->sin_family = AF_INET;
+		reinterpret_cast<sockaddr_in*>(addrinfoList->ai_addr)->sin_addr.S_un.S_addr = ipret;
+		reinterpret_cast<sockaddr_in*>(addrinfoList->ai_addr)->sin_port = ::htons(boost::lexical_cast<uint16_t>(strPortNumber));
+
+		addrinfoList->ai_family = AF_INET;     // IPv4
+		addrinfoList->ai_socktype = SOCK_STREAM;
+		addrinfoList->ai_protocol = IPPROTO_TCP;
+		addrinfoList->ai_next = nullptr;
+
+#ifdef _DEBUG
+		//ip = ::inet_ntoa(addr.sin_addr);
+#endif
+		return true;
+
+	} else {
+		std::string service = strPortNumber;
+		ATLASSERT(service.length());
+		addrinfo* result = nullptr;
+		addrinfo hints = {};
+		hints.ai_family = AF_UNSPEC;     // IPv4/IPv6—¼‘Î‰ž
+		hints.ai_socktype = SOCK_STREAM;
+		hints.ai_protocol = IPPROTO_TCP;
+		hints.ai_flags = AI_NUMERICSERV;	// service‚Íƒ|[ƒg”Ô†
+		for (int tryCount = 0;; ++tryCount) {
+			int ret = ::getaddrinfo(IPorHostName.c_str(), service.c_str(), &hints, &result);
+			if (ret == 0) {
+				break;
+
+			} else if (ret == EAI_AGAIN) {
+				if (tryCount >= 5) {
+					WARN_LOG << L"getaddrinfo retry failed: " << IPorHostName;
+					return false;
+				}
+				::Sleep(50);
+			} else {
+				std::wstring strerror = gai_strerror(ret);
+				WARN_LOG << L"getaddrinfo failed : " << strerror;
+				return false;
+			}
+		}
+
+		addrinfoList.reset(result, [](addrinfo* p) { ::freeaddrinfo(p); });
+
+#ifdef _DEBUG
+		//ip = ::inet_ntoa(addr.sin_addr);
+#endif
+		return true;
+	}
+}
+
+
+////////////////////////////////////////////////////////////////
 // CSocket
 
 CSocket::CSocket() : m_sock(0), m_nLastReadCount(0), m_nLastWriteCount(0)
@@ -228,22 +306,28 @@ std::unique_ptr<CSocket>	CSocket::Accept()
 	return std::unique_ptr<CSocket>(std::move(pSocket));;
 }
 
-bool	CSocket::Connect(IPv4Address addr)
+
+bool	CSocket::Connect(IPAddress addr)
 {
-	ATLASSERT( m_sock == 0 );
-	m_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (m_sock == INVALID_SOCKET) {
-		m_sock = 0;
-		throw SocketException("Can`t open socket");
+	ATLASSERT(m_sock == 0);
+
+	for (addrinfo* ai = addr.addrinfoList.get(); ai != nullptr; ai = ai->ai_next) {
+		m_sock = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+		if (m_sock == INVALID_SOCKET) {
+			m_sock = 0;
+			throw SocketException("Can`t open socket");
+		}
+		int ret = ::connect(m_sock, ai->ai_addr, ai->ai_addrlen);
+		if (ret == SOCKET_ERROR) {
+			::closesocket(m_sock);
+			m_sock = 0;
+			continue;
+
+		} else {
+			return true;	// success!
+		}
 	}
-	int ret = ::connect(m_sock, addr, sizeof(sockaddr_in));
-	if (ret == SOCKET_ERROR) {
-		::closesocket(m_sock);
-		m_sock = 0;
-		return false;
-	} else {
-		return true;
-	}
+	return false;
 }
 
 void	CSocket::Close()

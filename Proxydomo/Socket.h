@@ -74,6 +74,16 @@ struct IPv4Address
 	bool SetNextHost();
 };
 
+struct IPAddress
+{
+	std::shared_ptr<addrinfo>	addrinfoList;
+
+	IPAddress();
+
+	bool	Set(const std::string& IPorHostName, const std::string& protocol);
+
+};
+
 
 class CSocket
 {
@@ -91,7 +101,7 @@ public:
 	void	Bind(uint16_t port);
 	std::unique_ptr<CSocket>	Accept();
 
-	bool	Connect(IPv4Address addr);
+	bool	Connect(IPAddress addr);
 
 	void	Close();
 

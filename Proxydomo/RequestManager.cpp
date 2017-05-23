@@ -866,8 +866,8 @@ void CRequestManager::_ConnectWebsite()
         m_previousHost = m_filterOwner.contactHost;
 
         // Check the host (Hostname() asks the DNS)
-		IPv4Address host;
-		if (name.empty() || host.SetService(port) == false || host.SetHostName(name) == false) {
+		IPAddress host;
+		if (name.empty() || host.Set(name, port) == false) {
             // The host address is invalid (or unknown by DNS)
             // so we won't try a connection.
 			_FakeResponse("502 Bad Gateway", L"./html/error.html");
@@ -875,12 +875,7 @@ void CRequestManager::_ConnectWebsite()
 		}
 
         // Connect
-		do {
-			if (m_psockWebsite->Connect(host))
-				break;
-		} while (host.SetNextHost());
-
-		if (m_psockWebsite->IsConnected() == false) {
+		if (m_psockWebsite->Connect(host) == false) {
             // Connection failed, warn the browser
 			_FakeResponse("503 Service Unavailable", L"./html/error.html");
             return ;

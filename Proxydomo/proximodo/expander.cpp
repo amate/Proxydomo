@@ -210,7 +210,15 @@ std::wstring CExpander::expand(const std::wstring& pattern, CFilter& filter) {
 
                     CUtil::trim(content);
                     CUtil::lower(content);
-                    output << filter.owner.variables[content];
+					ATLASSERT(content.length());
+					if (content.empty()) {
+						continue;
+					}
+					if (content.front() == L'_') {
+						output << filter.localVariables[content];
+					} else {
+						output << filter.owner.variables[content];
+					}
 
                 } else if (command == L"SET") {
 
@@ -226,7 +234,15 @@ std::wstring CExpander::expand(const std::wstring& pattern, CFilter& filter) {
                     } else if (name.size() == 1 && CUtil::digit(name[0])) {
                         filter.memoryTable[name[0] - L'0'] = CMemory(value);
                     } else {
-                        filter.owner.variables[name] = expand(value, filter);
+						ATLASSERT(content.length());
+						if (content.empty()) {
+							continue;
+						}
+						if (name.front() == L'_') {
+							filter.localVariables[name] = expand(value, filter);
+						} else {
+							filter.owner.variables[name] = expand(value, filter);
+						}
                     }
 
                 } else if (command == L"SETPROXY") {
@@ -410,7 +426,11 @@ std::wstring CExpander::expand(const std::wstring& pattern, CFilter& filter) {
                         name = name.substr(1, name.size()-2);
                         toMatch = expand(name, filter);
                     } else {
-                        toMatch = filter.owner.variables[name];
+						if (name.front() == L'_') {
+							toMatch = filter.localVariables[name];
+						} else {
+							toMatch = filter.owner.variables[name];
+						}
                     }
 
                     tStart = toMatch.c_str();

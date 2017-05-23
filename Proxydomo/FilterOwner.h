@@ -24,7 +24,7 @@
 
 #include <string>
 #include <vector>
-#include <map>
+#include <unordered_map>
 #include "proximodo\url.h"
 
 /* class CFilterOwner
@@ -64,7 +64,7 @@ public:
 
 	bool		killed;					// Has a pattern executed a \k ?
 
-	std::map<std::wstring, std::wstring> variables;       // variables for $SET and $GET
+	std::unordered_map<std::wstring, std::wstring> variables;       // variables for $SET and $GET
 	
 	HeadPairList	outHeaders;			// Outgoing headers
 	HeadPairList	outHeadersFiltered;	// Filtered Outgoingheaders

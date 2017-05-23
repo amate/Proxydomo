@@ -29,6 +29,7 @@
 #include "memory.h"
 #include <vector>
 #include <string>
+#include <unordered_map>
 
 class CFilterOwner;
 
@@ -55,6 +56,7 @@ public:
     // CMemory for \0-9 and \#
     CMemory memoryTable[10];
     std::vector<CMemory> memoryStack;
+	std::unordered_map<std::wstring, std::wstring> localVariables;
     void clearMemory();
     
     // Indicates that the filter mutex has been locked, and should

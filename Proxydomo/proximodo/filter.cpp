@@ -45,6 +45,7 @@ void CFilter::unlock() {
  */
 void CFilter::clearMemory() {
     for (int i=0; i<10; i++)   memoryTable[i].clear();
-    if (!memoryStack.empty())  memoryStack.clear();
+    memoryStack.clear();
+	localVariables.clear();
 }
 
