@@ -1733,11 +1733,6 @@ void	CRequestManager::_EndFeeding() {
 
     if (m_useChain) {
         m_textFilterChain.DataDump();
-		if (m_filterOwner.url.getDebug()) {
-			m_dumped = false;
-			DataFeed("\n</div>\n</body>\n</html>\n");
-			m_dumped = true;
-		}
     } else {
         DataDump();
     }

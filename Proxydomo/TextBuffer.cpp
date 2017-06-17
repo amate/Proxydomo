@@ -23,6 +23,9 @@
 #include "stdafx.h"
 #include "TextBuffer.h"
 #include <sstream>
+#include <regex>
+#include <boost\algorithm\string.hpp>
+#include <atlsync.h>
 #include "FilterOwner.h"
 #include "Settings.h"
 //#include "proximodo\matcher.h"
@@ -30,8 +33,6 @@
 #include "proximodo\util.h"
 #include "Log.h"
 #include "CodeConvert.h"
-#include <atlsync.h>
-#include <regex>
 #include "Logger.h"
 
 using namespace CodeConvert;
@@ -491,20 +492,18 @@ void CTextBuffer::DataFeed(const std::string& data)
 					escapeOutput(out, done, CharCount(index, done));
 					if (m_owner.url.getDebug()) {
 						if (m_owner.url.getSource()) {
-							string buf;
-							CUtil::htmlEscape(buf, ConvertFromUTF16(replaceText, m_pConverter));
+							string buf = CUtil::SimpleHtmlEscape(ConvertFromUTF16(replaceText, m_pConverter));
 							out << buf;
 						} else {
-							std::wstring occurrence(index,
-								CharCount((*m_currentFilter)->endOfMatched, index));
-							string buf = "<div class=\"match\">\n"
+							std::wstring occurrence(index, CharCount((*m_currentFilter)->endOfMatched, index));
+							string buf = "<div class=\"match\">"
 								"<div class=\"filter\">Match: ";
-							CUtil::htmlEscape(buf, ConvertFromUTF16((*m_currentFilter)->title, m_pConverter));
-							buf += "</div>\n<div class=\"in\">";
-							CUtil::htmlEscape(buf, ConvertFromUTF16(occurrence, m_pConverter));
-							buf += "</div>\n<div class=\"repl\">";
-							CUtil::htmlEscape(buf, ConvertFromUTF16(replaceText, m_pConverter));
-							buf += "</div>\n</div>\n";
+							buf += CUtil::SimpleHtmlEscape(ConvertFromUTF16((*m_currentFilter)->title, m_pConverter));
+							buf += "</div><div class=\"in\">";
+							buf += CUtil::SimpleHtmlEscape(ConvertFromUTF16(occurrence, m_pConverter));
+							buf += "</div><div class=\"repl\">";
+							buf += CUtil::SimpleHtmlEscape(ConvertFromUTF16(replaceText, m_pConverter));
+							buf += "</div></div>";
 							out << buf;
 						}
 					}
@@ -580,6 +579,10 @@ void CTextBuffer::DataDump()
 	m_bDataDump = true;
 
 	DataFeed("");
+
+	if (m_owner.url.getDebug()) {
+		m_output->DataFeed("</pre>\n</div>\n</body>\n</html>\n");
+	}	
 	m_output->DataDump();
 	m_owner.killed = true;
 }
@@ -588,7 +591,7 @@ void CTextBuffer::DataDump()
 void CTextBuffer::escapeOutput(std::stringstream& out, const UChar *data, size_t len)
 {
     if (m_owner.url.getDebug()) {
-		std::wstring buf = CUtil::htmlEscape(data, len);
+		std::wstring buf = CUtil::SimpleHtmlEscape(data, len);//CUtil::htmlEscape(data, len);
 		out << ConvertFromUTF16(buf, m_pConverter);
     } else {
 		out << ConvertFromUTF16(data, (int)len, m_pConverter);
@@ -598,53 +601,34 @@ void CTextBuffer::escapeOutput(std::stringstream& out, const UChar *data, size_t
 
 void CTextBuffer::_firstDebugOutput(const std::string& charaCode)
 {
-	std::string buf =
-		"<!DOCTYPE html>\n"
-		"<html>\n<head>\n";
-	buf += "<meta charset=\"" + charaCode + "\">\n";
-	buf += "<title>Source of ";
-	CUtil::htmlEscape(buf, UTF8fromUTF16(m_owner.url.getProtocol()) + "://" + UTF8fromUTF16(m_owner.url.getFromHost()));
-	buf += "</title>\n"
-		"<link rel=\"stylesheet\" media=\"all\" "
-		"href=\"";
-	buf += "//local.ptron/ViewSource.css";
-	buf += "\" />\n"
-		"</head>\n\n<body>\n";
-	
-	buf += "<div id=\"headers\">\n";
-	buf += "<div class=\"res\">";
-	CUtil::htmlEscape(buf, m_owner.responseLine.ver);
-	buf += " ";
-	CUtil::htmlEscape(buf, m_owner.responseLine.code);
-	buf += " ";
-	CUtil::htmlEscape(buf, m_owner.responseLine.msg);
-	buf += "</div>\n";
+	std::wstring filename = L"./html/WebFilterDebug.html";
+	std::string content = CUtil::getFile(filename);
 
-	buf += "<div class=\"rawInHeaders\">";
-	buf += "[raw data]";
+	boost::algorithm::replace_first(content, "%%charaCode%%", charaCode);
+	boost::algorithm::replace_first(content, "%%URL%%", CUtil::SimpleHtmlEscape(UTF8fromUTF16(m_owner.url.getUrl())));
+	std::string responseLine = m_owner.responseLine.ver + " " + m_owner.responseLine.code + " " + m_owner.responseLine.msg;
+	boost::algorithm::replace_first(content, "%%ResponseLine%%", responseLine);
+
+	std::string rawInHeaders;
 	for (auto& pair : m_owner.inHeaders) {
-		buf += "<div class=\"hdr\">";
-		CUtil::htmlEscape(buf, UTF8fromUTF16(pair.first));
-		buf += ": <span class=\"val\">";
-		CUtil::htmlEscape(buf, UTF8fromUTF16(pair.second));
-		buf += "</span></div>\n";
+		rawInHeaders += "<div class=\"hdr\">";
+		CUtil::htmlEscape(rawInHeaders, UTF8fromUTF16(pair.first));
+		rawInHeaders += ": <span class=\"val\">";
+		CUtil::htmlEscape(rawInHeaders, UTF8fromUTF16(pair.second));
+		rawInHeaders += "</span></div>\n";
 	}
-	buf += "</div>";
+	boost::algorithm::replace_first(content, "%%rawInHeaders%%", rawInHeaders);
 
-	buf += "<div class=\"filteredInHeaders\">";
-	buf += "[filtered data]";
+	std::string filteredInHeaders;
 	for (auto& pair : m_owner.inHeadersFiltered) {
-		buf += "<div class=\"hdr\">";
-		CUtil::htmlEscape(buf, UTF8fromUTF16(pair.first));
-		buf += ": <span class=\"val\">";
-		CUtil::htmlEscape(buf, UTF8fromUTF16(pair.second));
-		buf += "</span></div>\n";
+		filteredInHeaders += "<div class=\"hdr\">";
+		CUtil::htmlEscape(filteredInHeaders, UTF8fromUTF16(pair.first));
+		filteredInHeaders += ": <span class=\"val\">";
+		CUtil::htmlEscape(filteredInHeaders, UTF8fromUTF16(pair.second));
+		filteredInHeaders += "</span></div>\n";
 	}
-	buf += "</div>";
+	boost::algorithm::replace_first(content, "%%filteredInHeaders%%", filteredInHeaders);
 
-	buf += "</div>";	// id="headers" />
-	buf += "<div id=\"body\">\n";
-
-	m_output->DataFeed(buf);
+	m_output->DataFeed(content);
 }
 

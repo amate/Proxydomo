@@ -76,9 +76,9 @@ boost::shared_mutexを使用するのでboost::threadのライブラリが必要になります
  https://sites.google.com/site/boostjp/howtobuild
 コマンドライン
 // x86
-b2.exe install -j 4 --prefix=lib toolset=msvc-14.0 define=BOOST_USE_WINAPI_VERSION=0x0501 runtime-link=static --with-thread --with-date_time --with-timer --with-log
+b2.exe install -j 4 --prefix=lib toolset=msvc-14.1 define=BOOST_USE_WINAPI_VERSION=0x0501 runtime-link=static --with-thread --with-date_time --with-timer --with-log
 // x64
-b2.exe install -j 4 --prefix=lib64 toolset=msvc-14.0 define=BOOST_USE_WINAPI_VERSION=0x0501 runtime-link=static address-model=64 --with-thread --with-date_time --with-timer --with-log
+b2.exe install -j 4 --prefix=lib64 toolset=msvc-14.1 define=BOOST_USE_WINAPI_VERSION=0x0501 runtime-link=static address-model=64 --with-thread --with-date_time --with-timer --with-log
 
 □wolfssl
 $(SolutionDir)wolfssl\wolfssl.vcxproj
@@ -118,6 +118,7 @@ NO_RC4
 NO_HC128
 NO_PSK
 WOLFSSL_ALT_NAMES
+MAX_CERTIFICATE_SZ=19456
 
 // for Debug/Release x64
 WOLFSSL_LIB
@@ -143,6 +144,7 @@ NO_HC128
 NO_PSK
 WOLFSSL_AESNI
 WOLFSSL_ALT_NAMES
+MAX_CERTIFICATE_SZ=19456
 
 wolfsslのプロパティページ C/C++ -> コード生成
 ランタイムライブラリを 構成がDebug なら"マルチスレッド デバッグ (/MTd)" へ変更
@@ -188,6 +190,17 @@ asn.cの 5455行目あたりを
         	int isRootCA = XMEMCMP(cert->subjectHash, cert->issuerHash, SIGNER_DIGEST_SIZE) == 0;
 			if (cert->isCA && isRootCA == 0) {
 
+v1.100の以下の修正はwolfSSL側のソースを修正する必要があります
+・サーバー側から送られてくる証明書が大きいと切断されるのを修正 #47
+internal.c の 6472行目あたりの　DoCertificate関数内を
+
+// before
+    if (listSz > MAX_RECORD_SIZE)
+        return BUFFER_E;
+        
+// after
+    if (listSz > 19456/*MAX_RECORD_SIZE*/)
+        return BUFFER_E;
 // ==============================================
 
 ■開発支援

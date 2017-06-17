@@ -79,6 +79,9 @@ public:
     static void htmlEscape(string& a, const string& b);
 	static std::wstring htmlEscape(const wchar_t* data, size_t len);
 
+	static std::string SimpleHtmlEscape(const std::string& html);
+	static std::wstring SimpleHtmlEscape(const wchar_t* data, size_t len);
+
     // Deletes the dynamic content of a vector
     template <typename V>
     static void deleteVector(vector<V*>& v) {

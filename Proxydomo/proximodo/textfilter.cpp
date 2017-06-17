@@ -22,7 +22,7 @@
 //
 //------------------------------------------------------------------
 
-
+#include "stdafx.h"
 #include "textfilter.h"
 #include <vector>
 #include <map>

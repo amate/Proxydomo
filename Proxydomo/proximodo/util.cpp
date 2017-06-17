@@ -23,7 +23,7 @@
 //
 //------------------------------------------------------------------
 
-
+#include "stdafx.h"
 #include "util.h"
 //#include "platform.h"
 #include "const.h"
@@ -248,6 +248,56 @@ std::wstring CUtil::htmlEscape(const wchar_t* data, size_t len)
 	if (state != outside)
 		a += L"</span>";
 	return a;
+}
+
+
+std::string CUtil::SimpleHtmlEscape(const std::string& html)
+{
+	std::string out;
+	for (auto it = html.cbegin(); it != html.cend(); ++it) {
+		switch (*it) {
+		case '<':
+			out += "&lt;";
+			break;
+
+		case '>':
+			out += "&gt;";
+			break;
+
+		case '&':
+			out += "&amp;";
+			break;
+
+		default:
+			out += *it;
+		}
+	}
+	return out;
+}
+
+std::wstring CUtil::SimpleHtmlEscape(const wchar_t* data, size_t len)
+{
+	std::wstring out;
+	const wchar_t* end = data + len;
+	for (auto it = data; it != end; ++it) {
+		switch (*it) {
+		case L'<':
+			out += L"&lt;";
+			break;
+
+		case L'>':
+			out += L"&gt;";
+			break;
+
+		case L'&':
+			out += L"&amp;";
+			break;
+
+		default:
+			out += *it;
+		}
+	}
+	return out;
 }
 
 // Put string in uppercase
