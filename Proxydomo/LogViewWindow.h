@@ -36,6 +36,16 @@
 #include "ConnectionMonitor.h"
 
 
+class CCustomSortListViewCtrl : public CSortListViewCtrlImpl<CCustomSortListViewCtrl>
+{
+public:
+	DECLARE_WND_SUPERCLASS(_T("WTL_SortListViewCtrl"), GetWndClassName())
+
+	// overrides
+	int CompareItemsCustom(LVCompareParam* /*pItem1*/, LVCompareParam* /*pItem2*/, int /*iSortCol*/);
+};
+
+
 class CLogViewWindow : 
 	public CDialogImpl<CLogViewWindow>, 
 	public CDialogResize<CLogViewWindow>,
@@ -169,7 +179,7 @@ private:
 	// Data members
 	CRichEditCtrl	m_editLog;
 	CRichEditCtrl	m_editPartLog;
-	CSortListViewCtrl	m_listRequest;
+	CCustomSortListViewCtrl	m_listRequest;
 	CComboBox		m_cmbRequest;
 
 	struct EventLog {

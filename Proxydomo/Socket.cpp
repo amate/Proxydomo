@@ -199,7 +199,7 @@ bool	IPAddress::Set(const std::string& IPorHostName, const std::string& protocol
 				::Sleep(50);
 			} else {
 				std::wstring strerror = gai_strerror(ret);
-				WARN_LOG << L"getaddrinfo failed : " << strerror;
+				WARN_LOG << L"getaddrinfo failed : [" << IPorHostName << L"] " << strerror;
 				return false;
 			}
 		}

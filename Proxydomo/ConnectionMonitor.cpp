@@ -7,6 +7,7 @@
 #include <thread>
 #include <boost\property_tree\ini_parser.hpp>
 #include <boost\property_tree\ptree.hpp>
+#include <boost\algorithm\string.hpp>
 #include "RequestManager.h"
 #include "Misc.h"
 #include "Logger.h"
@@ -219,6 +220,25 @@ BOOL CConnectionMonitorWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 		if (rcWindow != CRect()) {
 			MoveWindow(&rcWindow);
 		}
+
+		if (auto value = pt.get_optional<std::string>("ConnectionMonitorWindow.ColumnWidth")) {
+			std::vector<std::string> columnWidth;
+			boost::algorithm::split(columnWidth, *value, boost::is_any_of(","));
+			const int size = static_cast<int>(columnWidth.size());
+			for (int i = 0; i < size; ++i) {
+				m_connectionListView.SetColumnWidth(i, std::stoi(columnWidth[i]));
+			}
+		}
+		if (auto value = pt.get_optional<std::string>("ConnectionMonitorWindow.ColumnOrder")) {
+			std::vector<std::string> columnOrder;
+			boost::algorithm::split(columnOrder, *value, boost::is_any_of(","));
+			const int size = static_cast<int>(columnOrder.size());
+			auto order = std::make_unique<int[]>(size);
+			for (int i = 0; i < size; ++i) {
+				order[i] = std::stoi(columnOrder[i]);
+			}
+			m_connectionListView.SetColumnOrderArray(size, order.get());
+		}
 	}
 
 	return TRUE;
@@ -247,6 +267,26 @@ void CConnectionMonitorWindow::OnDestroy()
 	pt.put("ConnectionMonitorWindow.left", rcWindow.left);
 	pt.put("ConnectionMonitorWindow.right", rcWindow.right);
 	pt.put("ConnectionMonitorWindow.bottom", rcWindow.bottom);
+
+	const int columnCount = m_connectionListView.GetHeader().GetItemCount();
+	std::string columnWidth;
+	for (int i = 0; i < columnCount; ++i) {
+		int width = m_connectionListView.GetColumnWidth(i);
+		columnWidth += std::to_string(width);
+		if (i + 1 != columnCount)
+			columnWidth += ",";
+	}
+	pt.put("ConnectionMonitorWindow.ColumnWidth", columnWidth);
+
+	auto order = std::make_unique<int[]>(columnCount);
+	m_connectionListView.GetColumnOrderArray(columnCount, order.get());
+	std::string columnOrder;
+	for (int i = 0; i < columnCount; ++i) {
+		columnOrder += std::to_string(order[i]);
+		if (i + 1 != columnCount)
+			columnOrder += ",";
+	}
+	pt.put("ConnectionMonitorWindow.ColumnOrder", columnOrder);
 
 	write_ini(settingsPath, pt);
 }

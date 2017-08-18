@@ -16,6 +16,9 @@
 #define _WIN32_IE		0x0600
 #define _RICHEDIT_VER	0x0200
 
+#include <windows.h>
+#include <shellapi.h>
+
 #define _WTL_NO_CSTRING
 
 #include <atlstr.h>

@@ -26,6 +26,7 @@
 #include <fstream>
 #include <codecvt>
 #include <boost\timer.hpp>
+#include <mmsystem.h>
 #include "Misc.h"
 
 #pragma comment(lib, "winmm.lib")

@@ -53,6 +53,7 @@ void	CFilterOwner::Reset()
 	rdirToHost.clear();
 
 	outHeaders.clear();
+	outHeadersFiltered.clear();
 	inHeaders.clear();
 	inHeadersFiltered.clear();
 	fileType.clear();

@@ -26,6 +26,7 @@
 #include <algorithm>
 #include <boost\property_tree\ini_parser.hpp>
 #include <boost\property_tree\ptree.hpp>
+#include <boost\algorithm\string.hpp>
 #include <Shlwapi.h>
 #include "Misc.h"
 #include "Settings.h"
@@ -42,6 +43,25 @@ COLORREF  LOG_COLOR_FILTER		= RGB(140, 140, 140);
 COLORREF  LOG_COLOR_REQUEST		= RGB(240, 100,   0);
 COLORREF  LOG_COLOR_RESPONSE	= RGB(0	 , 150,   0);
 COLORREF  LOG_COLOR_PROXY		= RGB(0  ,   0,   0);
+
+
+// overrides
+int CCustomSortListViewCtrl::CompareItemsCustom(LVCompareParam* pItem1, LVCompareParam* pItem2, int /*iSortCol*/)
+{
+	// pItem1 and pItem2 contain valid iItem, dwItemData, and pszValue members.
+	// If item1 > item2 return 1, if item1 < item2 return -1, else return 0.
+	CString item1;
+	CString item2;
+	GetItemText(pItem1->iItem, 5, item1);
+	GetItemText(pItem2->iItem, 5, item2);
+	auto item1bytes = _wtoi64(item1);
+	auto item2bytes = _wtoi64(item2);
+	if (item1bytes == item2bytes) {
+		return 0;
+	} else {
+		return item1bytes > item2bytes ? 1 : -1;
+	}
+}
 
 
 CLogViewWindow::CLogViewWindow() :
@@ -356,6 +376,11 @@ void	CLogViewWindow::_AddNewRequest(CLog::RecentURLData* it)
 	lvi.pszText		= temp.GetBuffer();
 	m_listRequest.SetItem(&lvi);
 
+	temp = it->contentLength.empty() ? "0" : it->contentLength.c_str();
+	lvi.iSubItem = 5;
+	lvi.pszText = temp.GetBuffer();
+	m_listRequest.SetItem(&lvi);
+
 	if (it->kill) {
 		m_listRequest.SetItemData(0, 1);
 	}
@@ -420,10 +445,12 @@ BOOL CLogViewWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 	m_listRequest.AddColumn(_T("Content-Type"), 2);
 	m_listRequest.AddColumn(_T("Length"), 3, 
 							-1, LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM, LVCFMT_RIGHT);
-	m_listRequest.SetColumnSortType(3, LVCOLSORT_LONG);
+	m_listRequest.SetColumnSortType(3, LVCOLSORT_CUSTOM);
 	m_listRequest.SetColumnWidth(3, 80);
 	m_listRequest.AddColumn(_T("URL"), 4);
 	m_listRequest.SetColumnWidth(4, 400);
+	m_listRequest.AddColumn(_T("Content-Length"), 5);
+	m_listRequest.SetColumnWidth(5, 0);	// hidden
 
 	m_connectionMonitor.Create(GetParent());
 
@@ -490,6 +517,25 @@ BOOL CLogViewWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 			funcConvertRGB(value.get(), LOG_COLOR_RESPONSE);
 		if (auto value = pt.get_optional<std::string>("LogWindow.COLOR_PROXY"))
 			funcConvertRGB(value.get(), LOG_COLOR_PROXY);
+
+		if (auto value = pt.get_optional<std::string>("LogWindow.ColumnWidth")) {
+			std::vector<std::string> columnWidth;
+			boost::algorithm::split(columnWidth, *value, boost::is_any_of(",")); 
+			const int size = static_cast<int>(columnWidth.size());
+			for (int i = 0; i < size; ++i) {
+				m_listRequest.SetColumnWidth(i, std::stoi(columnWidth[i]));
+			}
+		}
+		if (auto value = pt.get_optional<std::string>("LogWindow.ColumnOrder")) {
+			std::vector<std::string> columnOrder;
+			boost::algorithm::split(columnOrder, *value, boost::is_any_of(","));
+			const int size = static_cast<int>(columnOrder.size());
+			auto order = std::make_unique<int[]>(size);
+			for (int i = 0; i < size; ++i) {
+				order[i] = std::stoi(columnOrder[i]);
+			}
+			m_listRequest.SetColumnOrderArray(size, order.get());
+		}
 	}
 	m_editLog.SetBackgroundColor(LOG_COLOR_BACKGROUND);
 	m_editPartLog.SetBackgroundColor(LOG_COLOR_BACKGROUND);
@@ -534,6 +580,26 @@ void CLogViewWindow::OnDestroy()
 	pt.put("LogWindow.ProxyEvent"		, m_bProxyEvent);
 	pt.put("LogWindow.FilterEvent"		, m_bFilterEvent);
 	pt.put("LogWindow.ViewPostData"		, m_bViewPostData);
+
+	const int columnCount = m_listRequest.GetColumnCount();
+	std::string columnWidth;
+	for (int i = 0; i < columnCount; ++i) {
+		int width = m_listRequest.GetColumnWidth(i);
+		columnWidth += std::to_string(width);
+		if (i + 1 != columnCount)
+			columnWidth  += ",";
+	}
+	pt.put("LogWindow.ColumnWidth", columnWidth);
+
+	auto order = std::make_unique<int[]>(columnCount);
+	m_listRequest.GetColumnOrderArray(columnCount, order.get());
+	std::string columnOrder;
+	for (int i = 0; i < columnCount; ++i) {
+		columnOrder += std::to_string(order[i]);
+		if (i + 1 != columnCount)
+			columnOrder += ",";
+	}
+	pt.put("LogWindow.ColumnOrder", columnOrder);
 
 	write_ini(settingsPath, pt);
 
@@ -630,20 +696,13 @@ LRESULT CLogViewWindow::OnRecentURLListRClick(LPNMHDR pnmh)
 	return 0;
 }
 
+// Recent URL のセル を 右ダブルクリック
 LRESULT CLogViewWindow::OnRecentURLListRDblClick(LPNMHDR pnmh)
 {
 	auto lpnmitem = (LPNMITEMACTIVATE)pnmh;
 	CString con;
 	m_listRequest.GetItemText(lpnmitem->iItem, 0, con);
 	ATLASSERT(con.GetLength());
-
-	m_bRecentURLs = false;
-	DoDataExchange(DDX_LOAD, IDC_CHECKBOX_RECENTURLS);
-
-	GetDlgItem(IDC_LIST_RECENTURLS).ShowWindow(FALSE);
-
-	m_editLog.ShowWindow(TRUE);
-	m_editPartLog.ShowWindow(FALSE);
 
 	int RequestNumber = std::stoi((LPCWSTR)con);
 	CCritSecLock	lock(m_csRequestLog);
@@ -653,11 +712,14 @@ LRESULT CLogViewWindow::OnRecentURLListRDblClick(LPNMHDR pnmh)
 		if (reqLog->RequestNumber == RequestNumber) {
 			m_cmbRequest.SetCurSel(nIndex);
 
+			m_bRecentURLs = false;
+			DoDataExchange(DDX_LOAD, IDC_CHECKBOX_RECENTURLS);
+
+			GetDlgItem(IDC_LIST_RECENTURLS).ShowWindow(FALSE);
+
 			m_editPartLog.SetWindowText(_T(""));
-			if (m_editPartLog.IsWindowVisible() == FALSE) {
-				m_editPartLog.ShowWindow(TRUE);
-				m_editLog.ShowWindow(FALSE);
-			}
+			m_editPartLog.ShowWindow(TRUE);
+			m_editLog.ShowWindow(FALSE);
 
 			for (auto& log : reqLog->vecLog)
 				_AppendRequestLogText(log->text, log->textColor);

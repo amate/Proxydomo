@@ -105,7 +105,6 @@ public:
 		ChangeControlTextForTranslateMessage(m_hWnd, IDC_BUTTON_CLEAR);
 		ChangeControlTextForTranslateMessage(m_hWnd, IDC_CHECK_SETTING);
 
-		HFONT hFont = GetDlgItem(IDC_STATIC_SPLITTER).GetFont();
 		CRect rcSplitter;
 		GetDlgItem(IDC_STATIC_SPLITTER).GetWindowRect(&rcSplitter);
 		ScreenToClient(&rcSplitter);
@@ -122,14 +121,10 @@ public:
 		}
 		cmbFileType.SetCurSel(0);
 
-		CLogFont lf;
-		lf.SetMenuFont();
 		m_editTest.Create(m_wndSplitter, NULL, NULL, 
 			WS_CHILD | WS_VISIBLE | ES_MULTILINE | ES_AUTOVSCROLL | ES_WANTRETURN | WS_VSCROLL | WS_HSCROLL | WS_BORDER);
-		m_editTest.SetFont(hFont);
 		m_editResult.Create(m_wndSplitter, NULL, NULL, 
 			WS_CHILD | WS_VISIBLE | ES_MULTILINE | ES_AUTOVSCROLL | ES_WANTRETURN | WS_VSCROLL | WS_HSCROLL | WS_BORDER);
-		m_editResult.SetFont(hFont);
 		m_wndSplitter.SetSplitterPanes(m_editTest, m_editResult);
 
 		enum { kMaxEditLimitSize = 3 * 1024 * 1024 };
@@ -160,6 +155,17 @@ public:
 
 		int splitterPos = pt.get("FilterTestWindow.SplitterPos", -1);
 		m_wndSplitter.SetSplitterPos(splitterPos);
+
+		CLogFont lf;
+		lf.SetMenuFont();
+		std::wstring faceName = UTF16fromUTF8(pt.get("FilterTestWindowFont.lfFaceName", ""));
+		if (faceName.length() > 0) {
+			::lstrcpyW(lf.lfFaceName, faceName.c_str());
+			lf.SetHeight(pt.get<int>("FilterTestWindowFont.pointSize", 9));
+
+			m_editTest.SetFont(lf.CreateFontIndirect());
+			m_editResult.SetFont(lf.CreateFontIndirect());
+		}
 
 		return 0;
 	}
@@ -528,6 +534,16 @@ BOOL CFilterEditWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 	if (auto value = pt.get_optional<int>("FilterEditWindow.SplitterPos"))
 		_MoveSplitterPos(value.get());
 
+	CLogFont lf;
+	lf.SetMenuFont();
+	std::wstring faceName = UTF16fromUTF8(pt.get("FilterEditWindowFont.lfFaceName", ""));
+	if (faceName.length() > 0) {
+		::lstrcpyW(lf.lfFaceName, faceName.c_str());
+		lf.SetHeight(pt.get<int>("FilterEditWindowFont.pointSize", 9));
+
+		m_wndMatchPattern.SetFont(lf.CreateFontIndirect());
+		m_wndReplaceText.SetFont(lf.CreateFontIndirect());
+	}
 	return 0;
 }
 

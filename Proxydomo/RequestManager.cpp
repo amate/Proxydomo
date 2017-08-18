@@ -315,7 +315,7 @@ void	CRequestManager::_JudgeManageContinue()
 		if (m_processIdleTime != time_point())
 			m_processIdleTime = time_point();		// 処理が行われてるので時間をリセットする
 
-	} else {	// m_outStep == STE_START
+	} else {	// m_outStep == STEP_START
 		if (m_processIdleTime == time_point()) {
 			m_processIdleTime = steady_clock::now();
 		} else if ((steady_clock::now() - m_processIdleTime) > std::chrono::seconds(10)) {
@@ -1396,6 +1396,9 @@ void	CRequestManager::_ProcessIn()
 						m_recvContentCoding = ContentEncoding::kBrotli;
 						m_decompressor.reset(new CBrotliDecompressor());
 						CFilterOwner::RemoveHeader(m_filterOwner.inHeadersFiltered, L"Content-Encoding");
+
+					} else if (CUtil::noCaseContains(L"identity", contentEncoding)) {	// 無圧縮						
+						m_recvContentCoding = ContentEncoding::kNone;
 
 					} else if (contentEncoding.length() > 0) {	// 解釈できない圧縮形式
 						m_useChain = false;
