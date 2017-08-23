@@ -27,7 +27,7 @@ https://ws.formzu.net/fgen/S37403840/
  
 ■著作権表示
 Copyright (C) 2004 Antony BOUCHER
-Copyright (C) 2013-2016 amate
+Copyright (C) 2013-2017 amate
  
  画像の一部に「VS2010ImageLibrary」の一部を使用しています。
  
@@ -142,7 +142,6 @@ WOLFSSL_STATIC_RSA
 NO_RC4
 NO_HC128
 NO_PSK
-WOLFSSL_AESNI
 WOLFSSL_ALT_NAMES
 MAX_CERTIFICATE_SZ=19456
 
@@ -192,15 +191,25 @@ asn.cの 5455行目あたりを
 
 v1.100の以下の修正はwolfSSL側のソースを修正する必要があります
 ・サーバー側から送られてくる証明書が大きいと切断されるのを修正 #47
-internal.c の 6472行目あたりの　DoCertificate関数内を
+internal.c の 7798行目あたりの　ProcessPeerCerts関数内を
 
 // before
     if (listSz > MAX_RECORD_SIZE)
-        return BUFFER_E;
+        ERROR_OUT(BUFFER_ERROR, exit_ppc);
         
 // after
     if (listSz > 19456/*MAX_RECORD_SIZE*/)
-        return BUFFER_E;
+        ERROR_OUT(BUFFER_ERROR, exit_ppc);
+        
+・wolfSSL version 3.12.0 から io.hの
+#define close(s) closesocket(s)
+をコメントアウトしてください(でないとコンパイルが通らない)
+//#define close(s) closesocket(s)
+
+WOLFSSL_AESNI
+を入れると接続できなくなる…
+error = -313, revcd alert fatal error
+
 // ==============================================
 
 ■開発支援

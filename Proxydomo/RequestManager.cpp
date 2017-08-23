@@ -875,7 +875,7 @@ void CRequestManager::_ConnectWebsite()
 		}
 
         // Connect
-		if (m_psockWebsite->Connect(host) == false) {
+		if (m_psockWebsite->Connect(host, m_valid) == false) {
             // Connection failed, warn the browser
 			_FakeResponse("503 Service Unavailable", L"./html/error.html");
             return ;
@@ -899,7 +899,7 @@ void CRequestManager::_ConnectWebsite()
 
 		if (m_filterOwner.url.getProtocol() == L"https") {
 			if (CSettings::s_SSLFilter && m_bypass == false) {
-				if (m_pSSLServerSession = CSSLSession::InitClientSession(m_psockWebsite.get(), name, m_psockBrowser.get())) {
+				if (m_pSSLServerSession = CSSLSession::InitClientSession(m_psockWebsite.get(), name, m_psockBrowser.get(), m_valid)) {
 					if (m_requestLine.method == "CONNECT") {
 						m_pSSLClientSession = CSSLSession::InitServerSession(m_psockBrowser.get(), name);
 					} else {
@@ -914,7 +914,7 @@ void CRequestManager::_ConnectWebsite()
 				}
 			}
 		} else {
-			m_psockWebsite->SetBlocking(false);	// not CONNECT
+			// not CONNECT
 		}
     }
 

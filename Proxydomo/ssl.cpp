@@ -15,6 +15,8 @@
 
 #include <wolfssl\ssl.h>
 #include <wolfssl\wolfcrypt\asn_public.h>
+#include <wolfssl\wolfcrypt\rsa.h>
+#include <wolfssl\wolfcrypt\ecc.h>
 #include <wolfssl\wolfcrypt\error-crypt.h>
 
 #include <wincrypt.h>
@@ -812,6 +814,93 @@ bool	ManageCertificateAPI(const std::string& url, CSSLSession* sockBrowser)
 	return true;
 }
 
+enum {
+	TEST_SELECT_FAIL,
+	TEST_TIMEOUT,
+	TEST_RECV_READY,
+	TEST_ERROR_READY
+};
+
+static int tcp_select(SOCKET socketfd, int to_sec)
+{
+	fd_set recvfds, errfds;
+	SOCKET nfds = socketfd + 1;
+	struct timeval timeout = { (to_sec > 0) ? to_sec : 0, 0 };
+	int result;
+
+	FD_ZERO(&recvfds);
+	FD_SET(socketfd, &recvfds);
+	FD_ZERO(&errfds);
+	FD_SET(socketfd, &errfds);
+
+	result = select(nfds, &recvfds, NULL, &errfds, &timeout);
+
+	if (result == 0)
+		return TEST_TIMEOUT;
+	else if (result > 0) {
+		if (FD_ISSET(socketfd, &recvfds))
+			return TEST_RECV_READY;
+		else if (FD_ISSET(socketfd, &errfds))
+			return TEST_ERROR_READY;
+	}
+
+	return TEST_SELECT_FAIL;
+}
+
+static int NonBlockingSSL_Connect(WOLFSSL* ssl, std::atomic_bool& valid)
+{
+	int ret;
+	int error;
+	SOCKET sockfd;
+	int select_ret = 0;
+
+	static const std::chrono::seconds timeout(60);
+	auto connectStartTime = std::chrono::steady_clock::now();
+
+	ret = wolfSSL_connect(ssl);
+	error = wolfSSL_get_error(ssl, 0);
+	sockfd = (SOCKET)wolfSSL_get_fd(ssl);
+
+	while (ret != SSL_SUCCESS && (	error == SSL_ERROR_WANT_READ ||
+									error == SSL_ERROR_WANT_WRITE ||
+									error == WC_PENDING_E)	) 
+	{
+#if 0
+		if (error == SSL_ERROR_WANT_READ)
+			ATLTRACE("... client would read block\n");
+		else if (error == SSL_ERROR_WANT_WRITE)
+			ATLTRACE("... client would write block\n");
+#endif
+		if (error != WC_PENDING_E) {
+			int currTimeout = 1;
+			select_ret = tcp_select(sockfd, currTimeout);
+		}
+
+		if ((select_ret == TEST_RECV_READY) ||
+			(select_ret == TEST_ERROR_READY) || error == WC_PENDING_E)
+		{
+			ret = wolfSSL_connect(ssl);
+			error = wolfSSL_get_error(ssl, 0);
+
+		} else if (select_ret == TEST_TIMEOUT) {
+			error = SSL_ERROR_WANT_READ;
+		} else {
+			error = SSL_FATAL_ERROR;
+		}
+		
+		if (ret != SSL_SUCCESS) {
+			if (valid == false) {
+				return SSL_FATAL_ERROR;
+			}
+			if ((std::chrono::steady_clock::now() - connectStartTime) > timeout) {
+				return SSL_FATAL_ERROR;
+			}
+		}
+	}
+
+	return ret;
+}
+
 
 ////////////////////////////////////////////////////////////////
 // CSSLSession
@@ -829,7 +918,7 @@ CSSLSession::~CSSLSession()
 }
 
 
-std::unique_ptr<CSSLSession>	CSSLSession::InitClientSession(CSocket* sockWebsite, const std::string& host, CSocket* sockBrowser)
+std::unique_ptr<CSSLSession>	CSSLSession::InitClientSession(CSocket* sockWebsite, const std::string& host, CSocket* sockBrowser, std::atomic_bool& valid)
 {
 	auto session = std::make_unique<CSSLSession>();
 	int ret = 0;
@@ -852,12 +941,16 @@ std::unique_ptr<CSSLSession>	CSSLSession::InitClientSession(CSocket* sockWebsite
 	SSLCallbackContext context(host, sockBrowser);
 	wolfSSL_SetCertCbCtx(session->m_ssl, (void*)&context);
 
-	sockWebsite->SetBlocking(true);
-	ret = wolfSSL_connect(session->m_ssl);
+	//sockWebsite->SetBlocking(true);
+	//ret = wolfSSL_connect(session->m_ssl);
+
+	wolfSSL_set_using_nonblock(session->m_ssl, 1);
+	sockWebsite->SetBlocking(false);
+	ret = NonBlockingSSL_Connect(session->m_ssl, valid);
 	if (ret != SSL_SUCCESS) {
 		int err = wolfSSL_get_error(session->m_ssl, 0);
 		char buffer[WOLFSSL_MAX_ERROR_SZ];
-		ATLTRACE("error = %d, %s\n", err, wolfSSL_ERR_error_string(err, buffer));
+		ATLTRACE("host = %s error = %d, %s\n", host.c_str(), err, wolfSSL_ERR_error_string(err, buffer));
 		buffer;
 
 		wolfSSL_free(session->m_ssl);
@@ -865,8 +958,8 @@ std::unique_ptr<CSSLSession>	CSSLSession::InitClientSession(CSocket* sockWebsite
 		return nullptr;
 	}
 
-	wolfSSL_set_using_nonblock(session->m_ssl, 1);
-	sockWebsite->SetBlocking(false);
+	//wolfSSL_set_using_nonblock(session->m_ssl, 1);
+	//sockWebsite->SetBlocking(false);
 
 	session->m_sock = sockWebsite;
 	return session;

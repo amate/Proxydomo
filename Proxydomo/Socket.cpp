@@ -307,8 +307,82 @@ std::unique_ptr<CSocket>	CSocket::Accept()
 }
 
 
-bool	CSocket::Connect(IPAddress addr)
+enum {
+	TEST_SELECT_FAIL,
+	TEST_TIMEOUT,
+	TEST_WRITE_READY,
+	TEST_ERROR_READY
+};
+
+static int tcp_select_write(SOCKET socketfd, int to_sec)
 {
+	fd_set writefds, errfds;
+	SOCKET nfds = socketfd + 1;
+	struct timeval timeout = { (to_sec > 0) ? to_sec : 0, 0 };
+	int result;
+
+	FD_ZERO(&writefds);
+	FD_SET(socketfd, &writefds);
+	FD_ZERO(&errfds);
+	FD_SET(socketfd, &errfds);
+
+	result = select(nfds, NULL, &writefds, &errfds, &timeout);
+
+	if (result == 0)
+		return TEST_TIMEOUT;
+	else if (result > 0) {
+		if (FD_ISSET(socketfd, &writefds))
+			return TEST_WRITE_READY;
+		else if (FD_ISSET(socketfd, &errfds))
+			return TEST_ERROR_READY;
+	}
+
+	return TEST_SELECT_FAIL;
+}
+
+bool	CSocket::Connect(IPAddress addr, std::atomic_bool& valid)
+{
+	ATLASSERT(m_sock == 0);
+
+	for (addrinfo* ai = addr.addrinfoList.get(); ai != nullptr; ai = ai->ai_next) {
+		m_sock = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+		if (m_sock == INVALID_SOCKET) {
+			m_sock = 0;
+			throw SocketException("Can`t open socket");
+		}
+
+		SetBlocking(false);
+		int ret = ::connect(m_sock, ai->ai_addr, ai->ai_addrlen);
+		int error = ::WSAGetLastError();
+		if (ret == SOCKET_ERROR && error == WSAEWOULDBLOCK) {
+			int select_ret;
+			do {
+				const int timeout = 1;
+				select_ret = tcp_select_write(m_sock, timeout);
+				if (select_ret == TEST_WRITE_READY) {
+					return true;	// success!
+				}
+
+				if (valid == false) {
+					return false;
+				}
+				int optret = 0;
+				int optretlen = sizeof(optret);
+				int opterror = ::getsockopt(m_sock, SOL_SOCKET, SO_ERROR, (char*)&optret, &optretlen);
+				ATLASSERT(opterror == 0);
+				if (optret != 0) {
+					ATLASSERT(FALSE);
+					break;	// fail
+				}
+			} while (select_ret == TEST_TIMEOUT);
+
+		}
+		::closesocket(m_sock);
+		m_sock = 0;
+		continue;
+	}
+	return false;
+#if 0
 	ATLASSERT(m_sock == 0);
 
 	for (addrinfo* ai = addr.addrinfoList.get(); ai != nullptr; ai = ai->ai_next) {
@@ -328,8 +402,9 @@ bool	CSocket::Connect(IPAddress addr)
 		}
 	}
 	return false;
+#endif
 }
-
+ 
 void	CSocket::Close()
 {
 	if (m_sock) {
@@ -371,7 +446,7 @@ bool	CSocket::IsDataAvailable()
 	FD_ZERO(&readfds);
 	FD_SET(m_sock, &readfds);
 	TIMEVAL nonwait = {};
-	int ret = ::select(0, &readfds, nullptr, nullptr, &nonwait);
+	int ret = ::select(m_sock + 1, &readfds, nullptr, nullptr, &nonwait);
 	if (ret == SOCKET_ERROR)
 		throw SocketException("IsDataAvailable failed");
 
@@ -411,7 +486,7 @@ bool	 CSocket::Read(char* buffer, int length)
 	ATLASSERT(length > 0);
 	m_nLastReadCount = 0;
 	int ret = ::recv(m_sock, buffer, length, 0);
-	if (ret == 0) {
+	if (ret == 0) {	// disconnect
 		Close();
 		return true;
 

@@ -27,7 +27,7 @@ struct WOLFSSL_CTX;
 class CSSLSession
 {
 public:
-	static std::unique_ptr<CSSLSession>	InitClientSession(CSocket* sockWebsite, const std::string& host, CSocket* sockBrowser);
+	static std::unique_ptr<CSSLSession>	InitClientSession(CSocket* sockWebsite, const std::string& host, CSocket* sockBrowser, std::atomic_bool& valid);
 	static std::unique_ptr<CSSLSession> InitServerSession(CSocket* sockBrowser, const std::string& host);
 
 	CSSLSession();

@@ -27,6 +27,7 @@
 #include <memory>
 #include <vector>
 #include <chrono>
+#include <atomic>
 #include "Socket.h"
 #include "DataReceptor.h"
 #include "TextBuffer.h"
@@ -133,7 +134,7 @@ private:
 	// ˆ—‚ÌŠJn‘Ò‚¿ŠÔ
 	std::chrono::steady_clock::time_point	m_processIdleTime;	
 
-	bool	m_valid;
+	std::atomic_bool	m_valid;
 	bool	m_dumped;
 
 	int		m_redirectedIn;    // number of redirections by incoming headers

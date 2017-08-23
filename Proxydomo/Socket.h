@@ -101,7 +101,7 @@ public:
 	void	Bind(uint16_t port);
 	std::unique_ptr<CSocket>	Accept();
 
-	bool	Connect(IPAddress addr);
+	bool	Connect(IPAddress addr, std::atomic_bool& valid);
 
 	void	Close();
 
