@@ -901,7 +901,7 @@ void CRequestManager::_ConnectWebsite()
 			if (CSettings::s_SSLFilter && m_bypass == false) {
 				if (m_pSSLServerSession = CSSLSession::InitClientSession(m_psockWebsite.get(), name, m_psockBrowser.get(), m_valid)) {
 					if (m_requestLine.method == "CONNECT") {
-						m_pSSLClientSession = CSSLSession::InitServerSession(m_psockBrowser.get(), name);
+						m_pSSLClientSession = CSSLSession::InitServerSession(m_psockBrowser.get(), name, m_valid);
 					} else {
 						// リダイレクト or URLコマンド[https.]
 						ATLASSERT(m_pSSLClientSession || m_filterOwner.url.getHttps());
@@ -956,7 +956,7 @@ bool	CRequestManager::_HandleLocalPtron()
 				"Proxy-agent: " "Proxydomo/1.0"/*APP_NAME " " APP_VERSION*/ CRLF CRLF;
 			CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_filterOwner.requestNumber, m_sendInBuf);
 			_SendIn();
-			m_pSSLClientSession = CSSLSession::InitServerSession(m_psockBrowser.get(), "local.ptron");
+			m_pSSLClientSession = CSSLSession::InitServerSession(m_psockBrowser.get(), "local.ptron", m_valid);
 
 			if (m_pSSLClientSession == nullptr) {
 				throw GeneralException("LocalSSLServer handshake failed");

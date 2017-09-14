@@ -218,7 +218,8 @@ bool	ManageCatificateErrorPage(CSocket* sockBrowser, const std::string& host, co
 		"Connection: close" + CRLF CRLF;
 	sendInBuf += content;
 
-	auto clientSession = CSSLSession::InitServerSession(sockBrowser, host);
+	std::atomic_bool valid = true;
+	auto clientSession = CSSLSession::InitServerSession(sockBrowser, host, valid);
 	ATLASSERT(clientSession);
 	if (clientSession == nullptr)
 		return true;	// deny
@@ -857,7 +858,7 @@ static int NonBlockingSSL_Connect(WOLFSSL* ssl, std::atomic_bool& valid)
 	static const std::chrono::seconds timeout(60);
 	auto connectStartTime = std::chrono::steady_clock::now();
 
-	ret = wolfSSL_connect(ssl);
+	ret = wolfSSL_negotiate(ssl);
 	error = wolfSSL_get_error(ssl, 0);
 	sockfd = (SOCKET)wolfSSL_get_fd(ssl);
 
@@ -879,7 +880,7 @@ static int NonBlockingSSL_Connect(WOLFSSL* ssl, std::atomic_bool& valid)
 		if ((select_ret == TEST_RECV_READY) ||
 			(select_ret == TEST_ERROR_READY) || error == WC_PENDING_E)
 		{
-			ret = wolfSSL_connect(ssl);
+			ret = wolfSSL_negotiate(ssl);
 			error = wolfSSL_get_error(ssl, 0);
 
 		} else if (select_ret == TEST_TIMEOUT) {
@@ -941,9 +942,6 @@ std::unique_ptr<CSSLSession>	CSSLSession::InitClientSession(CSocket* sockWebsite
 	SSLCallbackContext context(host, sockBrowser);
 	wolfSSL_SetCertCbCtx(session->m_ssl, (void*)&context);
 
-	//sockWebsite->SetBlocking(true);
-	//ret = wolfSSL_connect(session->m_ssl);
-
 	wolfSSL_set_using_nonblock(session->m_ssl, 1);
 	sockWebsite->SetBlocking(false);
 	ret = NonBlockingSSL_Connect(session->m_ssl, valid);
@@ -958,14 +956,11 @@ std::unique_ptr<CSSLSession>	CSSLSession::InitClientSession(CSocket* sockWebsite
 		return nullptr;
 	}
 
-	//wolfSSL_set_using_nonblock(session->m_ssl, 1);
-	//sockWebsite->SetBlocking(false);
-
 	session->m_sock = sockWebsite;
 	return session;
 }
 
-std::unique_ptr<CSSLSession> CSSLSession::InitServerSession(CSocket* sockBrowser, const std::string& host)
+std::unique_ptr<CSSLSession> CSSLSession::InitServerSession(CSocket* sockBrowser, const std::string& host, std::atomic_bool& valid)
 {
 	auto session = std::make_unique<CSSLSession>();
 	int ret = 0;
@@ -1013,8 +1008,9 @@ std::unique_ptr<CSSLSession> CSSLSession::InitServerSession(CSocket* sockBrowser
 
 	wolfSSL_set_fd(session->m_ssl, (int)sockBrowser->GetSocket());
 
-	sockBrowser->SetBlocking(true);
-	ret = wolfSSL_accept(session->m_ssl);
+	wolfSSL_set_using_nonblock(session->m_ssl, 1);
+	sockBrowser->SetBlocking(false);
+	ret = NonBlockingSSL_Connect(session->m_ssl, valid);
 	if (ret != SSL_SUCCESS) {
 		int err = wolfSSL_get_error(session->m_ssl, 0);
 		char buffer[WOLFSSL_MAX_ERROR_SZ];
@@ -1027,9 +1023,6 @@ std::unique_ptr<CSSLSession> CSSLSession::InitServerSession(CSocket* sockBrowser
 		session->m_ctx = nullptr;
 		return nullptr;
 	}
-
-	wolfSSL_set_using_nonblock(session->m_ssl, 1);
-	sockBrowser->SetBlocking(false);
 
 	session->m_sock = sockBrowser;
 	return session;

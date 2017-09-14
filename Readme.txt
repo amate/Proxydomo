@@ -210,6 +210,87 @@ WOLFSSL_AESNI
 を入れると接続できなくなる…
 error = -313, revcd alert fatal error
 
+・楕円曲線暗号をサポートしたサイトに繋がらないことがあるのを修正 はwolfSSL側のソースを修正する必要があります
+internal.h
+
+before
+    TLSX_SUPPORTED_GROUPS           = 0x000a, /* a.k.a. Supported Curves */
+after
+    TLSX_SUPPORTED_GROUPS           = 0x000a, /* a.k.a. Supported Curves */
+	TLSX_EC_POINT_FORMATS			= 0x000b,	// 
+
+tls.c
+
+before	// int TLSX_UseSupportedCurve(TLSX** extensions, word16 name, void* heap)
+        } while ((curve = curve->next));
+    }
+after
+        } while ((curve = curve->next));
+    }
+
+	{	// TLSX_EC_POINT_FORMATS
+		TLSX* extension2 = TLSX_Find(*extensions, TLSX_EC_POINT_FORMATS);
+		if (!extension2) {
+			byte* ec_point_formats = (byte*)XMALLOC(sizeof(word16), heap, DYNAMIC_TYPE_TLSX);
+			if (ec_point_formats == NULL)
+				return MEMORY_E;
+
+			ec_point_formats[0] = 1;	// EC point formats Length
+			ec_point_formats[1] = 0;	// EC point format: uncompressed (0)
+
+			if ((ret = TLSX_Push(extensions, TLSX_EC_POINT_FORMATS, ec_point_formats, heap))
+				!= 0) {
+				XFREE(curve, heap, DYNAMIC_TYPE_TLSX);
+				return ret;
+			}
+		}
+	}
+
+before // void TLSX_FreeAll(TLSX* list, void* heap)
+            case TLSX_SUPPORTED_GROUPS:
+                EC_FREE_ALL((EllipticCurve*)extension->data, heap);
+                break;
+after
+            case TLSX_SUPPORTED_GROUPS:
+                EC_FREE_ALL((EllipticCurve*)extension->data, heap);
+                break;
+
+			case TLSX_EC_POINT_FORMATS:
+				XFREE(extension->data, heap, DYNAMIC_TYPE_TLSX);
+				break;
+
+before // static word16 TLSX_GetSize(TLSX* list, byte* semaphore, byte msgType)
+            case TLSX_SUPPORTED_GROUPS:
+                length += EC_GET_SIZE((EllipticCurve*)extension->data);
+                break;
+after
+            case TLSX_SUPPORTED_GROUPS:
+                length += EC_GET_SIZE((EllipticCurve*)extension->data);
+                break;
+
+			case TLSX_EC_POINT_FORMATS:
+				length += 2;
+				break;
+
+before	// static word16 TLSX_Write(TLSX* list, byte* output, byte* semaphore,
+            case TLSX_SUPPORTED_GROUPS:
+                WOLFSSL_MSG("Elliptic Curves extension to write");
+                offset += EC_WRITE((EllipticCurve*)extension->data,
+                                    output + offset);
+                break;
+after
+            case TLSX_SUPPORTED_GROUPS:
+                WOLFSSL_MSG("Elliptic Curves extension to write");
+                offset += EC_WRITE((EllipticCurve*)extension->data,
+                                    output + offset);
+                break;
+
+			case TLSX_EC_POINT_FORMATS:
+				XMEMCPY(output + offset, extension->data, 2);
+				offset += 2;
+				break;
+
+
 // ==============================================
 
 ■開発支援

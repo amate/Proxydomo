@@ -28,7 +28,7 @@ class CSSLSession
 {
 public:
 	static std::unique_ptr<CSSLSession>	InitClientSession(CSocket* sockWebsite, const std::string& host, CSocket* sockBrowser, std::atomic_bool& valid);
-	static std::unique_ptr<CSSLSession> InitServerSession(CSocket* sockBrowser, const std::string& host);
+	static std::unique_ptr<CSSLSession> InitServerSession(CSocket* sockBrowser, const std::string& host, std::atomic_bool& valid);
 
 	CSSLSession();
 	~CSSLSession();

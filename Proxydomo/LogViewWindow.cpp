@@ -536,6 +536,17 @@ BOOL CLogViewWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 			}
 			m_listRequest.SetColumnOrderArray(size, order.get());
 		}
+
+		CLogFont lf;
+		lf.SetMenuFont();
+		std::wstring faceName = UTF16fromUTF8(pt.get("LogViewWindowFont.lfFaceName", ""));
+		if (faceName.length() > 0) {
+			::lstrcpyW(lf.lfFaceName, faceName.c_str());
+			lf.SetHeight(pt.get<int>("LogViewWindowFont.pointSize", 9));
+
+			m_editLog.SetFont(lf.CreateFontIndirect());
+			m_editPartLog.SetFont(lf.CreateFontIndirect());
+		}
 	}
 	m_editLog.SetBackgroundColor(LOG_COLOR_BACKGROUND);
 	m_editPartLog.SetBackgroundColor(LOG_COLOR_BACKGROUND);
