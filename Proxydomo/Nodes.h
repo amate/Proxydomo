@@ -448,7 +448,7 @@ private:
 class CNode_List : public CNode
 {
 public:
-    CNode_List(const std::string& name);
+	CNode_List(const std::string& name, bool top = true);
     ~CNode_List();
 
 	// CNode
@@ -459,6 +459,7 @@ private:
 	// Data members
     const std::string		m_name;            // name of the list
 	HashedListCollection*	m_phashedCollection;
+	std::unique_ptr<CNode_List>	m_whiteList;
 };
 
 

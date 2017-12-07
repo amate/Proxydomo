@@ -14,7 +14,7 @@
 #include "Misc.h"
 #include "proximodo\util.h"
 
-using path = std::tr2::sys::path;
+using path = std::experimental::filesystem::path;
 
 ///////////////////////////////////////////////////////////////////////////////////
 // BrotliDecompressorTest

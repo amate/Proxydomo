@@ -315,6 +315,9 @@ LRESULT CMainDlg::OnTrayIconNotify(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, 
 		{
 			std::lock_guard<std::recursive_mutex> lock(CSettings::s_mutexHashedLists);
 			for (auto& list : CSettings::s_mapHashedLists) {
+				if (list.first.front() == '*') {	// white list
+					continue;
+				}
 				std::wstring name = (LPWSTR)CA2W((list.first + ".txt").c_str());
 				vecBlockListName.emplace_back(name, list.second->filePath);
 			}

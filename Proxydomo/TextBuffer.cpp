@@ -440,7 +440,7 @@ void CTextBuffer::DataFeed(const std::string& data)
 		m_buffer.clear();
 		m_unicodeBuffer.append(appendBuff);
 	}
-	const UChar* bufStart = m_unicodeBuffer.getBuffer();
+	const UChar* bufStart = reinterpret_cast<const wchar_t*>(m_unicodeBuffer.getBuffer());
 	int len = m_unicodeBuffer.length();
 	const UChar* bufEnd   = bufStart + len;
     const UChar* index    = bufStart;
@@ -528,7 +528,7 @@ void CTextBuffer::DataFeed(const std::string& data)
 							CharCount((*m_currentFilter)->endOfMatched, bufStart),
 							replaceText.c_str(), (int32_t)replaceText.length());
 						len = m_unicodeBuffer.length();
-						bufStart = m_unicodeBuffer.getBuffer();
+						bufStart = reinterpret_cast<const UChar*>(m_unicodeBuffer.getBuffer());
 						bufEnd = bufStart + len;
 						index = bufStart;
 						done = bufStart;

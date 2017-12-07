@@ -589,8 +589,12 @@ bool	InitSSL()
 		std::random_device rd;
 		std::mt19937 engine(rd());
 		std::uniform_int_distribution<int> dist(0, chars.length() - 1);
+		std::array<int, kMaxAuthLength> randnum;
 		for (int i = 0; i < kMaxAuthLength; ++i) {
-			g_authentication += chars[dist(engine)];
+			randnum[i] = dist(engine);
+		}
+		for (int i = 0; i < kMaxAuthLength; ++i) {
+			g_authentication += chars[randnum[i]];
 		}
 
 		return true;

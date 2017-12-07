@@ -88,6 +88,14 @@ struct HashedListCollection {
 	std::unique_ptr<CAdblockFilter>	adblockFilter;
 
 	HashedListCollection() : bLogFile(false), prevLastWriteTime(0), lineCount(0) {}
+
+	void	Clear()
+	{
+		PreHashWordList.clear();
+		URLHashList.clear();
+		deqNormalNode.clear();
+		adblockFilter.reset();
+	}
 };
 
 struct FilterItem
@@ -128,7 +136,7 @@ public:
 	static std::string	s_defaultRemoteProxy;
 	static std::set<std::string> s_setRemoteProxy;
 
-	static std::wstring	s_urlCommandPrefix;
+	static std::unique_ptr<wchar_t[]>	s_urlCommandPrefix;
 
 	static std::wstring	s_language;
 

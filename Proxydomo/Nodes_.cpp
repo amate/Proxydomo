@@ -1024,7 +1024,7 @@ bool CNode_Url::mayMatch(bool* tab)
  * Try and match nodes one after another, in CSettings::lists order.
  * Corresponds to $LST() command.
  */
-CNode_List::CNode_List(const std::string& name) :
+CNode_List::CNode_List(const std::string& name, bool top /*= true*/) :
             CNode(LIST), m_name(name)
 {
 	std::lock_guard<std::recursive_mutex> lock(CSettings::s_mutexHashedLists);
@@ -1033,6 +1033,10 @@ CNode_List::CNode_List(const std::string& name) :
 		hashedLists.reset(new HashedListCollection);
 
 	m_phashedCollection = hashedLists.get();	// ここで取得したポインタはプログラム終了まで有効
+
+	if (top) {
+		m_whiteList.reset(new CNode_List("*" + m_name, false));
+	}
 }
 
 CNode_List::~CNode_List()
@@ -1066,6 +1070,10 @@ const UChar* CNode_List::match(const UChar* start, const UChar* stop, MatchData*
 			for (auto& node : itfound->second->vecNode) {
 				const UChar* ptr = node.node->match(start, stop, pMatch);
 				if (ptr) {
+					if (m_whiteList && m_whiteList->match(startOrigin, stop, pMatch)) {
+						return nullptr;
+					}
+
 					start = ptr;
 					const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
 					if (ret)
@@ -1119,6 +1127,10 @@ const UChar* CNode_List::match(const UChar* start, const UChar* stop, MatchData*
 					if (firstRet && firstRet == it->second) {
 						const UChar* ptr = pairNode.nodeLast->match(slashPos + 1, stop, pMatch);
 						if (ptr) {
+							if (m_whiteList && m_whiteList->match(startOrigin, stop, pMatch)) {
+								return nullptr;
+							}
+
 							start = ptr;
 							const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
 							if (ret)
@@ -1137,6 +1149,10 @@ const UChar* CNode_List::match(const UChar* start, const UChar* stop, MatchData*
 		for (auto& node : m_phashedCollection->deqNormalNode) {
 			const UChar* ptr = node.node->match(start, stop, pMatch);
 			if (ptr) {
+				if (m_whiteList && m_whiteList->match(startOrigin, stop, pMatch)) {
+					return nullptr;
+				}
+
 				start = ptr;
 				const UChar* ret = m_nextNode ? m_nextNode->match(start, stop, pMatch) : start;
 				if (ret)

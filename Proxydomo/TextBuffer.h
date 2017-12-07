@@ -30,6 +30,7 @@
 #include "DataReceptor.h"
 #include "proximodo\textfilter.h"
 #include <unicode\ustring.h>
+#include <unicode\unistr.h>
 #include <unicode\ucnv.h>
 #include <unicode\ucsdet.h>
 

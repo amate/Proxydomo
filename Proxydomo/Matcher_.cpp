@@ -27,7 +27,6 @@
 #include "Nodes.h"
 #include "proximodo\util.h"
 #include "proximodo\const.h"	// for BIGNUMBER
-#include <unicode\uchar.h>
 #include "Settings.h"
 #include "resource.h"
 #include "UITranslator.h"

@@ -42,7 +42,7 @@
 #include "proximodo\zlibbuffer.h"
 #include "BrotliDecompressor.h"
 
-using namespace std::tr2::sys;
+using namespace std::experimental::filesystem;
 using namespace CodeConvert;
 
 #define CR	'\r'

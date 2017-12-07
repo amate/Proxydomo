@@ -149,7 +149,7 @@ std::wstring CExpander::expand(const std::wstring& pattern, CFilter& filter) {
 			case L'd': output << L"file:///" << CUtil::replaceAll((LPCWSTR)Misc::GetExeDirectory(), L"\\", L"/"); break;
 
 			case L'x':
-				output << CSettings::s_urlCommandPrefix;
+				output << CSettings::s_urlCommandPrefix.get();
 				break;
 
             default :

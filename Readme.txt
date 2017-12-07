@@ -43,6 +43,10 @@ http://zlib.net/
 
 ◆ICU
 http://site.icu-project.org/
+自前でビルドする場合は
+common,i18n,makedataをビルドすれば
+icudtXX.dll,icuinXX.dll,icuucXX.dllができるっぽい？
+事前にC++ ->コード生成->ランタイム ライブラリを マルチスレッド(/MT)に変更するのを忘れずに
 
 ◆WTL
 http://sourceforge.net/projects/wtl/

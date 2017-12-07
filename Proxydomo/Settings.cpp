@@ -69,7 +69,7 @@ bool			CSettings::s_useRemoteProxy	= false;
 std::string		CSettings::s_defaultRemoteProxy;
 std::set<std::string> CSettings::s_setRemoteProxy;
 
-std::wstring	CSettings::s_urlCommandPrefix;	
+std::unique_ptr<wchar_t[]>	CSettings::s_urlCommandPrefix;
 
 std::wstring	CSettings::s_language = kDefaultLanguage;
 
@@ -163,10 +163,18 @@ void	CSettings::LoadSettings()
 	enum { kPrefixSize = 8 };
 	const wchar_t charactorSelection[] = L"abcdefghijklmnopqrstuvqxyz0123456789";
 	std::random_device	randEngine;
-	std::uniform_int_distribution<int> dist(0, _countof(charactorSelection) - 2);
-	for (int i = 0; i < kPrefixSize; ++i)
-		s_urlCommandPrefix += charactorSelection[dist(randEngine)];
-	s_urlCommandPrefix += L'_';
+	std::uniform_int_distribution<int> dist(0, std::size(charactorSelection) - 2);
+	s_urlCommandPrefix = std::make_unique<wchar_t[]>(kPrefixSize + 2);
+	std::array<int, kPrefixSize> randnum;
+	for (int i = 0; i < kPrefixSize; ++i) {
+		randnum[i] = dist(randEngine);
+	}
+	for (int i = 0; i < kPrefixSize; ++i) {
+		s_urlCommandPrefix[i] = charactorSelection[randnum[i]];
+
+	}
+	s_urlCommandPrefix[kPrefixSize] = L'_';
+	s_urlCommandPrefix[kPrefixSize + 1] = L'\0';
 
 	// Bypass matcher‚ðì¬
 	s_pBypassMatcher = Proxydomo::CMatcher::CreateMatcher(L"$LST(Bypass)");
@@ -496,6 +504,10 @@ void CSettings::LoadList(const CString& filePath)
 	if (hashedLists == nullptr) {
 		hashedLists.reset(new HashedListCollection);
 	}
+	auto& whiteLists = s_mapHashedLists["*" + filename];
+	if (whiteLists == nullptr) {
+		whiteLists.reset(new HashedListCollection);
+	}
 	lock.unlock();
 
 	boost::unique_lock<boost::shared_mutex>	lock2(hashedLists->mutex);
@@ -528,15 +540,34 @@ void CSettings::LoadList(const CString& filePath)
 	std::time_t updateTime = std::time(nullptr);
 	int successLoadLineCount = 0;
 	{
-		hashedLists->PreHashWordList.clear();
-		hashedLists->URLHashList.clear();
-		hashedLists->deqNormalNode.clear();
-		hashedLists->adblockFilter.reset();
+		hashedLists->Clear();
+		whiteLists->Clear();
 
 		std::wstring pattern;
 		std::wstring strLine;
 		int nLineCount = 0;
 		bool	bAddPattern = false;
+		auto funcCreatePattern = [&]() {
+			CUtil::trim(strLine);
+			bool isWhitePattern = boost::starts_with(pattern, L"~");
+			if (isWhitePattern) {
+				pattern.erase(pattern.begin());
+			}
+			if (pattern.length()) {
+				bAddPattern = true;
+				HashedListCollection& lists = isWhitePattern ? *whiteLists : *hashedLists;
+				bool bSuccess = _CreatePattern(pattern, lists, nLineCount);
+				if (bSuccess == false) {
+					CLog::FilterEvent(kLogFilterListBadLine, nLineCount, filename, "");
+				} else {
+					if (blockListDB && isWhitePattern == false) {
+						blockListDB->AddPatternToList(filename, pattern, nLineCount, updateTime);
+					}
+					++successLoadLineCount;
+				}
+			}
+		};
+
 		while (std::getline(fs, strLine)) {
 			if (bAddPattern == false && nLineCount < 6 && strLine.length()) {
 				if (strLine[0] == L'#' && boost::algorithm::contains(strLine, L"LOGFILE")) {
@@ -556,19 +587,7 @@ void CSettings::LoadList(const CString& filePath)
 				pattern += strLine;
 
 			} else {
-				CUtil::trim(strLine);
-				if (pattern.length()) {
-					bAddPattern = true;
-					bool bSuccess = _CreatePattern(pattern, *hashedLists, nLineCount);
-					if (bSuccess == false) {
-						CLog::FilterEvent(kLogFilterListBadLine, nLineCount, filename, "");
-					} else {
-						if (blockListDB) {
-							blockListDB->AddPatternToList(filename, pattern, nLineCount, updateTime);
-						}
-						++successLoadLineCount;
-					}
-				}
+				funcCreatePattern();
 
 				if (strLine.empty() || strLine[0] == L'#') {
 					pattern.clear();
@@ -580,17 +599,8 @@ void CSettings::LoadList(const CString& filePath)
 			if (fs.eof())
 				break;
 		}
-		if (pattern.length()) {
-			bool bSuccess = _CreatePattern(pattern, *hashedLists, nLineCount);
-			if (bSuccess == false) {
-				CLog::FilterEvent(kLogFilterListBadLine, nLineCount, filename, "");
-			} else {
-				if (blockListDB) {
-					blockListDB->AddPatternToList(filename, pattern, nLineCount, updateTime);
-				}
-				++successLoadLineCount;
-			}
-		}
+		funcCreatePattern();	// ÅŒã‚Ìs
+
 		hashedLists->lineCount = nLineCount;
 	}
 	if (blockListDB) {

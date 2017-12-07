@@ -54,13 +54,13 @@ void CUrl::parseUrl(const wstring& str) {
     protocol  = (pos1 ? str.substr(0, pos1-3) : wstring(L"http"));
 
     bypassIn = bypassOut = bypassText = debug = source = false;
-
-	if (str.substr(pos1, CSettings::s_urlCommandPrefix.length()) == CSettings::s_urlCommandPrefix) {
+	const int prefixLength = wcslen(CSettings::s_urlCommandPrefix.get());
+	if (str.substr(pos1, prefixLength) == CSettings::s_urlCommandPrefix.get()) {
         bool foundUrlCmd = false;        
         for (;;) {
-			if (str.length() <= pos1 + CSettings::s_urlCommandPrefix.length())
+			if (str.length() <= pos1 + prefixLength)
 				break;
-			pos1 += CSettings::s_urlCommandPrefix.length();
+			pos1 += prefixLength;
             wstring begin = str.substr(pos1);
             if (CUtil::noCaseBeginsWith(L"bin.", begin)) {
                 bypassIn = true;
@@ -89,13 +89,13 @@ void CUrl::parseUrl(const wstring& str) {
 				pos1 += 6;
             } else {
 				if (foundUrlCmd)
-					pos1 -= CSettings::s_urlCommandPrefix.length();
+					pos1 -= prefixLength;
                 break;
             }
             foundUrlCmd = true;
         }
         if (foundUrlCmd == false)
-			pos1 -= CSettings::s_urlCommandPrefix.length();
+			pos1 -= prefixLength;
     }
 	debug	|= CSettings::s_WebFilterDebug;
 
