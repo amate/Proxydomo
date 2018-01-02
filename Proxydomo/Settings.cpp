@@ -183,6 +183,9 @@ void	CSettings::LoadSettings()
 
 	CSettings::LoadFilter();
 
+#ifdef UNIT_TEST
+	CSettings::s_saveBlockListUsageSituation = true;
+#endif
 	CBlockListDatabase::GetInstance()->Init();
 	{
 		auto blockListDB = CBlockListDatabase::GetInstance();

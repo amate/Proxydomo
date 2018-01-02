@@ -9,10 +9,10 @@
 #pragma comment(lib, "gtestd.lib")
 //#endif
 
-#include "BrotliDecompressor.h"
+#include "..\BrotliDecompressor.h"
 #include <filesystem>
-#include "Misc.h"
-#include "proximodo\util.h"
+#include "..\Misc.h"
+#include "..\proximodo\util.h"
 
 using path = std::experimental::filesystem::path;
 

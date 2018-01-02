@@ -9,9 +9,9 @@
 #pragma comment(lib, "gtestd.lib")
 //#endif
 
-#include "Nodes.h"
-#include "FilterOwner.h"
-#include "Matcher.h"
+#include "..\Nodes.h"
+#include "..\FilterOwner.h"
+#include "..\Matcher.h"
 using namespace Proxydomo;
 
 bool	nodeMatchTest(CNode& node, const std::wstring& test)
@@ -597,7 +597,7 @@ TEST(MatchTest, TST)
 }
 
 
-#include "FilterOwner.h"
+#include "..\FilterOwner.h"
 
 TEST(FilterOwner, CleanHeader)
 {
@@ -608,7 +608,7 @@ TEST(FilterOwner, CleanHeader)
 	EXPECT_TRUE(headers.empty());
 }
 
-#include "proximodo\util.h"
+#include "..\proximodo\util.h"
 
 TEST(CUtil, UESC)
 {

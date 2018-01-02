@@ -19,14 +19,14 @@
     <Filter Include="Header Files\Window">
       <UniqueIdentifier>{77f0da3b-3a0b-4914-a007-0964fd88071a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\Test">
-      <UniqueIdentifier>{2fcd1ce1-7070-49e9-9ab4-d7d2bd71f0ad}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files\SSL">
       <UniqueIdentifier>{5372b90b-3702-4d60-bf91-5afb22cc3180}</UniqueIdentifier>
     </Filter>
     <Filter Include="Header Files\brotli">
       <UniqueIdentifier>{9e5b7cff-e122-4cd1-8309-b1ea29098bfa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\UnitTest">
+      <UniqueIdentifier>{2fcd1ce1-7070-49e9-9ab4-d7d2bd71f0ad}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -192,9 +192,6 @@
     <ClCompile Include="ConnectionMonitor.cpp">
       <Filter>Header Files\Window</Filter>
     </ClCompile>
-    <ClCompile Include="Test.cpp">
-      <Filter>Header Files\Test</Filter>
-    </ClCompile>
     <ClCompile Include="ssl.cpp">
       <Filter>Header Files\SSL</Filter>
     </ClCompile>
@@ -273,11 +270,14 @@
     <ClCompile Include="brotli\common\dictionary.c">
       <Filter>Header Files\brotli</Filter>
     </ClCompile>
-    <ClCompile Include="Test_brotli.cpp">
-      <Filter>Header Files\Test</Filter>
-    </ClCompile>
     <ClCompile Include="BrotliDecompressor.cpp">
       <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UnitTest\Test.cpp">
+      <Filter>Header Files\UnitTest</Filter>
+    </ClCompile>
+    <ClCompile Include="UnitTest\Test_brotli.cpp">
+      <Filter>Header Files\UnitTest</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

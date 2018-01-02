@@ -24,6 +24,7 @@
 #include "FilterManageWindow.h"
 #include <memory>
 #include <string>
+#include <regex>
 #include <atlmisc.h>
 #include <boost\property_tree\ptree.hpp>
 #include <boost\property_tree\ini_parser.hpp>
@@ -51,11 +52,13 @@ std::vector<std::unique_ptr<CFilterDescriptor>> GetFilterDescriptorFromClipboard
 	// and multiline values will have \r for inner newlines. The text will end
 	// by a [] line so that we don't have to process anything after the loop.
 	std::wstring str = text + L"\n\n";
+	// 処理系によって改行コードが変わるので \n へ統一する
 	str = CUtil::replaceAll(str, L"\r\n", L"\n");
 	str = CUtil::replaceAll(str, L"\r", L"\n");
-	str = CUtil::replaceAll(str, L"\"\n\"", L"\r");
-	str = CUtil::replaceAll(str, L"\"\n        \"", L"\r");
-	str = CUtil::replaceAll(str, L"\"\n          \"", L"\r");
+
+	// (最後の)" 改行(\n) (最初の)" を \r へ置換する
+	// ※改行毎の処理に混ざらないように内部の改行(\n)を \r へ変換している (後で戻す)
+	str = std::regex_replace(str, std::wregex(L"\"[[:blank:]]*\n[[:blank:]]*\""), L"\r");
 
 	CFilterDescriptor d;
 	bool isActive = false;
@@ -96,7 +99,6 @@ std::vector<std::unique_ptr<CFilterDescriptor>> GetFilterDescriptorFromClipboard
 					}
 				}
 			}
-			//CUtil::trim(value, L"\"");
 			value = CUtil::replaceAll(value, L"\r", L"\r\n");
 
 			if (label == L"IN") {

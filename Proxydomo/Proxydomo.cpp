@@ -85,6 +85,8 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR lp
 	wchar_t* argv[] = { exeFilePath };
 	testing::InitGoogleTest(&argc, argv);
 
+	/* テスト前の初期化・初期設定 */
+	CSettings::LoadSettings();
 	Load_public_suffix_list();
 
 	int ret = RUN_ALL_TESTS();
