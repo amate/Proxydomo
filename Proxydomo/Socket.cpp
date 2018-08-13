@@ -217,7 +217,7 @@ bool	IPAddress::Set(const std::string& IPorHostName, const std::string& protocol
 ////////////////////////////////////////////////////////////////
 // CSocket
 
-CSocket::CSocket() : m_sock(0), m_nLastReadCount(0), m_nLastWriteCount(0)
+CSocket::CSocket() : m_sock(0)
 {
 	m_writeStop = false;
 }
@@ -407,7 +407,7 @@ bool	CSocket::Connect(IPAddress addr, std::atomic_bool& valid)
  
 void	CSocket::Close()
 {
-	if (m_sock) {
+	if (IsConnected()) {
 		::shutdown(m_sock, SD_SEND);
 
 		//setReadTimeout(2000);
@@ -450,70 +450,46 @@ bool	CSocket::IsDataAvailable()
 	if (ret == SOCKET_ERROR)
 		throw SocketException("IsDataAvailable failed");
 
-	if (FD_ISSET(m_sock, &readfds))
+	if (FD_ISSET(m_sock, &readfds)) {
 		return true;
-	else
+	} else {
 		return false;
-
-#if 0
-	std::shared_ptr<std::remove_pointer<HANDLE>::type> hEvent(::WSACreateEvent(), [](HANDLE h) {
-		::WSACloseEvent(h);
-	});
-
-	if (hEvent.get() == WSA_INVALID_EVENT)
-		throw SocketException("WSACreateEvent failed");
-
-	if (::WSAEventSelect(m_sock, hEvent.get(), FD_READ) == SOCKET_ERROR)
-		throw SocketException("WSAEventSelect failed");
-
-	HANDLE h[1] = { hEvent.get() };
-	DWORD dwRet = ::WSAWaitForMultipleEvents(1, h, FALSE, 0, FALSE);
-	::WSAEventSelect(m_sock, hEvent.get(), 0);
-	DWORD dwTemp = 0;
-	::ioctlsocket(m_sock, FIONBIO, &dwTemp);
-	if (dwRet == WSA_WAIT_EVENT_0)
-		return true;
-	else
-		return false;
-#endif
+	}
 }
 
-bool	 CSocket::Read(char* buffer, int length)
+int	 CSocket::Read(char* buffer, int length)
 {
 	if (m_sock == 0)
-		return false;
+		return -1;
 
 	ATLASSERT(length > 0);
-	m_nLastReadCount = 0;
 	int ret = ::recv(m_sock, buffer, length, 0);
 	if (ret == 0) {	// disconnect
 		Close();
-		return true;
+		return 0;
 
 	} else {
 		int wsaError = ::WSAGetLastError();
 		if (ret == SOCKET_ERROR && wsaError == WSAEWOULDBLOCK) {
-			return false;	// pending
+			return 0;	// pending
 		}
 		if (ret < 0) {
 			Close();
-			return false;
+			return -1;	// error
 
 		} else {
-			m_nLastReadCount = ret;
-			return true;
+			return ret;	// success!
 
 		}
 	}
 }
 
 
-bool	CSocket::Write(const char* buffer, int length)
+int	CSocket::Write(const char* buffer, int length)
 {
 	if (m_sock == 0)
-		return false;
+		return -1;
 
-	m_nLastWriteCount = 0;
 	ATLASSERT( length > 0 );
 	int ret = 0;
 
@@ -521,7 +497,7 @@ bool	CSocket::Write(const char* buffer, int length)
 		ret = ::send(m_sock, buffer, length, 0);
 		int wsaError = ::WSAGetLastError();
 		if (ret == SOCKET_ERROR && wsaError == WSAEWOULDBLOCK && m_writeStop == false) {
-			::Sleep(10);
+			::Sleep(10);	// async pending
 		} else {
 			break;
 		}
@@ -529,11 +505,10 @@ bool	CSocket::Write(const char* buffer, int length)
 
 	if (ret != length) {
 		Close();
-		return false;
+		return -1;	// error
 
 	} else {
-		m_nLastWriteCount = ret;
-		return true;
+		return ret;	// success!
 	}
 }
 

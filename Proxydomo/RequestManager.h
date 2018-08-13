@@ -37,8 +37,11 @@
 #include "ssl.h"
 #include "Decompressor.h"
 
+
+// ‘O•ûéŒ¾
 namespace Proxydomo { class CMatcher; }
 struct ConnectionData;
+
 
 // Processing steps (incoming or outgoing)
 enum class STEP {
@@ -109,6 +112,9 @@ private:
 
 	void	_JudgeManageContinue();
 
+	void	_AddTraceLog(LPCWSTR format, ...);
+	std::wstring m_traceLog;
+
 	// Constants
 	enum { kReadBuffSize = 64 * 1024 };
 	char m_readBuffer[kReadBuffSize];
@@ -124,12 +130,10 @@ private:
 	std::chrono::steady_clock::time_point	m_lastFiltersEnumTime;
 
 	// Sockets
-	std::unique_ptr<CSocket>	m_psockBrowser;
-	std::unique_ptr<CSocket>	m_psockWebsite;
+	std::shared_ptr<SocketIF>	m_psockBrowser;
+	std::shared_ptr<SocketIF>	m_psockWebsite;
 	std::wstring	m_previousHost;
 	std::string		m_previousConnectRequest;	// for SSL & $SETPROXY
-	std::unique_ptr<CSSLSession>	m_pSSLClientSession;
-	std::unique_ptr<CSSLSession>	m_pSSLServerSession;
 
 	// ˆ—‚ÌŠJn‘Ò‚¿ŠÔ
 	std::chrono::steady_clock::time_point	m_processIdleTime;	

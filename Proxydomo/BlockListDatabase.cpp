@@ -344,7 +344,7 @@ void CBlockListDatabase::IncrementHitPatternCount(const std::string & listName, 
 	}
 }
 
-bool CBlockListDatabase::ManageBlockListInfoAPI(const CUrl& url, CSocket* sockBrowser)
+bool CBlockListDatabase::ManageBlockListInfoAPI(const CUrl& url, SocketIF* sockBrowser)
 {
 	if (url.getPath() == L"/blocklistinfo/" || url.getPath() == L"/blocklistinfo/index.html") {
 		std::string contentType = "text/html";

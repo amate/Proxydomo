@@ -49,6 +49,41 @@ using namespace CodeConvert;
 #define LF	'\n'
 #define CRLF "\r\n"
 
+#ifdef _DEBUG
+
+//  
+// Usage: SetThreadName ((DWORD)-1, "MainThread");  
+//  
+//#include <windows.h>  
+const DWORD MS_VC_EXCEPTION = 0x406D1388;
+#pragma pack(push,8)  
+typedef struct tagTHREADNAME_INFO
+{
+	DWORD dwType; // Must be 0x1000.  
+	LPCSTR szName; // Pointer to name (in user addr space).  
+	DWORD dwThreadID; // Thread ID (-1=caller thread).  
+	DWORD dwFlags; // Reserved for future use, must be zero.  
+} THREADNAME_INFO;
+#pragma pack(pop)  
+
+void SetThreadName(DWORD dwThreadID, const char* threadName) {
+	THREADNAME_INFO info;
+	info.dwType = 0x1000;
+	info.szName = threadName;
+	info.dwThreadID = dwThreadID;
+	info.dwFlags = 0;
+#pragma warning(push)  
+#pragma warning(disable: 6320 6322)  
+	__try {
+		RaiseException(MS_VC_EXCEPTION, 0, sizeof(info) / sizeof(ULONG_PTR), (ULONG_PTR*)&info);
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER) {
+	}
+#pragma warning(pop)  
+}
+
+
+#endif
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -98,7 +133,6 @@ bool	GetHeaders(std::string& buf, HeadPairList& headers, std::string& log)
 CRequestManager::CRequestManager(std::unique_ptr<CSocket>&& psockBrowser) :
 	m_useChain(false),
 	m_textFilterChain(m_filterOwner, this),
-	m_psockBrowser(std::move(psockBrowser)),
 	m_valid(true),
 	m_dumped(false),
 	m_redirectedIn(0),
@@ -109,6 +143,11 @@ CRequestManager::CRequestManager(std::unique_ptr<CSocket>&& psockBrowser) :
 	m_RequestCountFromBrowser(0)
 {
 	m_filterOwner.requestNumber = 0;
+
+	m_ipFromAddress = psockBrowser->GetFromAddress();
+	psockBrowser->SetBlocking(false);
+
+	m_psockBrowser = std::move(psockBrowser);
 
 	m_connectionData = CConnectionManager::CreateConnectionData();
 }
@@ -139,11 +178,10 @@ void CRequestManager::Manage()
 {
 	m_outStep = STEP::STEP_START;
 	m_inStep = STEP::STEP_START;
-	m_ipFromAddress = m_psockBrowser->GetFromAddress();
-	m_psockBrowser->SetBlocking(false);
+
 	m_psockWebsite.reset(new CSocket);
 
-	TRACEIN(_T("Manage start : ポート %d"), m_ipFromAddress.GetPortNumber());
+	_AddTraceLog(L"Manage start : ポート %d", m_ipFromAddress.GetPortNumber());
 	try {
 	// Main loop, continues as long as the browser is connected
 	while (m_psockBrowser->IsConnected()) {
@@ -158,8 +196,7 @@ void CRequestManager::Manage()
 			bRest = false;
 
 		if (m_psockWebsite->IsConnected()) {
-			TRACEIN(L"Manage ポート %d : サイトとつながりました！[%s]", 
-					m_ipFromAddress.GetPortNumber(), m_filterOwner.contactHost.c_str());
+			_AddTraceLog(L"サイトとつながりました！[%s]", m_filterOwner.contactHost.c_str());
 			do {
 				// Full processing
 				bool bRest = true;
@@ -185,8 +222,8 @@ void CRequestManager::Manage()
 				}
 			} while (m_psockWebsite->IsConnected() && m_psockBrowser->IsConnected());
 
-			TRACEIN(L"Manage ポート %d : outStep[%s] inStep[%s] whileEnd、sitecon(%d) brocon(%d)", 
-					m_ipFromAddress.GetPortNumber(), STEPtoString(m_outStep), STEPtoString(m_inStep), m_psockWebsite->IsConnected(), m_psockBrowser->IsConnected());
+			_AddTraceLog(L"process loop end : outStep[%s] inStep[%s] whileEnd、sitecon(%d) brocon(%d)",
+							STEPtoString(m_outStep), STEPtoString(m_inStep), m_psockWebsite->IsConnected(), m_psockBrowser->IsConnected());
 
 			// Terminate feeding browser
 			_ReceiveIn();
@@ -216,12 +253,12 @@ void CRequestManager::Manage()
 		}
 	}	// while
 	} catch (std::exception& e) {
-		TRACEIN("例外が発生しました！ : ポート %d 例外:%s", m_ipFromAddress.GetPortNumber(), e.what()); 
+		_AddTraceLog(L"例外が発生しました！ : ポート %d 例外:%s", m_ipFromAddress.GetPortNumber(), UTF16fromUTF8(e.what()).c_str());
 		e;
 	} catch (...) {
-		TRACEIN("例外が発生しました！ : ポート %d", m_ipFromAddress.GetPortNumber());
+		_AddTraceLog(L"例外が発生しました！ : ポート %d", m_ipFromAddress.GetPortNumber());
 	}
-	TRACEIN(_T("Manage finish : ポート %d"), m_ipFromAddress.GetPortNumber());
+	_AddTraceLog(_T("Manage finish"));
 }
 
 
@@ -233,10 +270,6 @@ void	CRequestManager::SwitchToInvalid()
 			m_psockWebsite->WriteStop();
 		if (m_psockBrowser)
 			m_psockBrowser->WriteStop();
-		if (m_pSSLServerSession)
-			m_pSSLServerSession->WriteStop();
-		if (m_pSSLClientSession)
-			m_pSSLClientSession->WriteStop();
 	}
 }
 
@@ -262,50 +295,39 @@ void	CRequestManager::_ReloadHeaderFilters()
 void	CRequestManager::_JudgeManageContinue()
 {
 	if (m_valid == false) {	// 接続を強制終了させる
-		if (m_pSSLServerSession) {
-			m_pSSLServerSession->Close();
-		}
-		if (m_pSSLClientSession) {
-			m_pSSLClientSession->Close();
-		}
 		m_psockWebsite->Close();
 		m_psockBrowser->Close();
 		return;
 	}
 
 	// SSL
-	if (m_pSSLServerSession && m_outStep == STEP::STEP_START) {	
-		bool browserConnected = true;
-		if (m_filterOwner.url.getHttps()) {
-			browserConnected = m_psockBrowser->IsConnected();
-		} else {
-			browserConnected = m_pSSLClientSession->IsConnected();
-		}
-		if (m_pSSLServerSession->IsConnected() == false || browserConnected == false ) {
+	if (m_psockBrowser->IsSecureSocket() && m_outStep == STEP::STEP_START) {	
+		bool browserConnected = m_psockBrowser->IsConnected();
+		bool serverConnected = m_psockWebsite->IsConnected();
+		if (browserConnected == false || serverConnected == false) {
 			INFO_LOG << L"#" << m_ipFromAddress.GetPortNumber()
 				<< L" SSL すべての STEP が START なので接続を切ります。"
-				<< L" svcon:" << m_pSSLServerSession->IsConnected()
-				<< L" clcon:" << browserConnected;
-			m_pSSLServerSession->Close();
-			if (m_filterOwner.url.getHttps()) {
-				m_psockBrowser->Close();
-			} else {
-				m_pSSLClientSession->Close();
-			}
+				<< L" proxy<->server  Connection:" << m_psockWebsite->IsConnected()
+				<< L" browser<->proxy Connection:" << browserConnected;
+			m_psockBrowser->Close();
+			m_psockWebsite->Close();
+			_AddTraceLog(L"_JudgeManageContinue[SSL]: すべての STEP が START かつ ブラウザか、ウェブサイトとの接続が切れていたので切断します。");
 			return;
 		}
 	}
-
-	if (m_pSSLServerSession && m_filterOwner.responseLine.code != "101")
-		return;
 
 	if (m_outStep == STEP::STEP_TUNNELING) {
 		if (m_psockBrowser->IsConnected() == false || m_psockWebsite->IsConnected() == false) {
 			m_psockBrowser->Close();
 			m_psockWebsite->Close();
+			_AddTraceLog(L"_JudgeManageContinue[STEP_TUNNELING]: ブラウザか、ウェブサイトとの接続が切れていたので切断します。");
 		}
 		return;
 	}
+
+	// なぜこの条件文を入れたか忘れた...
+	if (m_psockBrowser->IsSecureSocket() && m_filterOwner.responseLine.code != "101")
+		return;
 
 	using std::chrono::steady_clock;
 	typedef steady_clock::time_point time_point;
@@ -320,30 +342,35 @@ void	CRequestManager::_JudgeManageContinue()
 			m_processIdleTime = steady_clock::now();
 		} else if ((steady_clock::now() - m_processIdleTime) > std::chrono::seconds(10)) {
 			m_psockBrowser->Close();
+			_AddTraceLog(L"_JudgeManageContinue[Timeout]: m_psockBrowser->Close()");
 		}
 	}
+}
+
+void CRequestManager::_AddTraceLog(LPCWSTR format, ...)
+{
+	va_list args;
+	va_start(args, format);
+	CStringW str;
+	str.FormatV(format, args);
+	va_end(args);
+
+	m_traceLog += (LPCWSTR)str;
+	m_traceLog += L"\n";
 }
 
 
 bool CRequestManager::_ReceiveOut()
 {
 	bool bDataReceived = false;
-	if (m_pSSLClientSession) {
-		while (m_pSSLClientSession->Read(m_readBuffer, kReadBuffSize)) {
-			int count = m_pSSLClientSession->GetLastReadCount();
-			if (count == 0)
-				break;
-			m_recvOutBuf.append(m_readBuffer, count);
-			bDataReceived = true;
+
+	for (;;) {
+		int readbytes = m_psockBrowser->Read(m_readBuffer, kReadBuffSize);
+		if (readbytes <= 0) {
+			break;
 		}
-	} else {
-		while (m_psockBrowser->IsDataAvailable() && m_psockBrowser->Read(m_readBuffer, kReadBuffSize)) {
-			int count = m_psockBrowser->GetLastReadCount();
-			if (count == 0)
-				break;
-			m_recvOutBuf.append(m_readBuffer, count);
-			bDataReceived = true;
-		}
+		m_recvOutBuf.append(m_readBuffer, readbytes);
+		bDataReceived = true;
 	}
 	return bDataReceived;
 }
@@ -355,18 +382,11 @@ bool CRequestManager::_SendOut()
 		return false;
 
 	bool ret = false;
-	if (m_pSSLServerSession) {
-		if (m_pSSLServerSession->Write(m_sendOutBuf.c_str(), (int)m_sendOutBuf.size())) {
-			m_sendOutBuf.erase(0, m_pSSLServerSession->GetLastWriteCount());
+	if (m_psockWebsite->IsConnected()) {
+		int writebytes = m_psockWebsite->Write(m_sendOutBuf.c_str(), static_cast<int>(m_sendOutBuf.size()));
+		if (writebytes > 0) {
+			m_sendOutBuf.erase(0, writebytes);
 			ret = true;
-		}
-	} else {
-		// Send everything to website, if connected
-		if (m_psockWebsite->IsConnected()) {			
-			if (m_psockWebsite->Write(m_sendOutBuf.c_str(), (int)m_sendOutBuf.size())) {
-				m_sendOutBuf.erase(0, m_psockWebsite->GetLastWriteCount());
-				ret = true;
-			}
 		}
 	}
 	return ret;
@@ -522,7 +542,7 @@ void CRequestManager::_ProcessOut()
 				CLog::HttpEvent(kLogHttpRecvOut, m_ipFromAddress, m_filterOwner.requestNumber, m_logRequest);
 
 				// Get the URL and the host to contact (unless we use a proxy)
-				if (m_pSSLClientSession) {
+				if (m_psockBrowser->IsSecureSocket()) {
 					if (m_requestLine.url.length() > 0 && m_requestLine.url[0] == L'/') {
 						std::wstring sslurl = L"https://" + m_filterOwner.url.getHost() + UTF16fromUTF8(m_requestLine.url);
 						m_filterOwner.url.parseUrl(sslurl);
@@ -537,6 +557,11 @@ void CRequestManager::_ProcessOut()
 				}
 				m_connectionData->SetUrl(m_filterOwner.url.getUrl());
 
+				_AddTraceLog(L"_ProcessOut[STEP::STEP_DECODE] : method [%s]\nURL: %s", 
+					UTF16fromUTF8(m_requestLine.method).c_str(), m_filterOwner.url.getUrl().c_str());
+#ifdef _DEBUG
+				SetThreadName(::GetCurrentThreadId(), UTF8fromUTF16(m_filterOwner.url.getUrl()).c_str());
+#endif
 				CLog::HttpEvent(kLogHttpNewRequest, m_ipFromAddress, m_filterOwner.requestNumber, UTF8fromUTF16(m_filterOwner.url.getUrl()));
 
 				if (m_filterOwner.url.getBypassIn())
@@ -597,7 +622,7 @@ void CRequestManager::_ProcessOut()
 				// connection fails, incoming processing will jump to
 				// the finish state, so that we can accept other requests
 				// on the same browser socket (persistent connection).
-				if (m_pSSLServerSession && m_filterOwner.killed == false) {
+				if (m_psockBrowser->IsSecureSocket() && m_filterOwner.killed == false) {
 					m_inStep = STEP::STEP_START;
 					m_connectionData->SetInStep(m_inStep);
 
@@ -644,6 +669,7 @@ void CRequestManager::_ProcessOut()
 
 					// Log outgoing headers
 					CLog::HttpEvent(kLogHttpSendOut, m_ipFromAddress, m_filterOwner.requestNumber, m_sendOutBuf);
+					_AddTraceLog(L"Send Proxy->Server:\n%s", UTF16fromUTF8(m_sendOutBuf).c_str());
 
 					m_sendOutBuf += CRLF;
 
@@ -661,7 +687,7 @@ void CRequestManager::_ProcessOut()
 					// SSL Tunneling (we won't process exchanged data)
 					m_outStep = STEP::STEP_TUNNELING;
 					m_connectionData->SetOutStep(m_outStep);
-					if (m_pSSLServerSession)
+					if (m_psockBrowser->IsSecureSocket())
 						return;
 				} else {
 					m_outStep = (m_outChunked ? STEP::STEP_CHUNK : m_outSize ? STEP::STEP_RAW : STEP::STEP_FINISH);
@@ -761,9 +787,10 @@ void CRequestManager::_ProcessOut()
 		// Foward outgoing data to website
 		case STEP::STEP_TUNNELING:
 			{
-				if (m_pSSLClientSession && m_filterOwner.responseLine.code != "101") {
+				if (m_psockBrowser->IsSecureSocket() && m_filterOwner.responseLine.code != "101") {
 					m_outStep = STEP::STEP_START;
 					m_connectionData->SetOutStep(m_outStep);
+					_AddTraceLog(L"_ProcessOut[STEP::STEP_TUNNELING]: -> m_outStep = STEP::STEP_START");
 					continue;
 				}
 
@@ -780,6 +807,8 @@ void CRequestManager::_ProcessOut()
 				// _ProcessIn で終了処理が行われる
 				if (m_inStep != STEP::STEP_FINISH)
 					return ;
+
+				_AddTraceLog(L"_ProcessOut[STEP::STEP_FINISH]");
 
 				m_outStep = STEP::STEP_START;
 				m_connectionData->SetOutStep(m_outStep);
@@ -813,11 +842,8 @@ void CRequestManager::_ConnectWebsite()
 	// If download was on, disconnect (to avoid downloading genuine document)
 	// 受信ヘッダフィルターでリダイレクトを指示された場合
 	if (m_inStep == STEP::STEP_DECODE) {
-		if (m_pSSLServerSession) {
-			m_pSSLServerSession.reset();
-		} else {
-			m_psockWebsite->Close();
-		}
+		m_psockWebsite->Close();
+
 		m_inStep = STEP::STEP_START;
 		m_connectionData->SetInStep(m_inStep);
 		m_filterOwner.bypassBody = m_filterOwner.bypassBodyForced = false;
@@ -853,16 +879,15 @@ void CRequestManager::_ConnectWebsite()
 	if (port.empty())
 		port = "80";
 
+	_AddTraceLog(L"_ConnectWebsite: host[%s]", m_filterOwner.contactHost.c_str());
+
     // Unless we are already connected to this host, we try and connect now
 	if (m_previousHost != m_filterOwner.contactHost || 
 		m_psockWebsite->IsConnected() == false ) {
 
         // Disconnect from previous host
-		if (m_pSSLServerSession) {
-			m_pSSLServerSession.reset();
-		} else {
-			m_psockWebsite->Close();
-		}
+		m_psockWebsite->Close();
+
         m_previousHost = m_filterOwner.contactHost;
 
         // Check the host (Hostname() asks the DNS)
@@ -875,11 +900,15 @@ void CRequestManager::_ConnectWebsite()
 		}
 
         // Connect
-		if (m_psockWebsite->Connect(host, m_valid) == false) {
+		auto sockWeb = std::make_unique<CSocket>();
+		if (sockWeb->Connect(host, m_valid) == false) {
             // Connection failed, warn the browser
 			_FakeResponse("503 Service Unavailable", L"./html/error.html");
+			_AddTraceLog(L"Connection failed...");
             return ;
         }
+		m_psockWebsite = std::move(sockWeb);
+		_AddTraceLog(L"Connection success!");
 
 		if (m_requestLine.method == "CONNECT") {
 			// for CONNECT method, incoming data is encrypted from start
@@ -899,18 +928,30 @@ void CRequestManager::_ConnectWebsite()
 
 		if (m_filterOwner.url.getProtocol() == L"https") {
 			if (CSettings::s_SSLFilter && m_bypass == false) {
-				if (m_pSSLServerSession = CSSLSession::InitClientSession(m_psockWebsite.get(), name, m_psockBrowser.get(), m_valid)) {
+				_AddTraceLog(L"SSLFilter: ");
+				auto sockSSLClient = CSSLSession::InitClientSession(m_psockWebsite, name, m_psockBrowser, m_valid);
+				if (sockSSLClient) {
+					m_psockWebsite = sockSSLClient;
+					_AddTraceLog(L"SSL Proxy<->Server connection sucess!");
 					if (m_requestLine.method == "CONNECT") {
-						m_pSSLClientSession = CSSLSession::InitServerSession(m_psockBrowser.get(), name, m_valid);
+						auto sockSSLServer = CSSLSession::InitServerSession(m_psockBrowser, name, m_valid);
+						if (sockSSLServer) {
+							m_psockBrowser = sockSSLServer;
+							_AddTraceLog(L"SSL Proxy<->Browser connection sucess!");
+						} else {
+							_AddTraceLog(L"SSL Proxy<->Browser connection failed...");
+						}
 					} else {
 						// リダイレクト or URLコマンド[https.]
-						ATLASSERT(m_pSSLClientSession || m_filterOwner.url.getHttps());
+						ATLASSERT(m_psockWebsite || m_filterOwner.url.getHttps());
 					}
 					// ブラウザとのTLS接続が確立できなければ、リクエストを終了させる
-					if (m_pSSLClientSession == nullptr && m_filterOwner.url.getHttps() == false) {
-						m_pSSLServerSession.reset();
+					if (m_psockWebsite == nullptr && m_filterOwner.url.getHttps() == false) {
+						//m_psockBrowser.reset();
 						throw GeneralException("CSSLSession::InitServerSession(m_psockBrowser.get()) failed");
 					}
+				} else {
+					_AddTraceLog(L"SSL Proxy<->Server connection failed...");
 				}
 			}
 		} else {
@@ -956,9 +997,9 @@ bool	CRequestManager::_HandleLocalPtron()
 				"Proxy-agent: " "Proxydomo/1.0"/*APP_NAME " " APP_VERSION*/ CRLF CRLF;
 			CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_filterOwner.requestNumber, m_sendInBuf);
 			_SendIn();
-			m_pSSLClientSession = CSSLSession::InitServerSession(m_psockBrowser.get(), "local.ptron", m_valid);
 
-			if (m_pSSLClientSession == nullptr) {
+			m_psockBrowser = CSSLSession::InitServerSession(m_psockBrowser, "local.ptron", m_valid);
+			if (m_psockBrowser == nullptr) {
 				throw GeneralException("LocalSSLServer handshake failed");
 			}
 
@@ -981,7 +1022,7 @@ bool	CRequestManager::_HandleLocalPtron()
 				m_recvOutBuf.erase(0, pos + len);
 				return true;
 			};
-			for (; m_pSSLClientSession->IsConnected();) {
+			for (; m_psockBrowser->IsConnected();) {
 				if (_ReceiveOut()) {
 					if (findGetRequestLineURL())
 						break;
@@ -994,15 +1035,15 @@ bool	CRequestManager::_HandleLocalPtron()
 
 		} else {
 			// リダイレクト
-			ATLASSERT(m_pSSLClientSession);
-			if (m_pSSLClientSession == nullptr) {
+			ATLASSERT(m_psockWebsite);
+			if (m_psockWebsite->IsSecureSocket() == false) {
 				throw GeneralException("LocalSSLServer handshake failed");
 			}
 
 			subpath = L"./html" + CUrl(m_filterOwner.rdirToHost).getPath();
 		}
 
-		if (ManageCertificateAPI(m_requestLine.url, m_pSSLClientSession.get())) {
+		if (ManageCertificateAPI(m_requestLine.url, m_psockBrowser.get())) {
 			return true;
 		}
 
@@ -1155,31 +1196,6 @@ void	CRequestManager::_SendConnectRequestToRemoteProxy(std::string& name)
 	}
 }
 
-
-/// サイト ⇒ Proxy(this)
-bool	CRequestManager::_ReceiveIn()
-{
-	bool bDataReceived = false;
-	if (m_pSSLServerSession) {
-		while (m_pSSLServerSession->Read(m_readBuffer, kReadBuffSize)) {
-			int count = m_pSSLServerSession->GetLastReadCount();
-			if (count == 0)
-				break;
-			m_recvInBuf.append(m_readBuffer, count);
-			bDataReceived = true;
-		}
-	} else {
-		while (m_psockWebsite->IsDataAvailable() && m_psockWebsite->Read(m_readBuffer, kReadBuffSize)) {
-			int count = m_psockWebsite->GetLastReadCount();
-			if (count == 0)
-				break;
-			m_recvInBuf.append(m_readBuffer, count);
-			bDataReceived = true;
-		}
-	}
-	return bDataReceived;
-}
-
 // Filter incoming headers
 void	CRequestManager::_ProcessInHeaderFilter()
 {
@@ -1222,6 +1238,37 @@ void	CRequestManager::_ProcessInHeaderFilter()
 			}
 		}
 	}
+}
+
+bool CRequestManager::_ReceiveIn()
+{
+	bool bDataReceived = false;
+
+	for (;;) {
+		int readbytes = m_psockWebsite->Read(m_readBuffer, kReadBuffSize);
+		if (readbytes <= 0) {
+			break;
+		}
+		m_recvInBuf.append(m_readBuffer, readbytes);
+		bDataReceived = true;
+	}
+	return bDataReceived;
+}
+
+bool CRequestManager::_SendIn()
+{
+	if (m_sendInBuf.empty())
+		return false;
+
+	bool ret = false;
+	if (m_psockBrowser->IsConnected()) {
+		int writebytes = m_psockBrowser->Write(m_sendInBuf.c_str(), static_cast<int>(m_sendInBuf.size()));
+		if (writebytes > 0) {
+			m_sendInBuf.erase(0, writebytes);
+			ret = true;
+		}
+	}
+	return ret;
 }
 
 /// Process incoming data (from website to browser) 
@@ -1333,20 +1380,6 @@ void	CRequestManager::_ProcessIn()
 				if (contentLength.size() > 0 && m_requestLine.method != "HEAD") 
 					m_inSize = boost::lexical_cast<int64_t>(contentLength);
 
-				std::string contentType = UTF8fromUTF16(m_filterOwner.GetInHeader(L"Content-Type"));
-				if (contentType.size() > 0) {
-					// If size is not given, we'll read body until connection closes
-					if (contentLength.empty() && m_requestLine.method != "HEAD")
-						m_inSize = std::numeric_limits<int64_t>::max();
-
-					// Check for filterable MIME types
-					if (_VerifyContentType(contentType) == false && m_filterOwner.bypassBodyForced == false)
-						m_filterOwner.bypassBody = true;
-				} else {
-					// Content-Typeがなければバイパスする
-					m_filterOwner.bypassBody = true;
-				}
-
 				if (   CUtil::noCaseContains(L"close", m_filterOwner.GetInHeader(L"Connection"))
 					|| (CUtil::noCaseBeginsWith("HTTP/1.0", m_filterOwner.responseLine.ver) &&
 					    CUtil::noCaseContains(L"Keep-Alive", m_filterOwner.GetInHeader(L"Connection")) == false) ) {
@@ -1359,6 +1392,20 @@ void	CRequestManager::_ProcessIn()
 
 				// Filter incoming headers
 				_ProcessInHeaderFilter();
+
+				std::string contentType = UTF8fromUTF16(m_filterOwner.GetHeader(m_filterOwner.inHeadersFiltered, L"Content-Type"));
+				if (contentType.size() > 0) {
+					// If size is not given, we'll read body until connection closes
+					if (contentLength.empty() && m_requestLine.method != "HEAD")
+						m_inSize = std::numeric_limits<int64_t>::max();
+
+					// Check for filterable MIME types
+					if (_VerifyContentType(contentType) == false && m_filterOwner.bypassBodyForced == false)
+						m_filterOwner.bypassBody = true;
+				} else {
+					// Content-Typeがなければバイパスする
+					m_filterOwner.bypassBody = true;
+				}
 
 				// 受信ヘッダでリダイレクトを指示されたらリダイレクトする
 				// (limited to 3, to prevent infinite loop)
@@ -1440,6 +1487,7 @@ void	CRequestManager::_ProcessIn()
 						m_sendInBuf += UTF8fromUTF16(pair.first) + ": " + UTF8fromUTF16(pair.second) + CRLF;
 					
 					CLog::HttpEvent(kLogHttpSendIn, m_ipFromAddress, m_filterOwner.requestNumber, m_sendInBuf);
+					_AddTraceLog(L"Send Browser<-Proxy:\n%s", UTF16fromUTF8(m_sendInBuf).c_str());
 
 					m_sendInBuf += CRLF;
 
@@ -1557,9 +1605,10 @@ void	CRequestManager::_ProcessIn()
 		// Forward incoming data to browser
 		case STEP::STEP_TUNNELING:
 			{
-				if (m_pSSLServerSession && m_filterOwner.responseLine.code != "101") {
+				if (m_psockBrowser->IsSecureSocket() && m_filterOwner.responseLine.code != "101") {
 					m_inStep = STEP::STEP_START;
 					m_connectionData->SetInStep(m_inStep);
+					_AddTraceLog(L"_ProcessIn[STEP::STEP_TUNNELING]: -> m_inStep = STEP::STEP_START");
 					continue;
 				}
 
@@ -1576,6 +1625,8 @@ void	CRequestManager::_ProcessIn()
 				// 終了処理は _ProcessOut で行われる
 				if (m_outStep != STEP::STEP_START && m_outStep != STEP::STEP_FINISH)
 					return ;
+
+				_AddTraceLog(L"_ProcessIn[STEP::STEP_FINISH]");
 
 				m_outStep = STEP::STEP_START;
 				m_connectionData->SetOutStep(m_outStep);
@@ -1602,35 +1653,6 @@ void	CRequestManager::_ProcessIn()
 
 		}	// swtich
 	}
-}
-
-
-
-
-/// Send incoming data to browser
-/// ブラウザへレスポンスを送信
-bool	CRequestManager::_SendIn()
-{
-	if (m_sendInBuf.empty())
-		return false;
-
-	bool ret = false;
-	if (m_pSSLClientSession) {
-		if (m_pSSLClientSession->Write(m_sendInBuf.c_str(), (int)m_sendInBuf.size())) {
-			m_sendInBuf.erase(0, m_pSSLClientSession->GetLastWriteCount());
-			ret = true;
-		}
-	} else {
-		// Send everything to browser, if connected
-		if (m_psockBrowser->IsConnected()) {			
-			// Trouble with browser's socket, end of all things
-			if (m_psockBrowser->Write(m_sendInBuf.c_str(), (int)m_sendInBuf.size())) {	
-				m_sendInBuf.erase(0, m_psockBrowser->GetLastWriteCount());
-				ret = true;
-			}
-		}
-	}
-	return ret;
 }
 
 

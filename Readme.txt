@@ -80,9 +80,12 @@ boost::shared_mutexを使用するのでboost::threadのライブラリが必要になります
  https://sites.google.com/site/boostjp/howtobuild
 コマンドライン
 // x86
-b2.exe install -j 4 --prefix=lib toolset=msvc-14.1 define=BOOST_USE_WINAPI_VERSION=0x0501 runtime-link=static --with-thread --with-date_time --with-timer --with-log
+b2.exe install -j 16 --prefix=lib toolset=msvc-14.1 define=BOOST_USE_WINAPI_VERSION=0x0501 runtime-link=static --with-thread --with-date_time --with-timer --with-log
 // x64
-b2.exe install -j 4 --prefix=lib64 toolset=msvc-14.1 define=BOOST_USE_WINAPI_VERSION=0x0501 runtime-link=static address-model=64 --with-thread --with-date_time --with-timer --with-log
+b2.exe install -j 16 --prefix=lib64 toolset=msvc-14.1 define=BOOST_USE_WINAPI_VERSION=0x0501 runtime-link=static address-model=64 --with-thread --with-date_time --with-timer --with-log
+
+define=BOOST_USE_WINAPI_VERSION=0x0501
+は要らないかも
 
 □wolfssl
 $(SolutionDir)wolfssl\wolfssl.vcxproj
@@ -123,6 +126,7 @@ NO_HC128
 NO_PSK
 WOLFSSL_ALT_NAMES
 MAX_CERTIFICATE_SZ=19456
+WOLFSSL_ALT_CERT_CHAINS
 
 // for Debug/Release x64
 WOLFSSL_LIB
@@ -148,6 +152,7 @@ NO_HC128
 NO_PSK
 WOLFSSL_ALT_NAMES
 MAX_CERTIFICATE_SZ=19456
+WOLFSSL_ALT_CERT_CHAINS
 
 wolfsslのプロパティページ C/C++ -> コード生成
 ランタイムライブラリを 構成がDebug なら"マルチスレッド デバッグ (/MTd)" へ変更
@@ -160,6 +165,7 @@ Releaseなら"マルチスレッド (/MT)" へ変更してください
 
 
 v1.66の以下の修正はwolfSSL側のソースを修正する必要があります
+// WOLFSSL_ALT_CERT_CHAINS で直った？
 ・サーバーから送られてくるルートCA証明書がおかしいとき"ASN no signer error to confirm failure"の警告が出るのを修正
 internal.cの 6636行目あたりを
 
@@ -177,6 +183,7 @@ if (count > 2) {
 
 v1.95の以下の修正はwolfSSL側のソースを修正する必要があります
 ・サーバーから送られてくる証明書にルートCAが含まれていると接続できないことがあるのを修正
+// 3.15.3から必要なくなった？
 
 asn.cの 5455行目あたりを
 
@@ -194,6 +201,7 @@ asn.cの 5455行目あたりを
 			if (cert->isCA && isRootCA == 0) {
 
 v1.100の以下の修正はwolfSSL側のソースを修正する必要があります
+// 3.15.3から必要なくなった？
 ・サーバー側から送られてくる証明書が大きいと切断されるのを修正 #47
 internal.c の 7798行目あたりの　ProcessPeerCerts関数内を
 
@@ -204,95 +212,11 @@ internal.c の 7798行目あたりの　ProcessPeerCerts関数内を
 // after
     if (listSz > 19456/*MAX_RECORD_SIZE*/)
         ERROR_OUT(BUFFER_ERROR, exit_ppc);
-        
-・wolfSSL version 3.12.0 から io.hの
-#define close(s) closesocket(s)
-をコメントアウトしてください(でないとコンパイルが通らない)
-//#define close(s) closesocket(s)
 
+・Visual studio環境でのAES-NIサポートはなくなった模様…
 WOLFSSL_AESNI
 を入れると接続できなくなる…
 error = -313, revcd alert fatal error
-
-・楕円曲線暗号をサポートしたサイトに繋がらないことがあるのを修正 はwolfSSL側のソースを修正する必要があります
-internal.h
-
-before
-    TLSX_SUPPORTED_GROUPS           = 0x000a, /* a.k.a. Supported Curves */
-after
-    TLSX_SUPPORTED_GROUPS           = 0x000a, /* a.k.a. Supported Curves */
-	TLSX_EC_POINT_FORMATS			= 0x000b,	// 
-
-tls.c
-
-before	// int TLSX_UseSupportedCurve(TLSX** extensions, word16 name, void* heap)
-        } while ((curve = curve->next));
-    }
-after
-        } while ((curve = curve->next));
-    }
-
-	{	// TLSX_EC_POINT_FORMATS
-		TLSX* extension2 = TLSX_Find(*extensions, TLSX_EC_POINT_FORMATS);
-		if (!extension2) {
-			byte* ec_point_formats = (byte*)XMALLOC(sizeof(word16), heap, DYNAMIC_TYPE_TLSX);
-			if (ec_point_formats == NULL)
-				return MEMORY_E;
-
-			ec_point_formats[0] = 1;	// EC point formats Length
-			ec_point_formats[1] = 0;	// EC point format: uncompressed (0)
-
-			if ((ret = TLSX_Push(extensions, TLSX_EC_POINT_FORMATS, ec_point_formats, heap))
-				!= 0) {
-				XFREE(curve, heap, DYNAMIC_TYPE_TLSX);
-				return ret;
-			}
-		}
-	}
-
-before // void TLSX_FreeAll(TLSX* list, void* heap)
-            case TLSX_SUPPORTED_GROUPS:
-                EC_FREE_ALL((EllipticCurve*)extension->data, heap);
-                break;
-after
-            case TLSX_SUPPORTED_GROUPS:
-                EC_FREE_ALL((EllipticCurve*)extension->data, heap);
-                break;
-
-			case TLSX_EC_POINT_FORMATS:
-				XFREE(extension->data, heap, DYNAMIC_TYPE_TLSX);
-				break;
-
-before // static word16 TLSX_GetSize(TLSX* list, byte* semaphore, byte msgType)
-            case TLSX_SUPPORTED_GROUPS:
-                length += EC_GET_SIZE((EllipticCurve*)extension->data);
-                break;
-after
-            case TLSX_SUPPORTED_GROUPS:
-                length += EC_GET_SIZE((EllipticCurve*)extension->data);
-                break;
-
-			case TLSX_EC_POINT_FORMATS:
-				length += 2;
-				break;
-
-before	// static word16 TLSX_Write(TLSX* list, byte* output, byte* semaphore,
-            case TLSX_SUPPORTED_GROUPS:
-                WOLFSSL_MSG("Elliptic Curves extension to write");
-                offset += EC_WRITE((EllipticCurve*)extension->data,
-                                    output + offset);
-                break;
-after
-            case TLSX_SUPPORTED_GROUPS:
-                WOLFSSL_MSG("Elliptic Curves extension to write");
-                offset += EC_WRITE((EllipticCurve*)extension->data,
-                                    output + offset);
-                break;
-
-			case TLSX_EC_POINT_FORMATS:
-				XMEMCPY(output + offset, extension->data, 2);
-				offset += 2;
-				break;
 
 
 // ==============================================

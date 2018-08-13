@@ -6,8 +6,9 @@
 #include <atlsync.h>
 #include "proximodo\url.h"
 
+// ‘O•ûéŒ¾
 struct sqlite3;
-class CSocket;
+class SocketIF;
 
 
 class CBlockListDatabase
@@ -33,7 +34,7 @@ public:
 
 	void	IncrementHitPatternCount(const std::string& listName, int line);
 
-	bool	ManageBlockListInfoAPI(const CUrl& url, CSocket* sockBrowser);
+	bool	ManageBlockListInfoAPI(const CUrl& url, SocketIF* sockBrowser);
 
 private:
 	CBlockListDatabase();

@@ -17,40 +17,39 @@ void	GenerateCACertificate(bool rsa);
 
 class CSSLSession;
 
-bool	ManageCertificateAPI(const std::string& url, CSSLSession* sockBrowser);
+bool	ManageCertificateAPI(const std::string& url, SocketIF* sockBrowser);
 
 
 struct WOLFSSL;
 struct WOLFSSL_CTX;
 
 
-class CSSLSession
+class CSSLSession : public SocketIF
 {
 public:
-	static std::unique_ptr<CSSLSession>	InitClientSession(CSocket* sockWebsite, const std::string& host, CSocket* sockBrowser, std::atomic_bool& valid);
-	static std::unique_ptr<CSSLSession> InitServerSession(CSocket* sockBrowser, const std::string& host, std::atomic_bool& valid);
+	static std::shared_ptr<SocketIF> InitClientSession(std::shared_ptr<SocketIF> sockWebsite, const std::string& host,
+															std::shared_ptr<SocketIF> sockBrowser, std::atomic_bool& valid);
+	static std::shared_ptr<SocketIF> InitServerSession(std::shared_ptr<SocketIF> sockBrowser, const std::string& host,
+															std::atomic_bool& valid);
 
 	CSSLSession();
 	~CSSLSession();
 
-	bool	IsConnected() const { return m_sock ? m_sock->IsConnected() : false; }
+	bool	IsConnected() override { return m_sock.get() ? m_sock->IsConnected() : false; }
+	bool	IsSecureSocket() override { return true; }
+	SOCKET	GetSocket() override { return INVALID_SOCKET; }
 
-	void	WriteStop() { m_writeStop = true; }
+	void	WriteStop() override { m_writeStop = true; }
 
-	bool	Read(char* buffer, int length);
-	int		GetLastReadCount() const { return m_nLastReadCount; }
+	int		Read(char* buffer, int length) override;
+	int		Write(const char* buffer, int length) override;
 
-	bool	Write(const char* buffer, int length);
-	int		GetLastWriteCount() const { return m_nLastWriteCount; }
-
-	void	Close();
+	void	Close() override;
 
 private:
-	CSocket*	m_sock;
+	std::shared_ptr<SocketIF>	m_sock;
 	WOLFSSL_CTX*	m_ctx;
 	WOLFSSL*		m_ssl;
-	int		m_nLastReadCount;
-	int		m_nLastWriteCount;
 	std::atomic_bool	m_writeStop;
 };
 

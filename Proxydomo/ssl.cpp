@@ -88,9 +88,9 @@ std::shared_ptr<Proxydomo::CMatcher>	g_pAllowSSLServerHostMatcher;
 struct SSLCallbackContext
 {
 	std::string host;
-	CSocket*	sockBrowser;
+	std::shared_ptr<SocketIF>	sockBrowser;
 
-	SSLCallbackContext(const std::string& host, CSocket* sockBrowser) : host(host), sockBrowser(sockBrowser) {}
+	SSLCallbackContext(const std::string& host, std::shared_ptr<SocketIF> sockBrowser) : host(host), sockBrowser(sockBrowser) {}
 };
 
 std::string	g_authentication;
@@ -186,7 +186,7 @@ private:
 };
 
 
-bool	ManageCatificateErrorPage(CSocket* sockBrowser, const std::string& host, const CString& errorMsg, bool bNoCA)
+bool	ManageCatificateErrorPage(std::shared_ptr<SocketIF> sockBrowser, const std::string& host, const CString& errorMsg, bool bNoCA)
 {
 	std::wstring filename = L"./html/certificate_error.html";
 	std::string contentType = "text/html";
@@ -221,10 +221,11 @@ bool	ManageCatificateErrorPage(CSocket* sockBrowser, const std::string& host, co
 	std::atomic_bool valid = true;
 	auto clientSession = CSSLSession::InitServerSession(sockBrowser, host, valid);
 	ATLASSERT(clientSession);
-	if (clientSession == nullptr)
+	if (clientSession == nullptr) {
 		return true;	// deny
+	}
 
-	while (clientSession->Write(sendInBuf.data(), sendInBuf.length()));
+	while (clientSession->Write(sendInBuf.data(), static_cast<int>(sendInBuf.length())) > 0);
 
 	clientSession->Close();
 
@@ -392,7 +393,7 @@ std::unique_ptr<serverCertAndKey>	CreateServerCert(const std::string& host)
 		serverCert.altNames[12] = (byte)host.size();
 
 		::strncpy_s((char*)&serverCert.altNames[kHeaderSize],
-			_countof(serverCert.altNames) - kHeaderSize,
+			std::size(serverCert.altNames) - kHeaderSize,
 			host.c_str(), host.length());
 		serverCert.altNamesSz = kHeaderSize + (byte)host.size();
 	}
@@ -588,7 +589,7 @@ bool	InitSSL()
 		std::string chars = "abcdefghijklmnopqrstuvwxyz0123456789";
 		std::random_device rd;
 		std::mt19937 engine(rd());
-		std::uniform_int_distribution<int> dist(0, chars.length() - 1);
+		std::uniform_int_distribution<int> dist(0, static_cast<int>(chars.length()) - 1);
 		std::array<int, kMaxAuthLength> randnum;
 		for (int i = 0; i < kMaxAuthLength; ++i) {
 			randnum[i] = dist(engine);
@@ -745,7 +746,7 @@ void	GenerateCACertificate(bool rsa)
 }
 
 
-bool	ManageCertificateAPI(const std::string& url, CSSLSession* sockBrowser)
+bool	ManageCertificateAPI(const std::string& url, SocketIF* sockBrowser)
 {
 	std::string authURL = "/certificate_api?&auth=" + g_authentication;
 	if (boost::starts_with(url, authURL) == false)
@@ -813,7 +814,7 @@ bool	ManageCertificateAPI(const std::string& url, CSSLSession* sockBrowser)
 			"Access-Control-Allow-Origin: *" CRLF
 			"Connection: close" + CRLF CRLF;
 		sendInBuf += content;
-		while (sockBrowser->Write(sendInBuf.data(), sendInBuf.length())) ;
+		while (sockBrowser->Write(sendInBuf.data(), static_cast<int>(sendInBuf.length())) > 0) ;
 		sockBrowser->Close();
 	}
 	return true;
@@ -838,7 +839,7 @@ static int tcp_select(SOCKET socketfd, int to_sec)
 	FD_ZERO(&errfds);
 	FD_SET(socketfd, &errfds);
 
-	result = select(nfds, &recvfds, NULL, &errfds, &timeout);
+	result = select(static_cast<int>(nfds), &recvfds, NULL, &errfds, &timeout);
 
 	if (result == 0)
 		return TEST_TIMEOUT;
@@ -856,15 +857,17 @@ static int NonBlockingSSL_Connect(WOLFSSL* ssl, std::atomic_bool& valid)
 {
 	int ret;
 	int error;
-	SOCKET sockfd;
+	SOCKET sockfd = (SOCKET)wolfSSL_get_fd(ssl);;
 	int select_ret = 0;
 
 	static const std::chrono::seconds timeout(60);
 	auto connectStartTime = std::chrono::steady_clock::now();
 
+	unsigned long op = 1;	// non blocking
+	ioctlsocket(sockfd, FIONBIO, &op);
+
 	ret = wolfSSL_negotiate(ssl);
 	error = wolfSSL_get_error(ssl, 0);
-	sockfd = (SOCKET)wolfSSL_get_fd(ssl);
 
 	while (ret != SSL_SUCCESS && (	error == SSL_ERROR_WANT_READ ||
 									error == SSL_ERROR_WANT_WRITE ||
@@ -910,9 +913,7 @@ static int NonBlockingSSL_Connect(WOLFSSL* ssl, std::atomic_bool& valid)
 ////////////////////////////////////////////////////////////////
 // CSSLSession
 
-CSSLSession::CSSLSession() : 
-	m_sock(nullptr), m_ctx(nullptr), m_ssl(nullptr),
-	m_nLastReadCount(0), m_nLastWriteCount(0)
+CSSLSession::CSSLSession() : m_ctx(nullptr), m_ssl(nullptr)
 {
 	m_writeStop = false;
 }
@@ -923,9 +924,10 @@ CSSLSession::~CSSLSession()
 }
 
 
-std::unique_ptr<CSSLSession>	CSSLSession::InitClientSession(CSocket* sockWebsite, const std::string& host, CSocket* sockBrowser, std::atomic_bool& valid)
+std::shared_ptr<SocketIF>	CSSLSession::InitClientSession(std::shared_ptr<SocketIF> sockWebsite, const std::string& host,
+																std::shared_ptr<SocketIF> sockBrowser, std::atomic_bool& valid)
 {
-	auto session = std::make_unique<CSSLSession>();
+	auto session = std::make_shared<CSSLSession>();
 	int ret = 0;
 
 	session->m_ssl = wolfSSL_new(g_sslclientCtx);
@@ -947,7 +949,6 @@ std::unique_ptr<CSSLSession>	CSSLSession::InitClientSession(CSocket* sockWebsite
 	wolfSSL_SetCertCbCtx(session->m_ssl, (void*)&context);
 
 	wolfSSL_set_using_nonblock(session->m_ssl, 1);
-	sockWebsite->SetBlocking(false);
 	ret = NonBlockingSSL_Connect(session->m_ssl, valid);
 	if (ret != SSL_SUCCESS) {
 		int err = wolfSSL_get_error(session->m_ssl, 0);
@@ -957,6 +958,7 @@ std::unique_ptr<CSSLSession>	CSSLSession::InitClientSession(CSocket* sockWebsite
 
 		wolfSSL_free(session->m_ssl);
 		session->m_ssl = nullptr;
+		sockWebsite->Close();
 		return nullptr;
 	}
 
@@ -964,9 +966,9 @@ std::unique_ptr<CSSLSession>	CSSLSession::InitClientSession(CSocket* sockWebsite
 	return session;
 }
 
-std::unique_ptr<CSSLSession> CSSLSession::InitServerSession(CSocket* sockBrowser, const std::string& host, std::atomic_bool& valid)
+std::shared_ptr<SocketIF> CSSLSession::InitServerSession(std::shared_ptr<SocketIF> sockBrowser, const std::string& host, std::atomic_bool& valid)
 {
-	auto session = std::make_unique<CSSLSession>();
+	auto session = std::make_shared<CSSLSession>();
 	int ret = 0;
 
 	serverCertAndKey* certAndKey = nullptr;
@@ -997,6 +999,7 @@ std::unique_ptr<CSSLSession> CSSLSession::InitServerSession(CSocket* sockBrowser
 		throw std::runtime_error("wolfSSL_CTX_new failed");
 	}
 
+
 	ret = wolfSSL_CTX_use_certificate_buffer(session->m_ctx, certAndKey->derCert.data(), (long)certAndKey->derCert.size(), SSL_FILETYPE_ASN1);
 	ATLASSERT(ret == SSL_SUCCESS);
 
@@ -1013,7 +1016,6 @@ std::unique_ptr<CSSLSession> CSSLSession::InitServerSession(CSocket* sockBrowser
 	wolfSSL_set_fd(session->m_ssl, (int)sockBrowser->GetSocket());
 
 	wolfSSL_set_using_nonblock(session->m_ssl, 1);
-	sockBrowser->SetBlocking(false);
 	ret = NonBlockingSSL_Connect(session->m_ssl, valid);
 	if (ret != SSL_SUCCESS) {
 		int err = wolfSSL_get_error(session->m_ssl, 0);
@@ -1025,6 +1027,7 @@ std::unique_ptr<CSSLSession> CSSLSession::InitServerSession(CSocket* sockBrowser
 		session->m_ssl = nullptr;
 		wolfSSL_CTX_free(session->m_ctx);
 		session->m_ctx = nullptr;
+		sockBrowser->Close();
 		return nullptr;
 	}
 
@@ -1033,16 +1036,15 @@ std::unique_ptr<CSSLSession> CSSLSession::InitServerSession(CSocket* sockBrowser
 }
 
 
-bool	CSSLSession::Read(char* buffer, int length)
+int	CSSLSession::Read(char* buffer, int length)
 {
 	if (m_ssl == nullptr)
-		return false;
+		return -1;
 
-	m_nLastReadCount = 0;
 	int ret = wolfSSL_read(m_ssl, (void*)buffer, length);
 	if (ret == 0) {
 		Close();
-		return true;
+		return 0;
 
 	} else {
 		int error = wolfSSL_get_error(m_ssl, 0);
@@ -1051,28 +1053,26 @@ bool	CSSLSession::Read(char* buffer, int length)
 		}
 		if (ret < 0) {
 			Close();
-			return false;
+			return -1;	// error
 
 		} else {
-			m_nLastReadCount = ret;
-			return true;
+			return ret;	// success!
 		}
 	}
 }
 
-bool	CSSLSession::Write(const char* buffer, int length)
+int	CSSLSession::Write(const char* buffer, int length)
 {
 	if (m_ssl == nullptr)
-		return false;
+		return -1;
 
-	m_nLastWriteCount = 0;
 	int ret = 0;
 	int error = 0;
 	for (;;) {
 		ret = wolfSSL_write(m_ssl, (const void*)buffer, length);
 		error = wolfSSL_get_error(m_ssl, 0);
 		if (ret == SSL_FATAL_ERROR && error == SSL_ERROR_WANT_WRITE && m_writeStop == false) {
-			::Sleep(50);
+			::Sleep(50);	// async pending
 		} else {
 			break;
 		}
@@ -1080,11 +1080,10 @@ bool	CSSLSession::Write(const char* buffer, int length)
 
 	if (ret != length) {
 		Close();
-		return false;
+		return -1;	// error
 
 	} else {
-		m_nLastWriteCount = ret;
-		return true;
+		return ret;
 	}
 }
 

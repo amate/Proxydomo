@@ -85,7 +85,25 @@ struct IPAddress
 };
 
 
-class CSocket
+class SocketIF
+{
+public:
+	virtual ~SocketIF() {}
+
+	virtual bool	IsConnected() = 0;
+	virtual bool	IsSecureSocket() = 0;
+
+	virtual SOCKET	GetSocket() = 0;
+
+	virtual void	Close() = 0;
+	virtual void	WriteStop() = 0;
+
+	virtual int		Read(char* buffer, int length) = 0;
+	virtual int		Write(const char* buffer, int length) = 0;
+};
+
+
+class CSocket : public SocketIF
 {
 public:
 	CSocket();
@@ -94,8 +112,9 @@ public:
 	static bool Init();
 	static void Term();
 
-	SOCKET	GetSocket() { return m_sock; }
-	bool	IsConnected() const { return m_sock != 0; }
+	bool	IsConnected() override { return m_sock != 0 && m_sock != INVALID_SOCKET; }
+	bool	IsSecureSocket() override { return false; }
+	SOCKET	GetSocket() override { return m_sock; }
 	IPv4Address GetFromAddress() const;
 
 	void	Bind(uint16_t port);
@@ -103,16 +122,14 @@ public:
 
 	bool	Connect(IPAddress addr, std::atomic_bool& valid);
 
-	void	Close();
+	void	Close() override;
 
-	void	WriteStop() { m_writeStop = true;  }
+	void	WriteStop() override { m_writeStop = true;  }
 
 	bool	IsDataAvailable();
-	bool	Read(char* buffer, int length);
-	int		GetLastReadCount() const { return m_nLastReadCount; }
 
-	bool	Write(const char* buffer, int length);
-	int		GetLastWriteCount() const { return m_nLastWriteCount; }
+	int		Read(char* buffer, int length) override;
+	int		Write(const char* buffer, int length) override;
 
 	void	SetBlocking(bool yes);
 
@@ -123,8 +140,6 @@ private:
 	// Data members
 	SOCKET	m_sock;
 	IPv4Address	m_addrFrom;
-	int		m_nLastReadCount;
-	int		m_nLastWriteCount;
 	std::atomic_bool	m_writeStop;
 };
 
