@@ -907,6 +907,7 @@ void CRequestManager::_ConnectWebsite()
 			_AddTraceLog(L"Connection failed...");
             return ;
         }
+		sockWeb->SetBlocking(false);
 		m_psockWebsite = std::move(sockWeb);
 		_AddTraceLog(L"Connection success!");
 

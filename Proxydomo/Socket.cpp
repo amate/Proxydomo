@@ -462,6 +462,10 @@ int	 CSocket::Read(char* buffer, int length)
 	if (m_sock == 0)
 		return -1;
 
+	if (IsDataAvailable() == false) {
+		return 0;
+	}
+
 	ATLASSERT(length > 0);
 	int ret = ::recv(m_sock, buffer, length, 0);
 	if (ret == 0) {	// disconnect
