@@ -1048,11 +1048,19 @@ bool	CRequestManager::_HandleLocalPtron()
 			return true;
 		}
 
-		wstring filename = CUtil::makePath(subpath);
-		if (::PathFileExists(Misc::GetFullPath_ForExe(filename.c_str()))) {
-			_FakeResponse("200 OK", filename);
+		path filepath = CUtil::makePath(subpath);
+		path fullpath = (LPCWSTR)Misc::GetFullPath_ForExe(filepath.native().c_str());
+		if (exists(fullpath)) {
+			_FakeResponse("200 OK", filepath.native());
 		} else {
-			_FakeResponse("404 Not Found");
+			filepath = UTF16fromUTF8(CUtil::UESC(filepath.string().c_str()));
+			path fullpath = (LPCWSTR)Misc::GetFullPath_ForExe(filepath.native().c_str());
+			if (exists(fullpath)) {
+				_FakeResponse("200 OK", filepath.native());
+
+			} else {
+				_FakeResponse("404 Not Found");
+			}
 		}
 		while (_SendIn());	// ç≈å„Ç‹Ç≈ëóêMÇµÇƒÇµÇ‹Ç§
 
@@ -1088,7 +1096,14 @@ bool	CRequestManager::_HandleLocalPtron()
 		if (exists(fullpath)) {
 			_FakeResponse("200 OK", filepath.native());
 		} else {
-			_FakeResponse("404 Not Found");
+			filepath = UTF16fromUTF8(CUtil::UESC(filepath.string().c_str()));
+			path fullpath = (LPCWSTR)Misc::GetFullPath_ForExe(filepath.native().c_str());
+			if (exists(fullpath)) {
+				_FakeResponse("200 OK", filepath.native());
+
+			} else {
+				_FakeResponse("404 Not Found");
+			}
 		}
 		while (_SendIn());	// ç≈å„Ç‹Ç≈ëóêMÇµÇƒÇµÇ‹Ç§
 

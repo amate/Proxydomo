@@ -34,7 +34,9 @@
 #include <iomanip>
 #include <boost\optional.hpp>
 #include <Windows.h>
+#include <atlbase.h>
 #include "..\Misc.h"
+#include "..\CodeConvert.h"
 
 using namespace std;
 
@@ -623,7 +625,7 @@ string CUtil::getFile(string filename) {
 	auto eofPos = fs.tellg();
 	fs.clear();
 	fs.seekg(0, std::ios::beg);
-	size_t fileSize = (size_t)eofPos.seekpos();
+	auto fileSize = (streamoff)eofPos;
 
 	std::string content;
 	content.resize(fileSize);
@@ -644,8 +646,8 @@ string CUtil::getFile(wstring filename) {
 	auto eofPos = fs.tellg();
 	fs.clear();
 	fs.seekg(0, std::ios::beg);
-	size_t fileSize = (size_t)eofPos.seekpos();
-
+	auto fileSize = (streamoff)eofPos;
+	
 	std::string content;
 	content.resize(fileSize);
 	fs.read(const_cast<char*>(content.data()), fileSize);
@@ -659,6 +661,7 @@ string CUtil::getMimeType(string filename) {
     if (dot == string::npos)
         return "application/octet-stream";
     string ext = filename.substr(dot+1);
+	lower(ext);
     //wxString mime;
     //wxFileType* type = wxTheMimeTypesManager->GetFileTypeFromExtension(S2W(ext));
     //if (type != NULL && type->GetMimeType(&mime))
@@ -681,6 +684,17 @@ string CUtil::getMimeType(string filename) {
 		return "application/x-shockwave-flash";
 	else if (ext == "json")
 		return "application/json";
+
+	CRegKey reg;
+	LSTATUS ret = reg.Open(HKEY_CLASSES_ROOT, CodeConvert::UTF16fromUTF8((std::string(".") + ext)).c_str(), KEY_READ);
+	if (ret == ERROR_SUCCESS) {
+		WCHAR contentType[128] = L"";
+		ULONG length = 128;
+		ret = reg.QueryStringValue(L"Content Type", contentType, &length);
+		if (ret == ERROR_SUCCESS) {
+			return CodeConvert::UTF8fromUTF16(contentType);
+		}
+	}
 
     return "application/octet-stream";
 }
@@ -987,7 +1001,7 @@ std::vector<uint8_t>	CUtil::LoadBinaryFile(const std::wstring& filePath)
 	auto eofPos = fs.tellg();
 	fs.clear();
 	fs.seekg(0, std::ios::beg);
-	size_t fileSize = (size_t)eofPos.seekpos();
+	auto fileSize = (streamoff)eofPos;
 
 	std::vector<uint8_t> vec(fileSize);
 	fs.read((char*)vec.data(), fileSize);
