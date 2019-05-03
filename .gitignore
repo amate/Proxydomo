@@ -37,7 +37,6 @@ icu/
 srell/
 GnuTLS*/
 mingw/
-wolfssl/
 /wolfssl
 packages/
 Test/

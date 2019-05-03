@@ -987,8 +987,10 @@ bool	CRequestManager::_HandleLocalPtron()
 		m_filterOwner.rdirToHost = m_filterOwner.url.getUrl();
 	}
 	if (CUtil::noCaseBeginsWith(L"http://local.ptron", m_filterOwner.rdirToHost)) {
-		m_filterOwner.rdirToHost = L"http://file//./html" + CUrl(m_filterOwner.rdirToHost).getPath();
+		WARN_LOG << L"rdirToHost is local.ptron : " << m_filterOwner.rdirToHost;
+		//m_filterOwner.rdirToHost = L"http://file//./html" + CUrl(m_filterOwner.rdirToHost).getPath();
 	}
+
 
 	// https://local.ptron/ ‚Ö‚ÌÚ‘±
 	if (CSettings::s_SSLFilter && CUtil::noCaseBeginsWith(L"https://local.ptron", m_filterOwner.rdirToHost)) {
@@ -1406,10 +1408,13 @@ void	CRequestManager::_ProcessIn()
 					m_filterOwner.bypassBody = true;
 				}
 
+				std::string contentType = UTF8fromUTF16(m_filterOwner.GetHeader(m_filterOwner.inHeaders, L"Content-Type"));
+				_VerifyContentType(contentType);
+
 				// Filter incoming headers
 				_ProcessInHeaderFilter();
 
-				std::string contentType = UTF8fromUTF16(m_filterOwner.GetHeader(m_filterOwner.inHeadersFiltered, L"Content-Type"));
+				contentType = UTF8fromUTF16(m_filterOwner.GetHeader(m_filterOwner.inHeadersFiltered, L"Content-Type"));
 				if (contentType.size() > 0) {
 					// If size is not given, we'll read body until connection closes
 					if (contentLength.empty() && m_requestLine.method != "HEAD")
