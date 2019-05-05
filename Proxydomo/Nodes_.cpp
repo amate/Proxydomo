@@ -1419,14 +1419,14 @@ const UChar* CNode_Command::match(const UChar* start, const UChar* stop, MatchDa
     case CMD_JUMP:
         owner.rdirToHost = CExpander::expand(m_content, filter);
         CUtil::trim(owner.rdirToHost);
-        owner.rdirMode = 0;
+        owner.rdirMode = CFilterOwner::RedirectMode::kJump;
 		CLog::FilterEvent(kLogFilterJump, owner.requestNumber, UTF8fromUTF16(filter.title), UTF8fromUTF16(owner.rdirToHost));
         break;
 
     case CMD_RDIR:
         owner.rdirToHost = CExpander::expand(m_content, filter);
         CUtil::trim(owner.rdirToHost);
-        owner.rdirMode = 1;
+        owner.rdirMode = CFilterOwner::RedirectMode::kRdir;
 		CLog::FilterEvent(kLogFilterRdir, owner.requestNumber, UTF8fromUTF16(filter.title), UTF8fromUTF16(owner.rdirToHost));
         break;
 

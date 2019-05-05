@@ -374,7 +374,7 @@ bool CBlockListDatabase::ManageBlockListInfoAPI(const CUrl& url, SocketIF* sockB
 			"Connection: close" + CRLF CRLF;
 		sendInBuf += content;
 
-		while (sockBrowser->Write(sendInBuf.data(), sendInBuf.length()));
+		while (sockBrowser->Write(sendInBuf.data(), sendInBuf.length()) > 0);
 		sockBrowser->Close();
 
 		return true;
@@ -420,7 +420,7 @@ bool CBlockListDatabase::ManageBlockListInfoAPI(const CUrl& url, SocketIF* sockB
 				"Connection: close" + CRLF CRLF;
 			sendInBuf += content;
 
-			while (sockBrowser->Write(sendInBuf.data(), sendInBuf.length()));
+			while (sockBrowser->Write(sendInBuf.data(), sendInBuf.length()) > 0);
 			sockBrowser->Close();
 			return true;
 		}

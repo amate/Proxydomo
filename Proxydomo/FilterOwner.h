@@ -55,7 +55,11 @@ public:
 	
 	std::wstring contactHost;				 // can be overridden by $SETPROXY
     std::wstring rdirToHost;                 // set by $RDIR and $JUMP
-    int			rdirMode;                    // 0: 302 response, 1: transparent
+	enum class RedirectMode {
+		kNone,
+		kJump,	// 302 response
+		kRdir,	// transparent
+	} rdirMode;
 
 	bool		bypassIn;                    // tells if we can filter incoming headers
 	bool		bypassOut;                   // tells if we can filter outgoing headers

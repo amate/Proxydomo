@@ -438,7 +438,7 @@ void CRequestManager::_ProcessOutHeaderFilter()
 					if (changeHost) m_filterOwner.contactHost = m_filterOwner.url.getHostPort();
 				}
 			}
-			if (m_filterOwner.rdirToHost.size() > 0 && m_filterOwner.rdirMode == 1) {
+			if (m_filterOwner.rdirToHost.size() > 0 && m_filterOwner.rdirMode == CFilterOwner::RedirectMode::kRdir) {
 				if (CUrl(m_filterOwner.rdirToHost).getBypassOut())
 					break;
 			}
@@ -612,9 +612,10 @@ void CRequestManager::_ProcessOut()
 				// CONNECTリクエストはリダイレクトしないようにする
 				if (m_requestLine.method == "CONNECT" && m_filterOwner.killed == false && m_filterOwner.rdirToHost.size() > 0) {
 					WARN_LOG << L"CONNECT redirect clear, src : " << m_filterOwner.url.getHost() 
-							<< L" rdirToHost : " << m_filterOwner.rdirToHost << L" rdirMode : " << m_filterOwner.rdirMode;
+							<< L" rdirToHost : " << m_filterOwner.rdirToHost 
+							<< L" rdirMode : " << static_cast<int>(m_filterOwner.rdirMode);
 					m_filterOwner.rdirToHost.clear();
-					m_filterOwner.rdirMode = 0;
+					m_filterOwner.rdirMode = CFilterOwner::RedirectMode::kNone;
 				}
 
 				// If we haven't connected to ths host yet, we do it now.
@@ -983,14 +984,22 @@ void CRequestManager::_ConnectWebsite()
 
 bool	CRequestManager::_HandleLocalPtron()
 {
+	// $JUMP( local.ptron/... )は無視する
+	if (m_filterOwner.rdirMode == CFilterOwner::RedirectMode::kJump && 
+		CUtil::noCaseBeginsWith(L"http://local.ptron", m_filterOwner.rdirToHost)) {
+		return false;
+	}
+
 	if (m_filterOwner.url.getHost() == L"local.ptron") {
+		if (m_filterOwner.rdirMode != CFilterOwner::RedirectMode::kNone) {
+			WARN_LOG << L"_HandleLocalPtron override rdirToHost : " << m_filterOwner.rdirToHost 
+												<< L" rdirMode : " << static_cast<int>(m_filterOwner.rdirMode);
+		}
 		m_filterOwner.rdirToHost = m_filterOwner.url.getUrl();
 	}
 	if (CUtil::noCaseBeginsWith(L"http://local.ptron", m_filterOwner.rdirToHost)) {
-		WARN_LOG << L"rdirToHost is local.ptron : " << m_filterOwner.rdirToHost;
-		//m_filterOwner.rdirToHost = L"http://file//./html" + CUrl(m_filterOwner.rdirToHost).getPath();
+		m_filterOwner.rdirToHost = L"http://file//./html" + CUrl(m_filterOwner.rdirToHost).getPath();
 	}
-
 
 	// https://local.ptron/ への接続
 	if (CSettings::s_SSLFilter && CUtil::noCaseBeginsWith(L"https://local.ptron", m_filterOwner.rdirToHost)) {
@@ -1080,7 +1089,7 @@ bool	CRequestManager::_HandleLocalPtron()
 			// フォルダが存在するかつ URLの末尾が '/' で終わっていなければ フォルダ名 + L'/' へリダイレクトさせる
 			if (filepath.native().back() != L'\\') {				
 				m_filterOwner.rdirToHost = L"http://local.ptron/" + filepath.native().substr(7) + L'/';
-				m_filterOwner.rdirMode = 0;
+				m_filterOwner.rdirMode = CFilterOwner::RedirectMode::kJump;
 				return false;
 			}
 
@@ -1119,7 +1128,7 @@ bool	CRequestManager::_HandleLocalPtron()
 bool	CRequestManager::_HandleRedirectToHost()
 {
 	// Test for non-transparent redirection ($JUMP)
-	if (m_filterOwner.rdirToHost.size() > 0 && m_filterOwner.rdirMode == 0) {
+	if (m_filterOwner.rdirToHost.size() > 0 && m_filterOwner.rdirMode == CFilterOwner::RedirectMode::kJump) {
 		// We'll keep browser's socket, for persistent connections, and
 		// continue processing outgoing data (which will not be moved to
 		// send buffer).
@@ -1139,7 +1148,7 @@ bool	CRequestManager::_HandleRedirectToHost()
 
 	// Test for transparent redirection to URL ($RDIR)
 	// Note: new URL will not go through URL* OUT filters
-	if (m_filterOwner.rdirToHost.size() > 0 && m_filterOwner.rdirMode == 1) {
+	if (m_filterOwner.rdirToHost.size() > 0 && m_filterOwner.rdirMode == CFilterOwner::RedirectMode::kRdir) {
 
 		// Change URL
 		m_filterOwner.url.parseUrl(m_filterOwner.rdirToHost);
@@ -1251,7 +1260,7 @@ void	CRequestManager::_ProcessInHeaderFilter()
 					m_filterOwner.rdirToHost = L"http://file//./html/killed.gif";
 				else
 					m_filterOwner.rdirToHost = L"http://file//./html/killed.html";
-				m_filterOwner.rdirMode = 0;   // (to use non-transp code below)
+				m_filterOwner.rdirMode = CFilterOwner::RedirectMode::kJump;   // (to use non-transp code below)
 				break;
 			}
 		}

@@ -49,7 +49,7 @@ void	CFilterOwner::Reset()
 	variables.clear();
 
 	contactHost.clear();
-	rdirMode = 0;
+	rdirMode = RedirectMode::kNone;
 	rdirToHost.clear();
 
 	outHeaders.clear();

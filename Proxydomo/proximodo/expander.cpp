@@ -294,14 +294,14 @@ std::wstring CExpander::expand(const std::wstring& pattern, CFilter& filter) {
 
                     filter.owner.rdirToHost = expand(content, filter);
                     CUtil::trim(filter.owner.rdirToHost);
-                    filter.owner.rdirMode = 0;
+                    filter.owner.rdirMode = CFilterOwner::RedirectMode::kJump;
 					CLog::FilterEvent(kLogFilterJump, filter.owner.requestNumber, UTF8fromUTF16(filter.title), UTF8fromUTF16(filter.owner.rdirToHost));
 
                 } else if (command == L"RDIR") {
 
                     filter.owner.rdirToHost = expand(content, filter);
                     CUtil::trim(filter.owner.rdirToHost);
-                    filter.owner.rdirMode = 1;
+                    filter.owner.rdirMode = CFilterOwner::RedirectMode::kRdir;
 					CLog::FilterEvent(kLogFilterRdir, filter.owner.requestNumber, UTF8fromUTF16(filter.title), UTF8fromUTF16(filter.owner.rdirToHost));
 
                 } else if (command == L"FILTER") {
