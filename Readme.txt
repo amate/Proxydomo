@@ -80,9 +80,9 @@ boost::shared_mutexを使用するのでboost::threadのライブラリが必要になります
  https://sites.google.com/site/boostjp/howtobuild
 コマンドライン
 // x86
-b2.exe install -j 16 --prefix=lib toolset=msvc-14.1 define=BOOST_USE_WINAPI_VERSION=0x0501 runtime-link=static --with-thread --with-date_time --with-timer --with-log
+b2.exe install --prefix=lib toolset=msvc-14.2 runtime-link=static --with-thread --with-date_time --with-timer --with-log
 // x64
-b2.exe install -j 16 --prefix=lib64 toolset=msvc-14.1 define=BOOST_USE_WINAPI_VERSION=0x0501 runtime-link=static address-model=64 --with-thread --with-date_time --with-timer --with-log
+b2.exe install  --prefix=lib64 toolset=msvc-14.2 runtime-link=static address-model=64 --with-thread --with-date_time --with-timer --with-log
 
 define=BOOST_USE_WINAPI_VERSION=0x0501
 は要らないかも

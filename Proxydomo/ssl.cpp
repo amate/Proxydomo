@@ -373,6 +373,18 @@ std::unique_ptr<serverCertAndKey>	CreateServerCert(const std::string& host)
 		::strcpy_s(serverCert.subject.commonName, wildcardHost.c_str());
 	}
 	{	// subjectAltNames
+		serverCert.altNames[0] = 0x30;
+		serverCert.altNames[1] = (byte)host.size() + 2;
+
+		serverCert.altNames[2] = 0x82;
+		serverCert.altNames[3] = (byte)host.size();
+
+		::strncpy_s((char*)&serverCert.altNames[4],
+			std::size(serverCert.altNames) - 4,
+			host.c_str(), host.length());
+		serverCert.altNamesSz = 4 + (byte)host.size();
+
+#if 0
 		enum { kHeaderSize = 13 };
 		serverCert.altNames[0] = 0x30;
 		serverCert.altNames[1] = kHeaderSize + (byte)host.size() - 2;
@@ -396,6 +408,7 @@ std::unique_ptr<serverCertAndKey>	CreateServerCert(const std::string& host)
 			std::size(serverCert.altNames) - kHeaderSize,
 			host.c_str(), host.length());
 		serverCert.altNamesSz = kHeaderSize + (byte)host.size();
+#endif
 	}
 
 	if (g_caKey.keyType == CAKey::kRsaKey) {

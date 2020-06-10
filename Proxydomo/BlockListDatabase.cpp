@@ -3,7 +3,7 @@
 #include "BlockListDatabase.h"
 #include <mutex>
 #include <unordered_set>
-#include <filesystem>
+#include <boost\filesystem.hpp>
 #include <boost\format.hpp>
 #include <boost\algorithm\string.hpp>
 #include "sqlite\sqlite3.h"
@@ -18,7 +18,7 @@ using namespace CodeConvert;
 
 using namespace boost;
 using boost::io::str;
-using namespace std::experimental::filesystem;
+using namespace boost::filesystem;
 
 namespace {
 
@@ -382,7 +382,7 @@ bool CBlockListDatabase::ManageBlockListInfoAPI(const CUrl& url, SocketIF* sockB
 	} else if (boost::starts_with(url.getPath(), "/blocklistinfo/")) {
 		path urlPath = url.getPath();
 		if (urlPath.extension() == L".txt") {
-			std::string listName =  urlPath.stem().u8string();
+			std::string listName = CodeConvert::UTF8fromUTF16(urlPath.stem().wstring());
 			std::string contentType;
 			std::string content;
 			if (url.getQuery() == L"?dl") {
@@ -403,7 +403,7 @@ bool CBlockListDatabase::ManageBlockListInfoAPI(const CUrl& url, SocketIF* sockB
 					return false;
 				}
 
-				content = CUtil::replaceAll(content, "%%title%%", urlPath.filename().u8string());
+				content = CUtil::replaceAll(content, "%%title%%", CodeConvert::UTF8fromUTF16(urlPath.filename().wstring()));
 
 				std::string tablebody;
 				for (const auto& patternLineHitCount : patternLineHitCountList) {

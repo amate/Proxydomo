@@ -66,7 +66,6 @@ using std::max;
 #include <random>
 #include <algorithm>
 #include <limits>
-#include <filesystem>
 
 #include <boost\lexical_cast.hpp>
 #include <boost\format.hpp>
@@ -80,6 +79,7 @@ using std::max;
 #include <boost\property_tree\ini_parser.hpp>
 #include <boost\property_tree\xml_parser.hpp>
 #include <boost\container\flat_set.hpp>
+#include <boost\filesystem.hpp>
 
 
 #if defined _M_IX86

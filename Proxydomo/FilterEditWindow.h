@@ -61,6 +61,8 @@ public:
 		kMinEditHeight = 24,
 		kMatchReplaceSpace = 20,
 		kcyStaticReplaceTextMargin = 4,
+
+		WM_DELAYINIT = WM_APP + 1,
 	};
 
 	CFilterEditWindow(CFilterDescriptor* pfd);
@@ -110,6 +112,7 @@ public:
 
 	BEGIN_MSG_MAP_EX( CFilterEditWindow )
 		MSG_WM_INITDIALOG( OnInitDialog )
+		MESSAGE_HANDLER_EX(WM_DELAYINIT, OnDelayInit)
 		MSG_WM_DESTROY( OnDestroy )
 		MSG_WM_SETCURSOR( OnSetCursor )
 		MSG_WM_LBUTTONDOWN( OnLButtonDown )
@@ -127,6 +130,7 @@ public:
 	// void OnCommandIDHandlerEX(UINT uNotifyCode, int nID, CWindow wndCtl)
 
 	BOOL OnInitDialog(CWindow wndFocus, LPARAM lInitParam);
+	LRESULT OnDelayInit(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnDestroy();
 
 	BOOL OnSetCursor(CWindow wnd, UINT nHitTest, UINT message);

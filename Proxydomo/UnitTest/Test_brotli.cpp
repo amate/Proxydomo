@@ -10,11 +10,11 @@
 //#endif
 
 #include "..\BrotliDecompressor.h"
-#include <filesystem>
+#include <boost\filesystem.hpp>
 #include "..\Misc.h"
 #include "..\proximodo\util.h"
 
-using path = std::experimental::filesystem::path;
+using path = boost::filesystem::path;
 
 ///////////////////////////////////////////////////////////////////////////////////
 // BrotliDecompressorTest

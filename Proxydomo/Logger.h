@@ -4,8 +4,9 @@
 
 #pragma once
 
-#define BOOST_USE_WINAPI_VERSION 0x0501
+//#define BOOST_USE_WINAPI_VERSION 0x0501
 
+#include <boost/log/core.hpp>
 #include <boost/log/expressions.hpp>
 #include <boost/log/sources/global_logger_storage.hpp>
 #include <boost/log/support/date_time.hpp>

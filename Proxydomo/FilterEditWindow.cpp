@@ -512,6 +512,7 @@ BOOL CFilterEditWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 		cmbHeaderName.AddString(headerName);
 
 	DoDataExchange(DDX_LOAD);
+	PostMessage(WM_DELAYINIT);
 
     // ダイアログリサイズ初期化
     DlgResize_Init(true, true, WS_CLIPCHILDREN | WS_THICKFRAME | WS_MAXIMIZEBOX);
@@ -544,6 +545,12 @@ BOOL CFilterEditWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 		m_wndMatchPattern.SetFont(lf.CreateFontIndirect());
 		m_wndReplaceText.SetFont(lf.CreateFontIndirect());
 	}
+	return 0;
+}
+
+LRESULT CFilterEditWindow::OnDelayInit(UINT uMsg, WPARAM wParam, LPARAM lParam)
+{
+	DoDataExchange(DDX_LOAD);
 	return 0;
 }
 

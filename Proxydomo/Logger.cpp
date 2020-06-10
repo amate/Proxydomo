@@ -10,6 +10,7 @@
 #pragma comment(lib, "Shlwapi.lib")
 #include "Settings.h"
 
+
 namespace attrs = boost::log::attributes;
 namespace expr = boost::log::expressions;
 namespace sinks = boost::log::sinks;

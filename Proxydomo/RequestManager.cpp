@@ -25,7 +25,7 @@
 #include "RequestManager.h"
 #include <sstream>
 #include <limits>
-#include <filesystem>
+#include <boost\filesystem.hpp>
 #include <boost\lexical_cast.hpp>
 #include "DebugWindow.h"
 #include "Log.h"
@@ -42,7 +42,7 @@
 #include "proximodo\zlibbuffer.h"
 #include "BrotliDecompressor.h"
 
-using namespace std::experimental::filesystem;
+using namespace boost::filesystem;
 using namespace CodeConvert;
 
 #define CR	'\r'
