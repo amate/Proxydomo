@@ -6,14 +6,6 @@
 #pragma once
 
 // Change these values to use different versions
-#ifdef _WIN64
-#define WINVER			0x0600
-#define _WIN32_WINNT	0x0600
-#else
-#define WINVER			0x0501
-#define _WIN32_WINNT	0x0501
-#endif
-#define _WIN32_IE		0x0600
 #define _RICHEDIT_VER	0x0200
 
 #include <windows.h>
