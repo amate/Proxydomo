@@ -164,7 +164,9 @@ CRequestManager::~CRequestManager(void)
 
 	// Destroy sockets
 	try {
-		m_psockBrowser->Close();
+		if (m_psockBrowser) {
+			m_psockBrowser->Close();
+		}
 		m_psockWebsite->Close();
 	} catch (SocketException& e) {
 		ATLTRACE(e.what());

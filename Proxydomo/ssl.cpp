@@ -220,7 +220,7 @@ bool	ManageCatificateErrorPage(std::shared_ptr<SocketIF> sockBrowser, const std:
 
 	std::atomic_bool valid = true;
 	auto clientSession = CSSLSession::InitServerSession(sockBrowser, host, valid);
-	ATLASSERT(clientSession);
+	//ATLASSERT(clientSession);
 	if (clientSession == nullptr) {
 		return true;	// deny
 	}
@@ -313,16 +313,23 @@ bool	LoadSystemTrustCA(WOLFSSL_CTX* ctx)
 		PCCERT_CONTEXT crtcontext = CertEnumCertificatesInStore(store, NULL);
 		while (crtcontext) {
 			if (crtcontext->dwCertEncodingType == X509_ASN_ENCODING) {
+				CString crtName;
+				CertGetNameString(crtcontext, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, 0, crtName.GetBuffer(256), 256);
+				crtName.ReleaseBuffer();
+				if (crtName == L"DST Root CA X3") {
+					int a = 0;
+					goto NextCert;
+				}
+
 				int ret = wolfSSL_CTX_load_verify_buffer(ctx, crtcontext->pbCertEncoded, crtcontext->cbCertEncoded, SSL_FILETYPE_ASN1);
 				if (ret != SSL_SUCCESS) {
-					CString crtName;
-					CertGetNameString(crtcontext, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, 0, crtName.GetBuffer(256), 256);
-					crtName.ReleaseBuffer();
+
 					ATLTRACE(L"wolfSSL_CTX_load_verify_buffer failed: %s\n", (LPCWSTR)crtName);
 				} else {
 					++g_loadCACount;
 				}
 			}
+			NextCert:;
 			crtcontext = CertEnumCertificatesInStore(store, crtcontext);
 		}
 		CertCloseStore(store, 0);
@@ -502,6 +509,14 @@ std::unique_ptr<serverCertAndKey>	CreateServerCert(const std::string& host)
 
 bool	InitSSL()
 {
+#ifdef _DEBUG
+	wolfSSL_Debugging_ON();
+
+	wolfSSL_SetLoggingCb([](const int logLevel, const char* const logMessage) {
+		ATLTRACE(L"[wolfSSL]: %s\n", CodeConvert::UTF16fromUTF8(logMessage).c_str());
+		});
+#endif
+
 	CString cafile = Misc::GetExeDirectory() + kCAFileName;
 	CString rsacaKeyfile = Misc::GetExeDirectory() + kCAKeyFileName;
 	CString ecccaKeyfile = Misc::GetExeDirectory() + kCAEccKeyFileName;
