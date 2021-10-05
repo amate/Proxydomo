@@ -13,14 +13,17 @@
 #include <chrono>
 #include <boost\algorithm\string.hpp>
 
-#include <wolfssl\ssl.h>
-#include <wolfssl\wolfcrypt\asn_public.h>
-#include <wolfssl\wolfcrypt\rsa.h>
-#include <wolfssl\wolfcrypt\ecc.h>
-#include <wolfssl\wolfcrypt\error-crypt.h>
-
 #include <wincrypt.h>
 #pragma comment (lib, "crypt32.lib")
+
+// openSSL
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+#include <openssl/crypto.h>
+#include <openssl/pem.h>
+
+#pragma comment(lib, "libcrypto.lib")
+#pragma comment(lib, "libssl.lib")
 
 #include <atlbase.h>
 #include <atlsync.h>
@@ -43,44 +46,62 @@ LPCSTR	kCAFileName = "ca.pem.crt";
 LPCSTR	kCAKeyFileName = "ca-key.pem";
 LPCSTR	kCAEccKeyFileName = "ca-ecckey.pem";
 
-enum { 
-	kBuffSize = 1024 * 4,
+// =============================================
+// OpenSSL Handle Wrapper
 
-	kRSA1024Keybit = 1024,
+struct X509_Deleter {
+	void operator()(X509* p) {
+		X509_free(p);
+	}
 };
 
-WOLFSSL_CTX*	g_sslclientCtx = nullptr;
+using X509_ptr = std::unique_ptr<X509, X509_Deleter>;
 
-std::vector<byte>	g_derCA;	// ProxydomoCA certification
-struct CAKey {
-	enum {
-		kRsaKey,
-		kEccKey,
-	} keyType;
-
-	union {
-		RsaKey	rsaKey;
-		ecc_key	eccKey;
-	} key;
+struct EVP_PKEY_Deleter {
+	void operator()(EVP_PKEY* p) {
+		EVP_PKEY_free(p);
+	}
 };
-CAKey				g_caKey;	// ProxydomoCA secretKey
 
+using EVP_PKEY_ptr = std::unique_ptr<EVP_PKEY, EVP_PKEY_Deleter>;
+
+struct BIO_Deleter {
+	void operator()(BIO* p) {
+		BIO_free(p);
+	}
+};
+
+using BIO_ptr = std::unique_ptr<BIO, BIO_Deleter>;
+
+// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+// Proxydomo <=> Website 用の SSL_CTX
+SSL_CTX*		g_openssl_client_ctx = nullptr;
+
+// 証明書と秘密鍵の組み合わせ
+struct CertAndKey {
+	X509_ptr	 cert;
+	EVP_PKEY_ptr privateKey;
+};
+
+// ProxydomoCA certification and private key
+CertAndKey		g_CA_cert_key;
+
+// 接続許可/否定ホスト
 std::unordered_map<std::string, bool>	g_mapHostAllowOrDeny;
+
+// 一時接続許可/否定ホスト
 std::unordered_map<std::string, std::pair<std::chrono::steady_clock::time_point, bool>>	g_mapHostTempAllowOrDeny;
-CCriticalSection						g_csmapHost;
+
+CCriticalSection	g_csmapHost;
 int				g_loadCACount = 0;
-std::string		g_lastnoCAHost;
+std::string		g_lastnoCAHost;		// ? なにこれ
 
-struct serverCertAndKey {
-	std::vector<byte>	derCert;
-	std::vector<byte>	derkey;
-
-	serverCertAndKey() : derCert(kBuffSize), derkey(kBuffSize) {}
-};
-
-std::unordered_map<std::string, std::unique_ptr<serverCertAndKey>>	g_mapHostServerCert;
+// ホスト用に生成したサーバー証明書
+std::unordered_map<std::string, std::unique_ptr<CertAndKey>>	g_mapHostServerCert;
 CCriticalSection	g_csmapHostServerCert;
 
+// AllowSSLServerHost.txt
 std::shared_ptr<Proxydomo::CMatcher>	g_pAllowSSLServerHostMatcher;
 
 // ManageCertificateErrorPage
@@ -90,12 +111,16 @@ struct SSLCallbackContext
 	std::string host;
 	std::shared_ptr<SocketIF>	sockBrowser;
 
-	SSLCallbackContext(const std::string& host, std::shared_ptr<SocketIF> sockBrowser) : host(host), sockBrowser(sockBrowser) {}
+	SSLCallbackContext(const std::string& host, std::shared_ptr<SocketIF> sockBrowser) 
+		: host(host), sockBrowser(sockBrowser) {}
 };
 
+int g_sslCallbackContextIndex = 0;
+
+// 外部から操作されないための認証トークン
 std::string	g_authentication;
 
-bool	LoadSystemTrustCA(WOLFSSL_CTX* ctx);
+bool	LoadSystemTrustCA();
 
 ////////////////////////////////////////////////////////////////////////
 // CCertificateErrorDialog
@@ -167,7 +192,7 @@ public:
 		auto DLData = WinHTTPWrapper::HttpDownloadData(("https://" + m_host).c_str());
 		int lastLoadCACount = g_loadCACount;
 		g_loadCACount = 0;
-		ATLVERIFY(LoadSystemTrustCA(g_sslclientCtx));
+		//ATLVERIFY(LoadSystemTrustCA(g_sslclientCtx));
 		if (lastLoadCACount < g_loadCACount) {	// success
 			MessageBox(GetTranslateMessage(ID_SUCCEEDGETROOTCA).c_str(), GetTranslateMessage(ID_TRANS_SUCCESS).c_str(), MB_OK);
 			g_lastnoCAHost = m_host;
@@ -232,23 +257,40 @@ bool	ManageCatificateErrorPage(std::shared_ptr<SocketIF> sockBrowser, const std:
 	return true;
 }
 
+std::wstring SSL_ErrorString()
+{
+	enum { kBufferSize = 512 };
+	char tempBuffer[kBufferSize] = "";
+	ERR_error_string_n(ERR_get_error(), tempBuffer, kBufferSize);
+	auto errmsg = CodeConvert::UTF16fromUTF8(tempBuffer);
+	return errmsg;
+}
 // ===========================================================
 
 
-int myVerify(int preverify, WOLFSSL_X509_STORE_CTX* store)
+int myVerify(int preverify_ok, X509_STORE_CTX* x509_ctx)
 {
-	(void)preverify;
-	char buffer[WOLFSSL_MAX_ERROR_SZ];
+	if (preverify_ok) {
+		return preverify_ok;	// 証明書の検証OK！
+	}
 
-	printf("In verification callback, error = %d, %s\n", store->error,
-		wolfSSL_ERR_error_string(store->error, buffer));
-
-	printf("Subject's domain name is %s\n", store->domain);
+	int err = X509_STORE_CTX_get_error(x509_ctx);
+	std::string certError = X509_verify_cert_error_string(err);
 
 	{
 		CCritSecLock lock(g_csmapHost);
-		SSLCallbackContext* pcontext = static_cast<SSLCallbackContext*>(store->userCtx);
+		
+		SSL* ssl = (SSL*)X509_STORE_CTX_get_ex_data(x509_ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
+		ATLASSERT(ssl);
+		SSLCallbackContext* pcontext = 
+			static_cast<SSLCallbackContext*>(SSL_get_ex_data(ssl, g_sslCallbackContextIndex));
+		ATLASSERT(pcontext);
+
 		std::string host = pcontext->host;
+		ATLASSERT(pcontext->sockBrowser);
+		if (!pcontext->sockBrowser) {
+			return 0;	// ヌルポなのはおかしい
+		}
 		if (host == g_lastnoCAHost) {
 			return 0;
 
@@ -287,12 +329,13 @@ int myVerify(int preverify, WOLFSSL_X509_STORE_CTX* store)
 				return 1;	// allow
 		}
 
-		bool bNoCA = (store->error == ASN_NO_SIGNER_E);
-		if (ManageCatificateErrorPage(pcontext->sockBrowser, host, buffer, bNoCA)) {
+		bool bNoCA = true;	// (store->error == ASN_NO_SIGNER_E);
+		if (ManageCatificateErrorPage(pcontext->sockBrowser, host, certError.c_str(), bNoCA)) {
 			return 0;	// deny
 		}
 
-		CCertificateErrorDialog crtErrorDlg(host, buffer, bNoCA);
+		// old dialog version
+		CCertificateErrorDialog crtErrorDlg(host, certError.c_str(), bNoCA);
 		if (crtErrorDlg.DoModal() == IDOK) {
 			return 1;	// allow
 		} else {
@@ -301,12 +344,15 @@ int myVerify(int preverify, WOLFSSL_X509_STORE_CTX* store)
 	}
 
 	//printf("Allowing to continue anyway (shouldn't do this, EVER!!!)\n");
-	return 0;
+
+	return preverify_ok;
 }
 
-bool	LoadSystemTrustCA(WOLFSSL_CTX* ctx)
+bool	LoadSystemTrustCA()
 {
-	auto funcAddCA = [ctx](HCERTSTORE store) -> bool {
+	std::string allCAData;
+
+	auto funcAddCA = [&allCAData](HCERTSTORE store) -> bool {
 		if (store == NULL)
 			return false;
 
@@ -316,11 +362,29 @@ bool	LoadSystemTrustCA(WOLFSSL_CTX* ctx)
 				CString crtName;
 				CertGetNameString(crtcontext, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, 0, crtName.GetBuffer(256), 256);
 				crtName.ReleaseBuffer();
-				if (crtName == L"DST Root CA X3") {
-					int a = 0;
-					goto NextCert;
-				}
 
+				//if (crtName == L"DST Root CA X3") {
+				//	int a = 0;
+				//	goto NextCert;
+				//}
+
+				// ASN1 -> PEM
+				BIO_ptr memPem(BIO_new(BIO_s_mem()));
+				PEM_write_bio(memPem.get(), "CERTIFICATE", "", crtcontext->pbCertEncoded, crtcontext->cbCertEncoded);
+				
+				enum { kBufferSize = 512 };
+				char buffer[kBufferSize] = "";
+				int readBytes = 0;
+				for (;;) {
+					readBytes = BIO_read(memPem.get(), buffer, kBufferSize);
+					if (readBytes <= 0) {
+						break;
+					}
+					allCAData.append(buffer, readBytes);
+				}
+				allCAData += "\r\n";
+				++g_loadCACount;
+#if 0
 				int ret = wolfSSL_CTX_load_verify_buffer(ctx, crtcontext->pbCertEncoded, crtcontext->cbCertEncoded, SSL_FILETYPE_ASN1);
 				if (ret != SSL_SUCCESS) {
 
@@ -328,8 +392,8 @@ bool	LoadSystemTrustCA(WOLFSSL_CTX* ctx)
 				} else {
 					++g_loadCACount;
 				}
+#endif
 			}
-			NextCert:;
 			crtcontext = CertEnumCertificatesInStore(store, crtcontext);
 		}
 		CertCloseStore(store, 0);
@@ -345,160 +409,90 @@ bool	LoadSystemTrustCA(WOLFSSL_CTX* ctx)
 	if (funcAddCA(CertOpenSystemStoreW(0, L"Disallowed")) == false)
 		return false; 
 #endif
+	CString caFilePath = Misc::GetExeDirectory() + L"CAList.pem";
+	std::ofstream ofs((LPCWSTR)caFilePath, std::ios::binary | std::ios::out);
+	if (!ofs) {
+		//throw std::runtime_error("caFilePath open failed");
+		ERROR_LOG << L"caFilePath open failed";
+		return false;
+	}
+	ofs.write(allCAData.c_str(), allCAData.length());
+	ofs.close();
+
+	int ret = SSL_CTX_load_verify_file(g_openssl_client_ctx, (LPSTR)CW2A(caFilePath));
 	return true;
 }
 
 
-std::string CreateWildcardHost(const std::string& host)
+// サーバー証明書の作成
+std::unique_ptr<CertAndKey>	CreateServerCert(const std::string& host)
 {
-	std::string wildcardHost;
-	auto dotPos = host.find('.');
-	if (dotPos == std::string::npos)
-		throw std::runtime_error("CreateWildcardHost failed");
-
-	wildcardHost = "*" + host.substr(dotPos);
-	if (wildcardHost.length() >= CTC_NAME_SIZE) {
-		ERROR_LOG << L"CreateWildcardHost : ワイルドカードホスト名の生成に失敗[" << host << L"]";
-		throw std::runtime_error("CreateWildcardHost failed");
-	}
-	return wildcardHost;
-}
-
-
-std::unique_ptr<serverCertAndKey>	CreateServerCert(const std::string& host)
-{
-	auto certAndKey = std::make_unique<serverCertAndKey>();
 	int ret = 0;
 
-	Cert serverCert = {};
-	wc_InitCert(&serverCert);
-	::strcpy_s(serverCert.subject.org, "Proxydomo TLS Server");
-	if (host.size() < CTC_NAME_SIZE) {
-		::strcpy_s(serverCert.subject.commonName, host.c_str());
-	} else {
-		std::string wildcardHost = CreateWildcardHost(host);
-		::strcpy_s(serverCert.subject.commonName, wildcardHost.c_str());
+	/* Allocate memory for the X509 structure. */
+	X509_ptr x509(X509_new());
+	if (!x509) {
+		ERROR_LOG << L"Unable to create X509 structure.";
+		return nullptr;
 	}
-	{	// subjectAltNames
-		serverCert.altNames[0] = 0x30;
-		serverCert.altNames[1] = (byte)host.size() + 2;
 
-		serverCert.altNames[2] = 0x82;
-		serverCert.altNames[3] = (byte)host.size();
+	/* Allocate memory for the EVP_PKEY structure. */
+	EVP_PKEY_ptr pkey(EVP_EC_gen("P-256")); // EVP_RSA_gen(2048));
+	if (!pkey) {
+		ERROR_LOG << L"EVP_RSA_gen failed";
+		return nullptr;
+	}
 
-		::strncpy_s((char*)&serverCert.altNames[4],
-			std::size(serverCert.altNames) - 4,
-			host.c_str(), host.length());
-		serverCert.altNamesSz = 4 + (byte)host.size();
+	/* Set x509 version 3 */
+	X509_set_version(x509.get(), X509_VERSION_3);
 
+	/* Set the serial number. */
+	std::random_device random_engine;
+	std::uniform_int_distribution<long> dist(LONG_MIN, LONG_MAX);
+	ASN1_INTEGER_set(X509_get_serialNumber(x509.get()), dist(random_engine));
+
+	/* This certificate is valid from now until exactly one year from now. */
+	const long valid_secs = 365 * 60 * 60 * 24;   // 1年
+	X509_gmtime_adj(X509_get_notBefore(x509.get()), 0);
+	X509_gmtime_adj(X509_get_notAfter(x509.get()), valid_secs);
+
+	/* Set the public key for our certificate. */
+	X509_set_pubkey(x509.get(), pkey.get());
+
+	/* We want to copy the subject name to the issuer name. */
+	X509_NAME* name = X509_get_subject_name(x509.get());
+
+	/* Set the country code and common name. */
+	X509_NAME_add_entry_by_txt(name, "O", MBSTRING_ASC, (unsigned char*)"Proxydomo TLS Server", -1, -1, 0);
+	X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC, (const unsigned char*)"dummy CN", -1, -1, 0);
+
+	/* Now set the issuer name. */
+	auto issuer_name = X509_get_issuer_name(g_CA_cert_key.cert.get());
+	X509_set_issuer_name(x509.get(), issuer_name);
+
+	/* Add subjectAltName */
+	std::string san_dns = "DNS:" + host;
+	X509_EXTENSION* cert_ex = X509V3_EXT_conf_nid(NULL, NULL, NID_subject_alt_name, san_dns.data());
+	X509_add_ext(x509.get(), cert_ex, -1);
+	X509_EXTENSION_free(cert_ex);
+
+	/* Actually sign the certificate with our key. */
+	if (!X509_sign(x509.get(), g_CA_cert_key.privateKey.get(), EVP_sha256())) {
+		ERROR_LOG << L"Error signing certificate.";
+		return nullptr;
+	}
 #if 0
-		enum { kHeaderSize = 13 };
-		serverCert.altNames[0] = 0x30;
-		serverCert.altNames[1] = kHeaderSize + (byte)host.size() - 2;
+	BIO* mem3 = BIO_new(BIO_s_mem());
+	ret = X509_print(mem3, x509.get());
+	//ret = X509_print(mem3, ca_cart);
 
-		serverCert.altNames[2] = 0x06;
-		serverCert.altNames[3] = 0x03;	// length
-		serverCert.altNames[4] = 0x55;	// id-ce-subjectAltName
-		serverCert.altNames[5] = 0x1d;	//
-		serverCert.altNames[6] = 0x11;	//
-
-		serverCert.altNames[7] = 0x04;
-		serverCert.altNames[8] = (byte)host.size() + 2 + 2;
-
-		serverCert.altNames[9] = 0x30;
-		serverCert.altNames[10] = (byte)host.size() + 2;
-
-		serverCert.altNames[11] = 0x82;
-		serverCert.altNames[12] = (byte)host.size();
-
-		::strncpy_s((char*)&serverCert.altNames[kHeaderSize],
-			std::size(serverCert.altNames) - kHeaderSize,
-			host.c_str(), host.length());
-		serverCert.altNamesSz = kHeaderSize + (byte)host.size();
+	char test[5120] = "";
+	ret = BIO_read(mem3, test, 5120);
 #endif
-	}
-
-	if (g_caKey.keyType == CAKey::kRsaKey) {
-		serverCert.sigType = CTC_SHA256wRSA;
-
-		ret = wc_SetIssuerBuffer(&serverCert, g_derCA.data(), (int)g_derCA.size());
-		ATLASSERT(ret == 0);
-
-		RsaKey	key;
-		wc_InitRsaKey(&key, 0);
-		RNG    rng;
-		wc_InitRng(&rng);
-		wc_MakeRsaKey(&key, kRSA1024Keybit, 65537, &rng);
-
-		ret = wc_RsaKeyToDer(&key, certAndKey->derkey.data(), kBuffSize);
-		if (ret < 0) {
-			wc_FreeRng(&rng);
-			wc_FreeRsaKey(&key);
-			throw std::runtime_error("wc_RsaKeyToDer failed");
-		}
-		certAndKey->derkey.resize(ret);
-		certAndKey->derkey.shrink_to_fit();
-
-		ret = wc_MakeCert(&serverCert, certAndKey->derCert.data(), kBuffSize, &key, nullptr, &rng);
-		if (ret < 0) {
-			wc_FreeRng(&rng);
-			wc_FreeRsaKey(&key);
-			throw std::runtime_error("wc_MakeCert failed");
-		}
-
-		ret = wc_SignCert(serverCert.bodySz, CTC_SHA256wRSA, certAndKey->derCert.data(), kBuffSize, &g_caKey.key.rsaKey, nullptr, &rng);
-		if (ret < 0) {
-			wc_FreeRng(&rng);
-			wc_FreeRsaKey(&key);
-			throw std::runtime_error("wc_SignCert failed");
-		}
-		certAndKey->derCert.resize(ret);
-		certAndKey->derCert.shrink_to_fit();
-
-		wc_FreeRng(&rng);
-		wc_FreeRsaKey(&key);
-
-	} else {
-		serverCert.sigType = CTC_SHA256wECDSA;
-
-		ret = wc_SetIssuerBuffer(&serverCert, g_derCA.data(), (int)g_derCA.size());
-		ATLASSERT(ret == 0);
-
-		ecc_key	key;
-		wc_ecc_init(&key);
-		RNG    rng;
-		wc_InitRng(&rng);
-		ret = wc_ecc_make_key(&rng, 32, &key);
-		ATLASSERT(ret == MP_OKAY);
-
-		ret = wc_EccKeyToDer(&key, certAndKey->derkey.data(), kBuffSize);
-		if (ret < 0) {
-			wc_FreeRng(&rng);
-			wc_ecc_free(&key);
-			throw std::runtime_error("wc_RsaKeyToDer failed");
-		}
-		certAndKey->derkey.resize(ret);
-		certAndKey->derkey.shrink_to_fit();
-
-		ret = wc_MakeCert(&serverCert, certAndKey->derCert.data(), kBuffSize, nullptr, &key, &rng);
-		if (ret < 0) {
-			wc_FreeRng(&rng);
-			wc_ecc_free(&key);
-			throw std::runtime_error("wc_MakeCert failed");
-		}
-
-		ret = wc_SignCert(serverCert.bodySz, CTC_SHA256wECDSA, certAndKey->derCert.data(), kBuffSize, nullptr, &g_caKey.key.eccKey, &rng);
-		if (ret < 0) {
-			wc_FreeRng(&rng);
-			wc_ecc_free(&key);
-			throw std::runtime_error("wc_SignCert failed");
-		}
-		certAndKey->derCert.resize(ret);
-		certAndKey->derCert.shrink_to_fit();
-
-		wc_FreeRng(&rng);
-		wc_ecc_free(&key);
-	}
+	// サーバー証明書生成完了！
+	auto certAndKey = std::make_unique<CertAndKey>();
+	certAndKey->cert.swap(x509);
+	certAndKey->privateKey.swap(pkey);
 
 	return certAndKey;
 }
@@ -506,17 +500,8 @@ std::unique_ptr<serverCertAndKey>	CreateServerCert(const std::string& host)
 
 }	// namespace
 
-
 bool	InitSSL()
 {
-#ifdef _DEBUG
-	wolfSSL_Debugging_ON();
-
-	wolfSSL_SetLoggingCb([](const int logLevel, const char* const logMessage) {
-		ATLTRACE(L"[wolfSSL]: %s\n", CodeConvert::UTF16fromUTF8(logMessage).c_str());
-		});
-#endif
-
 	CString cafile = Misc::GetExeDirectory() + kCAFileName;
 	CString rsacaKeyfile = Misc::GetExeDirectory() + kCAKeyFileName;
 	CString ecccaKeyfile = Misc::GetExeDirectory() + kCAEccKeyFileName;
@@ -526,93 +511,50 @@ bool	InitSSL()
 		return false;
 	}
 
-	int ret = wolfSSL_Init();
-	if (ret != SSL_SUCCESS) {
-		ERROR_LOG << L"wolfSSL_Init failed";
+	int ret = SSL_library_init();
+	if (ret != 1) {
+		ERROR_LOG << L"SSL_library_init failed";
 		return false;
 	}
+	OpenSSL_add_all_algorithms();
 
 	try {
 
 		{	// server init
 			auto pemCA = CUtil::LoadBinaryFile((LPCWSTR)cafile);
 			auto pemCAkey = CUtil::LoadBinaryFile((LPCWSTR)rsacaKeyfile);
-			if (pemCAkey.size()) {
-				g_caKey.keyType = CAKey::kRsaKey;
-			} else {
-				g_caKey.keyType = CAKey::kEccKey;
+			if (pemCAkey.empty()) {
 				pemCAkey = CUtil::LoadBinaryFile((LPCWSTR)ecccaKeyfile);
 			}
 
-			g_derCA.resize(kBuffSize);
-			ret = wolfSSL_CertPemToDer(pemCA.data(), (int)pemCA.size(), g_derCA.data(), kBuffSize, CA_TYPE);
-			if (ret < 0)
-				throw std::runtime_error("wolfSSL_CertPemToDer failed");
-			g_derCA.resize(ret);
-			g_derCA.shrink_to_fit();
+			// CA証明書 と privateKey の読み込み
+			BIO_ptr pmemCA(BIO_new(BIO_s_mem()));
+			BIO_write(pmemCA.get(), (const void*)pemCA.data(), (int)pemCA.size());
+			g_CA_cert_key.cert.reset(PEM_read_bio_X509(pmemCA.get(), nullptr, nullptr, nullptr));
 
-			std::vector<byte> derCAkey(kBuffSize);
-			ret = wolfSSL_KeyPemToDer(pemCAkey.data(), (int)pemCAkey.size(), derCAkey.data(), kBuffSize, nullptr);
-			if (ret < 0)
-				throw std::runtime_error("wolfSSL_KeyPemToDer failed");
-			derCAkey.resize(ret);
-
-			if (g_caKey.keyType == CAKey::kRsaKey) {
-				wc_InitRsaKey(&g_caKey.key.rsaKey, 0);
-				word32 idx = 0;
-				ret = wc_RsaPrivateKeyDecode(derCAkey.data(), &idx, &g_caKey.key.rsaKey, (word32)derCAkey.size());
-				ATLASSERT(ret == 0);
-				if (ret != 0) {
-					wc_FreeRsaKey(&g_caKey.key.rsaKey);
-					throw std::runtime_error("wc_RsaPrivateKeyDecode failed");
-				}
-			} else {
-				wc_ecc_init(&g_caKey.key.eccKey);
-				word32 idx = 0;
-				ret = wc_EccPrivateKeyDecode(derCAkey.data(), &idx, &g_caKey.key.eccKey, (word32)derCAkey.size());
-				ATLASSERT(ret == 0);
-				if (ret != 0) {
-					wc_ecc_free(&g_caKey.key.eccKey);
-					throw std::runtime_error("wc_EccPrivateKeyDecode failed");
-				}				
-			}
+			BIO_ptr pmemKey(BIO_new(BIO_s_mem()));
+			BIO_write(pmemKey.get(), (const void*)pemCAkey.data(), (int)pemCAkey.size());
+			g_CA_cert_key.privateKey.reset(PEM_read_bio_PrivateKey(pmemKey.get(), nullptr, nullptr, nullptr));
 		}
 
 		{	// client init
-			WOLFSSL_METHOD* method = wolfSSLv23_client_method();
-			if (method == nullptr) {
-				throw std::runtime_error("wolfSSLv23_client_method failed");
-			}
-			g_sslclientCtx = wolfSSL_CTX_new(method);
-			if (g_sslclientCtx == nullptr) {
-				throw std::runtime_error("wolfSSL_CTX_new failed");
+			g_openssl_client_ctx = SSL_CTX_new(SSLv23_client_method());
+			if (!g_openssl_client_ctx) {
+				throw std::runtime_error("SSL_CTX_new failed");
 			}
 
-			wolfSSL_CTX_set_verify(g_sslclientCtx, SSL_VERIFY_PEER, myVerify);
+			/* 証明書の検証設定 */
+			SSL_CTX_set_verify(g_openssl_client_ctx, SSL_VERIFY_PEER, myVerify);
 
-			if (LoadSystemTrustCA(g_sslclientCtx) == false) {
+			g_sslCallbackContextIndex = SSL_get_ex_new_index(0, "SSLCallbackContext", NULL, NULL, NULL);
+
+			if (!LoadSystemTrustCA()) {
 				throw std::runtime_error("LoadSystemTrustCA failed");
 			}
-
-			ret = wolfSSL_CTX_UseSessionTicket(g_sslclientCtx);
-			ATLASSERT(ret == SSL_SUCCESS);
-
-			//ret = wolfSSL_CTX_EnableOCSP(g_sslclientCtx, WOLFSSL_OCSP_CHECKALL);
-			//ATLASSERT(ret == SSL_SUCCESS);
-
-			ret = wolfSSL_CTX_UseSupportedCurve(g_sslclientCtx, WOLFSSL_ECC_SECP256R1);
-			ATLASSERT(ret == SSL_SUCCESS);
-			ret = wolfSSL_CTX_UseSupportedCurve(g_sslclientCtx, WOLFSSL_ECC_SECP384R1);
-			ATLASSERT(ret == SSL_SUCCESS);
-			ret = wolfSSL_CTX_UseSupportedCurve(g_sslclientCtx, WOLFSSL_ECC_SECP521R1);
-			ATLASSERT(ret == SSL_SUCCESS);
-
-			ret = wolfSSL_CTX_EnableOCSPStapling(g_sslclientCtx);
-			ATLASSERT(ret == SSL_SUCCESS);
-
 		}
 		g_pAllowSSLServerHostMatcher = Proxydomo::CMatcher::CreateMatcher(L"$LST(AllowSSLServerHostList)");
 
+		// 認証トークン生成
 		enum { kMaxAuthLength = 8 };
 		std::string chars = "abcdefghijklmnopqrstuvwxyz0123456789";
 		std::random_device rd;
@@ -629,11 +571,7 @@ bool	InitSSL()
 		return true;
 
 	} catch (std::exception& e) {
-		if (g_sslclientCtx) {
-			wolfSSL_CTX_free(g_sslclientCtx);
-			g_sslclientCtx = nullptr;
-		}
-		wolfSSL_Cleanup();
+		TermSSL();
 
 		ERROR_LOG << L"InitSSL failed : " << (LPWSTR)CA2W(e.what());
 		return false;
@@ -642,138 +580,105 @@ bool	InitSSL()
 
 void	TermSSL()
 {
-	if (g_sslclientCtx) {
-		wolfSSL_CTX_free(g_sslclientCtx);
-		g_sslclientCtx = nullptr;
+	if (g_openssl_client_ctx) {
+		SSL_CTX_free(g_openssl_client_ctx);
+		g_openssl_client_ctx = nullptr;
 	}
-	wolfSSL_Cleanup();
 }
 
+void	LogErrorAndThrowRuntimeExecption(const std::wstring& errorMessage)
+{
+	ERROR_LOG << errorMessage;
+	auto u8msg = CodeConvert::UTF8fromUTF16(errorMessage);
+	throw std::runtime_error(u8msg);
+}
 
 // CA証明書を生成する
-void	GenerateCACertificate(bool rsa)
+void	GenerateCACertificate()
 {
-	Cert caCert = {};
-	wc_InitCert(&caCert);
-	::strcpy_s(caCert.subject.commonName, "Proxydomo CA");
-	caCert.daysValid = 365;
-	caCert.isCA = 1;
-
-	if (rsa) {
-		caCert.sigType = CTC_SHA256wRSA;
-
-		RsaKey	cakey;
-		wc_InitRsaKey(&cakey, 0);
-		RNG    rng;
-		wc_InitRng(&rng);
-		wc_MakeRsaKey(&cakey, kRSA1024Keybit, 65537, &rng);
-
-		std::vector<byte> derCA(kBuffSize);
-		int ret = wc_MakeSelfCert(&caCert, derCA.data(), kBuffSize, &cakey, &rng);
-		if (ret < 0) {
-			wc_FreeRng(&rng);
-			wc_FreeRsaKey(&cakey);
-			throw std::runtime_error("wc_MakeSelfCert failed");
-		}
-		derCA.resize(ret);
-
-		std::vector<byte> pemCA(kBuffSize);
-		ret = wc_DerToPem(derCA.data(), (word32)derCA.size(), pemCA.data(), kBuffSize, CERT_TYPE);
-		if (ret < 0) {
-			wc_FreeRng(&rng);
-			wc_FreeRsaKey(&cakey);
-			throw std::runtime_error("wc_DerToPem failed");
-		}
-		pemCA.resize(ret);
-
-		std::vector<byte> derkey(kBuffSize);
-		ret = wc_RsaKeyToDer(&cakey, derkey.data(), kBuffSize);
-		if (ret < 0) {
-			wc_FreeRng(&rng);
-			wc_FreeRsaKey(&cakey);
-			throw std::runtime_error("wc_RsaKeyToDer failed");
-		}
-		derkey.resize(ret);
-
-		std::vector<byte> pemkey(kBuffSize);
-		ret = wc_DerToPem(derkey.data(), (word32)derkey.size(), pemkey.data(), kBuffSize, PRIVATEKEY_TYPE);
-		if (ret < 0) {
-			wc_FreeRng(&rng);
-			wc_FreeRsaKey(&cakey);
-			throw std::runtime_error("wc_DerToPem failed");
-		}
-		pemkey.resize(ret);
-
-		wc_FreeRng(&rng);
-		wc_FreeRsaKey(&cakey);
-
-		DeleteFileW(static_cast<LPCWSTR>(Misc::GetExeDirectory() + kCAEccKeyFileName));
-
-		CUtil::SaveBinaryFile(static_cast<LPCWSTR>(Misc::GetExeDirectory() + kCAFileName), pemCA);
-		CUtil::SaveBinaryFile(static_cast<LPCWSTR>(Misc::GetExeDirectory() + kCAKeyFileName), pemkey);
-
-	} else {
-		caCert.sigType = CTC_SHA256wECDSA;
-
-		ecc_key	cakey;
-		wc_ecc_init(&cakey);
-		RNG    rng;
-		wc_InitRng(&rng);
-		wc_ecc_make_key(&rng, 32, &cakey);
-
-		std::vector<byte> derCA(kBuffSize);
-		int ret = wc_MakeCert(&caCert, derCA.data(), kBuffSize, nullptr, &cakey, &rng);
-		if (ret < 0) {
-			wc_FreeRng(&rng);
-			wc_ecc_free(&cakey);
-			throw std::runtime_error("wc_MakeCert failed");
-		}
-		ret = wc_SignCert(caCert.bodySz, caCert.sigType, derCA.data(), kBuffSize, nullptr, &cakey, &rng);
-		if (ret < 0) {
-			wc_FreeRng(&rng);
-			wc_ecc_free(&cakey);
-			throw std::runtime_error("wc_SignCert failed");
-		}
-		derCA.resize(ret);
-
-		std::vector<byte> pemCA(kBuffSize);
-		ret = wc_DerToPem(derCA.data(), (word32)derCA.size(), pemCA.data(), kBuffSize, CERT_TYPE);
-		if (ret < 0) {
-			wc_FreeRng(&rng);
-			wc_ecc_free(&cakey);
-			throw std::runtime_error("wc_DerToPem failed");
-		}
-		pemCA.resize(ret);
-
-		std::vector<byte> derkey(kBuffSize);
-		ret = wc_EccKeyToDer(&cakey, derkey.data(), kBuffSize);
-		if (ret < 0) {
-			wc_FreeRng(&rng);
-			wc_ecc_free(&cakey);
-			throw std::runtime_error("wc_EccKeyToDer failed");
-		}
-		derkey.resize(ret);
-
-		std::vector<byte> pemkey(kBuffSize);
-		ret = wc_DerToPem(derkey.data(), (word32)derkey.size(), pemkey.data(), kBuffSize, ECC_PRIVATEKEY_TYPE);
-		if (ret < 0) {
-			wc_FreeRng(&rng);
-			wc_ecc_free(&cakey);
-			throw std::runtime_error("wc_DerToPem failed");
-		}
-		pemkey.resize(ret);
-
-		wc_FreeRng(&rng);
-		wc_ecc_free(&cakey);
-
-		DeleteFileW(static_cast<LPCWSTR>(Misc::GetExeDirectory() + kCAKeyFileName));
-
-		CUtil::SaveBinaryFile(static_cast<LPCWSTR>(Misc::GetExeDirectory() + kCAFileName), pemCA);
-		CUtil::SaveBinaryFile(static_cast<LPCWSTR>(Misc::GetExeDirectory() + kCAEccKeyFileName), pemkey);
+	/* Allocate memory for the X509 structure. */
+	X509_ptr x509(X509_new());
+	if (!x509) {
+		LogErrorAndThrowRuntimeExecption(L"Unable to create X509 structure.");
 	}
+
+	/* Allocate memory for the EVP_PKEY structure. */
+	EVP_PKEY_ptr pkey(EVP_EC_gen("P-256"));
+	if (!pkey) {
+		LogErrorAndThrowRuntimeExecption(L"EVP_RSA_gen failed");
+	}
+
+	/* Set x509 version 3 */
+	X509_set_version(x509.get(), X509_VERSION_3);
+
+	/* Set the serial number. */
+	std::random_device random_engine;
+	std::uniform_int_distribution<long> dist(LONG_MIN, LONG_MAX);
+	ASN1_INTEGER_set(X509_get_serialNumber(x509.get()), dist(random_engine));
+
+	/* This certificate is valid from now until exactly one year from now. */
+	const long valid_secs = 365 * 60 * 60 * 24;   // 1年
+	X509_gmtime_adj(X509_get_notBefore(x509.get()), 0);
+	X509_gmtime_adj(X509_get_notAfter(x509.get()), valid_secs);
+
+	/* Set the public key for our certificate. */
+	X509_set_pubkey(x509.get(), pkey.get());
+
+	/* We want to copy the subject name to the issuer name. */
+	X509_NAME* name = X509_get_subject_name(x509.get());
+
+	/* Set the country code and common name. */
+	X509_NAME_add_entry_by_txt(name, "CN", MBSTRING_ASC, (const unsigned char*)"Proxydomo CA2", -1, -1, 0);
+
+	/* Now set the issuer name. */
+	X509_set_issuer_name(x509.get(), name);		// subject == issuer
+
+	/* Add CA flag */
+	std::string extvalue = "CA:TRUE";
+	X509_EXTENSION* cert_ex = X509V3_EXT_conf_nid(NULL, NULL, NID_basic_constraints, extvalue.data());
+	X509_add_ext(x509.get(), cert_ex, -1);
+	X509_EXTENSION_free(cert_ex);
+
+	/* Actually sign the certificate with our key. */
+	if (!X509_sign(x509.get(), pkey.get(), EVP_sha256())) {
+		LogErrorAndThrowRuntimeExecption(L"Error signing certificate.");
+	}
+
+	// ca cert
+	BIO_ptr pmemCA(BIO_new(BIO_s_mem()));
+	PEM_write_bio_X509(pmemCA.get(), x509.get());
+
+	// ca private key
+	BIO_ptr pmemKey(BIO_new(BIO_s_mem()));
+	PEM_write_bio_PrivateKey(pmemKey.get(), pkey.get(), nullptr, nullptr, 0, nullptr, nullptr);
+
+	auto funcBIOWriteToFile = [](BIO_ptr& bio, const CString& filePath) {
+		std::ofstream ofs((LPCWSTR)filePath, std::ios::binary | std::ios::out);
+		if (!ofs) {
+			LogErrorAndThrowRuntimeExecption(L"filePath open failed");
+			return ;
+		}
+		std::string pemData;
+		enum { kBufferSize = 512 };
+		char tempBuffer[kBufferSize] = "";
+		for (;;) {
+			int readBytes = BIO_read(bio.get(), tempBuffer, kBufferSize);
+			if (readBytes <= 0) {
+				break;
+			}
+			pemData.append(tempBuffer, readBytes);
+		}
+
+		ofs.write(pemData.c_str(), pemData.length());
+		ofs.close();
+	};
+
+	funcBIOWriteToFile(pmemCA, Misc::GetExeDirectory() + kCAFileName);
+	funcBIOWriteToFile(pmemKey, Misc::GetExeDirectory() + kCAKeyFileName);
+	// finish!
 }
 
-
+// https://local.ptron/certificate_api 
 bool	ManageCertificateAPI(const std::string& url, SocketIF* sockBrowser)
 {
 	std::string authURL = "/certificate_api?&auth=" + g_authentication;
@@ -822,7 +727,7 @@ bool	ManageCertificateAPI(const std::string& url, SocketIF* sockBrowser)
 			auto DLData = WinHTTPWrapper::HttpDownloadData(("https://" + *host).c_str());
 			int lastLoadCACount = g_loadCACount;
 			g_loadCACount = 0;
-			ATLVERIFY(LoadSystemTrustCA(g_sslclientCtx));
+			ATLVERIFY(LoadSystemTrustCA());
 			if (lastLoadCACount < g_loadCACount) {	// success
 				description = CUtil::replaceAll(GetTranslateMessage(ID_SUCCEEDGETROOTCA), L"\n", L"\\\\n");	
 
@@ -848,93 +753,46 @@ bool	ManageCertificateAPI(const std::string& url, SocketIF* sockBrowser)
 	return true;
 }
 
-enum {
-	TEST_SELECT_FAIL,
-	TEST_TIMEOUT,
-	TEST_RECV_READY,
-	TEST_ERROR_READY
-};
-
-static int tcp_select(SOCKET socketfd, int to_sec)
-{
-	fd_set recvfds, errfds;
-	SOCKET nfds = socketfd + 1;
-	struct timeval timeout = { (to_sec > 0) ? to_sec : 0, 0 };
-	int result;
-
-	FD_ZERO(&recvfds);
-	FD_SET(socketfd, &recvfds);
-	FD_ZERO(&errfds);
-	FD_SET(socketfd, &errfds);
-
-	result = select(static_cast<int>(nfds), &recvfds, NULL, &errfds, &timeout);
-
-	if (result == 0)
-		return TEST_TIMEOUT;
-	else if (result > 0) {
-		if (FD_ISSET(socketfd, &recvfds))
-			return TEST_RECV_READY;
-		else if (FD_ISSET(socketfd, &errfds))
-			return TEST_ERROR_READY;
-	}
-
-	return TEST_SELECT_FAIL;
-}
-
-static int NonBlockingSSL_Connect(WOLFSSL* ssl, std::atomic_bool& valid)
+static int NonBlockingSSL_Connect(SSL* ssl, std::atomic_bool& valid, bool isServer)
 {
 	int ret;
 	int error;
-	SOCKET sockfd = (SOCKET)wolfSSL_get_fd(ssl);;
+	SOCKET sockfd = (SOCKET)SSL_get_fd(ssl);;
 	int select_ret = 0;
 
 	static const std::chrono::seconds timeout(60);
 	auto connectStartTime = std::chrono::steady_clock::now();
 
 	unsigned long op = 1;	// non blocking
-	ioctlsocket(sockfd, FIONBIO, &op);
+	//ioctlsocket(sockfd, FIONBIO, &op);
 
-	ret = wolfSSL_negotiate(ssl);
-	error = wolfSSL_get_error(ssl, 0);
-
-	while (ret != SSL_SUCCESS && (	error == SSL_ERROR_WANT_READ ||
-									error == SSL_ERROR_WANT_WRITE ||
-									error == WC_PENDING_E)	) 
-	{
-#if 0
-		if (error == SSL_ERROR_WANT_READ)
-			ATLTRACE("... client would read block\n");
-		else if (error == SSL_ERROR_WANT_WRITE)
-			ATLTRACE("... client would write block\n");
-#endif
-		if (error != WC_PENDING_E) {
-			int currTimeout = 1;
-			select_ret = tcp_select(sockfd, currTimeout);
-		}
-
-		if ((select_ret == TEST_RECV_READY) ||
-			(select_ret == TEST_ERROR_READY) || error == WC_PENDING_E)
-		{
-			ret = wolfSSL_negotiate(ssl);
-			error = wolfSSL_get_error(ssl, 0);
-
-		} else if (select_ret == TEST_TIMEOUT) {
-			error = SSL_ERROR_WANT_READ;
+	while (valid) {
+		if (isServer) {
+			ret = SSL_accept(ssl);
 		} else {
-			error = SSL_FATAL_ERROR;
+			ret = SSL_connect(ssl);
 		}
-		
-		if (ret != SSL_SUCCESS) {
-			if (valid == false) {
-				return SSL_FATAL_ERROR;
-			}
-			if ((std::chrono::steady_clock::now() - connectStartTime) > timeout) {
-				return SSL_FATAL_ERROR;
-			}
+		error = SSL_get_error(ssl, ret);
+		switch (error)
+		{
+		case SSL_ERROR_NONE:
+			return TRUE;
+			break;	// success
+
+		case SSL_ERROR_WANT_READ:
+		case SSL_ERROR_WANT_WRITE:
+			continue;	// pending
+
+		case SSL_ERROR_SYSCALL:
+		default:
+			// エラー処理
+			return FALSE;
 		}
+		break;
 	}
 
-	return ret;
+	//return ret;
+	return FALSE;
 }
 
 
@@ -958,33 +816,36 @@ std::shared_ptr<SocketIF>	CSSLSession::InitClientSession(std::shared_ptr<SocketI
 	auto session = std::make_shared<CSSLSession>();
 	int ret = 0;
 
-	session->m_ssl = wolfSSL_new(g_sslclientCtx);
+	session->m_ssl = SSL_new(g_openssl_client_ctx);
 	if (session->m_ssl == nullptr)
 		throw std::runtime_error("wolfSSL_new failed");
 
-	wolfSSL_set_fd(session->m_ssl, (int)sockWebsite->GetSocket());
+	SSL_set_fd(session->m_ssl, (int)sockWebsite->GetSocket());
 
-	ret = wolfSSL_UseSNI(session->m_ssl, WOLFSSL_SNI_HOST_NAME, (const void*)host.c_str(), (unsigned short)host.length());
-	ATLASSERT(ret == SSL_SUCCESS);
+	// ホスト名の検証を行う
+	SSL_set_hostflags(session->m_ssl, X509_CHECK_FLAG_NO_PARTIAL_WILDCARDS);
+	SSL_set1_host(session->m_ssl, host.c_str());
 
-	ret = wolfSSL_UseSecureRenegotiation(session->m_ssl);
-	ATLASSERT(ret == SSL_SUCCESS);
+	// for SNI
+	ret = SSL_set_tlsext_host_name(session->m_ssl, host.c_str());
+	ATLASSERT(ret);
 
-	ret = wolfSSL_check_domain_name(session->m_ssl, host.c_str());
-	ATLASSERT(ret == SSL_SUCCESS);
+	// for verify_certificate callback
+	SSLCallbackContext callbackContext(host, sockBrowser);
+	SSL_set_ex_data(session->m_ssl, g_sslCallbackContextIndex, (void*)&callbackContext);	
 
-	SSLCallbackContext context(host, sockBrowser);
-	wolfSSL_SetCertCbCtx(session->m_ssl, (void*)&context);
+	//wolfSSL_set_using_nonblock(session->m_ssl, 1);
+	ret = NonBlockingSSL_Connect(session->m_ssl, valid, false);
+	if (!ret) {
+		//int err = wolfSSL_get_error(session->m_ssl, 0);
+		//char buffer[WOLFSSL_MAX_ERROR_SZ];
+		//ATLTRACE("host = %s error = %d, %s\n", host.c_str(), err, wolfSSL_ERR_error_string(err, buffer));
+		//buffer;
 
-	wolfSSL_set_using_nonblock(session->m_ssl, 1);
-	ret = NonBlockingSSL_Connect(session->m_ssl, valid);
-	if (ret != SSL_SUCCESS) {
-		int err = wolfSSL_get_error(session->m_ssl, 0);
-		char buffer[WOLFSSL_MAX_ERROR_SZ];
-		ATLTRACE("host = %s error = %d, %s\n", host.c_str(), err, wolfSSL_ERR_error_string(err, buffer));
-		buffer;
+		auto errmsg = SSL_ErrorString();
+		WARN_LOG << L"SSL_Connect failed - host[" << host << L"] : " << errmsg;
 
-		wolfSSL_free(session->m_ssl);
+		SSL_free(session->m_ssl);
 		session->m_ssl = nullptr;
 		sockWebsite->Close();
 		return nullptr;
@@ -999,61 +860,55 @@ std::shared_ptr<SocketIF> CSSLSession::InitServerSession(std::shared_ptr<SocketI
 	auto session = std::make_shared<CSSLSession>();
 	int ret = 0;
 
-	serverCertAndKey* certAndKey = nullptr;
+	// 証明書生成 (キャッシュがあればそっちから持ってくる)
+	CertAndKey* certAndKey = nullptr;
 	{
-		std::string findHost = host;
-		if (host.size() >= CTC_NAME_SIZE) {
-			findHost = CreateWildcardHost(host);
-		}
-
 		CCritSecLock lock(g_csmapHostServerCert);
-		auto itfound = g_mapHostServerCert.find(findHost);
+		auto itfound = g_mapHostServerCert.find(host);
 		if (itfound != g_mapHostServerCert.end()) {
-			certAndKey = itfound->second.get();
+			certAndKey = itfound->second.get();		// キャッシュから
 		} else {
-			auto serverCertAndKey = CreateServerCert(host);
+			auto serverCertAndKey = CreateServerCert(host);	// 生成
 			certAndKey = serverCertAndKey.get();
-			g_mapHostServerCert[findHost] = std::move(serverCertAndKey);
+			g_mapHostServerCert[host] = std::move(serverCertAndKey);
 		}
-
 	}
+	ATLASSERT(certAndKey);
 
-	WOLFSSL_METHOD* method = wolfSSLv23_server_method();
+	const SSL_METHOD* method = SSLv23_server_method();
 	if (method == nullptr) {
-		throw std::runtime_error("wolfSSLv23_server_method failed");
+		throw std::runtime_error("SSLv23_server_method failed");
 	}
-	session->m_ctx = wolfSSL_CTX_new(method);
+	session->m_ctx = SSL_CTX_new(method);
 	if (session->m_ctx == nullptr) {
-		throw std::runtime_error("wolfSSL_CTX_new failed");
+		throw std::runtime_error("SSL_CTX_new failed");
 	}
 
+	ret = SSL_CTX_use_certificate(session->m_ctx, certAndKey->cert.get());
+	ATLASSERT(ret);
+	ret = SSL_CTX_use_PrivateKey(session->m_ctx, certAndKey->privateKey.get());
+	ATLASSERT(ret);
 
-	ret = wolfSSL_CTX_use_certificate_buffer(session->m_ctx, certAndKey->derCert.data(), (long)certAndKey->derCert.size(), SSL_FILETYPE_ASN1);
-	ATLASSERT(ret == SSL_SUCCESS);
-
-	ret = wolfSSL_CTX_use_PrivateKey_buffer(session->m_ctx, certAndKey->derkey.data(), (long)certAndKey->derkey.size(), SSL_FILETYPE_ASN1);
-	ATLASSERT(ret == SSL_SUCCESS);
-
-	session->m_ssl = wolfSSL_new(session->m_ctx);
+	session->m_ssl = SSL_new(session->m_ctx);
 	if (session->m_ssl == nullptr) {
-		wolfSSL_CTX_free(session->m_ctx);
+		SSL_CTX_free(session->m_ctx);
 		session->m_ctx = nullptr;
-		throw std::runtime_error("wolfSSL_new failed");
+		throw std::runtime_error("SSL_new failed");
 	}
 
-	wolfSSL_set_fd(session->m_ssl, (int)sockBrowser->GetSocket());
+	SSL_set_fd(session->m_ssl, (int)sockBrowser->GetSocket());
 
-	wolfSSL_set_using_nonblock(session->m_ssl, 1);
-	ret = NonBlockingSSL_Connect(session->m_ssl, valid);
-	if (ret != SSL_SUCCESS) {
-		int err = wolfSSL_get_error(session->m_ssl, 0);
-		char buffer[WOLFSSL_MAX_ERROR_SZ];
-		ATLTRACE("error = %d, %s\n", err, wolfSSL_ERR_error_string(err, buffer));
-		WARN_LOG << L"wolfSSL_accept failed [" << err << L"] : " << (LPWSTR)CA2W(buffer);
+	//wolfSSL_set_using_nonblock(session->m_ssl, 1);
+	ret = NonBlockingSSL_Connect(session->m_ssl, valid, true);
+	if (!ret) {
+#if 0
+		auto errmsg = SSL_ErrorString();
+#endif
+		//WARN_LOG << L"SSL_Accept failed - host[" << host << L"]";	// : " << errmsg;
 
-		wolfSSL_free(session->m_ssl);
+		SSL_free(session->m_ssl);
 		session->m_ssl = nullptr;
-		wolfSSL_CTX_free(session->m_ctx);
+		SSL_CTX_free(session->m_ctx);
 		session->m_ctx = nullptr;
 		sockBrowser->Close();
 		return nullptr;
@@ -1069,14 +924,14 @@ int	CSSLSession::Read(char* buffer, int length)
 	if (m_ssl == nullptr)
 		return -1;
 
-	int ret = wolfSSL_read(m_ssl, (void*)buffer, length);
+	int ret = SSL_read(m_ssl, (void*)buffer, length);
 	if (ret == 0) {
 		Close();
 		return 0;
 
 	} else {
-		int error = wolfSSL_get_error(m_ssl, 0);
-		if (ret == SSL_FATAL_ERROR && error == SSL_ERROR_WANT_READ) {
+		int error = SSL_get_error(m_ssl, 0);
+		if (ret < 0 && error == SSL_ERROR_WANT_READ) {
 			return false;	// pending
 		}
 		if (ret < 0) {
@@ -1097,9 +952,9 @@ int	CSSLSession::Write(const char* buffer, int length)
 	int ret = 0;
 	int error = 0;
 	for (;;) {
-		ret = wolfSSL_write(m_ssl, (const void*)buffer, length);
-		error = wolfSSL_get_error(m_ssl, 0);
-		if (ret == SSL_FATAL_ERROR && error == SSL_ERROR_WANT_WRITE && m_writeStop == false) {
+		ret = SSL_write(m_ssl, (const void*)buffer, length);
+		error = SSL_get_error(m_ssl, 0);
+		if (ret < 0 && error == SSL_ERROR_WANT_WRITE && m_writeStop == false) {
 			::Sleep(50);	// async pending
 		} else {
 			break;
@@ -1121,7 +976,7 @@ void	CSSLSession::Close()
 	if (m_ssl == nullptr || m_sock == nullptr)
 		return;
 
-	int ret = wolfSSL_shutdown(m_ssl);
+	int ret = SSL_shutdown(m_ssl);
 	try {
 		m_sock->Close();
 	}
@@ -1130,10 +985,10 @@ void	CSSLSession::Close()
 	}
 	m_sock = nullptr;
 
-	wolfSSL_free(m_ssl);
+	SSL_free(m_ssl);
 	m_ssl = nullptr;
 	if (m_ctx) {
-		wolfSSL_CTX_free(m_ctx);
+		SSL_CTX_free(m_ctx);
 		m_ctx = nullptr;
 	}
 }

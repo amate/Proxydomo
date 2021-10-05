@@ -23,7 +23,7 @@
 
 #include "AppConst.h"
 #include "resource.h"
-#include <wolfssl\ssl.h>
+#include <openssl\opensslv.h>
 
 class CAboutDlg : public CDialogImpl<CAboutDlg>
 {
@@ -51,8 +51,8 @@ public:
 		text.ReleaseBuffer();
 		text.Replace(_T("%APP_NAME%"), APP_NAME);
 		text.Replace(_T("%APP_VERSION%"), APP_VERSION);
-		const char* wolfsslversion = wolfSSL_lib_version();
-		text.Replace(_T("%WOLFSSLVERSION%"), (LPWSTR)CA2W(wolfsslversion));
+		const char* sslversion = OPENSSL_VERSION_TEXT;
+		text.Replace(_T("%SSLVERSION%"), (LPWSTR)CA2W(sslversion));
 		wndDiscription.SetWindowText(text);
 
 		return TRUE;

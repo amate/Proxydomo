@@ -75,7 +75,7 @@ CAPTION "About"
 FONT 9, "MS Shell Dlg", 400, 0, 0x80
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,130,91,50,14
-    LTEXT           "%APP_NAME% v%APP_VERSION%\n\nwolfSSL version - %WOLFSSLVERSION%\n\n(c) Antony Boucher 2004\n(c) amate 2013-2016\n\nOpen-Source project distributed under GNU GPL",IDC_STATIC_APP,13,15,163,64
+    LTEXT           "%APP_NAME% v%APP_VERSION%\n\n %SSLVERSION%\n\n(c) Antony Boucher 2004\n(c) amate 2013-2016\n\nOpen-Source project distributed under GNU GPL",IDC_STATIC_APP,13,15,163,64
     ICON            IDR_MAINFRAME,IDC_STATIC,129,11,20,20
     GROUPBOX        "",IDC_STATIC,6,1,174,87
 END

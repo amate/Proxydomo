@@ -13,16 +13,18 @@ bool	InitSSL();
 void	TermSSL();
 
 // CAØ–¾‘‚ğ¶¬‚·‚é
-void	GenerateCACertificate(bool rsa);
+void	GenerateCACertificate();
 
 class CSSLSession;
 
 bool	ManageCertificateAPI(const std::string& url, SocketIF* sockBrowser);
 
+// ‘O•ûéŒ¾
+typedef struct ssl_ctx_st SSL_CTX;
+typedef struct ssl_st SSL;
 
-struct WOLFSSL;
-struct WOLFSSL_CTX;
-
+///////////////////////////////////////////////////////
+/// CSSLSession
 
 class CSSLSession : public SocketIF
 {
@@ -48,43 +50,10 @@ public:
 
 private:
 	std::shared_ptr<SocketIF>	m_sock;
-	WOLFSSL_CTX*	m_ctx;
-	WOLFSSL*		m_ssl;
+	SSL_CTX*	m_ctx;
+	SSL*		m_ssl;
 	std::atomic_bool	m_writeStop;
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
