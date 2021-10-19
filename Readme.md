@@ -93,6 +93,10 @@ b2.exe install  --prefix=lib64 toolset=msvc-14.2 runtime-link=static address-mod
 
 <pre>
 
+v2.1
+・[change] CAList.pemを生成せずにCA証明書を証明書ストアから読み込むように変更
+・[fix] 一部のSECURE RENEGOTIATIONに対応していないサイトに繋がらなかったのを修正
+
 v2.0
 ・[change] SSL/TLSライブラリを wolfSSL から OpenSSL へ変更
 ・[change] CA証明書の生成では必ずECC暗号を利用するようにした

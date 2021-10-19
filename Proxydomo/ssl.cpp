@@ -261,7 +261,8 @@ std::wstring SSL_ErrorString()
 {
 	enum { kBufferSize = 512 };
 	char tempBuffer[kBufferSize] = "";
-	ERR_error_string_n(ERR_get_error(), tempBuffer, kBufferSize);
+	auto error_no = ERR_get_error();
+	ERR_error_string_n(error_no, tempBuffer, kBufferSize);
 	auto errmsg = CodeConvert::UTF16fromUTF8(tempBuffer);
 	return errmsg;
 }
@@ -356,6 +357,8 @@ bool	LoadSystemTrustCA()
 		if (store == NULL)
 			return false;
 
+		X509_STORE* cert_store = SSL_CTX_get_cert_store(g_openssl_client_ctx);
+		
 		PCCERT_CONTEXT crtcontext = CertEnumCertificatesInStore(store, NULL);
 		while (crtcontext) {
 			if (crtcontext->dwCertEncodingType == X509_ASN_ENCODING) {
@@ -368,21 +371,9 @@ bool	LoadSystemTrustCA()
 				//	goto NextCert;
 				//}
 
-				// ASN1 -> PEM
-				BIO_ptr memPem(BIO_new(BIO_s_mem()));
-				PEM_write_bio(memPem.get(), "CERTIFICATE", "", crtcontext->pbCertEncoded, crtcontext->cbCertEncoded);
-				
-				enum { kBufferSize = 512 };
-				char buffer[kBufferSize] = "";
-				int readBytes = 0;
-				for (;;) {
-					readBytes = BIO_read(memPem.get(), buffer, kBufferSize);
-					if (readBytes <= 0) {
-						break;
-					}
-					allCAData.append(buffer, readBytes);
-				}
-				allCAData += "\r\n";
+				BIO_ptr memASN1(BIO_new_mem_buf(crtcontext->pbCertEncoded, crtcontext->cbCertEncoded));
+				X509_ptr caCert(d2i_X509_bio(memASN1.get(), nullptr));
+				ATLVERIFY(X509_STORE_add_cert(cert_store, caCert.get()));
 				++g_loadCACount;
 #if 0
 				int ret = wolfSSL_CTX_load_verify_buffer(ctx, crtcontext->pbCertEncoded, crtcontext->cbCertEncoded, SSL_FILETYPE_ASN1);
@@ -409,17 +400,7 @@ bool	LoadSystemTrustCA()
 	if (funcAddCA(CertOpenSystemStoreW(0, L"Disallowed")) == false)
 		return false; 
 #endif
-	CString caFilePath = Misc::GetExeDirectory() + L"CAList.pem";
-	std::ofstream ofs((LPCWSTR)caFilePath, std::ios::binary | std::ios::out);
-	if (!ofs) {
-		//throw std::runtime_error("caFilePath open failed");
-		ERROR_LOG << L"caFilePath open failed";
-		return false;
-	}
-	ofs.write(allCAData.c_str(), allCAData.length());
-	ofs.close();
-
-	int ret = SSL_CTX_load_verify_file(g_openssl_client_ctx, (LPSTR)CW2A(caFilePath));
+	INFO_LOG << L"LoadSystemTrustCA - loadCACount: " << g_loadCACount;
 	return true;
 }
 
@@ -528,12 +509,10 @@ bool	InitSSL()
 			}
 
 			// CAØ–¾‘ ‚Æ privateKey ‚Ì“Ç‚Ýž‚Ý
-			BIO_ptr pmemCA(BIO_new(BIO_s_mem()));
-			BIO_write(pmemCA.get(), (const void*)pemCA.data(), (int)pemCA.size());
+			BIO_ptr pmemCA(BIO_new_mem_buf((const void*)pemCA.data(), (int)pemCA.size()));
 			g_CA_cert_key.cert.reset(PEM_read_bio_X509(pmemCA.get(), nullptr, nullptr, nullptr));
 
-			BIO_ptr pmemKey(BIO_new(BIO_s_mem()));
-			BIO_write(pmemKey.get(), (const void*)pemCAkey.data(), (int)pemCAkey.size());
+			BIO_ptr pmemKey(BIO_new_mem_buf((const void*)pemCAkey.data(), (int)pemCAkey.size()));
 			g_CA_cert_key.privateKey.reset(PEM_read_bio_PrivateKey(pmemKey.get(), nullptr, nullptr, nullptr));
 		}
 
@@ -658,18 +637,11 @@ void	GenerateCACertificate()
 			LogErrorAndThrowRuntimeExecption(L"filePath open failed");
 			return ;
 		}
-		std::string pemData;
-		enum { kBufferSize = 512 };
-		char tempBuffer[kBufferSize] = "";
-		for (;;) {
-			int readBytes = BIO_read(bio.get(), tempBuffer, kBufferSize);
-			if (readBytes <= 0) {
-				break;
-			}
-			pemData.append(tempBuffer, readBytes);
-		}
 
-		ofs.write(pemData.c_str(), pemData.length());
+		char* data = nullptr;
+		int dataSize = BIO_get_mem_data(bio.get(), &data);
+
+		ofs.write(data, dataSize);
 		ofs.close();
 	};
 
@@ -829,6 +801,10 @@ std::shared_ptr<SocketIF>	CSSLSession::InitClientSession(std::shared_ptr<SocketI
 	// for SNI
 	ret = SSL_set_tlsext_host_name(session->m_ssl, host.c_str());
 	ATLASSERT(ret);
+
+	// https://www.openssl.org/docs/man1.1.1/man3/SSL_clear_options.html
+	// SECURE RENEGOTIATION
+	SSL_set_options(session->m_ssl, SSL_OP_LEGACY_SERVER_CONNECT);
 
 	// for verify_certificate callback
 	SSLCallbackContext callbackContext(host, sockBrowser);
