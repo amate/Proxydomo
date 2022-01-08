@@ -93,8 +93,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <LibraryPath>$(SolutionDir)icu\lib;$(SolutionDir)zlib\x86\lib;$(SolutionDir)sqlite\Win32;D:\Program\boost_1_56_0\lib\lib;$(LibraryPath)</LibraryPath>
-    <IncludePath>$(SolutionDir)wolfssl;$(SolutionDir)icu\include;$(SolutionDir)Proxydomo\brotli\include;$(SolutionDir)zlib\x86\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)icu\lib;$(SolutionDir)zlib\x86\lib;$(SolutionDir)sqlite\Win32;C:\Programing\#lib\boost_1_73_0\lib\lib;$(SolutionDir)openssl-3\x86\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)icu\include;$(SolutionDir)Proxydomo\brotli\include;$(SolutionDir)zlib\x86\include;$(SolutionDir)openssl-3\x86\include;C:\Programing\#lib\boost_1_73_0\lib\include\boost-1_73;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Test|Win32'">
     <LinkIncremental>true</LinkIncremental>
@@ -120,8 +120,8 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(SolutionDir)wolfssl;$(SolutionDir)icu\include;$(SolutionDir)Proxydomo\brotli\include;$(SolutionDir)zlib\x86\include;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\Programing\boost_1_73_0\lib\lib;$(SolutionDir)icu\lib;$(SolutionDir)zlib\x86\lib;$(SolutionDir)sqlite\Win32;C:\Program Files (x86)\Windows Kits\8.1\Lib\winv6.3\um\x86;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)icu\include;$(SolutionDir)Proxydomo\brotli\include;$(SolutionDir)zlib\x86\include;$(SolutionDir)openssl-3\x86\include;C:\Programing\#lib\boost_1_73_0\lib\include\boost-1_73;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)icu\lib;$(SolutionDir)zlib\x86\lib;$(SolutionDir)sqlite\Win32;C:\Program Files (x86)\Windows Kits\8.1\Lib\winv6.3\um\x86;$(SolutionDir)openssl-3\x86\lib;C:\Programing\#lib\boost_1_73_0\lib\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>

@@ -1,105 +1,109 @@
-# Proxydomo�@�@�@�@�@�@�@�@�@�@�@�@
+# Proxydomo　　　　　　　　　　　　
  
-## ���͂��߂�
-���̃\�t�g�̓��[�J���œ����v���N�V�t�B���^�����O�\�t�g�ł�  
-�쐬�ɂ�����I�[�v���\�[�X��Proximodo���g���č���Ă��܂��B  
+## ■はじめに
+このソフトはローカルで動くプロクシフィルタリングソフトです  
+作成にあたりオープンソースのProximodoを使って作られています。  
 
-## �������
-�EWindows10 home 64bit �o�[�W���� 20H2  
-��v2.0 ����� 64bit�łł������삵�܂���
+## ■動作環境
+・Windows10 home 64bit バージョン 20H2  
+※v2.0 からは 64bit版でしか動作しません
 
-���O�ɁAvc_redist.x64.exe �̃C���X�g�[�����K�v�ɂȂ邩������܂���
+事前に、vc_redist.x64.exe のインストールが必要になるかもしれません
 
-## ���g����
-�N�����ā@127.0.0.1:6060(�v���N�V�|�[�g�ɕ\������Ă鐔�l)���v���N�V�Ƃ��Ďw�肷���
-�v���N�V�t�B���^�Ƃ��ċ@�\���܂��B  
-�ڂ����g������Proxomitron�Ȃǂ��Q�l�ɂ��Ă��������B  
+## ■使い方
+起動して　127.0.0.1:6060(プロクシポートに表示されてる数値)をプロクシとして指定すると
+プロクシフィルタとして機能します。  
+詳しい使い方はProxomitronなどを参考にしてください。  
 
-$LST�̎w����@�� lists�t�H���_�ȉ��ɂ���e�L�X�g����g���q�����������̂ł�  
-����: lists\Kill.txt -> $LST(Kill)
+$LSTの指定方法は listsフォルダ以下にあるテキストから拡張子を消したものです  
+※例: lists\Kill.txt -> $LST(Kill)
 
-## �����m�̃o�O
-�E�ꕔ�������Ă��Ȃ��R�}���h������܂�($ADDLSTBOX�Ȃ�)
+## ■既知のバグ
+・一部実装していないコマンドがあります($ADDLSTBOXなど)
 
-## ���Ɛ�
-���(�����ҁ����ώ�)�́A���̃\�t�g�ɂ���Đ������@���Ȃ鑹�Q�ɂ��A  
-�C����X�V���A�ӔC�𕉂�Ȃ����ƂƂ��܂��B  
-�g�p�ɂ������ẮA���ȐӔC�ł��肢���܂��B  
+## ■免責
+作者(原著者＆改変者)は、このソフトによって生じた如何なる損害にも、  
+修正や更新も、責任を負わないこととします。  
+使用にあたっては、自己責任でお願いします。  
  
-��������Ή��L��URL�ɂ��郁�[���t�H�[���ɂ��肢���܂��B  
+何かあれば下記のURLにあるメールフォームにお願いします。  
 https://ws.formzu.net/fgen/S37403840/
  
-## �����쌠�\��
+## ■著作権表示
 Copyright (C) 2004 Antony BOUCHER  
 Copyright (C) 2013-2021 amate
  
-�摜�̈ꕔ�ɁuVS2010ImageLibrary�v�̈ꕔ���g�p���Ă��܂��B
+画像の一部に「VS2010ImageLibrary」の一部を使用しています。
  
-## ���r���h�ɂ���
-Visual Studio 2019 ���K�v�ł�
-�r���h�ɂ� boost(1.60~)�� zlib(v1.2.8~) �� WTL(v91_5321_Final) �� ICU(v55.1~) �� OpenSSL(v3.0.0~) ���K�v�Ȃ̂ł��ꂼ��p�ӂ��Ă��������B
+## ■ビルドについて
+Visual Studio 2019 が必要です
+ビルドには boost(1.60~)と zlib(v1.2.8~) と WTL(v91_5321_Final) と ICU(v55.1~) と OpenSSL(v3.0.0~) が必要なのでそれぞれ用意してください。
 
-��boost  
+◆boost  
 http://www.boost.org/
 
-��zlib  
+◆zlib  
 http://zlib.net/
 
-��ICU  
+◆ICU  
 http://site.icu-project.org/  
-���O�Ńr���h����ꍇ��  
-common,i18n,makedata���r���h�����  
-icudtXX.dll,icuinXX.dll,icuucXX.dll���ł�����ۂ��H  
-���O��C++ ->�R�[�h����->�����^�C�� ���C�u������ �}���`�X���b�h(/MT)�ɕύX����̂�Y�ꂸ��
+自前でビルドする場合は  
+common,i18n,makedataをビルドすれば  
+icudtXX.dll,icuinXX.dll,icuucXX.dllができるっぽい？  
+事前にC++ ->コード生成->ランタイム ライブラリを マルチスレッド(/MT)に変更するのを忘れずに
 
-��WTL  
+◆WTL  
 http://sourceforge.net/projects/wtl/
 
-��OpenSSL  
-https://www.openssl.org/
+◆OpenSSL  
+https://www.openssl.org/  
+https://kb.firedaemon.com/support/solutions/articles/4000121705
 
-��brotli  
+◇brotli  
 https://github.com/google/brotli
-�\�[�X�g�ݍ��ݍς�
+ソース組み込み済み
 
-���R���p�C���ς�dll  
-zlib�̃R���p�C���ς�dll�����L��URL�Ō��J���Ă��܂�  
+□コンパイル済みdll  
+zlibのコンパイル済みdllを下記のURLで公開しています  
 http://1drv.ms/1vqvcaG
 
 
-zlib�̃w�b�_�̏ꏊ  
+zlibのヘッダの場所  
 \$(SolutionDir)zlib\x86\include  
 \$(SolutionDir)zlib\x64\include  
-zlib�̃��C�u�����̏ꏊ  
+zlibのライブラリの場所  
 \$(SolutionDir)zlib\x86\lib  
 \$(SolutionDir)zlib\x64\lib  
-���ȉ��̏ꏊ�ɂ���΂Ƃ��ɐݒ�͂���Ȃ��͂��ł�  
-����ȊO�̏ꏊ��zlib��u���Ă���Ȃ�K����zlibbuffer.h/cpp���C�����Ă�������  
+を以下の場所にすればとくに設定はいらないはずです  
+これ以外の場所にzlibを置いているなら適当にzlibbuffer.h/cppを修正してください  
 
-ICU ��  
-$(SolutionDir)icu\Win32 or Win64 �t�H���_�� include �� lib ������΃R���p�C���ʂ�悤�ɂȂ��Ă��܂�
+ICU は  
+$(SolutionDir)icu\Win32 or Win64 フォルダに include と lib があればコンパイル通るようになっています
 
-boost::shared_mutex���g�p����̂�boost::thread�̃��C�u�������K�v�ɂȂ�܂�
- Boost���C�u�����̃r���h���@  
+boost::shared_mutexを使用するのでboost::threadのライブラリが必要になります
+ Boostライブラリのビルド方法  
  https://sites.google.com/site/boostjp/howtobuild
-�R�}���h���C��  
+コマンドライン  
 // x86  
 b2.exe install --prefix=lib toolset=msvc-14.2 runtime-link=static --with-thread --with-date_time --with-timer --with-log  
 
 // x64  
 b2.exe install  --prefix=lib64 toolset=msvc-14.2 runtime-link=static address-model=64 --with-thread --with-date_time --with-timer --with-log
 
-## ���X�V����
+## ■更新履歴
 
 <pre>
 
+v2.2
+・[update] OpenSSLを v3.0 から v3.0.1 へ更新
+
 v2.1
-�E[fix] �ꕔ��SECURE RENEGOTIATION�ɑΉ����Ă��Ȃ��T�C�g�Ɍq����Ȃ������̂��C��
-�E[change] CAList.pem�𐶐�������CA�ؖ������ؖ����X�g�A����ǂݍ��ނ悤�ɕύX
+・[fix] 一部のSECURE RENEGOTIATIONに対応していないサイトに繋がらなかったのを修正
+・[change] CAList.pemを生成せずにCA証明書を証明書ストアから読み込むように変更
 
 v2.0
-�E[change] SSL/TLS���C�u������ wolfSSL ���� OpenSSL �֕ύX
-�E[change] CA�ؖ����̐����ł͕K��ECC�Í��𗘗p����悤�ɂ���
+・[change] SSL/TLSライブラリを wolfSSL から OpenSSL へ変更
+・[change] CA証明書の生成では必ずECC暗号を利用するようにした
 
 </pre>
 
