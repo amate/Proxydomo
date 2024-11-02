@@ -182,6 +182,7 @@ private:
 	int		m_RequestCountFromBrowser;	// ブラウザからのリクエスト数(GET,HEADなどの要求数)
 	ConnectionData*	m_connectionData;
 	std::string	m_requestManagerLog;
+
 };
 
 

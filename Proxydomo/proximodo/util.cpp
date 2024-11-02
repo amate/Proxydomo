@@ -32,6 +32,7 @@
 #include <sstream>
 #include <fstream>
 #include <iomanip>
+#include <string>
 #include <boost\optional.hpp>
 #include <Windows.h>
 #include <atlbase.h>
@@ -43,7 +44,7 @@ using namespace std;
 // Case-insensitive compare
 bool CUtil::noCaseEqual(const string& s1, const string& s2) {
     if (s1.size() != s2.size()) return false;
-    return equal(s1.begin(), s1.end(), s2.begin(), insensitive_compare());
+    return _stricmp(s1.c_str(), s2.c_str()) == 0;
 }
 
 bool CUtil::noCaseEqual(const wstring& s1, const wstring& s2) {

@@ -149,7 +149,9 @@ CRequestManager::CRequestManager(std::unique_ptr<CSocket>&& psockBrowser) :
 
 	m_psockBrowser = std::move(psockBrowser);
 
-	m_connectionData = CConnectionManager::CreateConnectionData();
+	m_connectionData = CConnectionManager::CreateConnectionData([this]() {
+		SwitchToInvalid();
+	});
 }
 
 
@@ -261,6 +263,10 @@ void CRequestManager::Manage()
 		_AddTraceLog(L"例外が発生しました！ : ポート %d", m_ipFromAddress.GetPortNumber());
 	}
 	_AddTraceLog(_T("Manage finish"));
+
+#ifdef _DEBUG
+	SetThreadName(::GetCurrentThreadId(), UTF8fromUTF16(L"[Manage finish] - " + m_filterOwner.url.getUrl()).c_str());
+#endif
 }
 
 
@@ -389,6 +395,8 @@ bool CRequestManager::_SendOut()
 		if (writebytes > 0) {
 			m_sendOutBuf.erase(0, writebytes);
 			ret = true;
+
+			m_connectionData->SetUpload(writebytes);
 		}
 	}
 	return ret;
@@ -1272,14 +1280,18 @@ void	CRequestManager::_ProcessInHeaderFilter()
 bool CRequestManager::_ReceiveIn()
 {
 	bool bDataReceived = false;
-
+	int bytes = 0;
 	for (;;) {
 		int readbytes = m_psockWebsite->Read(m_readBuffer, kReadBuffSize);
 		if (readbytes <= 0) {
 			break;
 		}
 		m_recvInBuf.append(m_readBuffer, readbytes);
+		bytes += readbytes;
 		bDataReceived = true;
+	}
+	if (bytes > 0) {
+		m_connectionData->SetDownload(bytes);
 	}
 	return bDataReceived;
 }

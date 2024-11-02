@@ -94,6 +94,14 @@ b2.exe install  --prefix=lib64 toolset=msvc-14.2 runtime-link=static address-mod
 
 <pre>
 
+v2.3
+・[fix] SSL接続中にCPU使用率が異常に高くなるバグを修正
+・[add] SSL接続に30秒のタイムアウトを設定
+・[add] 接続モニターへアップロードとダウンロード速度を表示するようにした
+・[add] 接続モニターで選択したURLをDeleteキーで切断できるようにした
+・[update] OpenSSLを v3.0.1 から v3.4.0 へ更新
+
+
 v2.2
 ・[update] OpenSSLを v3.0 から v3.0.1 へ更新
 

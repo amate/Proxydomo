@@ -194,13 +194,6 @@ public:
 	static std::vector<uint8_t>	LoadBinaryFile(const std::wstring& filePath);
 	static void	SaveBinaryFile(const std::wstring& filePath, const std::vector<uint8_t>& data);
 
-private:
-    // Case-insensitive compare binary function
-    struct insensitive_compare : binary_function<char,char,bool> {
-        bool operator()( const char& a, const char& b) {
-            return tolower(a) == tolower(b);
-        }
-    };
 };
 
 #endif

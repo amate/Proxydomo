@@ -21,6 +21,7 @@
 #include <openssl/err.h>
 #include <openssl/crypto.h>
 #include <openssl/pem.h>
+#include <openssl/x509v3.h>
 
 #pragma comment(lib, "libcrypto.lib")
 #pragma comment(lib, "libssl.lib")
@@ -522,6 +523,12 @@ bool	InitSSL()
 				throw std::runtime_error("SSL_CTX_new failed");
 			}
 
+#if 0
+			const char* cipherlist = "DEFAULT:!DHE:!ECDHE-ECDSA-AES256-SHA384:!ECDHE-RSA-AES256-SHA384:!ECDHE-ECDSA-AES128-SHA256:!ECDHE-RSA-AES128-SHA256:!RSA-AES256-SHA256:!RSA-AES128-SHA256:!EMPTY-RENEGOTIATION-INFO-SCSV";
+			int ret = SSL_CTX_set_ciphersuites(g_openssl_client_ctx, cipherlist);
+			int ret2 = SSL_CTX_set_cipher_list(g_openssl_client_ctx, cipherlist);
+#endif		
+
 			/* èÿñæèëÇÃåüèÿê›íË */
 			SSL_CTX_set_verify(g_openssl_client_ctx, SSL_VERIFY_PEER, myVerify);
 
@@ -732,8 +739,8 @@ static int NonBlockingSSL_Connect(SSL* ssl, std::atomic_bool& valid, bool isServ
 	SOCKET sockfd = (SOCKET)SSL_get_fd(ssl);;
 	int select_ret = 0;
 
-	static const std::chrono::seconds timeout(60);
-	auto connectStartTime = std::chrono::steady_clock::now();
+	static const std::chrono::seconds timeout(30);
+	const auto connectStartTime = std::chrono::steady_clock::now();
 
 	unsigned long op = 1;	// non blocking
 	//ioctlsocket(sockfd, FIONBIO, &op);
@@ -753,7 +760,14 @@ static int NonBlockingSSL_Connect(SSL* ssl, std::atomic_bool& valid, bool isServ
 
 		case SSL_ERROR_WANT_READ:
 		case SSL_ERROR_WANT_WRITE:
+		{
+			if (timeout < (std::chrono::steady_clock::now() - connectStartTime)) {
+				return FALSE;	// timeout
+			}
+
+			::Sleep(50);
 			continue;	// pending
+		}
 
 		case SSL_ERROR_SYSCALL:
 		default:

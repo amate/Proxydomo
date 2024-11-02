@@ -12,12 +12,23 @@
 #include "Misc.h"
 #include "Logger.h"
 
+namespace {
+
+	std::chrono::seconds GetNowSeconds()
+	{
+		auto nowSeconds = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::steady_clock::now().time_since_epoch());
+		return nowSeconds;
+	}
+
+}
+
 
 /////////////////////////////////////////////////////////
 // ConnectionData
 
-ConnectionData::ConnectionData(uint32_t uniqueId) : uniqueId(uniqueId), inStep(STEP::STEP_START), outStep(STEP::STEP_START)
-{}
+ConnectionData::ConnectionData(uint32_t uniqueId) : uniqueId(uniqueId), inStep(STEP::STEP_START), outStep(STEP::STEP_START), uploadSpeed{}, downloadSpeed{}
+{
+}
 
 ConnectionData::ConnectionData(const ConnectionData& conData)
 {
@@ -64,6 +75,34 @@ void	ConnectionData::SetOutStep(STEP out)
 	CConnectionManager::UpdateNotify(this);
 }
 
+bool	_setSpeed(std::array<ConnectionData::Speed, 10>& speed, int bytes)
+{
+	bool timeChanged = false;
+	const auto nowSeconds = GetNowSeconds();
+	const int indexSeconds = nowSeconds.count() % 10;
+	if (speed[indexSeconds].recordingTimeSeconds != nowSeconds) {
+		speed[indexSeconds].recordingTimeSeconds = nowSeconds;
+		speed[indexSeconds].bytes = 0;
+		timeChanged = true;
+	}
+	speed[indexSeconds].bytes += bytes;
+	return timeChanged;
+}
+
+void ConnectionData::SetUpload(int bytes)
+{
+	CCritSecLock lock(cs);
+	_setSpeed(uploadSpeed, bytes);
+}
+
+void ConnectionData::SetDownload(int bytes)
+{
+	CCritSecLock lock(cs);
+	_setSpeed(downloadSpeed, bytes);
+}
+
+
+
 
 /////////////////////////////////////////////////////////
 // CConnectionManager
@@ -71,14 +110,15 @@ void	ConnectionData::SetOutStep(STEP out)
 CCriticalSection			CConnectionManager::s_csList;
 std::list<ConnectionData>	CConnectionManager::s_connectionDataList;
 std::function<void(ConnectionData*, CConnectionManager::UpdateCategory)> CConnectionManager::s_funcCallback;
-std::atomic_uint32_t	CConnectionManager::s_uniqueIdGenerator;
+std::atomic_uint32_t	CConnectionManager::s_uniqueIdGenerator = 10;
 
-ConnectionData*	CConnectionManager::CreateConnectionData()
+ConnectionData*	CConnectionManager::CreateConnectionData(std::function<void()>	funcKillConnection)
 {
 	CCritSecLock lock(s_csList);
 	s_connectionDataList.emplace_front(s_uniqueIdGenerator++);
 	ConnectionData* conData = &s_connectionDataList.front();
 	conData->itThis = s_connectionDataList.begin();
+	conData->funcKillConnection = funcKillConnection;
 	if (s_funcCallback) {
 		s_funcCallback(conData, kAddConnection);
 	}
@@ -128,6 +168,10 @@ void CConnectionManager::UpdateNotify(ConnectionData* conData)
 ///////////////////////////////////////////////////////
 // CConnectionMonitorWindow
 
+CConnectionMonitorWindow::CConnectionMonitorWindow()
+{
+}
+
 void	CConnectionMonitorWindow::ShowWindow()
 {
 	if (IsWindowVisible() == FALSE) {
@@ -157,11 +201,7 @@ void	CConnectionMonitorWindow::ShowWindow()
 					}
 				}
 				m_connectionDataOperationList.emplace_back(conData, updateCategory);
-				PostMessage(WM_UPDATENOTIFY);
-			}
-			if (connectionCount != -1) {
-				SetWindowText((boost::wformat(L"Connection Monitor - [%02d]")
-					% connectionCount).str().c_str());
+				PostMessage(WM_UPDATENOTIFY, connectionCount);
 			}
 		});
 	}
@@ -171,6 +211,9 @@ void	CConnectionMonitorWindow::ShowWindow()
 		SetWindowText((boost::wformat(L"Connection Monitor - [%02d]")
 			% (int)CConnectionManager::s_connectionDataList.size()).str().c_str());
 	}
+
+	SetTimer(kUpdateSpeedTimerId, kUpdateSpeedTimerInterval);
+
 	__super::ShowWindow(TRUE);
 }
 
@@ -190,6 +233,8 @@ BOOL CConnectionMonitorWindow::OnInitDialog(CWindow wndFocus, LPARAM lInitParam)
 		{ _T("InStep"), LVCFMT_LEFT, 60 },
 		{ _T("Verb"), LVCFMT_LEFT, 50 },
 		{ _T("URL"), LVCFMT_LEFT, 300 },
+		{ _T("Upload"), LVCFMT_LEFT, 100 },
+		{ _T("Download"), LVCFMT_LEFT, 100 },
 	};
 
 	int nCount = _countof(clm);
@@ -296,6 +341,8 @@ void CConnectionMonitorWindow::OnCancel(UINT uNotifyCode, int nID, CWindow wndCt
 	m_listActive = false;
 	CConnectionManager::UnregisterCallback();
 
+	KillTimer(kUpdateSpeedTimerId);
+
 	__super::ShowWindow(FALSE);
 
 	{
@@ -316,6 +363,12 @@ void CConnectionMonitorWindow::OnCancel(UINT uNotifyCode, int nID, CWindow wndCt
 
 LRESULT CConnectionMonitorWindow::OnUpdateNotify(UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+	const int connectionCount = (int)wParam;
+	if (connectionCount != -1) {
+		SetWindowText((boost::wformat(L"Connection Monitor - [%02d]")
+			% connectionCount).str().c_str());
+	}
+
 	CCritSecLock lock(m_csConnectionDataOperationList);
 	for (auto& conDataOperation : m_connectionDataOperationList) {
 		auto conData = &conDataOperation.conData;
@@ -405,6 +458,11 @@ LRESULT CConnectionMonitorWindow::OnUpdateNotify(UINT uMsg, WPARAM wParam, LPARA
 
 void CConnectionMonitorWindow::OnTimer(UINT_PTR nIDEvent)
 {
+	if (nIDEvent == kUpdateSpeedTimerId) {
+		_UpdateSpeedTimer();
+		return;
+	}
+
 	KillTimer(nIDEvent);
 
 	uint32_t	uniqueId = (uint32_t)nIDEvent;
@@ -433,6 +491,32 @@ LRESULT CConnectionMonitorWindow::OnConnectionListRClick(LPNMHDR pnmh)
 	return 0;
 }
 
+LRESULT CConnectionMonitorWindow::OnConnectionListKeyDown(LPNMHDR pnmh)
+{
+	auto pnkd = (LPNMLVKEYDOWN)pnmh;
+	if (pnkd->wVKey == VK_DELETE) {
+		std::vector<int> selectedIndexList;
+		const int count = m_connectionListView.GetItemCount();
+		for (int i = 0; i < count; ++i) {
+			if (m_connectionListView.GetItemState(i, LVIS_SELECTED) & LVIS_SELECTED) {
+				selectedIndexList.emplace_back(i);
+				m_connectionListView.SetItemState(i, 0, LVIS_SELECTED);	// ‘I‘ð‰ðœ
+			}
+		}
+
+		CCritSecLock	lock(CConnectionManager::s_csList);
+		for (const int selectedIndex : selectedIndexList) {
+			uint32_t uniqueId = static_cast<uint32_t>(m_connectionListView.GetItemData(selectedIndex));
+			auto connectionData = _GetConnectionDataFromUniqueId(uniqueId);
+			if (!connectionData) {
+				continue;
+			}
+			connectionData->funcKillConnection();
+		}
+	}
+	return LRESULT();
+}
+
 DWORD CConnectionMonitorWindow::OnPrePaint(int nID, LPNMCUSTOMDRAW lpnmcd)
 {
 	if (lpnmcd->hdr.idFrom == IDC_LIST_CONNECTION)
@@ -459,6 +543,80 @@ DWORD CConnectionMonitorWindow::OnItemPrePaint(int nID, LPNMCUSTOMDRAW lpnmcd)
 		}
 	}
 	return CDRF_DODEFAULT;
+}
+
+void CConnectionMonitorWindow::_UpdateSpeedTimer()
+{
+	CCritSecLock lock(CConnectionManager::s_csList);
+
+	const auto nowSeconds = GetNowSeconds();
+	const int indexSeconds = nowSeconds.count() % 10;
+	const auto validFirstSeconds = nowSeconds - std::chrono::seconds(5);
+
+	auto funcCalculateSpeed = [=](const std::array<ConnectionData::Speed, 10>& speedData) -> CString {
+		int totalBytes = 0;
+		long long minSeconds = nowSeconds.count() - 1;
+		for (const auto& speed : speedData) {
+			if (validFirstSeconds <= speed.recordingTimeSeconds && speed.recordingTimeSeconds < nowSeconds) {
+				minSeconds = std::min(minSeconds, speed.recordingTimeSeconds.count());
+				totalBytes += speed.bytes;
+			}
+		}
+		int totalSeconds = static_cast<int>((nowSeconds.count() - 1) - minSeconds);
+		if (totalSeconds > 0) {
+			const int bytesSeconds = totalBytes / totalSeconds;
+			const int KBSeconds = bytesSeconds / 1024;	// KB/s
+			CString text;
+			if (KBSeconds > 0) {
+				text.Format(L"%d KB/s", KBSeconds);
+			} else {
+				text.Format(L"%d bytes/s", bytesSeconds);
+			}
+			return text;
+		}
+		return L"";
+	};
+
+	auto funcSetItem = [this](int iItem, int iSubItem, LPCWSTR text) {
+		LVITEM	Item = {};
+		Item.mask = LVIF_TEXT;
+		Item.iItem = iItem;
+		Item.iSubItem = iSubItem;
+		Item.pszText = (LPWSTR)text;
+		m_connectionListView.SetItem(&Item);
+	};
+
+	
+	const int count = m_connectionListView.GetItemCount();
+	for (int i = 0; i < count; ++i) {
+		uint32_t uniqueId = static_cast<uint32_t>(m_connectionListView.GetItemData(i));
+		auto connectionData = _GetConnectionDataFromUniqueId(uniqueId);
+		if (!connectionData) {
+			continue;
+		}
+
+		CCritSecLock lockCon(connectionData->cs);
+		const CString uploadSpeedText = funcCalculateSpeed(connectionData->uploadSpeed);
+		const CString downloadSpeedText = funcCalculateSpeed(connectionData->downloadSpeed);
+		lockCon.Unlock();
+
+		enum {
+			kUploadSubItem = 4,
+			kDownloadSubItem = 5,
+		};
+		funcSetItem(i, kUploadSubItem, uploadSpeedText);
+		funcSetItem(i, kDownloadSubItem, downloadSpeedText);
+	}
+}
+
+ConnectionData* CConnectionMonitorWindow::_GetConnectionDataFromUniqueId(uint32_t uniqueId)
+{
+	for (auto& connectionData : CConnectionManager::s_connectionDataList) {
+		if (connectionData.uniqueId == uniqueId) {
+			return &connectionData;
+		}
+	}
+	return nullptr;
 }
 
 

@@ -9,6 +9,8 @@
 #include <functional>
 #include <atomic>
 #include <unordered_set>
+#include <array>
+
 #include <atlcrack.h>
 #include <atlctrls.h>
 #include <atlframe.h>
@@ -27,6 +29,15 @@ struct ConnectionData
 	STEP			outStep;
 	STEP			inStep;
 
+	struct Speed {
+		std::chrono::seconds	recordingTimeSeconds;
+		int	bytes;
+	};
+	std::array<Speed, 10>	uploadSpeed;
+	std::array<Speed, 10>	downloadSpeed;
+
+	std::function<void()>	funcKillConnection;
+
 	std::list<ConnectionData>::iterator	itThis;
 
 	ConnectionData(uint32_t uniqueId);
@@ -37,6 +48,9 @@ struct ConnectionData
 	void	SetUrl(const std::wstring& url);
 	void	SetOutStep(STEP out);
 	void	SetInStep(STEP in);
+
+	void	SetUpload(int bytes);
+	void	SetDownload(int bytes);
 };
 
 
@@ -49,7 +63,7 @@ public:
 		kUpdateConnection,
 	};
 
-	static	ConnectionData*	CreateConnectionData();
+	static	ConnectionData*	CreateConnectionData(std::function<void()>	funcKillConnection);
 	static	void			RemoveConnectionData(ConnectionData* conData);
 
 	// for CConnectionManagerWindow
@@ -74,7 +88,14 @@ class CConnectionMonitorWindow :
 public:
 	enum { IDD = IDD_CONNECTIONMONITOR };
 
-	enum { WM_UPDATENOTIFY = WM_APP + 1 };
+	enum { 
+		WM_UPDATENOTIFY = WM_APP + 1,
+
+		kUpdateSpeedTimerId = 1,
+		kUpdateSpeedTimerInterval = 1000,
+	};
+
+	CConnectionMonitorWindow();
 
 	void	ShowWindow();
 
@@ -91,6 +112,7 @@ public:
 		MSG_WM_TIMER(OnTimer)
 
 		NOTIFY_HANDLER_EX(IDC_LIST_CONNECTION, NM_RCLICK, OnConnectionListRClick)
+		NOTIFY_HANDLER_EX(IDC_LIST_CONNECTION, LVN_KEYDOWN, OnConnectionListKeyDown)
 
 		CHAIN_MSG_MAP(CDialogResize<CConnectionMonitorWindow>)
 		CHAIN_MSG_MAP(CCustomDraw<CConnectionMonitorWindow>)
@@ -102,12 +124,18 @@ public:
 	LRESULT OnUpdateNotify(UINT uMsg, WPARAM wParam, LPARAM lParam);
 	void OnTimer(UINT_PTR nIDEvent);
 	LRESULT OnConnectionListRClick(LPNMHDR pnmh);
+	LRESULT OnConnectionListKeyDown(LPNMHDR pnmh);
 
 	// CCustomDraw
 	DWORD OnPrePaint(int nID, LPNMCUSTOMDRAW lpnmcd);
 	DWORD OnItemPrePaint(int nID, LPNMCUSTOMDRAW lpnmcd);
 
 private:
+
+	void	_UpdateSpeedTimer();
+	ConnectionData* _GetConnectionDataFromUniqueId(uint32_t uniqueId);
+
+
 	CListViewCtrl	m_connectionListView;
 
 	struct ConnectionDataOperation
