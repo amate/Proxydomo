@@ -29,12 +29,19 @@ struct ConnectionData
 	STEP			outStep;
 	STEP			inStep;
 
-	struct Speed {
-		std::chrono::seconds	recordingTimeSeconds;
-		int	bytes;
+	struct TrafficData {
+		struct Speed {
+			std::chrono::seconds	recordingTimeSeconds;
+			int	bytes;
+		};
+		std::array<Speed, 10>	uploadSpeed;
+		std::array<Speed, 10>	downloadSpeed;
+
+		TrafficData() : uploadSpeed{}, downloadSpeed{}
+		{
+		}
 	};
-	std::array<Speed, 10>	uploadSpeed;
-	std::array<Speed, 10>	downloadSpeed;
+	TrafficData	trafficData;
 
 	std::function<void()>	funcKillConnection;
 
@@ -61,6 +68,7 @@ public:
 		kAddConnection,
 		kRemoveConnection,
 		kUpdateConnection,
+		kUpdateTraffic,
 	};
 
 	static	ConnectionData*	CreateConnectionData(std::function<void()>	funcKillConnection);
@@ -71,7 +79,7 @@ public:
 	static void UnregisterCallback();
 
 	// for ConnectionData
-	static void UpdateNotify(ConnectionData* conData);
+	static void UpdateNotify(ConnectionData* conData, UpdateCategory category);
 
 	static CCriticalSection				s_csList;
 	static std::list<ConnectionData>	s_connectionDataList;
@@ -134,6 +142,7 @@ private:
 
 	void	_UpdateSpeedTimer();
 	ConnectionData* _GetConnectionDataFromUniqueId(uint32_t uniqueId);
+	void	_UpdateTitleText();
 
 
 	CListViewCtrl	m_connectionListView;
@@ -150,9 +159,14 @@ private:
 	CCriticalSection m_csConnectionDataOperationList;
 	std::list<ConnectionDataOperation>	m_connectionDataOperationList;
 
+	std::unordered_map<uint32_t, ConnectionData::TrafficData>	m_connectionTrafficDataList;
+
 	std::list<uint32_t>	m_connectionCloseList;
 	std::atomic_bool	m_listActive;
 	std::unordered_set<uint32_t>	m_idleConnections;
+
+	int	m_lastConnectionCount = 0;
+	CString m_lastUploadDownloadTrafficText;
 };
 
 

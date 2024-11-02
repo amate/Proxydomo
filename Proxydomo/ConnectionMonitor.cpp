@@ -26,7 +26,7 @@ namespace {
 /////////////////////////////////////////////////////////
 // ConnectionData
 
-ConnectionData::ConnectionData(uint32_t uniqueId) : uniqueId(uniqueId), inStep(STEP::STEP_START), outStep(STEP::STEP_START), uploadSpeed{}, downloadSpeed{}
+ConnectionData::ConnectionData(uint32_t uniqueId) : uniqueId(uniqueId), inStep(STEP::STEP_START), outStep(STEP::STEP_START)
 {
 }
 
@@ -42,6 +42,7 @@ ConnectionData& ConnectionData::operator= (const ConnectionData& conData)
 	url = conData.url;
 	inStep = conData.inStep;
 	outStep = conData.outStep;
+	trafficData = conData.trafficData;
 	return *this;
 }
 
@@ -51,7 +52,7 @@ void	ConnectionData::SetVerb(const std::wstring& verb)
 	this->verb = verb;
 	ConnectionData conData(*this);
 	lock.Unlock();
-	CConnectionManager::UpdateNotify(&conData);
+	CConnectionManager::UpdateNotify(&conData, CConnectionManager::kUpdateConnection);
 }
 
 void	ConnectionData::SetUrl(const std::wstring& url)
@@ -60,22 +61,22 @@ void	ConnectionData::SetUrl(const std::wstring& url)
 	this->url = url;
 	ConnectionData conData(*this);
 	lock.Unlock();
-	CConnectionManager::UpdateNotify(&conData);
+	CConnectionManager::UpdateNotify(&conData, CConnectionManager::kUpdateConnection);
 }
 
 void	ConnectionData::SetInStep(STEP in)
 {
 	inStep = in;
-	CConnectionManager::UpdateNotify(this);
+	CConnectionManager::UpdateNotify(this, CConnectionManager::kUpdateConnection);
 }
 
 void	ConnectionData::SetOutStep(STEP out)
 {
 	outStep = out;
-	CConnectionManager::UpdateNotify(this);
+	CConnectionManager::UpdateNotify(this, CConnectionManager::kUpdateConnection);
 }
 
-bool	_setSpeed(std::array<ConnectionData::Speed, 10>& speed, int bytes)
+bool	_setSpeed(std::array<ConnectionData::TrafficData::Speed, 10>& speed, int bytes)
 {
 	bool timeChanged = false;
 	const auto nowSeconds = GetNowSeconds();
@@ -92,13 +93,17 @@ bool	_setSpeed(std::array<ConnectionData::Speed, 10>& speed, int bytes)
 void ConnectionData::SetUpload(int bytes)
 {
 	CCritSecLock lock(cs);
-	_setSpeed(uploadSpeed, bytes);
+	if (_setSpeed(trafficData.uploadSpeed, bytes)) {
+		CConnectionManager::UpdateNotify(this, CConnectionManager::kUpdateTraffic);
+	}
 }
 
 void ConnectionData::SetDownload(int bytes)
 {
 	CCritSecLock lock(cs);
-	_setSpeed(downloadSpeed, bytes);
+	if (_setSpeed(trafficData.downloadSpeed, bytes)) {
+		CConnectionManager::UpdateNotify(this, CConnectionManager::kUpdateTraffic);
+	}
 }
 
 
@@ -154,11 +159,11 @@ void CConnectionManager::UnregisterCallback()
 }
 
 // for ConnectionData
-void CConnectionManager::UpdateNotify(ConnectionData* conData)
+void CConnectionManager::UpdateNotify(ConnectionData* conData, UpdateCategory category)
 {
 	CCritSecLock lock(s_csList);
 	if (s_funcCallback) {
-		s_funcCallback(conData, kUpdateConnection);
+		s_funcCallback(conData, category);
 	}
 }
 
@@ -185,7 +190,7 @@ void	CConnectionMonitorWindow::ShowWindow()
 			int connectionCount = -1;
 			{
 				CCritSecLock lock(m_csConnectionDataOperationList);
-				if (updateCategory == CConnectionManager::kUpdateConnection) {
+				if (updateCategory == CConnectionManager::kUpdateConnection || updateCategory == CConnectionManager::kUpdateTraffic) {
 					for (auto& conDataOperation : m_connectionDataOperationList) {
 						if (conDataOperation.conData.uniqueId == conData->uniqueId
 							&& conDataOperation.updateCategory == updateCategory)
@@ -208,8 +213,10 @@ void	CConnectionMonitorWindow::ShowWindow()
 
 	{
 		CCritSecLock lock(CConnectionManager::s_csList);
-		SetWindowText((boost::wformat(L"Connection Monitor - [%02d]")
-			% (int)CConnectionManager::s_connectionDataList.size()).str().c_str());
+		m_lastConnectionCount = static_cast<int>(CConnectionManager::s_connectionDataList.size());
+		lock.Unlock();
+
+		_UpdateTitleText();
 	}
 
 	SetTimer(kUpdateSpeedTimerId, kUpdateSpeedTimerInterval);
@@ -352,12 +359,16 @@ void CConnectionMonitorWindow::OnCancel(UINT uNotifyCode, int nID, CWindow wndCt
 
 	m_connectionListView.DeleteAllItems();
 
+	m_connectionTrafficDataList.clear();
+
 	for (uint32_t closeItem : m_connectionCloseList) {
 		KillTimer((UINT_PTR)closeItem);
 	}
 	m_connectionCloseList.clear();
 
 	m_idleConnections.clear();
+
+	m_lastUploadDownloadTrafficText.Empty();
 }
 
 
@@ -365,8 +376,8 @@ LRESULT CConnectionMonitorWindow::OnUpdateNotify(UINT uMsg, WPARAM wParam, LPARA
 {
 	const int connectionCount = (int)wParam;
 	if (connectionCount != -1) {
-		SetWindowText((boost::wformat(L"Connection Monitor - [%02d]")
-			% connectionCount).str().c_str());
+		m_lastConnectionCount = connectionCount;
+		_UpdateTitleText();
 	}
 
 	CCritSecLock lock(m_csConnectionDataOperationList);
@@ -435,6 +446,12 @@ LRESULT CConnectionMonitorWindow::OnUpdateNotify(UINT uMsg, WPARAM wParam, LPARA
 		}
 		break;
 
+		case CConnectionManager::kUpdateTraffic:
+		{
+			m_connectionTrafficDataList[conData->uniqueId] = conData->trafficData;
+		}
+		break;
+
 		case CConnectionManager::kRemoveConnection:
 		{
 			int i = funcGetIndex();
@@ -446,6 +463,8 @@ LRESULT CConnectionMonitorWindow::OnUpdateNotify(UINT uMsg, WPARAM wParam, LPARA
 				m_connectionListView.GetItemRect(i, &rcItem, LVIR_BOUNDS);
 				m_connectionListView.InvalidateRect(&rcItem);
 				SetTimer(conData->uniqueId, 1500);	// ’x‰„‚³‚¹‚Ä‚©‚çÁ‚·
+
+				m_connectionTrafficDataList.erase(conData->uniqueId);
 			}
 		}
 		break;
@@ -547,13 +566,11 @@ DWORD CConnectionMonitorWindow::OnItemPrePaint(int nID, LPNMCUSTOMDRAW lpnmcd)
 
 void CConnectionMonitorWindow::_UpdateSpeedTimer()
 {
-	CCritSecLock lock(CConnectionManager::s_csList);
-
 	const auto nowSeconds = GetNowSeconds();
 	const int indexSeconds = nowSeconds.count() % 10;
 	const auto validFirstSeconds = nowSeconds - std::chrono::seconds(5);
 
-	auto funcCalculateSpeed = [=](const std::array<ConnectionData::Speed, 10>& speedData) -> CString {
+	auto funcCalculateSpeed = [=](const std::array<ConnectionData::TrafficData::Speed, 10>& speedData) -> int {
 		int totalBytes = 0;
 		long long minSeconds = nowSeconds.count() - 1;
 		for (const auto& speed : speedData) {
@@ -565,6 +582,23 @@ void CConnectionMonitorWindow::_UpdateSpeedTimer()
 		int totalSeconds = static_cast<int>((nowSeconds.count() - 1) - minSeconds);
 		if (totalSeconds > 0) {
 			const int bytesSeconds = totalBytes / totalSeconds;
+			return bytesSeconds;
+		}
+		return 0;
+	};
+
+	auto funcTextFromTrafficSpeed = [](int bytesSeconds) -> CString {
+		if (bytesSeconds > 0) {
+#if 0
+			const int Kbps = bytesSeconds * 8 / 1000;	// Kbps
+			CString text;
+			if (Kbps > 0) {
+				text.Format(L"%d Kbps", Kbps);
+			} else {
+				text.Format(L"%d bps", bytesSeconds * 8);
+			}
+#endif
+#if 1
 			const int KBSeconds = bytesSeconds / 1024;	// KB/s
 			CString text;
 			if (KBSeconds > 0) {
@@ -572,6 +606,7 @@ void CConnectionMonitorWindow::_UpdateSpeedTimer()
 			} else {
 				text.Format(L"%d bytes/s", bytesSeconds);
 			}
+#endif
 			return text;
 		}
 		return L"";
@@ -586,19 +621,24 @@ void CConnectionMonitorWindow::_UpdateSpeedTimer()
 		m_connectionListView.SetItem(&Item);
 	};
 
-	
+	int totalUploadBytesSeconds = 0;
+	int totalDownloadBytesSeconds = 0;
 	const int count = m_connectionListView.GetItemCount();
 	for (int i = 0; i < count; ++i) {
 		uint32_t uniqueId = static_cast<uint32_t>(m_connectionListView.GetItemData(i));
-		auto connectionData = _GetConnectionDataFromUniqueId(uniqueId);
-		if (!connectionData) {
+		auto it = m_connectionTrafficDataList.find(uniqueId);
+		if (it == m_connectionTrafficDataList.end()) {
 			continue;
 		}
 
-		CCritSecLock lockCon(connectionData->cs);
-		const CString uploadSpeedText = funcCalculateSpeed(connectionData->uploadSpeed);
-		const CString downloadSpeedText = funcCalculateSpeed(connectionData->downloadSpeed);
-		lockCon.Unlock();
+		const int uploadBytesSeconds = funcCalculateSpeed(it->second.uploadSpeed);
+		const int downloadBytesSeconds = funcCalculateSpeed(it->second.downloadSpeed);
+
+		totalUploadBytesSeconds += uploadBytesSeconds;
+		totalDownloadBytesSeconds += downloadBytesSeconds;
+
+		const CString uploadSpeedText = funcTextFromTrafficSpeed(uploadBytesSeconds);
+		const CString downloadSpeedText = funcTextFromTrafficSpeed(downloadBytesSeconds);
 
 		enum {
 			kUploadSubItem = 4,
@@ -607,6 +647,10 @@ void CConnectionMonitorWindow::_UpdateSpeedTimer()
 		funcSetItem(i, kUploadSubItem, uploadSpeedText);
 		funcSetItem(i, kDownloadSubItem, downloadSpeedText);
 	}
+
+	//  Upload [ 12 KB/s ]  Download [ 34 bytes/s ]
+	m_lastUploadDownloadTrafficText.Format(L" Upload [ %s ] Download [ %s ]", (LPCWSTR)funcTextFromTrafficSpeed(totalUploadBytesSeconds), (LPCWSTR)funcTextFromTrafficSpeed(totalDownloadBytesSeconds));
+	_UpdateTitleText();
 }
 
 ConnectionData* CConnectionMonitorWindow::_GetConnectionDataFromUniqueId(uint32_t uniqueId)
@@ -617,6 +661,12 @@ ConnectionData* CConnectionMonitorWindow::_GetConnectionDataFromUniqueId(uint32_
 		}
 	}
 	return nullptr;
+}
+
+void CConnectionMonitorWindow::_UpdateTitleText()
+{
+	SetWindowText((boost::wformat(L"Connection Monitor - [%02d] %s")
+		% m_lastConnectionCount % (LPCWSTR)m_lastUploadDownloadTrafficText).str().c_str());
 }
 
 

@@ -371,7 +371,7 @@ bool	CSocket::Connect(IPAddress addr, std::atomic_bool& valid)
 				int opterror = ::getsockopt(m_sock, SOL_SOCKET, SO_ERROR, (char*)&optret, &optretlen);
 				ATLASSERT(opterror == 0);
 				if (optret != 0) {
-					ATLASSERT(FALSE);
+					//ATLASSERT(FALSE);
 					break;	// fail
 				}
 			} while (select_ret == TEST_TIMEOUT);

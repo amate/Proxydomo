@@ -101,6 +101,8 @@ v2.3
 ・[add] 接続モニターで選択したURLをDeleteキーで切断できるようにした
 ・[update] OpenSSLを v3.0.1 から v3.4.0 へ更新
 
+・[add] 接続モニターのタイトルバーに、全接続のアップロードとダウンロード速度の合計を表示するようにした
+・[change] アップロード、ダウンロード速度の計算に、CConnectionManagerが持っている s_connectionDataList を利用しないようにした(UpdateNotifyを利用する方法に変更)
 
 v2.2
 ・[update] OpenSSLを v3.0 から v3.0.1 へ更新
