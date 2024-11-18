@@ -204,6 +204,36 @@
     <ClCompile Include="BlockListDatabase.cpp">
       <Filter>Header Files</Filter>
     </ClCompile>
+    <ClCompile Include="BrotliDecompressor.cpp">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UnitTest\Test.cpp">
+      <Filter>Header Files\UnitTest</Filter>
+    </ClCompile>
+    <ClCompile Include="UnitTest\Test_brotli.cpp">
+      <Filter>Header Files\UnitTest</Filter>
+    </ClCompile>
+    <ClCompile Include="stdDecompressor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ZstdDecompressor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="brotli\common\dictionary.c">
+      <Filter>Header Files\brotli</Filter>
+    </ClCompile>
+    <ClCompile Include="brotli\dec\bit_reader.c">
+      <Filter>Header Files\brotli</Filter>
+    </ClCompile>
+    <ClCompile Include="brotli\dec\decode.c">
+      <Filter>Header Files\brotli</Filter>
+    </ClCompile>
+    <ClCompile Include="brotli\dec\huffman.c">
+      <Filter>Header Files\brotli</Filter>
+    </ClCompile>
+    <ClCompile Include="brotli\dec\state.c">
+      <Filter>Header Files\brotli</Filter>
+    </ClCompile>
     <ClCompile Include="brotli\enc\backward_references.c">
       <Filter>Header Files\brotli</Filter>
     </ClCompile>
@@ -254,30 +284,6 @@
     </ClCompile>
     <ClCompile Include="brotli\enc\utf8_util.c">
       <Filter>Header Files\brotli</Filter>
-    </ClCompile>
-    <ClCompile Include="brotli\dec\bit_reader.c">
-      <Filter>Header Files\brotli</Filter>
-    </ClCompile>
-    <ClCompile Include="brotli\dec\decode.c">
-      <Filter>Header Files\brotli</Filter>
-    </ClCompile>
-    <ClCompile Include="brotli\dec\huffman.c">
-      <Filter>Header Files\brotli</Filter>
-    </ClCompile>
-    <ClCompile Include="brotli\dec\state.c">
-      <Filter>Header Files\brotli</Filter>
-    </ClCompile>
-    <ClCompile Include="brotli\common\dictionary.c">
-      <Filter>Header Files\brotli</Filter>
-    </ClCompile>
-    <ClCompile Include="BrotliDecompressor.cpp">
-      <Filter>Header Files</Filter>
-    </ClCompile>
-    <ClCompile Include="UnitTest\Test.cpp">
-      <Filter>Header Files\UnitTest</Filter>
-    </ClCompile>
-    <ClCompile Include="UnitTest\Test_brotli.cpp">
-      <Filter>Header Files\UnitTest</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -501,6 +507,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Decompressor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ZstdDecompressor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -63,6 +63,9 @@ https://kb.firedaemon.com/support/solutions/articles/4000121705
 https://github.com/google/brotli
 ソース組み込み済み
 
+◇zstd  
+https://github.com/facebook/zstd
+
 □コンパイル済みdll  
 zlibのコンパイル済みdllを下記のURLで公開しています  
 http://1drv.ms/1vqvcaG
@@ -93,6 +96,10 @@ b2.exe install  --prefix=lib64 toolset=msvc-14.2 runtime-link=static address-mod
 ## ■更新履歴
 
 <pre>
+
+v2.4
+・[add] "Content-Encoding: zstd" に対応
+・[misc] 接続モニターのタイトルバーに表示されるアップロードとダウンロード速度のテキストにパッティングを追加
 
 v2.3
 ・[fix] SSL接続中にCPU使用率が異常に高くなるバグを修正

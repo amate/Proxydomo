@@ -602,9 +602,9 @@ void CConnectionMonitorWindow::_UpdateSpeedTimer()
 			const int KBSeconds = bytesSeconds / 1024;	// KB/s
 			CString text;
 			if (KBSeconds > 0) {
-				text.Format(L"%d KB/s", KBSeconds);
+				text.Format(L"%4d KB/s", KBSeconds);
 			} else {
-				text.Format(L"%d bytes/s", bytesSeconds);
+				text.Format(L"%4d bytes/s", bytesSeconds);
 			}
 #endif
 			return text;

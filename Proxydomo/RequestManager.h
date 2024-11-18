@@ -159,6 +159,7 @@ private:
 		kGzip,
 		kDeflate,
 		kBrotli,
+		kZstd,
 	};
 	ContentEncoding		m_recvContentCoding;
 	std::unique_ptr<IDecompressor>	m_decompressor;

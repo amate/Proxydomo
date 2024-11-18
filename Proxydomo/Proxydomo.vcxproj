@@ -104,11 +104,11 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(SolutionDir)icu\include;$(SolutionDir)Proxydomo\brotli\include;D:\Program\WTL81_12085\Include;$(SolutionDir)zlib\x64\include;C:\Programing\#lib\boost_1_73_0\lib\include\boost-1_73;$(SolutionDir)openssl-3\x64\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(SolutionDir)icu\include;$(SolutionDir)Proxydomo\brotli\include;$(SolutionDir)Proxydomo\zstd\include;D:\Program\WTL81_12085\Include;$(SolutionDir)zlib\x64\include;C:\Programing\#lib\boost_1_73_0\lib\include\boost-1_73;$(SolutionDir)openssl-3\x64\include;$(IncludePath)</IncludePath>
     <OutDir>$(SolutionDir)$(Configuration)$(Platform)\</OutDir>
     <IntDir>$(Configuration)$(Platform)\</IntDir>
     <TargetName>$(ProjectName)64</TargetName>
-    <LibraryPath>C:\Programing\#lib\boost_1_73_0\lib\lib;$(SolutionDir)icu\lib64;$(SolutionDir)zlib\x64\lib;$(SolutionDir)sqlite\Win64;$(SolutionDir)openssl-3\x64\lib;$(VCInstallDir)lib\amd64;$(VCInstallDir)atlmfc\lib\amd64;$(WindowsSDK_LibraryPath_x64);$(LibraryPath)</LibraryPath>
+    <LibraryPath>C:\Programing\#lib\boost_1_73_0\lib\lib;$(SolutionDir)icu\lib64;$(SolutionDir)Proxydomo\zstd\static;$(SolutionDir)zlib\x64\lib;$(SolutionDir)sqlite\Win64;$(SolutionDir)openssl-3\x64\lib;$(VCInstallDir)lib\amd64;$(VCInstallDir)atlmfc\lib\amd64;$(WindowsSDK_LibraryPath_x64);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Test|x64'">
     <LinkIncremental>true</LinkIncremental>
@@ -128,8 +128,8 @@
     <OutDir>$(SolutionDir)$(Configuration)$(Platform)\</OutDir>
     <IntDir>$(Configuration)$(Platform)\</IntDir>
     <TargetName>$(ProjectName)64</TargetName>
-    <LibraryPath>C:\Programing\#lib\boost_1_73_0\lib\lib;$(SolutionDir)openssl-3\x64\lib;$(SolutionDir)icu\lib64;$(SolutionDir)zlib\x64\lib;$(SolutionDir)sqlite\Win64;$(VCInstallDir)lib\amd64;$(VCInstallDir)atlmfc\lib\amd64;$(WindowsSDK_LibraryPath_x64);$(LibraryPath)</LibraryPath>
-    <IncludePath>$(SolutionDir)wolfssl;$(SolutionDir)icu\include;$(SolutionDir)Proxydomo\brotli\include;D:\Program\WTL81_12085\Include;$(SolutionDir)zlib\x64\include;C:\Programing\#lib\boost_1_73_0\lib\include\boost-1_73;$(SolutionDir)openssl-3\x64\include;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Programing\#lib\boost_1_73_0\lib\lib;$(SolutionDir)openssl-3\x64\lib;$(SolutionDir)icu\lib64;$(SolutionDir)Proxydomo\zstd\static;$(SolutionDir)zlib\x64\lib;$(SolutionDir)sqlite\Win64;$(VCInstallDir)lib\amd64;$(VCInstallDir)atlmfc\lib\amd64;$(WindowsSDK_LibraryPath_x64);$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)wolfssl;$(SolutionDir)icu\include;$(SolutionDir)Proxydomo\brotli\include;$(SolutionDir)Proxydomo\zstd\include;D:\Program\WTL81_12085\Include;$(SolutionDir)zlib\x64\include;C:\Programing\#lib\boost_1_73_0\lib\include\boost-1_73;$(SolutionDir)openssl-3\x64\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -852,12 +852,14 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="stdDecompressor.cpp" />
     <ClCompile Include="TextBuffer.cpp" />
     <ClCompile Include="UITranslator.cpp" />
     <ClCompile Include="UnitTest\Test.cpp" />
     <ClCompile Include="UnitTest\Test_brotli.cpp" />
     <ClCompile Include="VersionControl.cpp" />
     <ClCompile Include="WinHTTPWrapper.cpp" />
+    <ClCompile Include="ZstdDecompressor.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AboutDlg.h" />
@@ -1172,6 +1174,7 @@
     <ClInclude Include="UITranslator.h" />
     <ClInclude Include="VersionControl.h" />
     <ClInclude Include="WinHTTPWrapper.h" />
+    <ClInclude Include="ZstdDecompressor.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Proxydomo.rc" />

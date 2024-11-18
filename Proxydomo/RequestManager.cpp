@@ -41,6 +41,7 @@
 #include "BlockListDatabase.h"
 #include "proximodo\zlibbuffer.h"
 #include "BrotliDecompressor.h"
+#include "ZstdDecompressor.h"
 
 using namespace boost::filesystem;
 using namespace CodeConvert;
@@ -1486,6 +1487,11 @@ void	CRequestManager::_ProcessIn()
 					} else if (CUtil::noCaseContains(L"br", contentEncoding)) {
 						m_recvContentCoding = ContentEncoding::kBrotli;
 						m_decompressor.reset(new CBrotliDecompressor());
+						CFilterOwner::RemoveHeader(m_filterOwner.inHeadersFiltered, L"Content-Encoding");
+
+					} else if (CUtil::noCaseContains(L"zstd", contentEncoding)) {
+						m_recvContentCoding = ContentEncoding::kZstd;
+						m_decompressor.reset(new CZstdDecompressor());
 						CFilterOwner::RemoveHeader(m_filterOwner.inHeadersFiltered, L"Content-Encoding");
 
 					} else if (CUtil::noCaseContains(L"identity", contentEncoding)) {	// ñ≥à≥èk						
